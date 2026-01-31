@@ -1,10 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.local"],
+  "globalDependencies": ["**/.env.local", "**/.env"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "env": [
         "BETTER_AUTH_SECRET",
         "DATABASE_URL",
@@ -19,7 +19,8 @@
         "TRIGGER_SECRET_KEY",
         "UPLOADTHING_TOKEN",
         "POLAR_ACCESS_TOKEN",
-        "POLAR_SUCCESS_URL"
+        "POLAR_SUCCESS_URL",
+        "VITE_API_URL"
       ]
     },
     "dev": {
@@ -29,6 +30,10 @@
     "test": {
       "cache": false,
       "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
     }
   }
 }

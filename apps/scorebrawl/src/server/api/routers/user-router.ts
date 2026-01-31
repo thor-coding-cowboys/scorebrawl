@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const user = await findUserById({ id: ctx.auth.user.id });
+    const user = await findUserById({ id: ctx.session.user.id });
     return UserDTO.parse({
       userId: user?.id,
       name: user?.name,
@@ -33,7 +33,7 @@ export const userRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await updateUser({
-        id: ctx.auth.user.id,
+        id: ctx.session.user.id,
         name: input.name,
         image: input.image,
       });
@@ -41,7 +41,7 @@ export const userRouter = createTRPCRouter({
   setDefaultLeague: leagueProcedure.input(z.object({ leagueSlug: z.string() })).query(({ ctx }) =>
     setDefaultLeague({
       leagueId: ctx.league.id,
-      userId: ctx.auth.user.id,
+      userId: ctx.session.user.id,
     }),
   ),
 });

@@ -3,11 +3,14 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev:all": "turbo dev --filter scorebrawl",
+    "dev:all": "turbo dev",
     "dev": "turbo dev --filter scorebrawl",
+    "dev:scorebrawl": "turbo dev --filter scorebrawl",
+    "dev:new": "turbo dev --filter frontend --filter backend",
     "db:start": "./dev/bin/start-db.sh",
     "db:stop": "./dev/bin/stop-db.sh",
     "test": "turbo test",
+    "typecheck": "turbo typecheck",
     "flint": "bunx @biomejs/biome check . --write --unsafe",
     "flint:check": "bunx @biomejs/biome check ."
   },
@@ -16,6 +19,8 @@
     "@scorebrawl/typescript-config": "*",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "^7.0.0-dev.20260131.1",
+    "drizzle-kit": "^0.31.8",
     "turbo": "^2.5.6",
     "typescript": "5.5.4"
   },
@@ -25,8 +30,14 @@
     "lru-cache": "^11.1.0",
     "next": "^15.5.2",
     "postcss": "^8.4.40",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-resizable-panels": "^2.0.22",
     "swr": "^2.2.5"
+  },
+  "resolutions": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "trustedDependencies": ["@biomejs/biome", "@vercel/speed-insights"]
 }

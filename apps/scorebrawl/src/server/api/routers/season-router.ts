@@ -69,7 +69,7 @@ export const seasonRouter = createTRPCRouter({
     }
     return create(
       SeasonCreateSchema.parse({
-        userId: ctx.auth.user.id,
+        userId: ctx.session.user.id,
         leagueId: ctx.league.id,
         ...input,
       }),
@@ -96,7 +96,7 @@ export const seasonRouter = createTRPCRouter({
     const updatedSeason = await update(
       SeasonEditSchema.parse({
         leagueId: ctx.league.id,
-        userId: ctx.auth.user.id,
+        userId: ctx.session.user.id,
         ...input,
       }),
     );
@@ -120,7 +120,7 @@ export const seasonRouter = createTRPCRouter({
       }
       return updateClosedStatus({
         seasonId: season.id,
-        userId: ctx.auth.user.id,
+        userId: ctx.session.user.id,
         closed: input.closed,
       });
     }),

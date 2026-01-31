@@ -7,8 +7,12 @@
     "./date": "./src/date-utils.ts",
     "./id": "./src/id-utils.ts"
   },
-  "scripts": {},
-  "dependencies": {},
+  "scripts": {
+    "typecheck": "bunx tsgo -p tsconfig.json"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.9"
+  },
   "devDependencies": {
     "@scorebrawl/typescript-config": "workspace:*",
     "@types/node": "20.12.8",

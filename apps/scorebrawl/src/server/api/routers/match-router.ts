@@ -35,7 +35,7 @@ export const matchRouter = createTRPCRouter({
     }
     const match = await create(
       MatchInput.parse({
-        userId: ctx.auth.user.id,
+        userId: ctx.session.user.id,
         seasonId: ctx.season.id,
         leagueId: ctx.league.id,
         ...input,
@@ -74,7 +74,7 @@ export const matchRouter = createTRPCRouter({
 
       const match = await create(
         MatchInput.parse({
-          userId: ctx.auth.user.id,
+          userId: ctx.session.user.id,
           seasonId: ctx.season.id,
           leagueId: ctx.league.id,
           homeTeamSeasonPlayerIds: [fixture.homePlayerId],
