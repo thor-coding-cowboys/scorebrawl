@@ -8,7 +8,9 @@
       "bun.lockb",
       "dev",
       "deprecated-scorebrawl-app",
-      ".trigger"
+      ".trigger",
+      "**/dist",
+      "apps/frontend/src/routeTree.gen.ts"
     ]
   },
   "organizeImports": {
@@ -23,6 +25,8 @@
     "enabled": true,
     "ignore": [
       "apps/scorebrawl/src/components/ui",
+      "apps/frontend/src/components/ui",
+      "apps/frontend/src/routeTree.gen.ts",
       "apps/scorebrawl/src/hooks",
       "apps/scorebrawl/src/components/auto-form.tsx",
       "apps/scorebrawl/src/components/stepper.tsx"

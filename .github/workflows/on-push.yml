@@ -14,22 +14,18 @@ jobs:
   turborepo:
     name: ⚡️ on-push
 
-    env:
-      SKIP_ENV_VALIDATION: "true"
-      DATABASE_URL: postgresql://user:password@host.tld/scorebrawl-ci-build?option=value
-
     runs-on:
       labels: ubuntu-latest
 
     steps:
 
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
       - name: 🥯 Install bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
         with:
           bun-version: latest
 
@@ -37,14 +33,16 @@ jobs:
         run: bun install
 
       - name: ⚡ Turbo cache
-        uses: rharkor/caching-for-turbo@v1.5
+        uses: rharkor/caching-for-turbo@0abc2381e688c4d2832f0665a68a01c6e82f0d6c # /v2.3.11
 
       - name: 🦄 Format
         run: bun run flint:check
 
+      - name: ✅ Typecheck
+        run: bun run typecheck
+
+      - name: 🧪 Test
+        run: bun run test
+
       - name: 👷‍ Build
         run: bun run build
-        env: 
-          # This is not the build output used when deployed - that is in vercel
-          # Better auth started to fail build when it was not set
-          BETTER_AUTH_SECRET: SOMETHING_SUPER_SECRET_9999

@@ -12,9 +12,7 @@
     "drizzle-generate": "bun --env-file=.env.local drizzle-kit generate",
     "db-start": "docker compose up -d --wait",
     "db-stop": "docker compose down",
-    "build": "next build --debug",
     "start": "next start",
-    "test": "bun test",
     "trigger": "bunx trigger.dev@latest dev",
     "trigger-deploy": "bunx trigger.dev@latest deploy"
   },
@@ -79,7 +77,8 @@
     "d3-path": "^3.1.0",
     "drizzle-kit": "^0.31.4",
     "postcss": "^8.4.45",
-    "tailwindcss": "3.4.7",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^4.0.6",
     "tailwindcss-animate": "1.0.7",
     "typescript": "5.5.4"
   }

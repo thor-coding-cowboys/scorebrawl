@@ -1,0 +1,33 @@
+{
+  "name": "@scorebrawl/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./types": "./src/types.ts",
+    "./db": "./src/db.ts",
+    "./repositories/*": "./src/repositories/*.ts",
+    "./model": "./src/model/index.ts",
+    "./dto": "./src/dto/index.ts"
+  },
+  "dependencies": {
+    "@ihs7/ts-elo": "1.0.2",
+    "@scorebrawl/utils": "workspace:*",
+    "@sindresorhus/slugify": "^2.2.1",
+    "better-auth": "^1.1.6",
+    "date-fns": "^4.1.0",
+    "drizzle-orm": "^0.44.5",
+    "postgres": "^3.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@scorebrawl/typescript-config": "workspace:*",
+    "typescript": "5.5.4",
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "typecheck": "bunx tsgo -p tsconfig.json"
+  }
+}

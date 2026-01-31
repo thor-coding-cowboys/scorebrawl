@@ -1,4 +1,7 @@
-export const cuidConfig = { length: 32 };
-import { init } from "@paralleldrive/cuid2";
+import { customAlphabet } from "nanoid";
 
-export const createCuid = init(cuidConfig);
+export const idConfig = { length: 32 };
+
+export const digitsAndLowercaseNanoId = customAlphabet("123456789abcdefghijkmnopqrstuvwxyz");
+
+export const createId = () => digitsAndLowercaseNanoId(32);
