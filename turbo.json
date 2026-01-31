@@ -19,13 +19,16 @@
         "TRIGGER_SECRET_KEY",
         "UPLOADTHING_TOKEN",
         "POLAR_ACCESS_TOKEN",
-        "POLAR_SUCCESS_URL",
-        "VITE_API_URL"
+        "POLAR_SUCCESS_URL"
       ]
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "wrangler-typecheck": {
+      "cache": false,
+      "outputs": []
     },
     "test": {
       "cache": false,

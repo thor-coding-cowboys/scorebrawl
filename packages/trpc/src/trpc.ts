@@ -1,4 +1,4 @@
-import { ScoreBrawlError } from "@scorebrawl/database";
+import { type Database, ScoreBrawlError } from "@scorebrawl/database";
 import { findBySlugWithUserRole } from "@scorebrawl/database/repositories/league-repository";
 import { findSeasonAndLeagueBySlug } from "@scorebrawl/database/repositories/season-repository";
 import { TRPCError, initTRPC } from "@trpc/server";
@@ -13,6 +13,7 @@ export const editorRoles = ["owner", "editor"];
 export type TRPCContext = {
   headers: Headers;
   session: { session: Session; user: User } | null;
+  db: Database;
 };
 
 type Context = TRPCContext;
@@ -62,7 +63,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
 });
 
 const leagueAccessMiddleware = isAuthed.unstable_pipe(async ({ ctx, input, next }) => {
-  const leagueWithUserRole = await findBySlugWithUserRole({
+  const leagueWithUserRole = await findBySlugWithUserRole(ctx.db, {
     userId: ctx.session.user.id,
     leagueSlug: (input as { leagueSlug: string }).leagueSlug ?? "",
   });
@@ -89,7 +90,7 @@ const seasonAccessMiddleware = isAuthed.unstable_pipe(async ({ ctx, input, next 
     leagueSlug: string;
     seasonSlug: string;
   };
-  const seasonWithLeagueAndRole = await findSeasonAndLeagueBySlug({
+  const seasonWithLeagueAndRole = await findSeasonAndLeagueBySlug(ctx.db, {
     userId: ctx.session.user.id,
     leagueSlug,
     seasonSlug,

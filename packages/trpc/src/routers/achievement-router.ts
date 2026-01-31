@@ -7,7 +7,7 @@ export const achievementRouter = createTRPCRouter({
   getUserAchievements: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
     .query(({ ctx, input }) =>
-      getAchievements({
+      getAchievements(ctx.db, {
         leagueId: ctx.league.id,
         leaguePlayerId: input.leaguePlayerId,
       }),

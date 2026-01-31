@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import { type TRPCContext, appRouter } from "@scorebrawl/trpc";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { Context } from "hono";
@@ -13,6 +14,7 @@ export async function handleTRPC(c: Context) {
     createContext: (): TRPCContext => ({
       headers: c.req.raw.headers,
       session,
+      db: createDb(),
     }),
   });
 }

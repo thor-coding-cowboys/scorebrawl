@@ -1,7 +1,7 @@
 import { createId } from "@scorebrawl/utils/id";
 import { and, asc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import type { z } from "zod";
-import { db } from "../db";
+import type { Database } from "../db";
 import { ScoreBrawlError } from "../errors";
 import type { LeagueTeamInput } from "../model";
 import {
@@ -14,7 +14,7 @@ import {
   Users,
 } from "../schema";
 
-export const getLeagueTeams = async ({ leagueId }: { leagueId: string }) => {
+export const getLeagueTeams = async (db: Database, { leagueId }: { leagueId: string }) => {
   return db.query.LeagueTeams.findMany({
     where: (team, { eq }) => eq(team.leagueId, leagueId),
     orderBy: asc(LeagueTeams.name),
@@ -36,15 +36,18 @@ export const getLeagueTeams = async ({ leagueId }: { leagueId: string }) => {
   });
 };
 
-export const getOrInsertTeam = async ({
-  now,
-  season,
-  players,
-}: {
-  now: Date;
-  season: { id: string; initialScore: number; leagueId: string };
-  players: { leaguePlayer: { id: string; user: { name: string } } }[];
-}) => {
+export const getOrInsertTeam = async (
+  db: Database,
+  {
+    now,
+    season,
+    players,
+  }: {
+    now: Date;
+    season: { id: string; initialScore: number; leagueId: string };
+    players: { leaguePlayer: { id: string; user: { name: string } } }[];
+  },
+) => {
   const [teamIdResult] = await db
     .select({ teamId: LeagueTeamPlayers.teamId })
     .from(LeagueTeamPlayers)
@@ -110,13 +113,10 @@ export const getOrInsertTeam = async ({
   return { seasonTeamId: seasonTeam.id, score: seasonTeam.score };
 };
 
-export const update = async ({
-  leagueSlug,
-  teamId,
-  name,
-  userId,
-  isEditor,
-}: z.infer<typeof LeagueTeamInput>) => {
+export const update = async (
+  db: Database,
+  { leagueSlug, teamId, name, userId, isEditor }: z.infer<typeof LeagueTeamInput>,
+) => {
   const [leagueTeam] = await db
     .select({ id: LeagueTeams.id })
     .from(LeagueTeams)
@@ -155,11 +155,14 @@ export const update = async ({
     .returning();
 };
 
-export const getBySeasonPlayerIds = async ({
-  seasonPlayerIds,
-}: {
-  seasonPlayerIds: string[];
-}) => {
+export const getBySeasonPlayerIds = async (
+  db: Database,
+  {
+    seasonPlayerIds,
+  }: {
+    seasonPlayerIds: string[];
+  },
+) => {
   const [team] = await db
     .select(getTableColumns(LeagueTeams))
     .from(LeagueTeamPlayers)

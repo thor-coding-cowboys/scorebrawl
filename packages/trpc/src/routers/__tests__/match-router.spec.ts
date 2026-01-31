@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import { db } from "@scorebrawl/database/db";
 import * as schema from "@scorebrawl/database/schema";
 import type { Session, User } from "better-auth/types";
@@ -68,6 +69,7 @@ describe("matchRouter", () => {
         ...session,
         user,
       },
+      db: createDb(),
     };
 
     caller = createCaller(mockContext);
@@ -483,6 +485,7 @@ describe("matchRouter", () => {
           // @ts-expect-error - intentionally missing user for test
           user: undefined,
         },
+        db: createDb(),
       };
 
       const unauthCaller = createCaller(unauthContext);

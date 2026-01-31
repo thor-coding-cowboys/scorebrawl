@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import type { Session, User } from "better-auth/types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createTestLeague, createTestSession, createTestUser } from "../../../test/test-utils";
@@ -26,6 +27,7 @@ describe("userRouter", () => {
         session: testSession,
         user: testUser,
       },
+      db: createDb(),
     };
 
     caller = createCaller(mockContext);
@@ -50,10 +52,11 @@ describe("userRouter", () => {
       });
 
       // Update user to have default league
+      const { createDb } = await import("@scorebrawl/database");
       const { setDefaultLeague } = await import(
         "@scorebrawl/database/repositories/user-repository"
       );
-      await setDefaultLeague({
+      await setDefaultLeague(createDb(), {
         leagueId: league.id,
         userId: testUser.id,
       });
@@ -83,6 +86,7 @@ describe("userRouter", () => {
           session: session,
           user: userWithoutImage,
         },
+        db: createDb(),
       };
 
       const localCaller = createCaller(context);

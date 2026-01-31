@@ -11,7 +11,7 @@ import { createTRPCRouter, protectedProcedure, seasonProcedure } from "../trpc";
 export const avatarRouter = createTRPCRouter({
   getByUserId: protectedProcedure
     .input(z.object({ userId: z.string() }))
-    .query(({ input: { userId } }) => getUserAvatar({ userId })),
+    .query(({ ctx, input: { userId } }) => getUserAvatar(ctx.db, { userId })),
   getBySeasonTeamIds: seasonProcedure
     .input(
       z.object({
@@ -20,7 +20,7 @@ export const avatarRouter = createTRPCRouter({
         seasonTeamIds: z.array(z.string()).min(1),
       }),
     )
-    .query(({ input: { seasonTeamIds } }) => getSeasonTeamAvatars({ seasonTeamIds })),
+    .query(({ ctx, input: { seasonTeamIds } }) => getSeasonTeamAvatars(ctx.db, { seasonTeamIds })),
   getBySeasonPlayerIds: seasonProcedure
     .input(
       z.object({
@@ -29,8 +29,8 @@ export const avatarRouter = createTRPCRouter({
         seasonPlayerIds: z.array(z.string()).min(1),
       }),
     )
-    .query(async ({ input: { seasonPlayerIds } }) => {
-      const result = await getSeasonPlayerAvatars({ seasonPlayerIds });
+    .query(async ({ ctx, input: { seasonPlayerIds } }) => {
+      const result = await getSeasonPlayerAvatars(ctx.db, { seasonPlayerIds });
       return result.map((r) => ({
         ...r,
         image: r.image ?? undefined,

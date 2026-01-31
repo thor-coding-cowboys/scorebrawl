@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import { db } from "@scorebrawl/database/db";
 import type { Session, User } from "better-auth/types";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -27,6 +28,7 @@ describe("leagueRouter", () => {
         session: session,
         user,
       },
+      db: createDb(),
     };
 
     caller = createCaller(mockContext);
@@ -156,6 +158,7 @@ describe("leagueRouter", () => {
           session: editorSession,
           user: editorUser,
         },
+        db: createDb(),
       };
       const editorCaller = createCaller(editorContext);
 
@@ -204,6 +207,7 @@ describe("leagueRouter", () => {
           session: memberSession,
           user: memberUser,
         },
+        db: createDb(),
       };
       const memberCaller = createCaller(memberContext);
 
@@ -240,6 +244,7 @@ describe("leagueRouter", () => {
           session: editorSession,
           user: editorUser,
         },
+        db: createDb(),
       };
       const editorCaller = createCaller(editorContext);
 
@@ -263,6 +268,7 @@ describe("leagueRouter", () => {
           session: memberSession,
           user: memberUser,
         },
+        db: createDb(),
       };
       const memberCaller = createCaller(memberContext);
 
@@ -290,6 +296,7 @@ describe("leagueRouter", () => {
           // @ts-expect-error - intentionally missing user for test
           user: undefined,
         },
+        db: createDb(),
       };
 
       const unauthCaller = createCaller(unauthContext);

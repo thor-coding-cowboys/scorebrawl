@@ -9,11 +9,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Set test database URL before anything else
-process.env.DATABASE_URL =
-  "postgresql://scorebrawl_test:test_secret@localhost:5433/scorebrawl_test";
+process.env.DATABASE_URL = "postgresql://scorebrawl:scorebrawl@localhost:65535/scorebrawl_test";
 
 export async function setup() {
-  const testClient = postgres(process.env.DATABASE_URL);
+  const testClient = postgres(process.env.DATABASE_URL ?? "");
   const testDb = drizzle(testClient, { schema });
 
   try {

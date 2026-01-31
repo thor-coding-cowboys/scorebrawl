@@ -1,9 +1,9 @@
 import { endOfDay, startOfDay } from "date-fns";
 import { eq, gte, inArray, lte } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import { LeaguePlayers } from "../schema";
 
-export const getLeaguePlayers = async ({ leagueId }: { leagueId: string }) => {
+export const getLeaguePlayers = async (db: Database, { leagueId }: { leagueId: string }) => {
   const leaguePlayerResult = await db.query.LeaguePlayers.findMany({
     columns: { id: true, createdAt: true, disabled: true, userId: true },
     where: eq(LeaguePlayers.leagueId, leagueId),
@@ -24,15 +24,18 @@ export const getLeaguePlayers = async ({ leagueId }: { leagueId: string }) => {
   }));
 };
 
-export const getSeasonPlayersPointDiff = async ({
-  seasonPlayerIds,
-  from = startOfDay(new Date()),
-  to = endOfDay(new Date()),
-}: {
-  seasonPlayerIds: string[];
-  from?: Date;
-  to?: Date;
-}) => {
+export const getSeasonPlayersPointDiff = async (
+  db: Database,
+  {
+    seasonPlayerIds,
+    from = startOfDay(new Date()),
+    to = endOfDay(new Date()),
+  }: {
+    seasonPlayerIds: string[];
+    from?: Date;
+    to?: Date;
+  },
+) => {
   const result = await db.query.MatchPlayers.findMany({
     where: (matchPlayer, { and }) =>
       and(

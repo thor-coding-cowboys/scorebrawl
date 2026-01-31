@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "bunx tsgo -p tsconfig.json"
   },
@@ -67,6 +67,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.15.3",
+    "@cloudflare/workers-types": "^4.20251213.0",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",

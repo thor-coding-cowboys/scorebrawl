@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development bun run --hot src/index.ts",
-    "build": "bun build src/index.ts --outdir=dist --target=bun",
-    "start": "bun run dist/index.js",
+    "dev": "echo 'Dev server is started by the frontend vite plugin'",
+    "build": "tsc -b",
+    "deploy": "wrangler deploy",
+    "wrangler-typecheck": "wrangler deploy --dry-run",
+    "cf-typegen": "wrangler types",
     "typecheck": "bunx tsgo -p tsconfig.json"
   },
   "dependencies": {
@@ -21,9 +23,12 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.11.1",
+    "@cloudflare/workers-types": "^4.20251213.0",
     "@scorebrawl/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.1.0",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "wrangler": "^4.54.0"
   }
 }

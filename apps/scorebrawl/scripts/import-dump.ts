@@ -4,8 +4,7 @@ import { join } from "node:path";
 import { $ } from "bun";
 
 const DB_CONFIGS = {
-  e2e: "postgresql://scorebrawl:scorebrawl@localhost:65432/scorebrawl-e2e",
-  dev: "postgresql://scorebrawl:scorebrawl@localhost:65432/scorebrawl",
+  local: "postgresql://scorebrawl:scorebrawl@localhost:65432/scorebrawl",
 } as const;
 
 type DbType = keyof typeof DB_CONFIGS;

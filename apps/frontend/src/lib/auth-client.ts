@@ -15,6 +15,5 @@ export const getURL = () => {
 };
 
 export const authClient = createAuthClient({
-  baseURL: import.meta.env.DEV ? "http://localhost:3001/api/auth" : "/api/auth",
   plugins: [polarClient()],
 });

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import type { Database } from "@scorebrawl/database";
 import { LeaguePlayerDTO } from "@scorebrawl/database/dto";
 import {
   getAll,
@@ -14,8 +15,8 @@ import {
 import { findActive } from "@scorebrawl/database/repositories/season-repository";
 import { createTRPCRouter, leagueProcedure } from "../trpc";
 
-const checkSeasonSupportsPlayerProfiles = async (leagueId: string) => {
-  const activeSeason = await findActive({ leagueId });
+const checkSeasonSupportsPlayerProfiles = async (db: Database, leagueId: string) => {
+  const activeSeason = await findActive(db, { leagueId });
   if (!activeSeason) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -36,17 +37,17 @@ const checkSeasonSupportsPlayerProfiles = async (leagueId: string) => {
 export const leaguePlayerRouter = createTRPCRouter({
   getAll: leagueProcedure
     .input(z.object({ leagueSlug: z.string() }))
-    .query(async ({ ctx: { league } }) => {
-      const players = await getAll({ leagueId: league.id });
+    .query(async ({ ctx: { db, league } }) => {
+      const players = await getAll(db, { leagueId: league.id });
       return z.array(LeaguePlayerDTO).parse(players);
     }),
 
   getById: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
 
-      const player = await getLeaguePlayerWithLeagueVerification({
+      const player = await getLeaguePlayerWithLeagueVerification(db, {
         leaguePlayerId,
         leagueSlug: league.slug,
       });
@@ -63,45 +64,45 @@ export const leaguePlayerRouter = createTRPCRouter({
 
   getEloProgression: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      return await getPlayerEloProgression({ leaguePlayerId });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      return await getPlayerEloProgression(db, { leaguePlayerId });
     }),
 
   getRecentMatches: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      return await getRecentMatches({ leaguePlayerId, limit: 10 });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      return await getRecentMatches(db, { leaguePlayerId, limit: 10 });
     }),
 
   getBestTeammate: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      const analysis = await getTeammateAnalysis({ leaguePlayerId });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      const analysis = await getTeammateAnalysis(db, { leaguePlayerId });
       return analysis.bestTeammate;
     }),
 
   getWorstTeammate: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      const analysis = await getTeammateAnalysis({ leaguePlayerId });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      const analysis = await getTeammateAnalysis(db, { leaguePlayerId });
       return analysis.worstTeammate;
     }),
 
   getPlayerStats: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      return await getPlayerStats({ leaguePlayerId });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      return await getPlayerStats(db, { leaguePlayerId });
     }),
 
   getBestSeason: leagueProcedure
     .input(z.object({ leagueSlug: z.string(), leaguePlayerId: z.string() }))
-    .query(async ({ input: { leaguePlayerId }, ctx: { league } }) => {
-      await checkSeasonSupportsPlayerProfiles(league.id);
-      return await getBestSeason({ leaguePlayerId });
+    .query(async ({ input: { leaguePlayerId }, ctx: { db, league } }) => {
+      await checkSeasonSupportsPlayerProfiles(db, league.id);
+      return await getBestSeason(db, { leaguePlayerId });
     }),
 });

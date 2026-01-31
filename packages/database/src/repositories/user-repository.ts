@@ -1,6 +1,6 @@
 import { fullName } from "@scorebrawl/utils/string";
 import { eq, inArray } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import {
   LeaguePlayers,
   LeagueTeamPlayers,
@@ -10,7 +10,7 @@ import {
   Users,
 } from "../schema";
 
-export const getUserAvatar = async ({ userId }: { userId: string }) => {
+export const getUserAvatar = async (db: Database, { userId }: { userId: string }) => {
   const [userAvatar] = await db
     .select({ name: Users.name, image: Users.image })
     .from(Users)
@@ -18,11 +18,14 @@ export const getUserAvatar = async ({ userId }: { userId: string }) => {
   return { name: userAvatar?.name ?? "", image: userAvatar?.image ?? "" };
 };
 
-export const getSeasonTeamAvatars = async ({
-  seasonTeamIds,
-}: {
-  seasonTeamIds: string[];
-}) => {
+export const getSeasonTeamAvatars = async (
+  db: Database,
+  {
+    seasonTeamIds,
+  }: {
+    seasonTeamIds: string[];
+  },
+) => {
   const rawResults = await db
     .select({
       teamId: SeasonTeams.id,
@@ -60,11 +63,14 @@ export const getSeasonTeamAvatars = async ({
   return Array.from(resultMap.values());
 };
 
-export const getSeasonPlayerAvatars = ({
-  seasonPlayerIds,
-}: {
-  seasonPlayerIds: Array<string>;
-}) => {
+export const getSeasonPlayerAvatars = (
+  db: Database,
+  {
+    seasonPlayerIds,
+  }: {
+    seasonPlayerIds: Array<string>;
+  },
+) => {
   return db
     .select({
       userId: Users.id,
@@ -77,18 +83,21 @@ export const getSeasonPlayerAvatars = ({
     .where(inArray(SeasonPlayers.id, seasonPlayerIds));
 };
 
-export const findUserById = async ({ id }: { id: string }) => {
+export const findUserById = async (db: Database, { id }: { id: string }) => {
   const [user] = await db.select().from(Users).where(eq(Users.id, id));
   return user;
 };
 
-export const setDefaultLeague = async ({
-  leagueId,
-  userId,
-}: {
-  leagueId: string;
-  userId: string;
-}) => {
+export const setDefaultLeague = async (
+  db: Database,
+  {
+    leagueId,
+    userId,
+  }: {
+    leagueId: string;
+    userId: string;
+  },
+) => {
   const [user] = await db
     .update(Users)
     .set({ defaultLeagueId: leagueId })
@@ -97,15 +106,18 @@ export const setDefaultLeague = async ({
   return user;
 };
 
-export const updateUser = async ({
-  id,
-  name,
-  image,
-}: {
-  id: string;
-  name?: string;
-  image?: string;
-}) => {
+export const updateUser = async (
+  db: Database,
+  {
+    id,
+    name,
+    image,
+  }: {
+    id: string;
+    name?: string;
+    image?: string;
+  },
+) => {
   const updateData: { name?: string; image?: string; updatedAt: Date } = {
     updatedAt: new Date(),
   };
@@ -122,23 +134,26 @@ export const updateUser = async ({
   return user;
 };
 
-export const upsertUser = async ({
-  id,
-  firstName,
-  lastName,
-  image,
-  email,
-  createdAt,
-  updatedAt,
-}: {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  image?: string;
-  email?: string;
-  createdAt: number;
-  updatedAt: number;
-}) => {
+export const upsertUser = async (
+  db: Database,
+  {
+    id,
+    firstName,
+    lastName,
+    image,
+    email,
+    createdAt,
+    updatedAt,
+  }: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    image?: string;
+    email?: string;
+    createdAt: number;
+    updatedAt: number;
+  },
+) => {
   await db
     .insert(Users)
     .values({

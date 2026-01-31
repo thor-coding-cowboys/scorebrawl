@@ -1,4 +1,4 @@
-import { db } from "@scorebrawl/database/db";
+import { createDb } from "@scorebrawl/database/db";
 import {
   LeagueMembers,
   LeaguePlayers,
@@ -12,6 +12,9 @@ import {
 import { createId } from "@scorebrawl/utils/id";
 import type { Session, User } from "better-auth/types";
 
+// Create a shared test db instance
+const testDb = createDb();
+
 export const createTestUser = async (data: Partial<User> = {}): Promise<User> => {
   const user = {
     id: data.id || createId(),
@@ -23,7 +26,7 @@ export const createTestUser = async (data: Partial<User> = {}): Promise<User> =>
     updatedAt: data.updatedAt || new Date(),
   };
 
-  await db.insert(Users).values(user);
+  await testDb.insert(Users).values(user);
   return user as User;
 };
 
@@ -39,7 +42,7 @@ export const createTestSession = async (userId: string): Promise<Session> => {
     updatedAt: new Date(),
   };
 
-  await db.insert(Sessions).values(session);
+  await testDb.insert(Sessions).values(session);
   return session as Session;
 };
 
@@ -66,10 +69,10 @@ export const createTestLeague = async (
     updatedAt: new Date(),
   };
 
-  await db.insert(Leagues).values(league);
+  await testDb.insert(Leagues).values(league);
 
   // Add creator as owner
-  await db.insert(LeagueMembers).values({
+  await testDb.insert(LeagueMembers).values({
     id: createId(),
     leagueId,
     userId: createdBy,
@@ -95,7 +98,7 @@ export const createTestLeagueMember = async (
     updatedAt: new Date(),
   };
 
-  await db.insert(LeagueMembers).values(member);
+  await testDb.insert(LeagueMembers).values(member);
   return member;
 };
 
@@ -110,7 +113,7 @@ export const createTestLeaguePlayer = async (leagueId: string, userId: string) =
     updatedAt: new Date(),
   };
 
-  await db.insert(LeaguePlayers).values(player);
+  await testDb.insert(LeaguePlayers).values(player);
   return player;
 };
 
@@ -149,7 +152,7 @@ export const createTestSeason = async (
     ...data,
   };
 
-  await db.insert(Seasons).values(season);
+  await testDb.insert(Seasons).values(season);
   return season;
 };
 
@@ -169,7 +172,7 @@ export const createTestSeasonPlayer = async (
     updatedAt: new Date(),
   };
 
-  await db.insert(SeasonPlayers).values(seasonPlayer);
+  await testDb.insert(SeasonPlayers).values(seasonPlayer);
   return seasonPlayer;
 };
 
@@ -192,6 +195,6 @@ export const createTestSeasonFixture = async (
     updatedAt: new Date(),
   };
 
-  await db.insert(SeasonFixtures).values(fixture);
+  await testDb.insert(SeasonFixtures).values(fixture);
   return fixture;
 };

@@ -1,3 +1,4 @@
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
@@ -10,22 +11,19 @@ const config = defineConfig({
     devtools(),
     TanStackRouterVite(),
     viteReact(),
-    // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
     }),
     tailwindcss(),
+    cloudflare({
+      configPath: "../backend/wrangler.jsonc",
+    }),
   ],
   resolve: {
     dedupe: ["react", "react-dom"],
   },
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-      },
-    },
+  build: {
+    outDir: "dist",
   },
 });
 

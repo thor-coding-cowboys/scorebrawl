@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray, sql, sum } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import {
   LeaguePlayers,
   Leagues,
@@ -12,9 +12,9 @@ import {
 import { getRankFromElo } from "../utils/elo-util";
 import { findActive } from "./season-repository";
 
-export const getAll = async ({ leagueId }: { leagueId: string }) => {
+export const getAll = async (db: Database, { leagueId }: { leagueId: string }) => {
   // Get active season using the existing findActive function
-  const activeSeason = await findActive({ leagueId });
+  const activeSeason = await findActive(db, { leagueId });
 
   // If we have an active ELO season, include ELO scores
   if (
@@ -73,7 +73,7 @@ export const getAll = async ({ leagueId }: { leagueId: string }) => {
   }));
 };
 
-export const findLeaguePlayerIds = (seasonPlayerIds: string[]) =>
+export const findLeaguePlayerIds = (db: Database, seasonPlayerIds: string[]) =>
   db
     .select({
       leaguePlayerId: SeasonPlayers.leaguePlayerId,
@@ -84,13 +84,16 @@ export const findLeaguePlayerIds = (seasonPlayerIds: string[]) =>
     .innerJoin(LeaguePlayers, eq(LeaguePlayers.id, SeasonPlayers.leaguePlayerId))
     .where(inArray(SeasonPlayers.id, seasonPlayerIds));
 
-export const getLeaguePlayerWithLeagueVerification = async ({
-  leaguePlayerId,
-  leagueSlug,
-}: {
-  leaguePlayerId: string;
-  leagueSlug: string;
-}) => {
+export const getLeaguePlayerWithLeagueVerification = async (
+  db: Database,
+  {
+    leaguePlayerId,
+    leagueSlug,
+  }: {
+    leaguePlayerId: string;
+    leagueSlug: string;
+  },
+) => {
   const [result] = await db
     .select({
       leaguePlayerId: LeaguePlayers.id,
@@ -129,11 +132,14 @@ export const getLeaguePlayerWithLeagueVerification = async ({
   };
 };
 
-export const getPlayerEloProgression = async ({
-  leaguePlayerId,
-}: {
-  leaguePlayerId: string;
-}) => {
+export const getPlayerEloProgression = async (
+  db: Database,
+  {
+    leaguePlayerId,
+  }: {
+    leaguePlayerId: string;
+  },
+) => {
   const progression = await db
     .select({
       seasonName: Seasons.name,
@@ -162,11 +168,14 @@ export const getPlayerEloProgression = async ({
   }));
 };
 
-export const getBestSeason = async ({
-  leaguePlayerId,
-}: {
-  leaguePlayerId: string;
-}) => {
+export const getBestSeason = async (
+  db: Database,
+  {
+    leaguePlayerId,
+  }: {
+    leaguePlayerId: string;
+  },
+) => {
   const [bestSeason] = await db
     .select({
       seasonName: Seasons.name,
@@ -200,11 +209,14 @@ export const getBestSeason = async ({
   };
 };
 
-export const getPlayerStats = async ({
-  leaguePlayerId,
-}: {
-  leaguePlayerId: string;
-}) => {
+export const getPlayerStats = async (
+  db: Database,
+  {
+    leaguePlayerId,
+  }: {
+    leaguePlayerId: string;
+  },
+) => {
   // Get current season stats
   const currentSeasonQuery = await db
     .select({
@@ -253,13 +265,16 @@ export const getPlayerStats = async ({
   };
 };
 
-export const getRecentMatches = async ({
-  leaguePlayerId,
-  limit = 10,
-}: {
-  leaguePlayerId: string;
-  limit?: number;
-}) => {
+export const getRecentMatches = async (
+  db: Database,
+  {
+    leaguePlayerId,
+    limit = 10,
+  }: {
+    leaguePlayerId: string;
+    limit?: number;
+  },
+) => {
   const recentMatches = await db
     .select({
       matchId: Matches.id,
@@ -313,11 +328,14 @@ export const getRecentMatches = async ({
   });
 };
 
-export const getTeammateAnalysis = async ({
-  leaguePlayerId,
-}: {
-  leaguePlayerId: string;
-}) => {
+export const getTeammateAnalysis = async (
+  db: Database,
+  {
+    leaguePlayerId,
+  }: {
+    leaguePlayerId: string;
+  },
+) => {
   // Get matches where this player played with teammates
   const teammateStats = await db
     .select({

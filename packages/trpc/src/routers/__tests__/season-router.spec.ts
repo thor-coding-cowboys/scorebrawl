@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import { db } from "@scorebrawl/database/db";
 import * as schema from "@scorebrawl/database/schema";
 import type { Session, User } from "better-auth/types";
@@ -32,6 +33,7 @@ describe("seasonRouter", () => {
         session: session,
         user,
       },
+      db: createDb(),
     };
 
     caller = createCaller(mockContext);
@@ -147,6 +149,7 @@ describe("seasonRouter", () => {
           session: memberSession,
           user: memberUser,
         },
+        db: createDb(),
       };
       const memberCaller = createCaller(memberContext);
 
@@ -266,6 +269,7 @@ describe("seasonRouter", () => {
           session: memberSession,
           user: memberUser,
         },
+        db: createDb(),
       };
       const memberCaller = createCaller(memberContext);
 

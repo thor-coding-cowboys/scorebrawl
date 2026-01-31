@@ -1,6 +1,6 @@
 import { type SQL, and, desc, eq, inArray, sql } from "drizzle-orm";
 import type z from "zod";
-import { db } from "../db";
+import type { Database } from "../db";
 import type { SeasonPlayerDTO } from "../dto";
 import {
   LeaguePlayers,
@@ -12,13 +12,16 @@ import {
   Users,
 } from "../schema";
 
-export const getPointDiffProgression = async ({
-  seasonId,
-  condition,
-}: {
-  seasonId: string;
-  condition?: SQL<unknown>;
-}) => {
+export const getPointDiffProgression = async (
+  db: Database,
+  {
+    seasonId,
+    condition,
+  }: {
+    seasonId: string;
+    condition?: SQL<unknown>;
+  },
+) => {
   const subQuery = db
     .select({
       seasonPlayerId: MatchPlayers.seasonPlayerId,
@@ -74,7 +77,7 @@ export const getPointDiffProgression = async ({
     );
 };
 
-export const findAll = async ({ seasonId }: { seasonId: string }) => {
+export const findAll = async (db: Database, { seasonId }: { seasonId: string }) => {
   const result = await db
     .select({
       seasonPlayerId: SeasonPlayers.id,
@@ -105,7 +108,7 @@ export const findAll = async ({ seasonId }: { seasonId: string }) => {
   );
 };
 
-const matchesSubqueryBuilder = ({ seasonId }: { seasonId: string }) =>
+const matchesSubqueryBuilder = (db: Database, { seasonId }: { seasonId: string }) =>
   db
     .select({
       seasonPlayerId: MatchPlayers.seasonPlayerId,
@@ -125,8 +128,8 @@ const matchesSubqueryBuilder = ({ seasonId }: { seasonId: string }) =>
     .where(eq(SeasonPlayers.seasonId, seasonId))
     .as("recent_matches");
 
-export const getStanding = async ({ seasonId }: { seasonId: string }) => {
-  const matchesSubquery = matchesSubqueryBuilder({ seasonId });
+export const getStanding = async (db: Database, { seasonId }: { seasonId: string }) => {
+  const matchesSubquery = matchesSubqueryBuilder(db, { seasonId });
 
   const playerStats = await db
     .select({
@@ -164,7 +167,7 @@ export const getStanding = async ({ seasonId }: { seasonId: string }) => {
     .where(eq(SeasonPlayers.seasonId, seasonId))
     .orderBy(desc(SeasonPlayers.score));
 
-  const pointDiff = await getPointDiffProgression({
+  const pointDiff = await getPointDiffProgression(db, {
     seasonId,
     condition: eq(sql`DATE(${MatchPlayers.createdAt})`, sql`CURRENT_DATE`),
   });
@@ -188,7 +191,7 @@ export const getStanding = async ({ seasonId }: { seasonId: string }) => {
   });
 };
 
-export const getTopPlayer = async ({ seasonId }: { seasonId: string }) => {
+export const getTopPlayer = async (db: Database, { seasonId }: { seasonId: string }) => {
   const [topPlayer] = await db
     .select({
       seasonPlayerId: SeasonPlayers.id,
@@ -218,11 +221,14 @@ export const getTopPlayer = async ({ seasonId }: { seasonId: string }) => {
   };
 };
 
-export const getPointProgression = async ({
-  seasonId,
-}: {
-  seasonId: string;
-}) => {
+export const getPointProgression = async (
+  db: Database,
+  {
+    seasonId,
+  }: {
+    seasonId: string;
+  },
+) => {
   const rankedScores = db.$with("ranked_scores").as(
     db
       .select({
@@ -254,14 +260,17 @@ export const getPointProgression = async ({
     .orderBy(rankedScores.seasonPlayerId, rankedScores.date);
 };
 
-const onFireStrugglingQuery = async ({
-  seasonId,
-  onFire,
-}: {
-  onFire: boolean;
-  seasonId: string;
-}) => {
-  const recentMatchesSubquery = matchesSubqueryBuilder({ seasonId });
+const onFireStrugglingQuery = async (
+  db: Database,
+  {
+    seasonId,
+    onFire,
+  }: {
+    onFire: boolean;
+    seasonId: string;
+  },
+) => {
+  const recentMatchesSubquery = matchesSubqueryBuilder(db, { seasonId });
   const last5MatchesSubquery = db
     .select()
     .from(recentMatchesSubquery)
@@ -334,17 +343,20 @@ const onFireStrugglingQuery = async ({
   };
 };
 
-export const getOnFire = async ({ seasonId }: { seasonId: string }) =>
-  onFireStrugglingQuery({ seasonId, onFire: true });
+export const getOnFire = async (db: Database, { seasonId }: { seasonId: string }) =>
+  onFireStrugglingQuery(db, { seasonId, onFire: true });
 
-export const getStruggling = async ({ seasonId }: { seasonId: string }) =>
-  onFireStrugglingQuery({ seasonId, onFire: false });
+export const getStruggling = async (db: Database, { seasonId }: { seasonId: string }) =>
+  onFireStrugglingQuery(db, { seasonId, onFire: false });
 
-export const getPlayerMatches = async ({
-  seasonPlayerId,
-}: {
-  seasonPlayerId: string;
-}) => {
+export const getPlayerMatches = async (
+  db: Database,
+  {
+    seasonPlayerId,
+  }: {
+    seasonPlayerId: string;
+  },
+) => {
   const result = await db
     .select({
       matchId: Matches.id,
@@ -367,13 +379,16 @@ export const getPlayerMatches = async ({
   }));
 };
 
-export const getGoalsConcededAgainst = async ({
-  matchIds,
-  seasonPlayerId,
-}: {
-  matchIds: string[];
-  seasonPlayerId: string;
-}) => {
+export const getGoalsConcededAgainst = async (
+  db: Database,
+  {
+    matchIds,
+    seasonPlayerId,
+  }: {
+    matchIds: string[];
+    seasonPlayerId: string;
+  },
+) => {
   const results = await db
     .select({
       matchId: MatchPlayers.matchId,
@@ -394,7 +409,7 @@ export const getGoalsConcededAgainst = async ({
   return results;
 };
 
-export const getLastFiveMatchesGoals = async (seasonPlayerId: string) => {
+export const getLastFiveMatchesGoals = async (db: Database, seasonPlayerId: string) => {
   const result = await db
     .select({
       matchId: MatchPlayers.matchId,

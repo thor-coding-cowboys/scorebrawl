@@ -39,6 +39,7 @@ export const matchRouter = createTRPCRouter({
       });
     }
     const match = await create(
+      ctx.db,
       MatchInput.parse({
         userId: ctx.session.user.id,
         seasonId: ctx.season.id,
@@ -61,7 +62,7 @@ export const matchRouter = createTRPCRouter({
           message: "This season does not support fixture matches",
         });
       }
-      const fixture = await findFixtureById({
+      const fixture = await findFixtureById(ctx.db, {
         seasonId: ctx.season.id,
         fixtureId: input.seasonFixtureId,
       });
@@ -79,6 +80,7 @@ export const matchRouter = createTRPCRouter({
       }
 
       const match = await create(
+        ctx.db,
         MatchInput.parse({
           userId: ctx.session.user.id,
           seasonId: ctx.season.id,
@@ -89,7 +91,7 @@ export const matchRouter = createTRPCRouter({
           awayScore: input.awayScore,
         }),
       );
-      await assignMatchToFixture({
+      await assignMatchToFixture(ctx.db, {
         seasonId: ctx.season.id,
         fixtureId: fixture.id,
         matchId: match.id,
@@ -101,7 +103,7 @@ export const matchRouter = createTRPCRouter({
       return MatchDTO.parse(match);
     }),
   remove: seasonProcedure.input(RemoveMatchDTO).mutation(async ({ ctx, input }) => {
-    await remove({
+    await remove(ctx.db, {
       matchId: input.matchId,
       seasonId: ctx.season.id,
     });
@@ -115,7 +117,7 @@ export const matchRouter = createTRPCRouter({
   getLatest: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string() }))
     .query(async ({ ctx }) => {
-      const latestMatch = await findLatest({
+      const latestMatch = await findLatest(ctx.db, {
         seasonId: ctx.season.id,
       });
       return latestMatch ? MatchDTO.parse(latestMatch) : null;
@@ -123,7 +125,7 @@ export const matchRouter = createTRPCRouter({
   getById: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string(), matchId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const match = await findById({
+      const match = await findById(ctx.db, {
         seasonId: ctx.season.id,
         matchId: input.matchId,
       });
@@ -139,7 +141,7 @@ export const matchRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input: { page, limit } }) => {
-      const matchPage = await getBySeasonId({
+      const matchPage = await getBySeasonId(ctx.db, {
         seasonId: ctx.season.id,
         page,
         limit,

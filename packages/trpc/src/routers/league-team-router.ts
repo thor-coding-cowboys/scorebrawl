@@ -11,8 +11,8 @@ import { editorRoles } from "../trpc";
 export const leagueTeamRouter = createTRPCRouter({
   getAll: leagueProcedure
     .input(z.object({ leagueSlug: z.string() }))
-    .query(async ({ ctx: { league } }) => {
-      const leagueTeams = await getLeagueTeams({ leagueId: league.id });
+    .query(async ({ ctx: { db, league } }) => {
+      const leagueTeams = await getLeagueTeams(db, { leagueId: league.id });
       return leagueTeams.map((lt) => ({
         id: lt.id,
         name: lt.name,
@@ -33,9 +33,11 @@ export const leagueTeamRouter = createTRPCRouter({
         seasonPlayerIds: z.array(z.string()),
       }),
     )
-    .query(({ input: { seasonPlayerIds } }) => getBySeasonPlayerIds({ seasonPlayerIds })),
+    .query(({ ctx, input: { seasonPlayerIds } }) =>
+      getBySeasonPlayerIds(ctx.db, { seasonPlayerIds }),
+    ),
   update: leagueProcedure.input(LeagueTeamInputDTO).mutation(async ({ input, ctx }) =>
-    update({
+    update(ctx.db, {
       ...input,
       userId: ctx.session.user.id,
       isEditor: editorRoles.includes(ctx.role),

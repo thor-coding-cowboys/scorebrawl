@@ -6,5 +6,5 @@ import { createTRPCRouter, leagueEditorProcedure } from "../trpc";
 export const memberRouter = createTRPCRouter({
   getAll: leagueEditorProcedure
     .input(z.object({ leagueSlug: z.string() }))
-    .query(({ ctx }) => findAll({ leagueId: ctx.league.id })),
+    .query(({ ctx }) => findAll(ctx.db, { leagueId: ctx.league.id })),
 });

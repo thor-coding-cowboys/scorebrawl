@@ -9,14 +9,15 @@ export const seasonTeamRouter = createTRPCRouter({
     .query(
       ({
         ctx: {
+          db,
           season: { id },
         },
-      }) => getStanding({ seasonId: id }),
+      }) => getStanding(db, { seasonId: id }),
     ),
   getTop: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string() }))
-    .query(async ({ input: { seasonSlug } }) => {
-      const topTeam = await getTopTeam({ seasonSlug });
+    .query(async ({ ctx: { db }, input: { seasonSlug } }) => {
+      const topTeam = await getTopTeam(db, { seasonSlug });
       if (!topTeam || topTeam.length === 0) {
         return null;
       }

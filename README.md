@@ -29,7 +29,6 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
 - **📡 API**: [tRPC](https://trpc.io/) for end-to-end typesafe APIs
 - **🗄️ Database**: [PostgreSQL](https://www.postgresql.org/) with [Drizzle ORM](https://orm.drizzle.team/)
 - **🔐 Authentication**: [Better-Auth](https://better-auth.com/) for comprehensive auth
-- **📤 File Uploads**: [UploadThing](https://uploadthing.com/) for seamless file handling
 - **🎨 UI**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
 - **⚡ Background Jobs**: [Trigger.dev](https://trigger.dev/) for async processing
 - **🚀 Deployment**: [Vercel](https://vercel.com/) for hosting and CI/CD
@@ -40,14 +39,13 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
 ### Prerequisites
 
 - [Bun](https://bun.sh/) (latest version)
-- [UploadThing](https://uploadthing.com/) account for file uploads
 
 ### Installation
 
 1. **Clone and install dependencies**:
    ```bash
    git clone <repository-url>
-   cd scorebrawl-nextjs
+   cd scorebrawl
    bun install
    ```
 

@@ -4,15 +4,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { beforeEach } from "vitest";
 
-// Set test database URL before anything else
-process.env.DATABASE_URL =
-  "postgresql://scorebrawl_test:test_secret@localhost:5433/scorebrawl_test";
-
-// Create test database instance
-const testClient = postgres(process.env.DATABASE_URL);
-const testDb = drizzle(testClient, { schema });
-
 beforeEach(async () => {
+  // Create test database instance
+  const testClient = postgres(process.env.DATABASE_URL ?? "");
+  const testDb = drizzle(testClient, { schema });
   // Clean database before each test using TRUNCATE CASCADE
   const tableNames = [
     '"match_player"',

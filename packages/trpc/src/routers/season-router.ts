@@ -37,25 +37,25 @@ export const seasonRouter = createTRPCRouter({
     .query(({ ctx: { season } }) => season),
   getCountInfo: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string() }))
-    .query(async ({ input: { seasonSlug } }) => getCountInfo({ seasonSlug })),
+    .query(async ({ ctx, input: { seasonSlug } }) => getCountInfo(ctx.db, { seasonSlug })),
   findActive: leagueProcedure
     .input(z.object({ leagueSlug: z.string() }))
-    .query(async ({ ctx }) => findActive({ leagueId: ctx.league.id })),
+    .query(async ({ ctx }) => findActive(ctx.db, { leagueId: ctx.league.id })),
   findBySlug: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string() }))
     .query(async ({ ctx: { season } }) => season),
   getAll: leagueProcedure
     .input(z.object({ leagueSlug: z.string() }))
-    .query(async ({ ctx }) => getAll({ leagueId: ctx.league.id })),
+    .query(async ({ ctx }) => getAll(ctx.db, { leagueId: ctx.league.id })),
   getFixtures: seasonProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string() }))
-    .query(async ({ ctx: { season } }) => {
-      return findFixtures({ seasonId: season.id });
+    .query(async ({ ctx }) => {
+      return findFixtures(ctx.db, { seasonId: ctx.season.id });
     }),
   create: leagueEditorProcedure.input(SeasonCreateDTOSchema).mutation(async ({ input, ctx }) => {
     validateStartBeforeEnd(input);
 
-    const leaguePlayers = await getLeaguePlayers({ leagueId: ctx.league.id });
+    const leaguePlayers = await getLeaguePlayers(ctx.db, { leagueId: ctx.league.id });
     if (leaguePlayers.length < 2) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -63,6 +63,7 @@ export const seasonRouter = createTRPCRouter({
       });
     }
     return create(
+      ctx.db,
       SeasonCreateSchema.parse({
         userId: ctx.session.user.id,
         leagueId: ctx.league.id,
@@ -72,7 +73,7 @@ export const seasonRouter = createTRPCRouter({
   }),
   edit: leagueEditorProcedure.input(SeasonEditDTOSchema).mutation(async ({ ctx, input }) => {
     validateStartBeforeEnd(input);
-    const season = await getBySlug({
+    const season = await getBySlug(ctx.db, {
       seasonSlug: input.seasonSlug,
     });
     if (
@@ -89,6 +90,7 @@ export const seasonRouter = createTRPCRouter({
       });
     }
     const updatedSeason = await update(
+      ctx.db,
       SeasonEditSchema.parse({
         leagueId: ctx.league.id,
         userId: ctx.session.user.id,
@@ -106,14 +108,14 @@ export const seasonRouter = createTRPCRouter({
   updateClosedStatus: leagueEditorProcedure
     .input(z.object({ leagueSlug: z.string(), seasonSlug: z.string(), closed: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      const season = await getBySlug({ seasonSlug: input.seasonSlug });
+      const season = await getBySlug(ctx.db, { seasonSlug: input.seasonSlug });
       if (season.leagueId !== ctx.league.id) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Season not found",
         });
       }
-      return updateClosedStatus({
+      return updateClosedStatus(ctx.db, {
         seasonId: season.id,
         userId: ctx.session.user.id,
         closed: input.closed,

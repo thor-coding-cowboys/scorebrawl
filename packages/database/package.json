@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@scorebrawl/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.8",
     "typescript": "5.5.4",
     "@types/bun": "latest"
   },

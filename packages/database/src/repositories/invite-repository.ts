@@ -1,6 +1,6 @@
 import { createId } from "@scorebrawl/utils/id";
 import { and, desc, eq, getTableColumns, gte, isNull, or } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import {
   LeagueInvites,
   LeagueMembers,
@@ -11,17 +11,20 @@ import {
 } from "../schema";
 import type { LeagueMemberRole } from "../types";
 
-export const create = async ({
-  userId,
-  leagueId,
-  role,
-  expiresAt,
-}: {
-  userId: string;
-  leagueId: string;
-  role: LeagueMemberRole;
-  expiresAt?: Date;
-}) => {
+export const create = async (
+  db: Database,
+  {
+    userId,
+    leagueId,
+    role,
+    expiresAt,
+  }: {
+    userId: string;
+    leagueId: string;
+    role: LeagueMemberRole;
+    expiresAt?: Date;
+  },
+) => {
   const now = new Date();
   const [invite] = await db
     .insert(LeagueInvites)
@@ -42,7 +45,7 @@ export const create = async ({
   return invite;
 };
 
-export const findByCode = async (code: string) => {
+export const findByCode = async (db: Database, code: string) => {
   const [invite] = await db
     .select(getTableColumns(LeagueInvites))
     .from(LeagueInvites)
@@ -50,7 +53,7 @@ export const findByCode = async (code: string) => {
   return invite;
 };
 
-export const findByLeagueId = async ({ leagueId }: { leagueId: string }) =>
+export const findByLeagueId = async (db: Database, { leagueId }: { leagueId: string }) =>
   db
     .select(getTableColumns(LeagueInvites))
     .from(LeagueInvites)
@@ -58,15 +61,18 @@ export const findByLeagueId = async ({ leagueId }: { leagueId: string }) =>
     .where(eq(LeagueInvites.leagueId, leagueId))
     .orderBy(desc(LeagueInvites.expiresAt));
 
-export const claim = async ({
-  userId,
-  leagueId,
-  role,
-}: {
-  leagueId: string;
-  userId: string;
-  role: LeagueMemberRole;
-}) => {
+export const claim = async (
+  db: Database,
+  {
+    userId,
+    leagueId,
+    role,
+  }: {
+    leagueId: string;
+    userId: string;
+    role: LeagueMemberRole;
+  },
+) => {
   const now = new Date();
   await db
     .insert(LeagueMembers)

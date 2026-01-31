@@ -1,3 +1,4 @@
+import { createDb } from "@scorebrawl/database";
 import { claim, findByCode } from "@scorebrawl/database/repositories/invite-repository";
 import { getByIdWhereMember } from "@scorebrawl/database/repositories/league-repository";
 import { Hono } from "hono";
@@ -11,7 +12,7 @@ const app = new Hono();
 app.use(
   "/*",
   cors({
-    origin: ["http://localhost:3000"],
+    origin: ["http://localhost:5173"],
     credentials: true,
   }),
 );
@@ -27,10 +28,11 @@ app.on(["POST", "GET"], "/api/auth/**", (c) => {
 // Auto-join league route
 app.get("/api/leagues/auto-join/:code", async (c) => {
   const code = c.req.param("code");
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const db = createDb();
 
   // Find the invite
-  const invite = await findByCode(code);
+  const invite = await findByCode(db, code);
   if (!invite) {
     return c.redirect(`${frontendUrl}/?errorCode=INVITE_NOT_FOUND`);
   }
@@ -52,7 +54,7 @@ app.get("/api/leagues/auto-join/:code", async (c) => {
   }
 
   // Check if already a member
-  const league = await getByIdWhereMember({
+  const league = await getByIdWhereMember(db, {
     leagueId: invite.leagueId,
     userId: session.user.id,
   });
@@ -63,7 +65,7 @@ app.get("/api/leagues/auto-join/:code", async (c) => {
 
   // Claim the invite
   try {
-    const { leagueSlug } = await claim({
+    const { leagueSlug } = await claim(db, {
       leagueId: invite.leagueId,
       role: invite.role,
       userId: session.user.id,

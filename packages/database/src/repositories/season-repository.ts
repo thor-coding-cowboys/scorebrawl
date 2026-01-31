@@ -15,7 +15,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { z } from "zod";
-import { db } from "../db";
+import type { Database } from "../db";
 import { ScoreBrawlError } from "../errors";
 import type { ScoreType } from "../model";
 import type { SeasonCreateSchema } from "../model";
@@ -32,15 +32,18 @@ import {
 import { getStanding } from "./season-player-repository";
 import { slugifyWithCustomReplacement } from "./slug";
 
-export const findOverlappingSeason = async ({
-  leagueId,
-  startDate,
-  endDate,
-}: {
-  leagueId: string;
-  startDate: Date;
-  endDate?: Date;
-}) =>
+export const findOverlappingSeason = async (
+  db: Database,
+  {
+    leagueId,
+    startDate,
+    endDate,
+  }: {
+    leagueId: string;
+    startDate: Date;
+    endDate?: Date;
+  },
+) =>
   db.query.Seasons.findFirst({
     where: and(
       eq(Seasons.leagueId, leagueId),
@@ -49,7 +52,7 @@ export const findOverlappingSeason = async ({
     ),
   });
 
-export const getCountInfo = async ({ seasonSlug }: { seasonSlug: string }) => {
+export const getCountInfo = async (db: Database, { seasonSlug }: { seasonSlug: string }) => {
   const [matchCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(Matches)
@@ -72,7 +75,7 @@ export const getCountInfo = async ({ seasonSlug }: { seasonSlug: string }) => {
   };
 };
 
-export const getById = async ({ seasonId }: { seasonId: string }) => {
+export const getById = async (db: Database, { seasonId }: { seasonId: string }) => {
   const [season] = await db.select().from(Seasons).where(eq(Seasons.id, seasonId));
   if (!season) {
     throw new ScoreBrawlError({
@@ -83,7 +86,7 @@ export const getById = async ({ seasonId }: { seasonId: string }) => {
   return season;
 };
 
-export const getBySlug = async ({ seasonSlug }: { seasonSlug: string }) => {
+export const getBySlug = async (db: Database, { seasonSlug }: { seasonSlug: string }) => {
   const [season] = await db.select().from(Seasons).where(eq(Seasons.slug, seasonSlug));
 
   if (!season) {
@@ -95,7 +98,7 @@ export const getBySlug = async ({ seasonSlug }: { seasonSlug: string }) => {
   return season;
 };
 
-export const findActive = async ({ leagueId }: { leagueId: string }) => {
+export const findActive = async (db: Database, { leagueId }: { leagueId: string }) => {
   const now = new Date();
   const [season] = await db
     .select(getTableColumns(Seasons))
@@ -112,13 +115,16 @@ export const findActive = async ({ leagueId }: { leagueId: string }) => {
   return season;
 };
 
-export const getSeasonPlayers = async ({
-  seasonId,
-}: {
-  leagueId: string;
-  seasonId: string;
-  userId: string;
-}) => {
+export const getSeasonPlayers = async (
+  db: Database,
+  {
+    seasonId,
+  }: {
+    leagueId: string;
+    seasonId: string;
+    userId: string;
+  },
+) => {
   const seasonPlayerResult = await db.query.SeasonPlayers.findMany({
     where: eq(SeasonPlayers.seasonId, seasonId),
     extras: (_, { sql }) => ({
@@ -167,26 +173,29 @@ export const getSeasonPlayers = async ({
   }));
 };
 
-export const getAll = async ({ leagueId }: { leagueId: string }) =>
+export const getAll = async (db: Database, { leagueId }: { leagueId: string }) =>
   db
     .select(getTableColumns(Seasons))
     .from(Seasons)
     .where(eq(Seasons.leagueId, leagueId))
     .orderBy(desc(Seasons.startDate));
 
-export const update = async ({
-  userId,
-  seasonId,
-  ...rest
-}: {
-  userId: string;
-  seasonId: string;
-  startDate?: Date;
-  endDate?: Date;
-  initialScore?: number;
-  scoreType?: ScoreType;
-  kFactor?: number;
-}) => {
+export const update = async (
+  db: Database,
+  {
+    userId,
+    seasonId,
+    ...rest
+  }: {
+    userId: string;
+    seasonId: string;
+    startDate?: Date;
+    endDate?: Date;
+    initialScore?: number;
+    scoreType?: ScoreType;
+    kFactor?: number;
+  },
+) => {
   const [season] = await db
     .update(Seasons)
     .set({
@@ -199,15 +208,18 @@ export const update = async ({
   return season;
 };
 
-export const updateClosedStatus = async ({
-  seasonId,
-  userId,
-  closed,
-}: {
-  seasonId: string;
-  userId: string;
-  closed: boolean;
-}) => {
+export const updateClosedStatus = async (
+  db: Database,
+  {
+    seasonId,
+    userId,
+    closed,
+  }: {
+    seasonId: string;
+    userId: string;
+    closed: boolean;
+  },
+) => {
   const [season] = await db
     .update(Seasons)
     .set({
@@ -220,8 +232,8 @@ export const updateClosedStatus = async ({
   return season;
 };
 
-export const create = async (input: z.input<typeof SeasonCreateSchema>) => {
-  const slug = await slugifySeasonName({ name: input.name });
+export const create = async (db: Database, input: z.input<typeof SeasonCreateSchema>) => {
+  const slug = await slugifySeasonName(db, { name: input.name });
   const now = new Date();
   let values: typeof Seasons.$inferInsert;
   if (input.scoreType === "elo") {
@@ -350,13 +362,16 @@ export const create = async (input: z.input<typeof SeasonCreateSchema>) => {
   return season as typeof Seasons.$inferSelect;
 };
 
-export const getSeasonPlayerLatestMatches = async ({
-  seasonPlayerIds,
-  limit = 5,
-}: {
-  seasonPlayerIds: string[];
-  limit?: number;
-}) => {
+export const getSeasonPlayerLatestMatches = async (
+  db: Database,
+  {
+    seasonPlayerIds,
+    limit = 5,
+  }: {
+    seasonPlayerIds: string[];
+    limit?: number;
+  },
+) => {
   return db.query.SeasonPlayers.findMany({
     columns: { id: true },
     where: inArray(SeasonPlayers.id, seasonPlayerIds),
@@ -373,18 +388,21 @@ export const getSeasonPlayerLatestMatches = async ({
 /**
  * used by the public endpoint that is used to show the scores for Jón Þór statue
  */
-export const getTodayDiff = async ({
-  leagueId,
-  userId,
-}: {
-  leagueId: string;
-  userId: string;
-}) => {
-  const season = await findActive({ leagueId });
+export const getTodayDiff = async (
+  db: Database,
+  {
+    leagueId,
+    userId,
+  }: {
+    leagueId: string;
+    userId: string;
+  },
+) => {
+  const season = await findActive(db, { leagueId });
   if (!season) {
     return { diff: 0 };
   }
-  const seasonPlayers = await getStanding({
+  const seasonPlayers = await getStanding(db, {
     seasonId: season.id,
   });
   const seasonPlayer = seasonPlayers.find((sp) => sp.user.userId === userId);
@@ -392,15 +410,18 @@ export const getTodayDiff = async ({
   return { diff: seasonPlayer?.pointDiff ?? 0 };
 };
 
-export const findSeasonAndLeagueBySlug = async ({
-  leagueSlug,
-  seasonSlug,
-  userId,
-}: {
-  leagueSlug: string;
-  seasonSlug: string;
-  userId: string;
-}) => {
+export const findSeasonAndLeagueBySlug = async (
+  db: Database,
+  {
+    leagueSlug,
+    seasonSlug,
+    userId,
+  }: {
+    leagueSlug: string;
+    seasonSlug: string;
+    userId: string;
+  },
+) => {
   const [league] = await db
     .select({
       leagueId: Leagues.id,
@@ -423,7 +444,7 @@ export const findSeasonAndLeagueBySlug = async ({
   return league;
 };
 
-export const findFixtures = async ({ seasonId }: { seasonId: string }) => {
+export const findFixtures = async (db: Database, { seasonId }: { seasonId: string }) => {
   return db.query.SeasonFixtures.findMany({
     where: eq(SeasonFixtures.seasonId, seasonId),
     orderBy: [
@@ -434,27 +455,26 @@ export const findFixtures = async ({ seasonId }: { seasonId: string }) => {
   });
 };
 
-export const findFixtureById = async ({
-  seasonId,
-  fixtureId,
-}: { seasonId: string; fixtureId: string }) => {
+export const findFixtureById = async (
+  db: Database,
+  { seasonId, fixtureId }: { seasonId: string; fixtureId: string },
+) => {
   return db.query.SeasonFixtures.findFirst({
     where: and(eq(SeasonFixtures.seasonId, seasonId), eq(SeasonFixtures.id, fixtureId)),
   });
 };
 
-export const assignMatchToFixture = async ({
-  seasonId,
-  fixtureId,
-  matchId,
-}: { seasonId: string; fixtureId: string; matchId: string }) => {
+export const assignMatchToFixture = async (
+  db: Database,
+  { seasonId, fixtureId, matchId }: { seasonId: string; fixtureId: string; matchId: string },
+) => {
   await db
     .update(SeasonFixtures)
     .set({ matchId })
     .where(and(eq(SeasonFixtures.seasonId, seasonId), eq(SeasonFixtures.id, fixtureId)));
 };
 
-export const slugifySeasonName = async ({ name }: { name: string }) => {
+export const slugifySeasonName = async (db: Database, { name }: { name: string }) => {
   const doesLeagueSlugExists = async (_slug: string) =>
     db.select().from(Seasons).where(eq(Seasons.slug, slug)).limit(1);
 

@@ -1,5 +1,5 @@
 import { type SQL, and, desc, eq, sql } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import {
   LeaguePlayers,
   LeagueTeamPlayers,
@@ -12,13 +12,16 @@ import {
   Users,
 } from "../schema";
 
-export const getPointDiffProgression = async ({
-  seasonId,
-  condition,
-}: {
-  seasonId: string;
-  condition?: SQL<unknown>;
-}) => {
+export const getPointDiffProgression = async (
+  db: Database,
+  {
+    seasonId,
+    condition,
+  }: {
+    seasonId: string;
+    condition?: SQL<unknown>;
+  },
+) => {
   const subQuery = db
     .select({
       seasonTeamId: MatchTeams.seasonTeamId,
@@ -74,7 +77,7 @@ export const getPointDiffProgression = async ({
     );
 };
 
-const matchesSubqueryBuilder = ({ seasonId }: { seasonId: string }) =>
+const matchesSubqueryBuilder = (db: Database, { seasonId }: { seasonId: string }) =>
   db
     .select({
       seasonTeamId: MatchTeams.seasonTeamId,
@@ -92,8 +95,8 @@ const matchesSubqueryBuilder = ({ seasonId }: { seasonId: string }) =>
     .where(eq(SeasonTeams.seasonId, seasonId))
     .as("recent_matches");
 
-export const getStanding = async ({ seasonId }: { seasonId: string }) => {
-  const matchesSubquery = matchesSubqueryBuilder({ seasonId });
+export const getStanding = async (db: Database, { seasonId }: { seasonId: string }) => {
+  const matchesSubquery = matchesSubqueryBuilder(db, { seasonId });
 
   const teamStats = await db
     .select({
@@ -126,7 +129,7 @@ export const getStanding = async ({ seasonId }: { seasonId: string }) => {
     .where(eq(SeasonTeams.seasonId, seasonId))
     .orderBy(desc(SeasonTeams.score));
 
-  const pointDiff = await getPointDiffProgression({
+  const pointDiff = await getPointDiffProgression(db, {
     seasonId,
     condition: eq(sql`DATE(${MatchTeams.createdAt})`, sql`CURRENT_DATE`),
   });
@@ -149,7 +152,7 @@ export const getStanding = async ({ seasonId }: { seasonId: string }) => {
   });
 };
 
-export const getTopTeam = async ({ seasonSlug }: { seasonSlug: string }) => {
+export const getTopTeam = async (db: Database, { seasonSlug }: { seasonSlug: string }) => {
   const topTeamSubquery = db
     .select({
       seasonTeamId: SeasonTeams.id,

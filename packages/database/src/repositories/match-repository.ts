@@ -2,20 +2,23 @@ import { CalculationStrategy, Player, TeamMatch } from "@ihs7/ts-elo";
 import { createId } from "@scorebrawl/utils/id";
 import { type SQL, and, count, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import type z from "zod";
-import { db } from "../db";
+import type { Database } from "../db";
 import { ScoreBrawlError } from "../errors";
 import type { Match, MatchInput, MatchResultSymbol } from "../model";
 import { MatchPlayers, MatchTeams, Matches, SeasonPlayers, SeasonTeams, Seasons } from "../schema";
 import { getOrInsertTeam } from "./league-team-repository";
 
-export const create = async ({
-  seasonId,
-  homeTeamSeasonPlayerIds,
-  awayTeamSeasonPlayerIds,
-  homeScore,
-  awayScore,
-  userId,
-}: z.infer<typeof MatchInput>) => {
+export const create = async (
+  db: Database,
+  {
+    seasonId,
+    homeTeamSeasonPlayerIds,
+    awayTeamSeasonPlayerIds,
+    homeScore,
+    awayScore,
+    userId,
+  }: z.infer<typeof MatchInput>,
+) => {
   const [seasonById] = await db
     .select(getTableColumns(Seasons))
     .from(Seasons)
@@ -28,11 +31,11 @@ export const create = async ({
     });
   }
 
-  const homeSeasonPlayers = await findAndValidateSeasonPlayers({
+  const homeSeasonPlayers = await findAndValidateSeasonPlayers(db, {
     seasonId,
     seasonPlayerIds: homeTeamSeasonPlayerIds,
   });
-  const awaySeasonPlayers = await findAndValidateSeasonPlayers({
+  const awaySeasonPlayers = await findAndValidateSeasonPlayers(db, {
     seasonId,
     seasonPlayerIds: awayTeamSeasonPlayerIds,
   });
@@ -118,16 +121,22 @@ export const create = async ({
   }
 
   if (homeSeasonPlayers.length > 1 && awaySeasonPlayers.length > 1) {
-    const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = await getOrInsertTeam({
-      season,
-      now,
-      players: homeSeasonPlayers,
-    });
-    const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = await getOrInsertTeam({
-      season,
-      now,
-      players: awaySeasonPlayers,
-    });
+    const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = await getOrInsertTeam(
+      db,
+      {
+        season,
+        now,
+        players: homeSeasonPlayers,
+      },
+    );
+    const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = await getOrInsertTeam(
+      db,
+      {
+        season,
+        now,
+        players: awaySeasonPlayers,
+      },
+    );
 
     const teamMatchResult = calculateMatchResult({
       season,
@@ -183,15 +192,18 @@ export const create = async ({
   } satisfies z.infer<typeof Match>;
 };
 
-export const getBySeasonId = async ({
-  seasonId,
-  page = 1,
-  limit = 30,
-}: {
-  seasonId: string;
-  page?: number;
-  limit?: number;
-}) => {
+export const getBySeasonId = async (
+  db: Database,
+  {
+    seasonId,
+    page = 1,
+    limit = 30,
+  }: {
+    seasonId: string;
+    page?: number;
+    limit?: number;
+  },
+) => {
   const [result, [countResult]] = await Promise.all([
     db.query.Matches.findMany({
       where: (match, { eq }) => eq(match.seasonId, seasonId),
@@ -230,7 +242,7 @@ export const getBySeasonId = async ({
   };
 };
 
-export const findLatest = async ({ seasonId }: { seasonId: string }) => {
+export const findLatest = async (db: Database, { seasonId }: { seasonId: string }) => {
   const match = await db.query.Matches.findFirst({
     with: {
       matchPlayers: { columns: { seasonPlayerId: true, homeTeam: true } },
@@ -255,7 +267,10 @@ export const findLatest = async ({ seasonId }: { seasonId: string }) => {
   );
 };
 
-export const findById = async ({ seasonId, matchId }: { seasonId: string; matchId: string }) => {
+export const findById = async (
+  db: Database,
+  { seasonId, matchId }: { seasonId: string; matchId: string },
+) => {
   const match = await db.query.Matches.findFirst({
     with: {
       matchPlayers: { columns: { seasonPlayerId: true, homeTeam: true } },
@@ -280,13 +295,16 @@ export const findById = async ({ seasonId, matchId }: { seasonId: string; matchI
   );
 };
 
-const findAndValidateSeasonPlayers = async ({
-  seasonId,
-  seasonPlayerIds,
-}: {
-  seasonId: string;
-  seasonPlayerIds: string[];
-}) => {
+const findAndValidateSeasonPlayers = async (
+  db: Database,
+  {
+    seasonId,
+    seasonPlayerIds,
+  }: {
+    seasonId: string;
+    seasonPlayerIds: string[];
+  },
+) => {
   const players = await db.query.SeasonPlayers.findMany({
     where: and(eq(SeasonPlayers.seasonId, seasonId), inArray(SeasonPlayers.id, seasonPlayerIds)),
     with: {
@@ -305,13 +323,16 @@ const findAndValidateSeasonPlayers = async ({
   return players;
 };
 
-export const remove = async ({
-  matchId,
-  seasonId,
-}: {
-  matchId: string;
-  seasonId: string;
-}) => {
+export const remove = async (
+  db: Database,
+  {
+    matchId,
+    seasonId,
+  }: {
+    matchId: string;
+    seasonId: string;
+  },
+) => {
   const [match] = await db
     .select({
       ...getTableColumns(Matches),
@@ -344,8 +365,8 @@ export const remove = async ({
     .from(SeasonPlayers)
     .innerJoin(MatchPlayers, eq(MatchPlayers.seasonPlayerId, SeasonPlayers.id))
     .where(eq(MatchPlayers.matchId, matchId));
-  await revertScores({ matchId });
-  await revertTeamScores({ matchId });
+  await revertScores(db, { matchId });
+  await revertTeamScores(db, { matchId });
   await db.delete(MatchPlayers).where(eq(MatchPlayers.matchId, match.id));
   await db.delete(MatchTeams).where(eq(MatchTeams.matchId, match.id));
   await db.delete(Matches).where(eq(Matches.id, match.id));
@@ -353,7 +374,7 @@ export const remove = async ({
   return seasonPlayerIds.map((sp) => sp.seasonPlayerId);
 };
 
-const revertScores = async ({ matchId }: { matchId: string }) => {
+const revertScores = async (db: Database, { matchId }: { matchId: string }) => {
   const players = await db.select().from(MatchPlayers).where(eq(MatchPlayers.matchId, matchId));
   const playerUpdateData = players.map((mp) => ({
     id: mp.seasonPlayerId,
@@ -379,7 +400,7 @@ const revertScores = async ({ matchId }: { matchId: string }) => {
     );
 };
 
-const revertTeamScores = async ({ matchId }: { matchId: string }) => {
+const revertTeamScores = async (db: Database, { matchId }: { matchId: string }) => {
   const teams = await db.select().from(MatchTeams).where(eq(MatchTeams.matchId, matchId));
   const teamUpdateData = teams.map((mt) => ({
     id: mt.seasonTeamId,

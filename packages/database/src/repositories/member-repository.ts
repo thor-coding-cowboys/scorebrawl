@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "../db";
+import type { Database } from "../db";
 import { LeagueMembers, Leagues, Users } from "../schema";
 
-export const findAll = async ({ leagueId }: { leagueId: string }) => {
+export const findAll = async (db: Database, { leagueId }: { leagueId: string }) => {
   return (
     await db
       .select({
