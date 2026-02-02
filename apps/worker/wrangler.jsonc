@@ -1,0 +1,37 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "scorebrawl",
+	"main": "./src/index.ts",
+	"compatibility_date": "2025-10-08",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "scorebrawl",
+			"database_id": "4afd9188-bed1-4663-9765-778a056cbde2"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "USER_ASSETS_BUCKET",
+			"bucket_name": "scorebrawl-user-assets"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"VITE_GITHUB_CLIENT_ID": "Ov23liEHPLUdBgTj5Cxu",
+		"VITE_GOOGLE_CLIENT_ID": "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com"
+	},
+	"upload_source_maps": true,
+	"assets": {
+		"directory": "../../apps/web/dist/client",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	}
+}

@@ -1,0 +1,59 @@
+import type { betterAuth } from "better-auth";
+import { createMiddleware } from "hono/factory";
+import { getDb } from "../db";
+import { createAuth } from "../lib/better-auth";
+
+export type HonoEnv = {
+	Bindings: Env;
+	Variables: {
+		db: ReturnType<typeof getDb>;
+		betterAuth: ReturnType<typeof betterAuth>;
+		authentication?: AuthType;
+		userAssetsBucket: R2Bucket;
+	};
+};
+
+export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
+	// Initialize database
+	const {
+		DB,
+		USER_ASSETS_BUCKET,
+		VITE_GITHUB_CLIENT_ID: githubClientId,
+		GITHUB_CLIENT_SECRET: githubClientSecret,
+		VITE_GOOGLE_CLIENT_ID: googleClientId,
+		GOOGLE_CLIENT_SECRET: googleClientSecret,
+		BETTER_AUTH_SECRET: betterAuthSecret,
+	} = c.env;
+	const db = getDb(DB);
+
+	// Get origin from request for passkey configuration
+	const origin =
+		c.req.header("origin") ||
+		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
+
+	const auth = createAuth({
+		db,
+		betterAuthSecret,
+		githubClientId,
+		githubClientSecret,
+		googleClientId,
+		googleClientSecret,
+		origin,
+	});
+	c.set("db", db);
+	c.set("betterAuth", auth);
+	c.set("userAssetsBucket", USER_ASSETS_BUCKET);
+
+	await next();
+});
+
+// for better auth cli
+export const auth = createAuth({
+	db: undefined as unknown as ReturnType<typeof getDb>,
+	betterAuthSecret: "",
+});
+
+export type AuthType = {
+	user: typeof auth.$Infer.Session.user;
+	session: typeof auth.$Infer.Session.session;
+};

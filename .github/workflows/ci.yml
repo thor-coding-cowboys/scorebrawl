@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      VITE_GITHUB_CLIENT_ID: Ov23liEHPLUdBgTj5Cxu # https://github.com/organizations/thor-coding-cowboys/settings/applications/3369260
+      VITE_GOOGLE_CLIENT_ID: 972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: ⚡ Setup Turbo cache
+        uses: rharkor/caching-for-turbo@cda201ff2b32699a2ae9f59704db029e3dde4fbd
+
+      - name: 💅 Format check
+        run: bun run format
+
+      - name: 🔍 Lint
+        run: bun run lint
+
+      - name: 🔎 Typecheck
+        run: bun typecheck
+
+      - name: 🧪 Test
+        run: bun run test
+
+      - name: 🏗️ Build
+        run: bun run build
+
+      - name: 🔍 Wrangler Typecheck
+        run: bun run wrangler-typecheck
+
+      - name: 🚫 Enforce clean history
+        if: github.ref != 'refs/heads/main'
+        run: bun run .github/scripts/ci/enforce-clean-history.ts
+        env:
+          GITHUB_REF: ${{ github.ref }}
+
+      - name: Build & Deploy Worker
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: github.ref == 'refs/heads/main'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/worker

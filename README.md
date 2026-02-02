@@ -6,7 +6,7 @@ Scorebrawl is the ultimate battleground for tracking and amplifying your competi
 
 🌐 **Live App**: [https://app.scorebrawl.com](https://app.scorebrawl.com)
 
-![Scorebrawl Screenshot](apps/scorebrawl/public/screenshot.png)
+![Scorebrawl](public/scorebrawl.jpg)
 
 ## ✨ Features
 
@@ -25,99 +25,61 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
 ### Tech Stack
 
 - **🏃‍♂️ Runtime**: [Bun](https://bun.sh/) - Fast JavaScript runtime and package manager
-- **⚛️ Framework**: [Next.js 15](https://nextjs.org/) with App Router
+- **⚛️ Frontend**: [React 19](https://react.dev/) SPA with [TanStack Router](https://tanstack.com/router) for type-safe routing
+- **🔧 Backend**: [Cloudflare Workers](https://workers.cloudflare.com/) with [Hono](https://hono.dev/) framework
 - **📡 API**: [tRPC](https://trpc.io/) for end-to-end typesafe APIs
-- **🗄️ Database**: [PostgreSQL](https://www.postgresql.org/) with [Drizzle ORM](https://orm.drizzle.team/)
+- **🗄️ Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) with [Drizzle ORM](https://orm.drizzle.team/)
 - **🔐 Authentication**: [Better-Auth](https://better-auth.com/) for comprehensive auth
-- **📤 File Uploads**: [UploadThing](https://uploadthing.com/) for seamless file handling
-- **🎨 UI**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- **⚡ Background Jobs**: [Trigger.dev](https://trigger.dev/) for async processing
-- **🚀 Deployment**: [Vercel](https://vercel.com/) for hosting and CI/CD
+- **🎨 UI**: [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
 - **📦 Monorepo**: [Turborepo](https://turbo.build/) for efficient builds and caching
+- **🚀 Deployment**: [Cloudflare](https://cloudflare.com/) edge deployment
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [Bun](https://bun.sh/) (latest version)
-- [UploadThing](https://uploadthing.com/) account for file uploads
 
 ### Installation
 
 1. **Clone and install dependencies**:
+
    ```bash
    git clone <repository-url>
-   cd scorebrawl-nextjs
+   cd scorebrawl
    bun install
    ```
 
-2. **Start local database**:
+2. **Database Setup**:
+
    ```bash
-   cd apps/scorebrawl
-   bun run db-start  # Start local PostgreSQL with Docker
+   # Generate migrations
+   bun db:generate
+
+   # Apply migrations locally
+   bun db:migrate
    ```
 
-3. **Database Setup**:
-   ```bash
-   cd apps/scorebrawl
-   bun run drizzle-generate  # Generate migrations
-   bun run drizzle-migrate   # Run migrations
-   ```
-
-4. **Start Development**:
+3. **Start Development**:
    ```bash
    bun run dev
    ```
-
-### 🎯 Database Seeding
-
-The `apps/scorebrawl/scripts/` directory contains utilities for database management:
-
-- **`import-dump.ts`** - Import anonymized production data for development
-- **`anonymize-dump.ts`** - Create anonymized database dumps
-- **`truncate-database.ts`** - Clean database for fresh start
-- **`migrate-db.ts`** - Run database migrations
-
-#### Import Database Dump
-
-The `import-dump.ts` script supports importing to different databases:
-
-```bash
-cd apps/scorebrawl
-
-# Import to e2e database (default)
-bun run scripts/import-dump.ts
-
-# Import to dev database
-bun run scripts/import-dump.ts --db=dev
-
-# Import specific file to dev database
-bun run scripts/import-dump.ts my-dump.sql --db=dev
-```
-
-**Database Options:**
-- `--db=e2e` - E2E test database (default)
-- `--db=dev` - Local development database
-
-#### Test User Credentials
-
-When using the anonymized dump, you can log in with this test user:
-
-- **Email**: `jensen_bauch31@gmail.com`
-- **Password**: `rimmen-6vacsi-viPmob`
 
 ### 📝 Available Scripts
 
 ```bash
 # Development
-bun run dev              # Start development server
+bun run dev              # Start development servers
 bun run build           # Build for production
-bun run flint           # Format and lint code
+bun oxc                 # Format and lint code with auto-fix
+bun check               # Run typecheck, lint, and format checks
 
 # Database
-bun run drizzle-studio  # Open Drizzle Studio
-bun run db-start        # Start local PostgreSQL (Docker)
-bun run db-stop         # Stop local PostgreSQL
+bun db:studio           # Open Drizzle Studio
+bun db:generate         # Generate migrations
+bun db:migrate          # Run local migrations
+bun db:migrate:prod     # Deploy migrations to production
+bun db:reset            # Clean and reapply migrations
 
 # Testing
 bun run test           # Run all tests
@@ -125,9 +87,9 @@ bun run test           # Run all tests
 
 ## 🤝 Contributing
 
-1. Follow the existing code style and use `bun run flint` for formatting
-2. Create database migrations with `bun run drizzle-generate`
-3. Add tests for new features
+1. Follow the existing code style and use `bun oxc` for formatting
+2. Create database migrations with `bun db:generate`
+3. Add tests for new features in `apps/worker/src/test/`
 4. Update documentation as needed
 
 ## 📄 License
