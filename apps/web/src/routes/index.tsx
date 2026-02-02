@@ -14,13 +14,12 @@ export const Route = createFileRoute("/")({
 function App() {
 	const { session } = Route.useRouteContext();
 	const { data: organizations, isPending } = authClient.useListOrganizations();
+
 	const navigate = useNavigate();
 
 	if (!session) {
 		return <Landing />;
 	}
-
-	console.log({ organizations, isPending });
 
 	if (isPending) {
 		return null;
@@ -28,5 +27,16 @@ function App() {
 
 	if (organizations && organizations.length === 0) {
 		navigate({ to: "/onboarding" });
+	} else if (organizations && organizations.length > 0) {
+		const activeOrgId = session?.session?.activeOrganizationId;
+		const targetOrg = activeOrgId
+			? organizations.find((org) => org.id === activeOrgId)
+			: organizations[0];
+
+		if (targetOrg) {
+			navigate({ to: "/leagues/$slug", params: { slug: targetOrg.slug } });
+		}
 	}
+
+	return null;
 }

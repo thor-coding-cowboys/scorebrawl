@@ -1,10 +1,10 @@
 import { TRPCClientError } from "@trpc/client";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createAuthContext } from "../setup/auth-context-util";
-import { createPlayers } from "../setup/competition-context-util";
+import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
 
-describe("competition router", () => {
+describe("season router", () => {
 	let sessionToken: string;
 
 	beforeEach(async () => {
@@ -12,23 +12,23 @@ describe("competition router", () => {
 		sessionToken = ctx.sessionToken;
 	});
 
-	it("lists all competitions for organization", async () => {
+	it("lists all seasons for league", async () => {
 		const client = createTRPCTestClient({ sessionToken });
 
-		const result = await client.competition.getAll.query();
+		const result = await client.season.getAll.query();
 
 		expect(result).toBeInstanceOf(Array);
 	});
 
-	it("creates a competition with players", async () => {
+	it("creates a season with players", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
 		// Create players first
 		await createPlayers(ctx, 3);
 
-		const result = await client.competition.create.mutate({
-			name: "Test Competition",
+		const result = await client.season.create.mutate({
+			name: "Test Season",
 			initialScore: 1000,
 			scoreType: "elo",
 			kFactor: 32,
@@ -36,19 +36,19 @@ describe("competition router", () => {
 		});
 
 		expect(result).toBeDefined();
-		expect(result.name).toBe("Test Competition");
+		expect(result.name).toBe("Test Season");
 		expect(result.slug).toBeDefined();
 	});
 
-	it("fails to create competition without enough players", async () => {
+	it("fails to create season without enough players", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
 		// Don't create any players
 
 		await expect(
-			client.competition.create.mutate({
-				name: "Test Competition",
+			client.season.create.mutate({
+				name: "Test Season",
 				initialScore: 1000,
 				scoreType: "elo",
 				kFactor: 32,
@@ -57,44 +57,44 @@ describe("competition router", () => {
 		).rejects.toThrow(TRPCClientError);
 	});
 
-	it("gets competition by slug", async () => {
+	it("gets season by slug", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
-		// Create players and competition
+		// Create players and season
 		await createPlayers(ctx, 2);
-		const competition = await client.competition.create.mutate({
-			name: "Test Competition",
+		const season = await client.season.create.mutate({
+			name: "Test Season",
 			initialScore: 1000,
 			scoreType: "elo",
 			kFactor: 32,
 			startDate: new Date(),
 		});
 
-		const result = await client.competition.getBySlug.query({
-			competitionSlug: competition.slug,
+		const result = await client.season.getBySlug.query({
+			seasonSlug: season.slug,
 		});
 
-		expect(result.id).toBe(competition.id);
-		expect(result.name).toBe("Test Competition");
+		expect(result.id).toBe(season.id);
+		expect(result.name).toBe("Test Season");
 	});
 
-	it("updates competition closed status", async () => {
+	it("updates season closed status", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
-		// Create players and competition
+		// Create players and season
 		await createPlayers(ctx, 2);
-		const competition = await client.competition.create.mutate({
-			name: "Test Competition",
+		const season = await client.season.create.mutate({
+			name: "Test Season",
 			initialScore: 1000,
 			scoreType: "elo",
 			kFactor: 32,
 			startDate: new Date(),
 		});
 
-		const result = await client.competition.updateClosedStatus.mutate({
-			competitionSlug: competition.slug,
+		const result = await client.season.updateClosedStatus.mutate({
+			seasonSlug: season.slug,
 			closed: true,
 		});
 
@@ -104,6 +104,6 @@ describe("competition router", () => {
 	it("returns unauthorized without session", async () => {
 		const client = createTRPCTestClient();
 
-		await expect(client.competition.getAll.query()).rejects.toThrow(TRPCClientError);
+		await expect(client.season.getAll.query()).rejects.toThrow(TRPCClientError);
 	});
 });

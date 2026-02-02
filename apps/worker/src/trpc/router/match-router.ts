@@ -1,15 +1,15 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import * as competitionRepository from "../../repositories/competition-repository";
+import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
-import { competitionProcedure, organizationEditorProcedure } from "../trpc";
+import { seasonProcedure, leagueEditorProcedure } from "../trpc";
 
 export const matchRouter = {
-	create: organizationEditorProcedure
+	create: leagueEditorProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				homeScore: z.number().int().min(0),
 				awayScore: z.number().int().min(0),
 				homeTeamPlayerIds: z.array(z.string()),
@@ -20,22 +20,22 @@ export const matchRouter = {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const typedCtx = ctx as any;
 
-			const comp = await competitionRepository.getBySlug({
+			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
-				competitionSlug: input.competitionSlug,
+				seasonSlug: input.seasonSlug,
 			});
 
 			if (comp.closed) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This competition is closed",
+					message: "This season is closed",
 				});
 			}
 
 			return matchRepository.create({
 				db: typedCtx.db,
 				input: {
-					competitionId: comp.id,
+					seasonId: comp.id,
 					homeScore: input.homeScore,
 					awayScore: input.awayScore,
 					homeTeamPlayerIds: input.homeTeamPlayerIds,
@@ -45,10 +45,10 @@ export const matchRouter = {
 			});
 		}),
 
-	remove: competitionProcedure
+	remove: seasonProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				matchId: z.string(),
 			})
 		)
@@ -56,16 +56,16 @@ export const matchRouter = {
 			await matchRepository.remove({
 				db: ctx.db,
 				matchId: input.matchId,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 			});
 
 			return { success: true };
 		}),
 
-	getById: competitionProcedure
+	getById: seasonProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				matchId: z.string(),
 			})
 		)
@@ -73,29 +73,29 @@ export const matchRouter = {
 			return matchRepository.findById({
 				db: ctx.db,
 				matchId: input.matchId,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 			});
 		}),
 
-	getLatest: competitionProcedure.query(async ({ ctx }) => {
+	getLatest: seasonProcedure.query(async ({ ctx }) => {
 		return matchRepository.findLatest({
 			db: ctx.db,
-			competitionId: ctx.competition.id,
+			seasonId: ctx.season.id,
 		});
 	}),
 
-	getAll: competitionProcedure
+	getAll: seasonProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				limit: z.number().int().optional().default(30),
 				offset: z.number().int().optional().default(0),
 			})
 		)
 		.query(async ({ ctx, input }) => {
-			return matchRepository.getByCompetitionId({
+			return matchRepository.getBySeasonId({
 				db: ctx.db,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 				limit: input.limit,
 				offset: input.offset,
 			});

@@ -65,6 +65,16 @@ Full verification: `bun check && bun test`
 
 Run `bun dev` after creating new routes for TanStack Router code generation.
 
+## State Management
+
+Prefer **TanStack Query** (`useQuery`, `useMutation`) over `useEffect` for:
+
+- Data fetching and caching
+- Server state management
+- API mutations
+
+Use `useEffect` only for client-side only side effects (DOM manipulation, subscriptions, etc.).
+
 ## Authentication
 
 Use **better-auth**. Prefer better-auth React client in frontend. Reference: https://www.better-auth.com/llms.txt

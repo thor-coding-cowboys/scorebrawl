@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
-	competitionPlayer,
+	seasonPlayer,
 	match,
 	matchPlayer,
 	matchResult,
@@ -10,7 +10,7 @@ import {
 } from "../db/schema/competition-schema";
 
 export interface MatchCreateInput {
-	competitionId: string;
+	seasonId: string;
 	homeScore: number;
 	awayScore: number;
 	homeTeamPlayerIds: string[];
@@ -25,7 +25,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 	// Create match
 	await db.insert(match).values({
 		id: matchId,
-		competitionId: input.competitionId,
+		seasonId: input.seasonId,
 		homeScore: input.homeScore,
 		awayScore: input.awayScore,
 		createdBy: input.userId,
@@ -54,7 +54,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		...input.homeTeamPlayerIds.map((id) => ({
 			id: crypto.randomUUID(),
 			matchId,
-			competitionPlayerId: id,
+			seasonPlayerId: id,
 			homeTeam: true,
 			result: homeResult,
 			scoreBefore: 0, // Will be updated with actual score
@@ -65,7 +65,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		...input.awayTeamPlayerIds.map((id) => ({
 			id: crypto.randomUUID(),
 			matchId,
-			competitionPlayerId: id,
+			seasonPlayerId: id,
 			homeTeam: false,
 			result: awayResult,
 			scoreBefore: 0,
@@ -79,7 +79,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 
 	return {
 		id: matchId,
-		competitionId: input.competitionId,
+		seasonId: input.seasonId,
 		homeScore: input.homeScore,
 		awayScore: input.awayScore,
 		createdAt: now,
@@ -89,67 +89,61 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 export const remove = async ({
 	db,
 	matchId,
-	competitionId,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	matchId: string;
-	competitionId: string;
+	seasonId: string;
 }) => {
 	// Remove match players first
 	await db.delete(matchPlayer).where(eq(matchPlayer.matchId, matchId));
 
 	// Remove match
-	await db.delete(match).where(and(eq(match.id, matchId), eq(match.competitionId, competitionId)));
+	await db.delete(match).where(and(eq(match.id, matchId), eq(match.seasonId, seasonId)));
 };
 
 export const findById = async ({
 	db,
 	matchId,
-	competitionId,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	matchId: string;
-	competitionId: string;
+	seasonId: string;
 }) => {
 	const [m] = await db
 		.select()
 		.from(match)
-		.where(and(eq(match.id, matchId), eq(match.competitionId, competitionId)))
+		.where(and(eq(match.id, matchId), eq(match.seasonId, seasonId)))
 		.limit(1);
 	return m;
 };
 
-export const findLatest = async ({
-	db,
-	competitionId,
-}: {
-	db: DrizzleDB;
-	competitionId: string;
-}) => {
+export const findLatest = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	const [m] = await db
 		.select()
 		.from(match)
-		.where(eq(match.competitionId, competitionId))
+		.where(eq(match.seasonId, seasonId))
 		.orderBy(desc(match.createdAt))
 		.limit(1);
 	return m;
 };
 
-export const getByCompetitionId = async ({
+export const getBySeasonId = async ({
 	db,
-	competitionId,
+	seasonId,
 	limit,
 	offset,
 }: {
 	db: DrizzleDB;
-	competitionId: string;
+	seasonId: string;
 	limit: number;
 	offset: number;
 }) => {
 	const matches = await db
 		.select()
 		.from(match)
-		.where(eq(match.competitionId, competitionId))
+		.where(eq(match.seasonId, seasonId))
 		.orderBy(desc(match.createdAt))
 		.limit(limit)
 		.offset(offset);
@@ -157,7 +151,7 @@ export const getByCompetitionId = async ({
 	const [countResult] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(match)
-		.where(eq(match.competitionId, competitionId));
+		.where(eq(match.seasonId, seasonId));
 
 	return {
 		matches,
@@ -169,7 +163,7 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 	const matchData = await db
 		.select({
 			id: match.id,
-			competitionId: match.competitionId,
+			seasonId: match.seasonId,
 			homeScore: match.homeScore,
 			awayScore: match.awayScore,
 			createdAt: match.createdAt,
@@ -183,7 +177,7 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 	const players = await db
 		.select({
 			id: matchPlayer.id,
-			competitionPlayerId: matchPlayer.competitionPlayerId,
+			seasonPlayerId: matchPlayer.seasonPlayerId,
 			homeTeam: matchPlayer.homeTeam,
 			result: matchPlayer.result,
 			scoreBefore: matchPlayer.scoreBefore,
@@ -192,8 +186,8 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 			image: user.image,
 		})
 		.from(matchPlayer)
-		.innerJoin(competitionPlayer, eq(matchPlayer.competitionPlayerId, competitionPlayer.id))
-		.innerJoin(player, eq(competitionPlayer.playerId, player.id))
+		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
 		.innerJoin(user, eq(player.userId, user.id))
 		.where(eq(matchPlayer.matchId, matchId));
 

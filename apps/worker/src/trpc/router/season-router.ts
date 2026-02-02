@@ -1,9 +1,9 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import * as competitionRepository from "../../repositories/competition-repository";
+import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
-import { competitionProcedure, organizationEditorProcedure, organizationProcedure } from "../trpc";
+import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
 	if (endDate && startDate && startDate > endDate) {
@@ -14,50 +14,50 @@ const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endD
 	}
 };
 
-export const competitionRouter = {
-	getBySlug: competitionProcedure.query(({ ctx }) => ({
-		id: ctx.competition.id,
-		slug: ctx.competition.slug,
-		name: ctx.competition.name,
-		initialScore: ctx.competition.initialScore,
-		scoreType: ctx.competition.scoreType,
-		kFactor: ctx.competition.kFactor,
-		startDate: ctx.competition.startDate,
-		endDate: ctx.competition.endDate,
-		rounds: ctx.competition.rounds,
-		closed: ctx.competition.closed,
-		archived: ctx.competition.archived,
+export const seasonRouter = {
+	getBySlug: seasonProcedure.query(({ ctx }) => ({
+		id: ctx.season.id,
+		slug: ctx.season.slug,
+		name: ctx.season.name,
+		initialScore: ctx.season.initialScore,
+		scoreType: ctx.season.scoreType,
+		kFactor: ctx.season.kFactor,
+		startDate: ctx.season.startDate,
+		endDate: ctx.season.endDate,
+		rounds: ctx.season.rounds,
+		closed: ctx.season.closed,
+		archived: ctx.season.archived,
 	})),
 
-	getCountInfo: competitionProcedure.query(async ({ ctx, input }) => {
-		return competitionRepository.getCountInfo({
+	getCountInfo: seasonProcedure.query(async ({ ctx, input }) => {
+		return seasonRepository.getCountInfo({
 			db: ctx.db,
-			competitionSlug: input.competitionSlug,
+			seasonSlug: input.seasonSlug,
 		});
 	}),
 
-	findActive: organizationProcedure.query(async ({ ctx }) => {
-		return competitionRepository.findActive({
-			db: ctx.db,
-			organizationId: ctx.organizationId,
-		});
-	}),
-
-	getAll: organizationProcedure.query(async ({ ctx }) => {
-		return competitionRepository.getAll({
+	findActive: leagueProcedure.query(async ({ ctx }) => {
+		return seasonRepository.findActive({
 			db: ctx.db,
 			organizationId: ctx.organizationId,
 		});
 	}),
 
-	getFixtures: competitionProcedure.query(async ({ ctx }) => {
-		return competitionRepository.findFixtures({
+	getAll: leagueProcedure.query(async ({ ctx }) => {
+		return seasonRepository.getAll({
 			db: ctx.db,
-			competitionId: ctx.competition.id,
+			organizationId: ctx.organizationId,
 		});
 	}),
 
-	create: organizationEditorProcedure
+	getFixtures: seasonProcedure.query(async ({ ctx }) => {
+		return seasonRepository.findFixtures({
+			db: ctx.db,
+			seasonId: ctx.season.id,
+		});
+	}),
+
+	create: leagueEditorProcedure
 		.input(
 			z.object({
 				name: z.string().min(1).max(100),
@@ -84,11 +84,11 @@ export const competitionRouter = {
 			if (players.length < 2) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Organization must have at least 2 players to create a competition",
+					message: "League must have at least 2 players to create a season",
 				});
 			}
 
-			return competitionRepository.create({
+			return seasonRepository.create({
 				db: typedCtx.db,
 				...input,
 				organizationId: typedCtx.organizationId,
@@ -96,10 +96,10 @@ export const competitionRouter = {
 			});
 		}),
 
-	edit: organizationEditorProcedure
+	edit: leagueEditorProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				name: z.string().min(1).max(100).optional(),
 				startDate: z.date().optional(),
 				endDate: z.date().optional(),
@@ -113,13 +113,13 @@ export const competitionRouter = {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const typedCtx = ctx as any;
 
-			// Get competition to verify it exists
-			const comp = await competitionRepository.getBySlug({
+			// Get season to verify it exists
+			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
-				competitionSlug: input.competitionSlug,
+				seasonSlug: input.seasonSlug,
 			});
 
-			// Check if competition already started
+			// Check if season already started
 			if (comp.startDate < new Date()) {
 				const restrictedFields = [
 					input.startDate,
@@ -131,23 +131,23 @@ export const competitionRouter = {
 				if (restrictedFields) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Can only update name of a competition that has started",
+						message: "Can only update name of a season that has started",
 					});
 				}
 			}
 
-			return competitionRepository.update({
+			return seasonRepository.update({
 				db: typedCtx.db,
 				userId: typedCtx.authentication.user.id,
-				competitionId: comp.id,
+				seasonId: comp.id,
 				...input,
 			});
 		}),
 
-	updateClosedStatus: organizationEditorProcedure
+	updateClosedStatus: leagueEditorProcedure
 		.input(
 			z.object({
-				competitionSlug: z.string(),
+				seasonSlug: z.string(),
 				closed: z.boolean(),
 			})
 		)
@@ -155,14 +155,14 @@ export const competitionRouter = {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const typedCtx = ctx as any;
 
-			const comp = await competitionRepository.getBySlug({
+			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
-				competitionSlug: input.competitionSlug,
+				seasonSlug: input.seasonSlug,
 			});
 
-			return competitionRepository.updateClosedStatus({
+			return seasonRepository.updateClosedStatus({
 				db: typedCtx.db,
-				competitionId: comp.id,
+				seasonId: comp.id,
 				userId: typedCtx.authentication.user.id,
 				closed: input.closed,
 			});

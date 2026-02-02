@@ -25,8 +25,17 @@ CREATE TABLE `invitation` (
 	`expires_at` integer NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
 	`inviter_id` text NOT NULL,
-	CONSTRAINT `fk_invitation_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_invitation_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade,
 	CONSTRAINT `fk_invitation_inviter_id_user_id_fk` FOREIGN KEY (`inviter_id`) REFERENCES `user`(`id`) ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `league` (
+	`id` text PRIMARY KEY,
+	`name` text NOT NULL,
+	`slug` text NOT NULL,
+	`logo` text,
+	`created_at` integer NOT NULL,
+	`metadata` text
 );
 --> statement-breakpoint
 CREATE TABLE `member` (
@@ -35,17 +44,8 @@ CREATE TABLE `member` (
 	`user_id` text NOT NULL,
 	`role` text DEFAULT 'member' NOT NULL,
 	`created_at` integer NOT NULL,
-	CONSTRAINT `fk_member_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_member_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade,
 	CONSTRAINT `fk_member_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE cascade
-);
---> statement-breakpoint
-CREATE TABLE `organization` (
-	`id` text PRIMARY KEY,
-	`name` text NOT NULL,
-	`slug` text NOT NULL,
-	`logo` text,
-	`created_at` integer NOT NULL,
-	`metadata` text
 );
 --> statement-breakpoint
 CREATE TABLE `passkey` (
@@ -83,7 +83,7 @@ CREATE TABLE `team` (
 	`organization_id` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer,
-	CONSTRAINT `fk_team_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_team_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `team_member` (
@@ -123,71 +123,25 @@ CREATE TABLE `user_preference` (
 	CONSTRAINT `fk_user_preference_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `competition` (
-	`id` text PRIMARY KEY,
-	`name` text NOT NULL,
-	`slug` text NOT NULL,
-	`initial_score` integer NOT NULL,
-	`score_type` text NOT NULL,
-	`k_factor` integer NOT NULL,
-	`start_date` integer NOT NULL,
-	`end_date` integer,
-	`rounds` integer,
-	`organization_id` text NOT NULL,
-	`archived` integer DEFAULT 0 NOT NULL,
-	`closed` integer DEFAULT 0 NOT NULL,
-	`created_by` text NOT NULL,
-	`updated_by` text NOT NULL,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`deleted_at` integer,
-	CONSTRAINT `fk_competition_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade
-);
---> statement-breakpoint
-CREATE TABLE `competition_player` (
-	`id` text PRIMARY KEY,
-	`competition_id` text NOT NULL,
-	`player_id` text NOT NULL,
-	`score` integer NOT NULL,
-	`disabled` integer DEFAULT 0 NOT NULL,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`deleted_at` integer,
-	CONSTRAINT `fk_competition_player_competition_id_competition_id_fk` FOREIGN KEY (`competition_id`) REFERENCES `competition`(`id`) ON DELETE cascade,
-	CONSTRAINT `fk_competition_player_player_id_player_id_fk` FOREIGN KEY (`player_id`) REFERENCES `player`(`id`) ON DELETE cascade
-);
---> statement-breakpoint
-CREATE TABLE `competition_team` (
-	`id` text PRIMARY KEY,
-	`competition_id` text NOT NULL,
-	`org_team_id` text NOT NULL,
-	`score` integer NOT NULL,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`deleted_at` integer,
-	CONSTRAINT `fk_competition_team_competition_id_competition_id_fk` FOREIGN KEY (`competition_id`) REFERENCES `competition`(`id`) ON DELETE cascade,
-	CONSTRAINT `fk_competition_team_org_team_id_org_team_id_fk` FOREIGN KEY (`org_team_id`) REFERENCES `org_team`(`id`) ON DELETE cascade
-);
---> statement-breakpoint
 CREATE TABLE `fixture` (
 	`id` text PRIMARY KEY,
 	`round` integer NOT NULL,
-	`competition_id` text NOT NULL,
+	`season_id` text NOT NULL,
 	`match_id` text,
 	`home_player_id` text NOT NULL,
 	`away_player_id` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_fixture_competition_id_competition_id_fk` FOREIGN KEY (`competition_id`) REFERENCES `competition`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_fixture_season_id_season_id_fk` FOREIGN KEY (`season_id`) REFERENCES `season`(`id`) ON DELETE cascade,
 	CONSTRAINT `fk_fixture_match_id_match_id_fk` FOREIGN KEY (`match_id`) REFERENCES `match`(`id`) ON DELETE set null,
-	CONSTRAINT `fk_fixture_home_player_id_competition_player_id_fk` FOREIGN KEY (`home_player_id`) REFERENCES `competition_player`(`id`) ON DELETE cascade,
-	CONSTRAINT `fk_fixture_away_player_id_competition_player_id_fk` FOREIGN KEY (`away_player_id`) REFERENCES `competition_player`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_fixture_home_player_id_season_player_id_fk` FOREIGN KEY (`home_player_id`) REFERENCES `season_player`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_fixture_away_player_id_season_player_id_fk` FOREIGN KEY (`away_player_id`) REFERENCES `season_player`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `match` (
 	`id` text PRIMARY KEY,
-	`competition_id` text NOT NULL,
+	`season_id` text NOT NULL,
 	`home_score` integer NOT NULL,
 	`away_score` integer NOT NULL,
 	`home_expected_elo` real,
@@ -197,12 +151,12 @@ CREATE TABLE `match` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_match_competition_id_competition_id_fk` FOREIGN KEY (`competition_id`) REFERENCES `competition`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_match_season_id_season_id_fk` FOREIGN KEY (`season_id`) REFERENCES `season`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `match_player` (
 	`id` text PRIMARY KEY,
-	`competition_player_id` text NOT NULL,
+	`season_player_id` text NOT NULL,
 	`home_team` integer NOT NULL,
 	`match_id` text NOT NULL,
 	`score_before` integer DEFAULT -1 NOT NULL,
@@ -211,13 +165,13 @@ CREATE TABLE `match_player` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_match_player_competition_player_id_competition_player_id_fk` FOREIGN KEY (`competition_player_id`) REFERENCES `competition_player`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_match_player_season_player_id_season_player_id_fk` FOREIGN KEY (`season_player_id`) REFERENCES `season_player`(`id`) ON DELETE cascade,
 	CONSTRAINT `fk_match_player_match_id_match_id_fk` FOREIGN KEY (`match_id`) REFERENCES `match`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `match_team` (
 	`id` text PRIMARY KEY,
-	`competition_team_id` text NOT NULL,
+	`season_team_id` text NOT NULL,
 	`match_id` text NOT NULL,
 	`score_before` integer DEFAULT -1 NOT NULL,
 	`score_after` integer DEFAULT -1 NOT NULL,
@@ -225,7 +179,7 @@ CREATE TABLE `match_team` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_match_team_competition_team_id_competition_team_id_fk` FOREIGN KEY (`competition_team_id`) REFERENCES `competition_team`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_match_team_season_team_id_season_team_id_fk` FOREIGN KEY (`season_team_id`) REFERENCES `season_team`(`id`) ON DELETE cascade,
 	CONSTRAINT `fk_match_team_match_id_match_id_fk` FOREIGN KEY (`match_id`) REFERENCES `match`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
@@ -236,7 +190,7 @@ CREATE TABLE `org_team` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_org_team_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_org_team_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `org_team_player` (
@@ -259,7 +213,7 @@ CREATE TABLE `player` (
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
 	CONSTRAINT `fk_player_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE cascade,
-	CONSTRAINT `fk_player_organization_id_organization_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_player_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `player_achievement` (
@@ -272,12 +226,58 @@ CREATE TABLE `player_achievement` (
 	CONSTRAINT `fk_player_achievement_player_id_player_id_fk` FOREIGN KEY (`player_id`) REFERENCES `player`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `season` (
+	`id` text PRIMARY KEY,
+	`name` text NOT NULL,
+	`slug` text NOT NULL,
+	`initial_score` integer NOT NULL,
+	`score_type` text NOT NULL,
+	`k_factor` integer NOT NULL,
+	`start_date` integer NOT NULL,
+	`end_date` integer,
+	`rounds` integer,
+	`organization_id` text NOT NULL,
+	`archived` integer DEFAULT 0 NOT NULL,
+	`closed` integer DEFAULT 0 NOT NULL,
+	`created_by` text NOT NULL,
+	`updated_by` text NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`deleted_at` integer,
+	CONSTRAINT `fk_season_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `season_player` (
+	`id` text PRIMARY KEY,
+	`season_id` text NOT NULL,
+	`player_id` text NOT NULL,
+	`score` integer NOT NULL,
+	`disabled` integer DEFAULT 0 NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`deleted_at` integer,
+	CONSTRAINT `fk_season_player_season_id_season_id_fk` FOREIGN KEY (`season_id`) REFERENCES `season`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_season_player_player_id_player_id_fk` FOREIGN KEY (`player_id`) REFERENCES `player`(`id`) ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `season_team` (
+	`id` text PRIMARY KEY,
+	`season_id` text NOT NULL,
+	`org_team_id` text NOT NULL,
+	`score` integer NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`deleted_at` integer,
+	CONSTRAINT `fk_season_team_season_id_season_id_fk` FOREIGN KEY (`season_id`) REFERENCES `season`(`id`) ON DELETE cascade,
+	CONSTRAINT `fk_season_team_org_team_id_org_team_id_fk` FOREIGN KEY (`org_team_id`) REFERENCES `org_team`(`id`) ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`user_id`);--> statement-breakpoint
 CREATE INDEX `invitation_organizationId_idx` ON `invitation` (`organization_id`);--> statement-breakpoint
 CREATE INDEX `invitation_email_idx` ON `invitation` (`email`);--> statement-breakpoint
+CREATE UNIQUE INDEX `league_slug_uidx` ON `league` (`slug`);--> statement-breakpoint
 CREATE INDEX `member_organizationId_idx` ON `member` (`organization_id`);--> statement-breakpoint
 CREATE INDEX `member_userId_idx` ON `member` (`user_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `organization_slug_uidx` ON `organization` (`slug`);--> statement-breakpoint
 CREATE INDEX `passkey_userId_idx` ON `passkey` (`user_id`);--> statement-breakpoint
 CREATE INDEX `passkey_credentialID_idx` ON `passkey` (`credential_id`);--> statement-breakpoint
 CREATE INDEX `session_userId_idx` ON `session` (`user_id`);--> statement-breakpoint
@@ -285,21 +285,13 @@ CREATE INDEX `team_organizationId_idx` ON `team` (`organization_id`);--> stateme
 CREATE INDEX `teamMember_teamId_idx` ON `team_member` (`team_id`);--> statement-breakpoint
 CREATE INDEX `teamMember_userId_idx` ON `team_member` (`user_id`);--> statement-breakpoint
 CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);--> statement-breakpoint
-CREATE UNIQUE INDEX `competition_slug_uidx` ON `competition` (`slug`);--> statement-breakpoint
-CREATE INDEX `competition_organization_id_idx` ON `competition` (`organization_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `competition_player_competition_player_uidx` ON `competition_player` (`competition_id`,`player_id`);--> statement-breakpoint
-CREATE INDEX `competition_player_competition_id_idx` ON `competition_player` (`competition_id`);--> statement-breakpoint
-CREATE INDEX `competition_player_player_id_idx` ON `competition_player` (`player_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `competition_team_competition_team_uidx` ON `competition_team` (`competition_id`,`org_team_id`);--> statement-breakpoint
-CREATE INDEX `competition_team_competition_id_idx` ON `competition_team` (`competition_id`);--> statement-breakpoint
-CREATE INDEX `competition_team_org_team_id_idx` ON `competition_team` (`org_team_id`);--> statement-breakpoint
-CREATE INDEX `fixture_competition_id_idx` ON `fixture` (`competition_id`);--> statement-breakpoint
+CREATE INDEX `fixture_season_id_idx` ON `fixture` (`season_id`);--> statement-breakpoint
 CREATE INDEX `fixture_match_id_idx` ON `fixture` (`match_id`);--> statement-breakpoint
-CREATE INDEX `match_competition_id_idx` ON `match` (`competition_id`);--> statement-breakpoint
+CREATE INDEX `match_season_id_idx` ON `match` (`season_id`);--> statement-breakpoint
 CREATE INDEX `match_created_at_idx` ON `match` (`created_at`);--> statement-breakpoint
-CREATE INDEX `match_player_competition_player_id_idx` ON `match_player` (`competition_player_id`);--> statement-breakpoint
+CREATE INDEX `match_player_season_player_id_idx` ON `match_player` (`season_player_id`);--> statement-breakpoint
 CREATE INDEX `match_player_match_id_idx` ON `match_player` (`match_id`);--> statement-breakpoint
-CREATE INDEX `match_team_competition_team_id_idx` ON `match_team` (`competition_team_id`);--> statement-breakpoint
+CREATE INDEX `match_team_season_team_id_idx` ON `match_team` (`season_team_id`);--> statement-breakpoint
 CREATE INDEX `match_team_match_id_idx` ON `match_team` (`match_id`);--> statement-breakpoint
 CREATE INDEX `match_team_created_at_idx` ON `match_team` (`created_at`);--> statement-breakpoint
 CREATE INDEX `org_team_organization_id_idx` ON `org_team` (`organization_id`);--> statement-breakpoint
@@ -310,4 +302,12 @@ CREATE UNIQUE INDEX `player_organization_user_uidx` ON `player` (`organization_i
 CREATE INDEX `player_organization_id_idx` ON `player` (`organization_id`);--> statement-breakpoint
 CREATE INDEX `player_user_id_idx` ON `player` (`user_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `player_achievement_player_type_uidx` ON `player_achievement` (`player_id`,`type`);--> statement-breakpoint
-CREATE INDEX `player_achievement_player_id_idx` ON `player_achievement` (`player_id`);
+CREATE INDEX `player_achievement_player_id_idx` ON `player_achievement` (`player_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `season_slug_uidx` ON `season` (`slug`);--> statement-breakpoint
+CREATE INDEX `season_organization_id_idx` ON `season` (`organization_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `season_player_season_player_uidx` ON `season_player` (`season_id`,`player_id`);--> statement-breakpoint
+CREATE INDEX `season_player_season_id_idx` ON `season_player` (`season_id`);--> statement-breakpoint
+CREATE INDEX `season_player_player_id_idx` ON `season_player` (`player_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `season_team_season_team_uidx` ON `season_team` (`season_id`,`org_team_id`);--> statement-breakpoint
+CREATE INDEX `season_team_season_id_idx` ON `season_team` (`season_id`);--> statement-breakpoint
+CREATE INDEX `season_team_org_team_id_idx` ON `season_team` (`org_team_id`);

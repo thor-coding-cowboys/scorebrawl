@@ -11,7 +11,7 @@ export interface UserInput {
 	name?: string;
 }
 
-export interface OrganizationInput {
+export interface LeagueInput {
 	name?: string;
 	slug?: string;
 }
@@ -19,7 +19,7 @@ export interface OrganizationInput {
 export interface AuthContext {
 	sessionToken: string;
 	user: UserInput & { id: string; email: string; password: string; name: string };
-	organization: OrganizationInput & { id: string; name: string; slug: string };
+	league: LeagueInput & { id: string; name: string; slug: string };
 }
 
 /**
@@ -39,9 +39,9 @@ export function aUser(overrides: UserInput = {}): UserInput & {
 }
 
 /**
- * Generate organization input with defaults
+ * Generate league input with defaults
  */
-export function anOrganization(overrides: OrganizationInput = {}): OrganizationInput & {
+export function aLeague(overrides: LeagueInput = {}): LeagueInput & {
 	name: string;
 	slug: string;
 } {
@@ -63,10 +63,10 @@ export function authHeaders(sessionToken: string): Record<string, string> {
 }
 
 /**
- * Create an authenticated context with a user and organization
+ * Create an authenticated context with a user and league
  */
 export async function createAuthContext(
-	options: { user?: UserInput; organization?: OrganizationInput } = {}
+	options: { user?: UserInput; league?: LeagueInput } = {}
 ): Promise<AuthContext> {
 	const db = getDb(env.DB);
 	const auth = createAuth({
@@ -75,7 +75,7 @@ export async function createAuthContext(
 	});
 
 	const userInput = aUser(options.user);
-	const orgInput = anOrganization(options.organization);
+	const orgInput = aLeague(options.league);
 
 	// Sign up a test user
 	const { headers } = await auth.api.signUpEmail({
@@ -119,7 +119,7 @@ export async function createAuthContext(
 			...userInput,
 			id: createdUser.id,
 		},
-		organization: {
+		league: {
 			id: org.id,
 			name: org.name,
 			slug: org.slug,
@@ -128,11 +128,11 @@ export async function createAuthContext(
 }
 
 /**
- * Create an additional organization for an authenticated user
+ * Create an additional league for an authenticated user
  */
-export async function createOrganization(
+export async function createLeague(
 	sessionToken: string,
-	overrides: OrganizationInput = {}
+	overrides: LeagueInput = {}
 ): Promise<{ id: string; name: string; slug: string }> {
 	const db = getDb(env.DB);
 	const auth = createAuth({
@@ -140,7 +140,7 @@ export async function createOrganization(
 		betterAuthSecret: env.BETTER_AUTH_SECRET,
 	});
 
-	const orgInput = anOrganization(overrides);
+	const orgInput = aLeague(overrides);
 
 	const org = await auth.api.createOrganization({
 		body: orgInput,
@@ -157,7 +157,7 @@ export async function createOrganization(
 }
 
 /**
- * Create an authenticated user without an organization
+ * Create an authenticated user without a league
  */
 export async function createUser(overrides: UserInput = {}): Promise<{
 	sessionToken: string;

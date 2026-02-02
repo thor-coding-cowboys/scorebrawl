@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { user, organization } from "./auth-schema";
+import { user, league as organization } from "./auth-schema";
 import { timestampAuditFields } from "./common";
 
 export const achievementType = [
@@ -74,8 +74,8 @@ export const orgTeamPlayer = sqliteTable(
 	]
 );
 
-export const competition = sqliteTable(
-	"competition",
+export const season = sqliteTable(
+	"season",
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
@@ -96,18 +96,18 @@ export const competition = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("competition_slug_uidx").on(table.slug),
-		index("competition_organization_id_idx").on(table.organizationId),
+		uniqueIndex("season_slug_uidx").on(table.slug),
+		index("season_organization_id_idx").on(table.organizationId),
 	]
 );
 
-export const competitionPlayer = sqliteTable(
-	"competition_player",
+export const seasonPlayer = sqliteTable(
+	"season_player",
 	{
 		id: text("id").primaryKey(),
-		competitionId: text("competition_id")
+		seasonId: text("season_id")
 			.notNull()
-			.references(() => competition.id, { onDelete: "cascade" }),
+			.references(() => season.id, { onDelete: "cascade" }),
 		playerId: text("player_id")
 			.notNull()
 			.references(() => player.id, { onDelete: "cascade" }),
@@ -116,22 +116,19 @@ export const competitionPlayer = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("competition_player_competition_player_uidx").on(
-			table.competitionId,
-			table.playerId
-		),
-		index("competition_player_competition_id_idx").on(table.competitionId),
-		index("competition_player_player_id_idx").on(table.playerId),
+		uniqueIndex("season_player_season_player_uidx").on(table.seasonId, table.playerId),
+		index("season_player_season_id_idx").on(table.seasonId),
+		index("season_player_player_id_idx").on(table.playerId),
 	]
 );
 
-export const competitionTeam = sqliteTable(
-	"competition_team",
+export const seasonTeam = sqliteTable(
+	"season_team",
 	{
 		id: text("id").primaryKey(),
-		competitionId: text("competition_id")
+		seasonId: text("season_id")
 			.notNull()
-			.references(() => competition.id, { onDelete: "cascade" }),
+			.references(() => season.id, { onDelete: "cascade" }),
 		orgTeamId: text("org_team_id")
 			.notNull()
 			.references(() => orgTeam.id, { onDelete: "cascade" }),
@@ -139,9 +136,9 @@ export const competitionTeam = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("competition_team_competition_team_uidx").on(table.competitionId, table.orgTeamId),
-		index("competition_team_competition_id_idx").on(table.competitionId),
-		index("competition_team_org_team_id_idx").on(table.orgTeamId),
+		uniqueIndex("season_team_season_team_uidx").on(table.seasonId, table.orgTeamId),
+		index("season_team_season_id_idx").on(table.seasonId),
+		index("season_team_org_team_id_idx").on(table.orgTeamId),
 	]
 );
 
@@ -149,9 +146,9 @@ export const match = sqliteTable(
 	"match",
 	{
 		id: text("id").primaryKey(),
-		competitionId: text("competition_id")
+		seasonId: text("season_id")
 			.notNull()
-			.references(() => competition.id, { onDelete: "cascade" }),
+			.references(() => season.id, { onDelete: "cascade" }),
 		homeScore: integer("home_score").notNull(),
 		awayScore: integer("away_score").notNull(),
 		homeExpectedElo: real("home_expected_elo"),
@@ -161,7 +158,7 @@ export const match = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		index("match_competition_id_idx").on(table.competitionId),
+		index("match_season_id_idx").on(table.seasonId),
 		index("match_created_at_idx").on(table.createdAt),
 	]
 );
@@ -170,9 +167,9 @@ export const matchPlayer = sqliteTable(
 	"match_player",
 	{
 		id: text("id").primaryKey(),
-		competitionPlayerId: text("competition_player_id")
+		seasonPlayerId: text("season_player_id")
 			.notNull()
-			.references(() => competitionPlayer.id, { onDelete: "cascade" }),
+			.references(() => seasonPlayer.id, { onDelete: "cascade" }),
 		homeTeam: integer("home_team", { mode: "boolean" }).notNull(),
 		matchId: text("match_id")
 			.notNull()
@@ -183,7 +180,7 @@ export const matchPlayer = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		index("match_player_competition_player_id_idx").on(table.competitionPlayerId),
+		index("match_player_season_player_id_idx").on(table.seasonPlayerId),
 		index("match_player_match_id_idx").on(table.matchId),
 	]
 );
@@ -192,9 +189,9 @@ export const matchTeam = sqliteTable(
 	"match_team",
 	{
 		id: text("id").primaryKey(),
-		competitionTeamId: text("competition_team_id")
+		seasonTeamId: text("season_team_id")
 			.notNull()
-			.references(() => competitionTeam.id, { onDelete: "cascade" }),
+			.references(() => seasonTeam.id, { onDelete: "cascade" }),
 		matchId: text("match_id")
 			.notNull()
 			.references(() => match.id, { onDelete: "cascade" }),
@@ -204,7 +201,7 @@ export const matchTeam = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		index("match_team_competition_team_id_idx").on(table.competitionTeamId),
+		index("match_team_season_team_id_idx").on(table.seasonTeamId),
 		index("match_team_match_id_idx").on(table.matchId),
 		index("match_team_created_at_idx").on(table.createdAt),
 	]
@@ -215,20 +212,20 @@ export const fixture = sqliteTable(
 	{
 		id: text("id").primaryKey(),
 		round: integer("round").notNull(),
-		competitionId: text("competition_id")
+		seasonId: text("season_id")
 			.notNull()
-			.references(() => competition.id, { onDelete: "cascade" }),
+			.references(() => season.id, { onDelete: "cascade" }),
 		matchId: text("match_id").references(() => match.id, { onDelete: "set null" }),
 		homePlayerId: text("home_player_id")
 			.notNull()
-			.references(() => competitionPlayer.id, { onDelete: "cascade" }),
+			.references(() => seasonPlayer.id, { onDelete: "cascade" }),
 		awayPlayerId: text("away_player_id")
 			.notNull()
-			.references(() => competitionPlayer.id, { onDelete: "cascade" }),
+			.references(() => seasonPlayer.id, { onDelete: "cascade" }),
 		...timestampAuditFields,
 	},
 	(table) => [
-		index("fixture_competition_id_idx").on(table.competitionId),
+		index("fixture_season_id_idx").on(table.seasonId),
 		index("fixture_match_id_idx").on(table.matchId),
 	]
 );

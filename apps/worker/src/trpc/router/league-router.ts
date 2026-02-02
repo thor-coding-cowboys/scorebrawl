@@ -1,10 +1,10 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { member, organization } from "../../db/schema/auth-schema";
+import { member, league as organization } from "../../db/schema/auth-schema";
 import { protectedProcedure } from "../trpc";
 
-export const organizationRouter = {
+export const leagueRouter = {
 	list: protectedProcedure.query(async ({ ctx: { db, authentication } }) => {
 		const userId = authentication.user.id;
 
@@ -21,7 +21,7 @@ export const organizationRouter = {
 			.innerJoin(organization, eq(member.organizationId, organization.id))
 			.where(eq(member.userId, userId));
 
-		return { organizations };
+		return { leagues: organizations };
 	}),
 
 	checkSlugAvailability: protectedProcedure
