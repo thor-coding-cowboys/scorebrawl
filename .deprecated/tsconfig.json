@@ -1,0 +1,3 @@
+{
+  "extends": "@scorebrawl/typescript-config/base.json"
+}

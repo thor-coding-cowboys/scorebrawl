@@ -1,0 +1,2942 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "662b2fb8-e943-4876-8374-fbc6b5140215",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "account",
+			"entityType": "tables"
+		},
+		{
+			"name": "invitation",
+			"entityType": "tables"
+		},
+		{
+			"name": "member",
+			"entityType": "tables"
+		},
+		{
+			"name": "organization",
+			"entityType": "tables"
+		},
+		{
+			"name": "passkey",
+			"entityType": "tables"
+		},
+		{
+			"name": "session",
+			"entityType": "tables"
+		},
+		{
+			"name": "team",
+			"entityType": "tables"
+		},
+		{
+			"name": "team_member",
+			"entityType": "tables"
+		},
+		{
+			"name": "user",
+			"entityType": "tables"
+		},
+		{
+			"name": "verification",
+			"entityType": "tables"
+		},
+		{
+			"name": "user_preference",
+			"entityType": "tables"
+		},
+		{
+			"name": "competition",
+			"entityType": "tables"
+		},
+		{
+			"name": "competition_player",
+			"entityType": "tables"
+		},
+		{
+			"name": "competition_team",
+			"entityType": "tables"
+		},
+		{
+			"name": "fixture",
+			"entityType": "tables"
+		},
+		{
+			"name": "match",
+			"entityType": "tables"
+		},
+		{
+			"name": "match_player",
+			"entityType": "tables"
+		},
+		{
+			"name": "match_team",
+			"entityType": "tables"
+		},
+		{
+			"name": "org_team",
+			"entityType": "tables"
+		},
+		{
+			"name": "org_team_player",
+			"entityType": "tables"
+		},
+		{
+			"name": "player",
+			"entityType": "tables"
+		},
+		{
+			"name": "player_achievement",
+			"entityType": "tables"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "account_id",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "provider_id",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "access_token",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "refresh_token",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id_token",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "access_token_expires_at",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "refresh_token_expires_at",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "scope",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "password",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "account"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "email",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "role",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "team_id",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "'pending'",
+			"generated": null,
+			"name": "status",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires_at",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "inviter_id",
+			"entityType": "columns",
+			"table": "invitation"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "member"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "member"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "member"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "'member'",
+			"generated": null,
+			"name": "role",
+			"entityType": "columns",
+			"table": "member"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "member"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "slug",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "logo",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "metadata",
+			"entityType": "columns",
+			"table": "organization"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "public_key",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "credential_id",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "counter",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "device_type",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "backed_up",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "transports",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "aaguid",
+			"entityType": "columns",
+			"table": "passkey"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires_at",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "token",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ip_address",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_agent",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "active_organization_id",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "active_team_id",
+			"entityType": "columns",
+			"table": "session"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "team"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "team"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "team_member"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "team_id",
+			"entityType": "columns",
+			"table": "team_member"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "team_member"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "team_member"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "email",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "email_verified",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "image",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "user"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "identifier",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "value",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires_at",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "verification"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "user_preference"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "default_organization_id",
+			"entityType": "columns",
+			"table": "user_preference"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "user_preference"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "user_preference"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "user_preference"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "slug",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "initial_score",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "score_type",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "k_factor",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "start_date",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "end_date",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "rounds",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "archived",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "closed",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_by",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "updated_by",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "competition"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_id",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "player_id",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "score",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "disabled",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "competition_player"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_id",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "org_team_id",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "score",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "competition_team"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "round",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_id",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "match_id",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "home_player_id",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "away_player_id",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "fixture"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_id",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "home_score",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "away_score",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "home_expected_elo",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "away_expected_elo",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_by",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "updated_by",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "match"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_player_id",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "home_team",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "match_id",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "-1",
+			"generated": null,
+			"name": "score_before",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "-1",
+			"generated": null,
+			"name": "score_after",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "result",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "match_player"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "competition_team_id",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "match_id",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "-1",
+			"generated": null,
+			"name": "score_before",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "-1",
+			"generated": null,
+			"name": "score_after",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "result",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "match_team"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "org_team"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "player_id",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "org_team_id",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "org_team_player"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "organization_id",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "disabled",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "player_id",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "player_achievement"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_account_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "account"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_invitation_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "invitation"
+		},
+		{
+			"columns": ["inviter_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_invitation_inviter_id_user_id_fk",
+			"entityType": "fks",
+			"table": "invitation"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_member_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "member"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_member_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "member"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_passkey_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "passkey"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_session_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "session"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_team_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "team"
+		},
+		{
+			"columns": ["team_id"],
+			"tableTo": "team",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_team_member_team_id_team_id_fk",
+			"entityType": "fks",
+			"table": "team_member"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_team_member_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "team_member"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_user_preference_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "user_preference"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_competition_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "competition"
+		},
+		{
+			"columns": ["competition_id"],
+			"tableTo": "competition",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_competition_player_competition_id_competition_id_fk",
+			"entityType": "fks",
+			"table": "competition_player"
+		},
+		{
+			"columns": ["player_id"],
+			"tableTo": "player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_competition_player_player_id_player_id_fk",
+			"entityType": "fks",
+			"table": "competition_player"
+		},
+		{
+			"columns": ["competition_id"],
+			"tableTo": "competition",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_competition_team_competition_id_competition_id_fk",
+			"entityType": "fks",
+			"table": "competition_team"
+		},
+		{
+			"columns": ["org_team_id"],
+			"tableTo": "org_team",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_competition_team_org_team_id_org_team_id_fk",
+			"entityType": "fks",
+			"table": "competition_team"
+		},
+		{
+			"columns": ["competition_id"],
+			"tableTo": "competition",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_fixture_competition_id_competition_id_fk",
+			"entityType": "fks",
+			"table": "fixture"
+		},
+		{
+			"columns": ["match_id"],
+			"tableTo": "match",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "set null",
+			"nameExplicit": false,
+			"name": "fk_fixture_match_id_match_id_fk",
+			"entityType": "fks",
+			"table": "fixture"
+		},
+		{
+			"columns": ["home_player_id"],
+			"tableTo": "competition_player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_fixture_home_player_id_competition_player_id_fk",
+			"entityType": "fks",
+			"table": "fixture"
+		},
+		{
+			"columns": ["away_player_id"],
+			"tableTo": "competition_player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_fixture_away_player_id_competition_player_id_fk",
+			"entityType": "fks",
+			"table": "fixture"
+		},
+		{
+			"columns": ["competition_id"],
+			"tableTo": "competition",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_match_competition_id_competition_id_fk",
+			"entityType": "fks",
+			"table": "match"
+		},
+		{
+			"columns": ["competition_player_id"],
+			"tableTo": "competition_player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_match_player_competition_player_id_competition_player_id_fk",
+			"entityType": "fks",
+			"table": "match_player"
+		},
+		{
+			"columns": ["match_id"],
+			"tableTo": "match",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_match_player_match_id_match_id_fk",
+			"entityType": "fks",
+			"table": "match_player"
+		},
+		{
+			"columns": ["competition_team_id"],
+			"tableTo": "competition_team",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_match_team_competition_team_id_competition_team_id_fk",
+			"entityType": "fks",
+			"table": "match_team"
+		},
+		{
+			"columns": ["match_id"],
+			"tableTo": "match",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_match_team_match_id_match_id_fk",
+			"entityType": "fks",
+			"table": "match_team"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_org_team_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "org_team"
+		},
+		{
+			"columns": ["player_id"],
+			"tableTo": "player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_org_team_player_player_id_player_id_fk",
+			"entityType": "fks",
+			"table": "org_team_player"
+		},
+		{
+			"columns": ["org_team_id"],
+			"tableTo": "org_team",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_org_team_player_org_team_id_org_team_id_fk",
+			"entityType": "fks",
+			"table": "org_team_player"
+		},
+		{
+			"columns": ["user_id"],
+			"tableTo": "user",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_player_user_id_user_id_fk",
+			"entityType": "fks",
+			"table": "player"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "organization",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_player_organization_id_organization_id_fk",
+			"entityType": "fks",
+			"table": "player"
+		},
+		{
+			"columns": ["player_id"],
+			"tableTo": "player",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_player_achievement_player_id_player_id_fk",
+			"entityType": "fks",
+			"table": "player_achievement"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "account_pk",
+			"table": "account",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "invitation_pk",
+			"table": "invitation",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "member_pk",
+			"table": "member",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "organization_pk",
+			"table": "organization",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "passkey_pk",
+			"table": "passkey",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "session_pk",
+			"table": "session",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "team_pk",
+			"table": "team",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "team_member_pk",
+			"table": "team_member",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "user_pk",
+			"table": "user",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "verification_pk",
+			"table": "verification",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["user_id"],
+			"nameExplicit": false,
+			"name": "user_preference_pk",
+			"table": "user_preference",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "competition_pk",
+			"table": "competition",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "competition_player_pk",
+			"table": "competition_player",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "competition_team_pk",
+			"table": "competition_team",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "fixture_pk",
+			"table": "fixture",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "match_pk",
+			"table": "match",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "match_player_pk",
+			"table": "match_player",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "match_team_pk",
+			"table": "match_team",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "org_team_pk",
+			"table": "org_team",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "org_team_player_pk",
+			"table": "org_team_player",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "player_pk",
+			"table": "player",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "player_achievement_pk",
+			"table": "player_achievement",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "account_userId_idx",
+			"entityType": "indexes",
+			"table": "account"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "invitation_organizationId_idx",
+			"entityType": "indexes",
+			"table": "invitation"
+		},
+		{
+			"columns": [
+				{
+					"value": "email",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "invitation_email_idx",
+			"entityType": "indexes",
+			"table": "invitation"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "member_organizationId_idx",
+			"entityType": "indexes",
+			"table": "member"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "member_userId_idx",
+			"entityType": "indexes",
+			"table": "member"
+		},
+		{
+			"columns": [
+				{
+					"value": "slug",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "organization_slug_uidx",
+			"entityType": "indexes",
+			"table": "organization"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "passkey_userId_idx",
+			"entityType": "indexes",
+			"table": "passkey"
+		},
+		{
+			"columns": [
+				{
+					"value": "credential_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "passkey_credentialID_idx",
+			"entityType": "indexes",
+			"table": "passkey"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "session_userId_idx",
+			"entityType": "indexes",
+			"table": "session"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "team_organizationId_idx",
+			"entityType": "indexes",
+			"table": "team"
+		},
+		{
+			"columns": [
+				{
+					"value": "team_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "teamMember_teamId_idx",
+			"entityType": "indexes",
+			"table": "team_member"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "teamMember_userId_idx",
+			"entityType": "indexes",
+			"table": "team_member"
+		},
+		{
+			"columns": [
+				{
+					"value": "identifier",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "verification_identifier_idx",
+			"entityType": "indexes",
+			"table": "verification"
+		},
+		{
+			"columns": [
+				{
+					"value": "slug",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_slug_uidx",
+			"entityType": "indexes",
+			"table": "competition"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_organization_id_idx",
+			"entityType": "indexes",
+			"table": "competition"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				},
+				{
+					"value": "player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_player_competition_player_uidx",
+			"entityType": "indexes",
+			"table": "competition_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_player_competition_id_idx",
+			"entityType": "indexes",
+			"table": "competition_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_player_player_id_idx",
+			"entityType": "indexes",
+			"table": "competition_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				},
+				{
+					"value": "org_team_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_team_competition_team_uidx",
+			"entityType": "indexes",
+			"table": "competition_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_team_competition_id_idx",
+			"entityType": "indexes",
+			"table": "competition_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "org_team_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "competition_team_org_team_id_idx",
+			"entityType": "indexes",
+			"table": "competition_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "fixture_competition_id_idx",
+			"entityType": "indexes",
+			"table": "fixture"
+		},
+		{
+			"columns": [
+				{
+					"value": "match_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "fixture_match_id_idx",
+			"entityType": "indexes",
+			"table": "fixture"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_competition_id_idx",
+			"entityType": "indexes",
+			"table": "match"
+		},
+		{
+			"columns": [
+				{
+					"value": "created_at",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_created_at_idx",
+			"entityType": "indexes",
+			"table": "match"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_player_competition_player_id_idx",
+			"entityType": "indexes",
+			"table": "match_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "match_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_player_match_id_idx",
+			"entityType": "indexes",
+			"table": "match_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "competition_team_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_team_competition_team_id_idx",
+			"entityType": "indexes",
+			"table": "match_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "match_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_team_match_id_idx",
+			"entityType": "indexes",
+			"table": "match_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "created_at",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "match_team_created_at_idx",
+			"entityType": "indexes",
+			"table": "match_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "org_team_organization_id_idx",
+			"entityType": "indexes",
+			"table": "org_team"
+		},
+		{
+			"columns": [
+				{
+					"value": "org_team_id",
+					"isExpression": false
+				},
+				{
+					"value": "player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "org_team_player_team_player_uidx",
+			"entityType": "indexes",
+			"table": "org_team_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "org_team_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "org_team_player_team_id_idx",
+			"entityType": "indexes",
+			"table": "org_team_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "org_team_player_player_id_idx",
+			"entityType": "indexes",
+			"table": "org_team_player"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				},
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "player_organization_user_uidx",
+			"entityType": "indexes",
+			"table": "player"
+		},
+		{
+			"columns": [
+				{
+					"value": "organization_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "player_organization_id_idx",
+			"entityType": "indexes",
+			"table": "player"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "player_user_id_idx",
+			"entityType": "indexes",
+			"table": "player"
+		},
+		{
+			"columns": [
+				{
+					"value": "player_id",
+					"isExpression": false
+				},
+				{
+					"value": "type",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "player_achievement_player_type_uidx",
+			"entityType": "indexes",
+			"table": "player_achievement"
+		},
+		{
+			"columns": [
+				{
+					"value": "player_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "player_achievement_player_id_idx",
+			"entityType": "indexes",
+			"table": "player_achievement"
+		},
+		{
+			"columns": ["token"],
+			"nameExplicit": false,
+			"name": "session_token_unique",
+			"entityType": "uniques",
+			"table": "session"
+		},
+		{
+			"columns": ["email"],
+			"nameExplicit": false,
+			"name": "user_email_unique",
+			"entityType": "uniques",
+			"table": "user"
+		}
+	],
+	"renames": []
+}
