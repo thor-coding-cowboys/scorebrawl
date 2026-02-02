@@ -1,8 +1,8 @@
-import { competitionPlayerRouter } from "./router/competition-player-router";
-import { competitionRouter } from "./router/competition-router";
+import { seasonPlayerRouter } from "./router/season-player-router";
+import { seasonRouter } from "./router/season-router";
 import { matchRouter } from "./router/match-router";
 import { memberRouter } from "./router/member-router";
-import { organizationRouter } from "./router/organization-router";
+import { leagueRouter } from "./router/league-router";
 import { playerRouter } from "./router/player-router";
 import { userAssetRouter } from "./router/user-assets-router";
 import { teamRouter } from "./router/team-router";
@@ -11,12 +11,12 @@ import { createTRPCRouter } from "./trpc";
 export const trpcRouter = createTRPCRouter({
 	team: teamRouter,
 	member: memberRouter,
-	organization: organizationRouter,
+	league: leagueRouter,
 	userAssets: userAssetRouter,
-	competition: competitionRouter,
+	season: seasonRouter,
 	player: playerRouter,
 	match: matchRouter,
-	competitionPlayer: competitionPlayerRouter,
+	seasonPlayer: seasonPlayerRouter,
 });
 
 export type TRPCRouter = typeof trpcRouter;

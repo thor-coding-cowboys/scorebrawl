@@ -1,52 +1,52 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import * as competitionPlayerRepository from "../../repositories/competition-player-repository";
-import * as competitionRepository from "../../repositories/competition-repository";
+import * as seasonPlayerRepository from "../../repositories/season-player-repository";
+import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
-import { competitionProcedure, organizationProcedure } from "../trpc";
+import { seasonProcedure, leagueProcedure } from "../trpc";
 
-const checkCompetitionSupportsPlayerProfiles = async ({
+const checkSeasonSupportsPlayerProfiles = async ({
 	db,
 	organizationId,
 }: {
 	db: any;
 	organizationId: string;
 }) => {
-	const activeCompetition = await competitionRepository.findActive({
+	const activeSeason = await seasonRepository.findActive({
 		db,
 		organizationId,
 	});
 
-	if (!activeCompetition) {
+	if (!activeSeason) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "No active competition found",
+			message: "No active season found",
 		});
 	}
 
-	if (activeCompetition.scoreType === "3-1-0") {
+	if (activeSeason.scoreType === "3-1-0") {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Player profiles are not available for 3-1-0 competitions",
+			message: "Player profiles are not available for 3-1-0 seasons",
 		});
 	}
 
-	return activeCompetition;
+	return activeSeason;
 };
 
 export const playerRouter = {
-	getAll: organizationProcedure.query(async ({ ctx }) => {
+	getAll: leagueProcedure.query(async ({ ctx }) => {
 		return playerRepository.getAll({
 			db: ctx.db,
 			organizationId: ctx.organizationId,
 		});
 	}),
 
-	getById: competitionProcedure
-		.input(z.object({ competitionSlug: z.string(), playerId: z.string() }))
+	getById: seasonProcedure
+		.input(z.object({ seasonSlug: z.string(), playerId: z.string() }))
 		.query(async ({ input, ctx }) => {
-			await checkCompetitionSupportsPlayerProfiles({
+			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
 				organizationId: ctx.organizationId,
 			});
@@ -67,86 +67,86 @@ export const playerRouter = {
 			return player;
 		}),
 
-	getEloProgression: competitionProcedure
-		.input(z.object({ competitionSlug: z.string(), playerId: z.string() }))
+	getEloProgression: seasonProcedure
+		.input(z.object({ seasonSlug: z.string(), playerId: z.string() }))
 		.query(async ({ input, ctx }) => {
-			await checkCompetitionSupportsPlayerProfiles({
+			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
 				organizationId: ctx.organizationId,
 			});
 
-			// Get competition player ID from player ID
-			const competitionPlayers = await competitionPlayerRepository.findAll({
+			// Get season player ID from player ID
+			const seasonPlayers = await seasonPlayerRepository.findAll({
 				db: ctx.db,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 			});
 
-			const cp = competitionPlayers.find((p) => p.playerId === input.playerId);
+			const cp = seasonPlayers.find((p) => p.playerId === input.playerId);
 			if (!cp) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Player not in competition",
+					message: "Player not in season",
 				});
 			}
 
 			return playerRepository.getPlayerEloProgression({
 				db: ctx.db,
-				competitionPlayerId: cp.id,
+				seasonPlayerId: cp.id,
 			});
 		}),
 
-	getRecentMatches: competitionProcedure
-		.input(z.object({ competitionSlug: z.string(), playerId: z.string() }))
+	getRecentMatches: seasonProcedure
+		.input(z.object({ seasonSlug: z.string(), playerId: z.string() }))
 		.query(async ({ input, ctx }) => {
-			await checkCompetitionSupportsPlayerProfiles({
+			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
 				organizationId: ctx.organizationId,
 			});
 
-			const competitionPlayers = await competitionPlayerRepository.findAll({
+			const seasonPlayers = await seasonPlayerRepository.findAll({
 				db: ctx.db,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 			});
 
-			const cp = competitionPlayers.find((p) => p.playerId === input.playerId);
+			const cp = seasonPlayers.find((p) => p.playerId === input.playerId);
 			if (!cp) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Player not in competition",
+					message: "Player not in season",
 				});
 			}
 
 			return playerRepository.getRecentMatches({
 				db: ctx.db,
-				competitionPlayerId: cp.id,
+				seasonPlayerId: cp.id,
 				limit: 10,
 			});
 		}),
 
-	getPlayerStats: competitionProcedure
-		.input(z.object({ competitionSlug: z.string(), playerId: z.string() }))
+	getPlayerStats: seasonProcedure
+		.input(z.object({ seasonSlug: z.string(), playerId: z.string() }))
 		.query(async ({ input, ctx }) => {
-			await checkCompetitionSupportsPlayerProfiles({
+			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
 				organizationId: ctx.organizationId,
 			});
 
-			const competitionPlayers = await competitionPlayerRepository.findAll({
+			const seasonPlayers = await seasonPlayerRepository.findAll({
 				db: ctx.db,
-				competitionId: ctx.competition.id,
+				seasonId: ctx.season.id,
 			});
 
-			const cp = competitionPlayers.find((p) => p.playerId === input.playerId);
+			const cp = seasonPlayers.find((p) => p.playerId === input.playerId);
 			if (!cp) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Player not in competition",
+					message: "Player not in season",
 				});
 			}
 
 			return playerRepository.getPlayerStats({
 				db: ctx.db,
-				competitionPlayerId: cp.id,
+				seasonPlayerId: cp.id,
 			});
 		}),
 } satisfies TRPCRouterRecord;

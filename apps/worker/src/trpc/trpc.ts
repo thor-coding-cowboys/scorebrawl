@@ -4,12 +4,12 @@ import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z } from "zod";
 import type { getDb } from "../db";
-import { member, organization } from "../db/schema/auth-schema";
-import { competition } from "../db/schema/competition-schema";
+import { member, league as organization } from "../db/schema/auth-schema";
+import { season } from "../db/schema/competition-schema";
 import type { AuthType } from "../middleware/context";
 
 // Extended context types
-interface OrganizationContext {
+interface LeagueContext {
 	organizationId: string;
 	organization: {
 		id: string;
@@ -21,8 +21,8 @@ interface OrganizationContext {
 	role: string;
 }
 
-interface CompetitionContext extends OrganizationContext {
-	competition: {
+interface SeasonContext extends LeagueContext {
+	season: {
 		id: string;
 		slug: string;
 		name: string;
@@ -60,7 +60,7 @@ const enforceActiveOrg = t.middleware(({ ctx, next }) => {
 	if (!ctx.authentication?.session.activeOrganizationId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
-			message: "No active organization",
+			message: "No active league",
 		});
 	}
 	return next({
@@ -75,14 +75,14 @@ const enforceActiveOrg = t.middleware(({ ctx, next }) => {
 // Editor roles constant
 export const editorRoles = ["owner", "admin"];
 
-// Organization access middleware - verifies user is member of organization
-const organizationAccessMiddleware = t.middleware(async ({ ctx, next }) => {
+// League access middleware - verifies user is member of organization
+const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 	const organizationId = ctx.authentication?.session.activeOrganizationId;
 	if (!organizationId) {
-		throw new TRPCError({ code: "UNAUTHORIZED", message: "No active organization" });
+		throw new TRPCError({ code: "UNAUTHORIZED", message: "No active league" });
 	}
 
-	// Verify organization exists and user is a member
+	// Verify league exists and user is a member
 	const org = await ctx.db
 		.select({
 			id: organization.id,
@@ -97,7 +97,7 @@ const organizationAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 		.limit(1);
 
 	if (org.length === 0) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+		throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
 	}
 
 	return next({
@@ -111,44 +111,42 @@ const organizationAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 	});
 });
 
-// Competition access middleware - verifies competition exists in organization
-const competitionAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
+// Season access middleware - verifies season exists in organization
+const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const competitionSlug = (input as any).competitionSlug;
+	const seasonSlug = (input as any).seasonSlug;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const organizationId = (ctx as any).organizationId;
 
-	// Get competition with organization verification
+	// Get season with organization verification
 	const comp = await ctx.db
 		.select({
-			id: competition.id,
-			slug: competition.slug,
-			name: competition.name,
-			initialScore: competition.initialScore,
-			scoreType: competition.scoreType,
-			kFactor: competition.kFactor,
-			startDate: competition.startDate,
-			endDate: competition.endDate,
-			rounds: competition.rounds,
-			closed: competition.closed,
-			archived: competition.archived,
-			organizationId: competition.organizationId,
+			id: season.id,
+			slug: season.slug,
+			name: season.name,
+			initialScore: season.initialScore,
+			scoreType: season.scoreType,
+			kFactor: season.kFactor,
+			startDate: season.startDate,
+			endDate: season.endDate,
+			rounds: season.rounds,
+			closed: season.closed,
+			archived: season.archived,
+			organizationId: season.organizationId,
 		})
-		.from(competition)
-		.where(
-			and(eq(competition.slug, competitionSlug), eq(competition.organizationId, organizationId))
-		)
+		.from(season)
+		.where(and(eq(season.slug, seasonSlug), eq(season.organizationId, organizationId)))
 		.limit(1);
 
 	if (comp.length === 0) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Competition not found" });
+		throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
 	}
 
 	return next({
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		ctx: {
 			...ctx,
-			competition: comp[0],
+			season: comp[0],
 		} as any,
 	});
 });
@@ -168,21 +166,19 @@ export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
 
 export const activeOrgProcedure = t.procedure.use(enforceUserIsAuthed).use(enforceActiveOrg);
 
-// Competition-specific procedures
-export const organizationProcedure = t.procedure
-	.use(enforceUserIsAuthed)
-	.use(organizationAccessMiddleware);
+// Season-specific procedures
+export const leagueProcedure = t.procedure.use(enforceUserIsAuthed).use(leagueAccessMiddleware);
 
-export const competitionProcedure = t.procedure
-	.input(z.object({ competitionSlug: z.string() }))
+export const seasonProcedure = t.procedure
+	.input(z.object({ seasonSlug: z.string() }))
 	.use(enforceUserIsAuthed)
-	.use(organizationAccessMiddleware)
-	.use(competitionAccessMiddleware);
+	.use(leagueAccessMiddleware)
+	.use(seasonAccessMiddleware);
 
-export const organizationEditorProcedure = t.procedure
+export const leagueEditorProcedure = t.procedure
 	.use(enforceUserIsAuthed)
-	.use(organizationAccessMiddleware)
+	.use(leagueAccessMiddleware)
 	.use(editorCheckMiddleware);
 
 // Export types for use in routers
-export type { OrganizationContext, CompetitionContext };
+export type { LeagueContext, SeasonContext };

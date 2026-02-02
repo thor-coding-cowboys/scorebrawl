@@ -25,8 +25,8 @@ function OnboardingIndex() {
 						<CardContent className="flex flex-col items-center gap-6">
 							<p className="text-center text-muted-foreground">
 								A league is where you track scores, manage players, and compete with friends.
-								Whether it's board games, sports, or any competition, Scorebrawl helps you keep
-								track of everything.
+								Whether it's board games, sports, or any season, Scorebrawl helps you keep track of
+								everything.
 							</p>
 
 							<div className="w-full space-y-4">

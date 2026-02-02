@@ -3,6 +3,34 @@ import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
+import { createAccessControl } from "better-auth/plugins/access";
+
+import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
+
+const statement = {
+	...defaultStatements,
+	match: ["create", "update", "delete"],
+} as const;
+
+const ac = createAccessControl(statement);
+
+const owner = ac.newRole({
+	...adminAc.statements,
+	match: ["create", "update", "delete"],
+});
+
+const editor = ac.newRole({
+	...adminAc.statements,
+	match: ["create", "update", "delete"],
+});
+
+const member = ac.newRole({
+	match: ["create", "update", "delete"],
+});
+
+const viewer = ac.newRole({
+	match: [],
+});
 
 export function createAuth({
 	db,
@@ -85,7 +113,21 @@ export function createAuth({
 			},
 		},
 		plugins: [
-			organization({ teams: { enabled: true } }),
+			organization({
+				ac,
+				roles: {
+					owner,
+					editor,
+					member,
+					viewer,
+				},
+				teams: { enabled: true },
+				schema: {
+					organization: {
+						modelName: "league",
+					},
+				},
+			}),
 			passkey({
 				rpID,
 				rpName: "Scorebrawl",

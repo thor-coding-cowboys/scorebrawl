@@ -87,8 +87,8 @@ export const verification = sqliteTable(
 	(table) => [index("verification_identifier_idx").on(table.identifier)]
 );
 
-export const organization = sqliteTable(
-	"organization",
+export const league = sqliteTable(
+	"league",
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
@@ -97,7 +97,7 @@ export const organization = sqliteTable(
 		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 		metadata: text("metadata"),
 	},
-	(table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]
+	(table) => [uniqueIndex("league_slug_uidx").on(table.slug)]
 );
 
 export const team = sqliteTable(
@@ -107,7 +107,7 @@ export const team = sqliteTable(
 		name: text("name").notNull(),
 		organizationId: text("organization_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 		updatedAt: integer("updated_at", { mode: "timestamp_ms" }).$onUpdate(
 			() => /* @__PURE__ */ new Date()
@@ -140,7 +140,7 @@ export const member = sqliteTable(
 		id: text("id").primaryKey(),
 		organizationId: text("organization_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
@@ -159,7 +159,7 @@ export const invitation = sqliteTable(
 		id: text("id").primaryKey(),
 		organizationId: text("organization_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		email: text("email").notNull(),
 		role: text("role"),
 		teamId: text("team_id"),
@@ -200,81 +200,81 @@ export const passkey = sqliteTable(
 		index("passkey_credentialID_idx").on(table.credentialID),
 	]
 );
-/*
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session),
-  accounts: many(account),
-  teamMembers: many(teamMember),
-  members: many(member),
-  invitations: many(invitation),
-  passkeys: many(passkey),
+
+/*export const userRelations = relations(user, ({ many }) => ({
+	sessions: many(session),
+	accounts: many(account),
+	teamMembers: many(teamMember),
+	members: many(member),
+	invitations: many(invitation),
+	passkeys: many(passkey),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
-    fields: [session.userId],
-    references: [user.id],
-  }),
+	user: one(user, {
+		fields: [session.userId],
+		references: [user.id],
+	}),
 }));
 
 export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, {
-    fields: [account.userId],
-    references: [user.id],
-  }),
+	user: one(user, {
+		fields: [account.userId],
+		references: [user.id],
+	}),
 }));
 
-export const organizationRelations = relations(organization, ({ many }) => ({
-  teams: many(team),
-  members: many(member),
-  invitations: many(invitation),
+export const leagueRelations = relations(league, ({ many }) => ({
+	teams: many(team),
+	members: many(member),
+	invitations: many(invitation),
 }));
 
 export const teamRelations = relations(team, ({ one, many }) => ({
-  organization: one(organization, {
-    fields: [team.organizationId],
-    references: [organization.id],
-  }),
-  teamMembers: many(teamMember),
+	league: one(league, {
+		fields: [team.organizationId],
+		references: [league.id],
+	}),
+	teamMembers: many(teamMember),
 }));
 
 export const teamMemberRelations = relations(teamMember, ({ one }) => ({
-  team: one(team, {
-    fields: [teamMember.teamId],
-    references: [team.id],
-  }),
-  user: one(user, {
-    fields: [teamMember.userId],
-    references: [user.id],
-  }),
+	team: one(team, {
+		fields: [teamMember.teamId],
+		references: [team.id],
+	}),
+	user: one(user, {
+		fields: [teamMember.userId],
+		references: [user.id],
+	}),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
-  organization: one(organization, {
-    fields: [member.organizationId],
-    references: [organization.id],
-  }),
-  user: one(user, {
-    fields: [member.userId],
-    references: [user.id],
-  }),
+	league: one(league, {
+		fields: [member.organizationId],
+		references: [league.id],
+	}),
+	user: one(user, {
+		fields: [member.userId],
+		references: [user.id],
+	}),
 }));
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
-  organization: one(organization, {
-    fields: [invitation.organizationId],
-    references: [organization.id],
-  }),
-  user: one(user, {
-    fields: [invitation.inviterId],
-    references: [user.id],
-  }),
+	league: one(league, {
+		fields: [invitation.organizationId],
+		references: [league.id],
+	}),
+	user: one(user, {
+		fields: [invitation.inviterId],
+		references: [user.id],
+	}),
 }));
 
 export const passkeyRelations = relations(passkey, ({ one }) => ({
-  user: one(user, {
-    fields: [passkey.userId],
-    references: [user.id],
-  }),
+	user: one(user, {
+		fields: [passkey.userId],
+		references: [user.id],
+	}),
 }));
 */

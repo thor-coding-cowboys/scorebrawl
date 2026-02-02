@@ -54,8 +54,7 @@ function CreateLeaguePage() {
 				throw new Error(result.error.message || "Failed to create league");
 			}
 
-			// Navigate to main onboarding page
-			navigate({ to: "/onboarding" });
+			navigate({ to: "/leagues/$slug", params: { slug } });
 		} catch (err) {
 			setApiError(
 				err instanceof Error ? err.message : "Failed to create league. Please try again."

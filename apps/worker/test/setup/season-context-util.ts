@@ -5,7 +5,7 @@ import { getDb } from "../../src/db/index";
 import { player } from "../../src/db/schema/competition-schema";
 import { createUser, type AuthContext } from "./auth-context-util";
 
-export interface CompetitionInput {
+export interface SeasonInput {
 	name?: string;
 	slug?: string;
 	initialScore?: number;
@@ -20,9 +20,9 @@ export interface PlayerInput {
 }
 
 /**
- * Generate competition input with defaults
+ * Generate season input with defaults
  */
-export function aCompetition(overrides: CompetitionInput = {}): Required<CompetitionInput> {
+export function aSeason(overrides: CompetitionInput = {}): Required<CompetitionInput> {
 	const name = overrides.name ?? randSports();
 	return {
 		name,
@@ -48,7 +48,7 @@ export function aPlayer(
 }
 
 /**
- * Create a player for an organization
+ * Create a player for a league
  */
 export async function createPlayer(
 	authContext: AuthContext,
@@ -65,7 +65,7 @@ export async function createPlayer(
 		.values({
 			id: randUuid(),
 			userId: playerInput.userId,
-			organizationId: authContext.organization.id,
+			organizationId: authContext.league.id,
 			disabled: playerInput.disabled,
 			createdAt: now,
 			updatedAt: now,
@@ -79,7 +79,7 @@ export async function createPlayer(
 }
 
 /**
- * Create multiple players for an organization using the authenticated user's ID
+ * Create multiple players for a league using the authenticated user's ID
  */
 export async function createPlayers(authContext: AuthContext, count: number) {
 	const players = [];
@@ -91,11 +91,11 @@ export async function createPlayers(authContext: AuthContext, count: number) {
 }
 
 /**
- * Get all players for an organization
+ * Get all players for a league
  */
 export async function getPlayers(authContext: AuthContext) {
 	const db = getDb(env.DB);
-	return db.select().from(player).where(eq(player.organizationId, authContext.organization.id));
+	return db.select().from(player).where(eq(player.organizationId, authContext.league.id));
 }
 
 /**

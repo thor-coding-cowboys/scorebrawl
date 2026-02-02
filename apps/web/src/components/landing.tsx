@@ -174,9 +174,9 @@ const Landing = () => {
 								<div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
 									<HugeiconsIcon icon={UserMultipleIcon} className="w-6 h-6 text-primary" />
 								</div>
-								<CardTitle>Team Competition</CardTitle>
+								<CardTitle>Team Season</CardTitle>
 								<CardDescription>
-									Support for both individual and team-based competitions. Form teams and battle
+									Support for both individual and team-based seasons. Form teams and battle
 									together.
 								</CardDescription>
 							</CardHeader>

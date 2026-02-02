@@ -49,10 +49,10 @@ export const getById = async ({
 
 export const getPlayerEloProgression = async ({
 	db,
-	competitionPlayerId,
+	seasonPlayerId,
 }: {
 	db: DrizzleDB;
-	competitionPlayerId: string;
+	seasonPlayerId: string;
 }) => {
 	return db
 		.select({
@@ -61,17 +61,17 @@ export const getPlayerEloProgression = async ({
 			createdAt: matchPlayer.createdAt,
 		})
 		.from(matchPlayer)
-		.where(eq(matchPlayer.competitionPlayerId, competitionPlayerId))
+		.where(eq(matchPlayer.seasonPlayerId, seasonPlayerId))
 		.orderBy(desc(matchPlayer.createdAt));
 };
 
 export const getRecentMatches = async ({
 	db,
-	competitionPlayerId,
+	seasonPlayerId,
 	limit,
 }: {
 	db: DrizzleDB;
-	competitionPlayerId: string;
+	seasonPlayerId: string;
 	limit: number;
 }) => {
 	return db
@@ -85,17 +85,17 @@ export const getRecentMatches = async ({
 			createdAt: matchPlayer.createdAt,
 		})
 		.from(matchPlayer)
-		.where(eq(matchPlayer.competitionPlayerId, competitionPlayerId))
+		.where(eq(matchPlayer.seasonPlayerId, seasonPlayerId))
 		.orderBy(desc(matchPlayer.createdAt))
 		.limit(limit);
 };
 
 export const getPlayerStats = async ({
 	db,
-	competitionPlayerId,
+	seasonPlayerId,
 }: {
 	db: DrizzleDB;
-	competitionPlayerId: string;
+	seasonPlayerId: string;
 }) => {
 	const stats = await db
 		.select({
@@ -105,7 +105,7 @@ export const getPlayerStats = async ({
 			draws: sql<number>`sum(case when ${matchPlayer.result} = 'D' then 1 else 0 end)`,
 		})
 		.from(matchPlayer)
-		.where(eq(matchPlayer.competitionPlayerId, competitionPlayerId));
+		.where(eq(matchPlayer.seasonPlayerId, seasonPlayerId));
 
 	return stats[0] || { total: 0, wins: 0, losses: 0, draws: 0 };
 };

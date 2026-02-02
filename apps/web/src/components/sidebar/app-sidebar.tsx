@@ -13,7 +13,7 @@ import type * as React from "react";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavUser } from "@/components/sidebar/nav-user";
-import { TeamSwitcher } from "@/components/sidebar/team-switcher";
+import { LeagueSwitcher } from "@/components/sidebar/league-switcher";
 import {
 	Sidebar,
 	SidebarContent,
@@ -155,6 +155,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: session } = authClient.useSession();
+	const { data: organizations } = authClient.useListOrganizations();
 	const user = session?.user;
 
 	const userData = user
@@ -169,10 +170,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				avatar: "",
 			};
 
+	const activeOrg = session?.session?.activeOrganizationId
+		? organizations?.find((org) => org.id === session.session.activeOrganizationId)
+		: organizations?.[0];
+
+	const teams =
+		organizations?.map((org) => ({
+			name: org.name,
+			logo: org.logo || "https://avatars.githubusercontent.com/u/246662916",
+			plan: org.slug,
+		})) || [];
+
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
-				<TeamSwitcher teams={data.teams} />
+				<LeagueSwitcher teams={teams} activeTeam={activeOrg} />
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />

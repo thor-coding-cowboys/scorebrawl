@@ -13,10 +13,10 @@ import {
 	sql,
 } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
-import { organization } from "../db/schema/auth-schema";
+import { league as organization } from "../db/schema/auth-schema";
 import {
-	competition,
-	competitionPlayer,
+	season,
+	seasonPlayer,
 	fixture,
 	orgTeam,
 	player,
@@ -25,7 +25,7 @@ import {
 } from "../db/schema/competition-schema";
 import { slugifyWithCustomReplacement } from "./slug";
 
-export interface CompetitionCreateInput {
+export interface SeasonCreateInput {
 	name: string;
 	initialScore: number;
 	scoreType: (typeof scoreType)[number];
@@ -37,8 +37,8 @@ export interface CompetitionCreateInput {
 	userId: string;
 }
 
-export interface CompetitionEditInput {
-	competitionId: string;
+export interface SeasonEditInput {
+	seasonId: string;
 	name?: string;
 	startDate?: Date;
 	endDate?: Date;
@@ -48,7 +48,7 @@ export interface CompetitionEditInput {
 	userId: string;
 }
 
-export const findOverlappingCompetition = async ({
+export const findOverlappingSeason = async ({
 	db,
 	organizationId,
 	startDate,
@@ -61,43 +61,37 @@ export const findOverlappingCompetition = async ({
 }) => {
 	const [comp] = await db
 		.select()
-		.from(competition)
+		.from(season)
 		.where(
 			and(
-				eq(competition.organizationId, organizationId),
-				lte(competition.startDate, endDate ?? new Date("2099-12-31")),
-				or(isNull(competition.endDate), gte(competition.endDate, startDate))
+				eq(season.organizationId, organizationId),
+				lte(season.startDate, endDate ?? new Date("2099-12-31")),
+				or(isNull(season.endDate), gte(season.endDate, startDate))
 			)
 		)
 		.limit(1);
 	return comp;
 };
 
-export const getCountInfo = async ({
-	db,
-	competitionSlug,
-}: {
-	db: DrizzleDB;
-	competitionSlug: string;
-}) => {
+export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSlug: string }) => {
 	const [matchCount] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(match)
-		.innerJoin(competition, eq(match.competitionId, competition.id))
-		.where(eq(competition.slug, competitionSlug));
+		.innerJoin(season, eq(match.seasonId, season.id))
+		.where(eq(season.slug, seasonSlug));
 
 	const [teamCount] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(orgTeam)
 		.innerJoin(organization, eq(orgTeam.organizationId, organization.id))
-		.innerJoin(competition, eq(competition.organizationId, organization.id))
-		.where(eq(competition.slug, competitionSlug));
+		.innerJoin(season, eq(season.organizationId, organization.id))
+		.where(eq(season.slug, seasonSlug));
 
 	const [playerCount] = await db
 		.select({ count: sql<number>`count(*)` })
-		.from(competitionPlayer)
-		.innerJoin(competition, eq(competitionPlayer.competitionId, competition.id))
-		.where(eq(competition.slug, competitionSlug));
+		.from(seasonPlayer)
+		.innerJoin(season, eq(seasonPlayer.seasonId, season.id))
+		.where(eq(season.slug, seasonSlug));
 
 	return {
 		matchCount: matchCount?.count || 0,
@@ -106,24 +100,18 @@ export const getCountInfo = async ({
 	};
 };
 
-export const getById = async ({ db, competitionId }: { db: DrizzleDB; competitionId: string }) => {
-	const [comp] = await db.select().from(competition).where(eq(competition.id, competitionId));
+export const getById = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	const [comp] = await db.select().from(season).where(eq(season.id, seasonId));
 	if (!comp) {
-		throw new Error("Competition not found");
+		throw new Error("Season not found");
 	}
 	return comp;
 };
 
-export const getBySlug = async ({
-	db,
-	competitionSlug,
-}: {
-	db: DrizzleDB;
-	competitionSlug: string;
-}) => {
-	const [comp] = await db.select().from(competition).where(eq(competition.slug, competitionSlug));
+export const getBySlug = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSlug: string }) => {
+	const [comp] = await db.select().from(season).where(eq(season.slug, seasonSlug));
 	if (!comp) {
-		throw new Error("Competition not found");
+		throw new Error("Season not found");
 	}
 	return comp;
 };
@@ -137,15 +125,15 @@ export const findActive = async ({
 }) => {
 	const now = new Date();
 	const [comp] = await db
-		.select(getTableColumns(competition))
-		.from(competition)
-		.innerJoin(organization, eq(organization.id, competition.organizationId))
+		.select(getTableColumns(season))
+		.from(season)
+		.innerJoin(organization, eq(organization.id, season.organizationId))
 		.where(
 			and(
-				eq(competition.organizationId, organizationId),
-				eq(competition.closed, false),
-				lt(competition.startDate, now),
-				or(isNull(competition.endDate), gt(competition.endDate, now))
+				eq(season.organizationId, organizationId),
+				eq(season.closed, false),
+				lt(season.startDate, now),
+				or(isNull(season.endDate), gt(season.endDate, now))
 			)
 		);
 	return comp;
@@ -153,56 +141,56 @@ export const findActive = async ({
 
 export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizationId: string }) =>
 	db
-		.select(getTableColumns(competition))
-		.from(competition)
-		.where(eq(competition.organizationId, organizationId))
-		.orderBy(desc(competition.startDate));
+		.select(getTableColumns(season))
+		.from(season)
+		.where(eq(season.organizationId, organizationId))
+		.orderBy(desc(season.startDate));
 
 export const update = async ({
 	db,
 	userId,
-	competitionId,
+	seasonId,
 	...rest
-}: CompetitionEditInput & { db: DrizzleDB }) => {
+}: SeasonEditInput & { db: DrizzleDB }) => {
 	const now = new Date();
 	const [comp] = await db
-		.update(competition)
+		.update(season)
 		.set({
 			updatedAt: now,
 			updatedBy: userId,
 			...rest,
 		})
-		.where(eq(competition.id, competitionId))
+		.where(eq(season.id, seasonId))
 		.returning();
 	return comp;
 };
 
 export const updateClosedStatus = async ({
 	db,
-	competitionId,
+	seasonId,
 	userId,
 	closed,
 }: {
 	db: DrizzleDB;
-	competitionId: string;
+	seasonId: string;
 	userId: string;
 	closed: boolean;
 }) => {
 	const now = new Date();
 	const [comp] = await db
-		.update(competition)
+		.update(season)
 		.set({
 			closed,
 			updatedAt: now,
 			updatedBy: userId,
 		})
-		.where(eq(competition.id, competitionId))
+		.where(eq(season.id, seasonId))
 		.returning();
 	return comp;
 };
 
-export const create = async ({ db, ...input }: CompetitionCreateInput & { db: DrizzleDB }) => {
-	const slug = await slugifyCompetitionName({ db, name: input.name });
+export const create = async ({ db, ...input }: SeasonCreateInput & { db: DrizzleDB }) => {
+	const slug = await slugifySeasonName({ db, name: input.name });
 	const now = new Date();
 
 	const values =
@@ -244,35 +232,35 @@ export const create = async ({ db, ...input }: CompetitionCreateInput & { db: Dr
 					closed: false,
 				};
 
-	const comps = await db.insert(competition).values(values).returning();
+	const comps = await db.insert(season).values(values).returning();
 	const comp = comps[0]!;
 
-	// Get all enabled players from organization and create competition players
+	// Get all enabled players from organization and create season players
 	const players = await db
 		.select({ id: player.id })
 		.from(player)
 		.where(and(eq(player.organizationId, input.organizationId), eq(player.disabled, false)));
 
-	const competitionPlayerValues = players.map((p) => ({
+	const seasonPlayerValues = players.map((p) => ({
 		id: crypto.randomUUID(),
 		disabled: false,
 		score: comp.initialScore,
 		playerId: p.id,
-		competitionId: comp.id,
+		seasonId: comp.id,
 		createdAt: now,
 		updatedAt: now,
 	}));
 
-	if (competitionPlayerValues.length > 0) {
-		await db.insert(competitionPlayer).values(competitionPlayerValues);
+	if (seasonPlayerValues.length > 0) {
+		await db.insert(seasonPlayer).values(seasonPlayerValues);
 	}
 
 	// If 3-1-0 with rounds, generate fixtures
 	if (input.scoreType === "3-1-0" && input.rounds && input.rounds > 0) {
-		const competitionPlayerIds = competitionPlayerValues.map((cp) => cp.id);
+		const seasonPlayerIds = seasonPlayerValues.map((cp) => cp.id);
 		const fixturesList: (typeof fixture.$inferInsert)[] = [];
 
-		const playersList: Array<string | null> = [...competitionPlayerIds];
+		const playersList: Array<string | null> = [...seasonPlayerIds];
 		if (playersList.length % 2 !== 0) {
 			playersList.push(null);
 		}
@@ -304,7 +292,7 @@ export const create = async ({ db, ...input }: CompetitionCreateInput & { db: Dr
 						id: crypto.randomUUID(),
 						homePlayerId: f.homeId!,
 						awayPlayerId: f.awayId!,
-						competitionId: comp.id,
+						seasonId: comp.id,
 						round: actualRound + 1,
 						createdAt: now,
 						updatedAt: now,
@@ -330,57 +318,51 @@ export const create = async ({ db, ...input }: CompetitionCreateInput & { db: Dr
 	return comp;
 };
 
-export const findFixtures = async ({
-	db,
-	competitionId,
-}: {
-	db: DrizzleDB;
-	competitionId: string;
-}) => {
+export const findFixtures = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	return db
 		.select()
 		.from(fixture)
-		.where(eq(fixture.competitionId, competitionId))
+		.where(eq(fixture.seasonId, seasonId))
 		.orderBy(asc(fixture.round), asc(fixture.createdAt), asc(fixture.homePlayerId));
 };
 
 export const findFixtureById = async ({
 	db,
-	competitionId,
+	seasonId,
 	fixtureId,
 }: {
 	db: DrizzleDB;
-	competitionId: string;
+	seasonId: string;
 	fixtureId: string;
 }) => {
 	const [f] = await db
 		.select()
 		.from(fixture)
-		.where(and(eq(fixture.competitionId, competitionId), eq(fixture.id, fixtureId)))
+		.where(and(eq(fixture.seasonId, seasonId), eq(fixture.id, fixtureId)))
 		.limit(1);
 	return f;
 };
 
 export const assignMatchToFixture = async ({
 	db,
-	competitionId,
+	seasonId,
 	fixtureId,
 	matchId,
 }: {
 	db: DrizzleDB;
-	competitionId: string;
+	seasonId: string;
 	fixtureId: string;
 	matchId: string;
 }) => {
 	await db
 		.update(fixture)
 		.set({ matchId })
-		.where(and(eq(fixture.competitionId, competitionId), eq(fixture.id, fixtureId)));
+		.where(and(eq(fixture.seasonId, seasonId), eq(fixture.id, fixtureId)));
 };
 
-export const slugifyCompetitionName = async ({ db, name }: { db: DrizzleDB; name: string }) => {
+export const slugifySeasonName = async ({ db, name }: { db: DrizzleDB; name: string }) => {
 	const doesSlugExist = async (_slug: string) =>
-		db.select().from(competition).where(eq(competition.slug, _slug)).limit(1);
+		db.select().from(season).where(eq(season.slug, _slug)).limit(1);
 
 	const rootSlug = slugifyWithCustomReplacement(name);
 	let slug = rootSlug;
