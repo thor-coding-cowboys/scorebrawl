@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import Landing from "@/components/landing";
 import { authClient } from "@/lib/auth-client";
@@ -13,9 +14,16 @@ export const Route = createFileRoute("/")({
 
 function App() {
 	const { session } = Route.useRouteContext();
-	const { data: organizations, isPending } = authClient.useListOrganizations();
-
 	const navigate = useNavigate();
+
+	const { data: organizations, isPending } = useQuery({
+		queryKey: ["organizations"],
+		queryFn: async () => {
+			const { data } = await authClient.organization.list();
+			return data;
+		},
+		enabled: !!session,
+	});
 
 	if (!session) {
 		return <Landing />;
