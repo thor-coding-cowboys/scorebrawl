@@ -10,7 +10,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
-	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -117,7 +116,7 @@ export function LeagueSwitcher({
 						</DropdownMenuTrigger>
 					</SidebarMenuButton>
 					<DropdownMenuContent
-						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+						className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
 						align="start"
 						side={isMobile ? "bottom" : "right"}
 						sideOffset={4}
@@ -127,7 +126,7 @@ export function LeagueSwitcher({
 								Leagues
 							</DropdownMenuLabel>
 						</DropdownMenuGroup>
-						{teams.map((team, index) => (
+						{teams.map((team) => (
 							<DropdownMenuItem
 								key={team.name}
 								onClick={() => handleTeamSelect(team)}
@@ -135,7 +134,6 @@ export function LeagueSwitcher({
 							>
 								{renderLogo(team.logo, team.name, "size-3.5 shrink-0", "sm")}
 								{team.name}
-								<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
 							</DropdownMenuItem>
 						))}
 						<DropdownMenuSeparator />
