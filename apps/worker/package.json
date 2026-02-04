@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@better-auth/passkey": "catalog:",
 		"@hono/trpc-server": "catalog:",
+		"@hono/zod-validator": "catalog:",
 		"@sindresorhus/slugify": "catalog:",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",

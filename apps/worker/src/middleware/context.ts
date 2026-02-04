@@ -2,6 +2,7 @@ import type { betterAuth } from "better-auth";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
+import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
 	Bindings: Env;
@@ -9,7 +10,7 @@ export type HonoEnv = {
 		db: ReturnType<typeof getDb>;
 		betterAuth: ReturnType<typeof betterAuth>;
 		authentication?: AuthType;
-		userAssetsBucket: R2Bucket;
+		userAssets: R2BucketRef;
 	};
 };
 
@@ -17,7 +18,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	// Initialize database
 	const {
 		DB,
-		USER_ASSETS_BUCKET,
+		USER_ASSETS_BUCKET: userAssetsBucket,
 		VITE_GITHUB_CLIENT_ID: githubClientId,
 		GITHUB_CLIENT_SECRET: githubClientSecret,
 		VITE_GOOGLE_CLIENT_ID: googleClientId,
@@ -42,7 +43,10 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	});
 	c.set("db", db);
 	c.set("betterAuth", auth);
-	c.set("userAssetsBucket", USER_ASSETS_BUCKET);
+	c.set("userAssets", {
+		bucketName: "scorebrawl-user-assets",
+		bucket: userAssetsBucket,
+	});
 
 	await next();
 });

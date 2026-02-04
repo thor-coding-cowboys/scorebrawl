@@ -153,6 +153,17 @@ const data = {
 	],
 };
 
+// Helper to construct asset URL from key
+const getAssetUrl = (key: string | null | undefined): string | null => {
+	if (!key) return null;
+	// If it's already a full URL, return it
+	if (key.startsWith("http://") || key.startsWith("https://")) {
+		return key;
+	}
+	// Construct API URL from key
+	return `/api/user-assets/${key}`;
+};
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
@@ -162,29 +173,41 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		? {
 				name: user.name || "User",
 				email: user.email || "",
-				avatar: user.image || "",
+				avatar: getAssetUrl(user.image),
 			}
 		: {
 				name: "Guest",
 				email: "",
-				avatar: "",
+				avatar: null,
 			};
 
 	const activeOrg = session?.session?.activeOrganizationId
 		? organizations?.find((org) => org.id === session.session.activeOrganizationId)
 		: organizations?.[0];
 
+	// Add logo URL to active org using the API endpoint
+	const activeOrgWithLogo = activeOrg
+		? {
+				id: activeOrg.id,
+				name: activeOrg.name,
+				slug: activeOrg.slug,
+				logo: getAssetUrl(activeOrg.logo),
+			}
+		: undefined;
+
+	// For the team switcher, we can only show the active org's logo
+	// since we need the active org context to fetch the logo
 	const teams =
 		organizations?.map((org) => ({
 			name: org.name,
-			logo: org.logo || "https://avatars.githubusercontent.com/u/246662916",
+			logo: getAssetUrl(org.logo),
 			plan: org.slug,
 		})) || [];
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
-				<LeagueSwitcher teams={teams} activeTeam={activeOrg} />
+				<LeagueSwitcher teams={teams} activeTeam={activeOrgWithLogo} />
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />

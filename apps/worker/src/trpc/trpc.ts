@@ -7,6 +7,7 @@ import type { getDb } from "../db";
 import { member, league as organization } from "../db/schema/auth-schema";
 import { season } from "../db/schema/competition-schema";
 import type { AuthType } from "../middleware/context";
+import type { R2BucketRef } from "../lib/asset-util";
 
 // Extended context types
 interface LeagueContext {
@@ -43,7 +44,7 @@ const t = initTRPC
 		authentication?: AuthType;
 		db: ReturnType<typeof getDb>;
 		betterAuth: ReturnType<typeof betterAuth>;
-		userAssetsBucket?: R2Bucket;
+		userAssets: R2BucketRef;
 	}>()
 	.create({
 		transformer: superjson,

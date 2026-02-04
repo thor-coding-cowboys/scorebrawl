@@ -22,7 +22,6 @@ export function Header({ children, includeLogoutButton = false, rightContent }: 
 			<div className="flex items-center gap-2">{children}</div>
 			<div className="flex items-center gap-2">
 				{rightContent}
-				<ThemeSwitcher />
 				{includeLogoutButton && (
 					<Button
 						size="icon"
@@ -34,6 +33,7 @@ export function Header({ children, includeLogoutButton = false, rightContent }: 
 						<HugeiconsIcon icon={Logout02Icon} className="size-4" />
 					</Button>
 				)}
+				<ThemeSwitcher />
 			</div>
 		</header>
 	);
