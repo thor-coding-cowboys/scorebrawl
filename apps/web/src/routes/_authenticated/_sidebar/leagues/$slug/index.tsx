@@ -11,14 +11,14 @@ import { Header } from "@/components/layout/header";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
-	component: RouteComponent,
+export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/")({
+	component: LeagueIndexPage,
 	loader: async ({ params }) => {
 		return { slug: params.slug };
 	},
 });
 
-function RouteComponent() {
+function LeagueIndexPage() {
 	const { slug } = Route.useLoaderData();
 
 	return (
@@ -29,7 +29,7 @@ function RouteComponent() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="#">League</BreadcrumbLink>
+							<BreadcrumbLink href="/leagues">Leagues</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>

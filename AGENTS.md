@@ -77,7 +77,8 @@ Use `useEffect` only for client-side only side effects (DOM manipulation, subscr
 
 ## Authentication
 
-Use **better-auth**. Prefer better-auth React client in frontend. Reference: https://www.better-auth.com/llms.txt
+Use **better-auth**. Prefer better-auth React client in frontend, see `apps/web/src/lib/auth-client.ts`
+Reference: https://www.better-auth.com/llms.txt
 
 ## UI Verification
 

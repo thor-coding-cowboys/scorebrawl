@@ -17,11 +17,7 @@ if (!apiToken || !accountId) {
 	process.exit(1);
 }
 
-const buckets = [
-	`scorebrawl-avatars-pr-${prNumber}`,
-	`scorebrawl-organization-avatars-pr-${prNumber}`,
-	`scorebrawl-user-assets-pr-${prNumber}`,
-];
+const buckets = [`scorebrawl-user-assets-pr-${prNumber}`];
 
 // Check if buckets exist using Cloudflare SDK
 try {
