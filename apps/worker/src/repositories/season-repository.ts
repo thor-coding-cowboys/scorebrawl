@@ -27,6 +27,7 @@ import { slugifyWithCustomReplacement } from "./slug";
 
 export interface SeasonCreateInput {
 	name: string;
+	slug?: string;
 	initialScore: number;
 	scoreType: (typeof scoreType)[number];
 	kFactor: number;
@@ -108,8 +109,25 @@ export const getById = async ({ db, seasonId }: { db: DrizzleDB; seasonId: strin
 	return comp;
 };
 
-export const getBySlug = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSlug: string }) => {
-	const [comp] = await db.select().from(season).where(eq(season.slug, seasonSlug));
+export const getBySlug = async ({
+	db,
+	seasonSlug,
+	leagueId,
+}: {
+	db: DrizzleDB;
+	seasonSlug: string;
+	leagueId?: string;
+}) => {
+	const whereConditions = [eq(season.slug, seasonSlug)];
+	if (leagueId) {
+		whereConditions.push(eq(season.organizationId, leagueId));
+	}
+
+	const [comp] = await db
+		.select()
+		.from(season)
+		.where(and(...whereConditions));
+
 	if (!comp) {
 		throw new Error("Season not found");
 	}
@@ -190,7 +208,7 @@ export const updateClosedStatus = async ({
 };
 
 export const create = async ({ db, ...input }: SeasonCreateInput & { db: DrizzleDB }) => {
-	const slug = await slugifySeasonName({ db, name: input.name });
+	const slug = input.slug || (await slugifySeasonName({ db, name: input.name }));
 	const now = new Date();
 
 	const values =

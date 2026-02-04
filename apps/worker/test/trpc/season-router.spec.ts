@@ -101,6 +101,36 @@ describe("season router", () => {
 		expect(result.closed).toBe(true);
 	});
 
+	it("checks slug availability within league scope", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		// Create players first
+		await createPlayers(ctx, 3);
+
+		// Create a season with a specific slug
+		await client.season.create.mutate({
+			name: "Test Season",
+			slug: "test-season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		// Check that the slug is now taken within this league
+		const slugTaken = await client.season.checkSlugAvailability.query({
+			slug: "test-season",
+		});
+		expect(slugTaken.available).toBe(false);
+
+		// Check that a different slug is available
+		const differentSlug = await client.season.checkSlugAvailability.query({
+			slug: "different-season",
+		});
+		expect(differentSlug.available).toBe(true);
+	});
+
 	it("returns unauthorized without session", async () => {
 		const client = createTRPCTestClient();
 
