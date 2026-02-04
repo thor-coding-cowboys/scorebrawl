@@ -9,7 +9,7 @@
 
 ## Project Structure
 
-- `src/react-app` - Frontend (TanStack Router)
+- `src/web` - Frontend (TanStack Router)
 - `src/worker` - Cloudflare Worker (Hono + tRPC)
 - `src/test` - Backend tests
 
