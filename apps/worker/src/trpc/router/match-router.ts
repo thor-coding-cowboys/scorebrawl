@@ -23,6 +23,7 @@ export const matchRouter = {
 			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
 				seasonSlug: input.seasonSlug,
+				leagueId: typedCtx.organizationId,
 			});
 
 			if (comp.closed) {

@@ -278,9 +278,16 @@ export function CreateLeagueForm({ onCancel, cancelLabel = "Cancel" }: CreateLea
 
 	return (
 		<Card>
-			<CardHeader>
-				<CardTitle className="text-2xl">Create a New League</CardTitle>
-				<CardDescription>Start tracking scores and competing with your friends</CardDescription>
+			<CardHeader className="pb-4 border-b border-border">
+				<div className="flex items-center gap-3">
+					<div className="w-2 h-6 bg-purple-500 rounded-full shadow-lg shadow-purple-500/25" />
+					<CardTitle className="text-xl font-bold font-mono tracking-tight">
+						Create a New League
+					</CardTitle>
+				</div>
+				<CardDescription className="mt-2">
+					Start tracking scores and competing with your friends
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={handleSubmit(onSubmit)}>

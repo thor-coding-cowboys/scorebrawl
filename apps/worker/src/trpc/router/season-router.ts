@@ -50,6 +50,21 @@ export const seasonRouter = {
 		});
 	}),
 
+	checkSlugAvailability: leagueProcedure
+		.input(z.object({ slug: z.string() }))
+		.query(async ({ ctx, input }) => {
+			try {
+				await seasonRepository.getBySlug({
+					db: ctx.db,
+					seasonSlug: input.slug,
+					leagueId: ctx.organizationId,
+				});
+				return { available: false };
+			} catch {
+				return { available: true };
+			}
+		}),
+
 	getFixtures: seasonProcedure.query(async ({ ctx }) => {
 		return seasonRepository.findFixtures({
 			db: ctx.db,
@@ -61,8 +76,14 @@ export const seasonRouter = {
 		.input(
 			z.object({
 				name: z.string().min(1).max(100),
+				slug: z
+					.string()
+					.min(1)
+					.max(100)
+					.regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens")
+					.optional(),
 				initialScore: z.number().int(),
-				scoreType: z.enum(["elo", "3-1-0", "elo-individual-vs-team"]),
+				scoreType: z.enum(["elo", "3-1-0"]),
 				kFactor: z.number().int(),
 				startDate: z.date(),
 				endDate: z.date().optional(),
@@ -117,6 +138,7 @@ export const seasonRouter = {
 			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
 				seasonSlug: input.seasonSlug,
+				leagueId: typedCtx.organizationId,
 			});
 
 			// Check if season already started
@@ -158,6 +180,7 @@ export const seasonRouter = {
 			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
 				seasonSlug: input.seasonSlug,
+				leagueId: typedCtx.organizationId,
 			});
 
 			return seasonRepository.updateClosedStatus({
