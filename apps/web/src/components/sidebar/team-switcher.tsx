@@ -117,7 +117,7 @@ export function TeamSwitcher({
 								className="gap-2 p-2"
 							>
 								{renderLogo(team.logo, "size-3.5 shrink-0", "sm")}
-								{team.name}
+								<span className="truncate">{team.name}</span>
 								<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
 							</DropdownMenuItem>
 						))}

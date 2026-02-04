@@ -66,6 +66,11 @@ interface Invitation {
 
 const ITEMS_PER_PAGE = 10;
 
+function truncateSlug(slug: string, maxLength = 10): string {
+	if (slug.length <= maxLength) return slug;
+	return `${slug.slice(0, maxLength)}...`;
+}
+
 function InvitationsPage() {
 	const { slug } = Route.useLoaderData();
 	const navigate = useNavigate();
@@ -264,7 +269,7 @@ function InvitationsPage() {
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}`}>{slug}</BreadcrumbLink>
+							<BreadcrumbLink href={`/leagues/${slug}`}>{truncateSlug(slug)}</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>

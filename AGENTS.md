@@ -29,6 +29,27 @@ Always use **catalog** for workspace dependencies. Define versions in root `pack
 const userId = ctx.authentication.user.id;
 ```
 
+## Hono Route Validation
+
+Always validate headers, payload (body), and search params in Hono routes using **@hono/zod-validator**:
+
+```typescript
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string(),
+  age: z.number(),
+});
+
+app.post("/author", zValidator("json", schema), async (c) => {
+  const data = c.req.valid("json"); // Type-safe validated data
+  // ...
+});
+```
+
+Validator targets: `"json"` (body), `"query"` (search params), `"header"`, `"param"` (route params).
+
 ## UI Development
 
 shadcn + Tailwind for all interfaces. Use **Hugeicons** for icons.
@@ -64,6 +85,8 @@ Full verification: `bun check && bun test`
 ## React Router
 
 Run `bun dev` after creating new routes for TanStack Router code generation.
+
+**Route file structure**: Use directory structure, never dot notation. `leagues/index.tsx` and `leagues/create.tsx`, NOT `leagues.tsx` and `leagues.create.tsx`.
 
 ## State Management
 

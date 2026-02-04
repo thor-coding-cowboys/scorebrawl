@@ -73,10 +73,9 @@ function ProfilePage() {
 	const [editingPasskeyName, setEditingPasskeyName] = useState("");
 	const queryClient = useQueryClient();
 
-	// tRPC mutations
+	// tRPC
 	const trpc = useTRPC();
-	const uploadUrlMutation = useMutation(trpc.userAssets.getUserAvatarUploadUrl.mutationOptions());
-	const deleteAvatarMutation = useMutation(trpc.userAssets.deleteUserAvatar.mutationOptions());
+	const uploadAvatarMutation = useMutation(trpc.user.uploadAvatar.mutationOptions());
 
 	// Passkey queries and mutations
 	const passkeysQuery = useQuery({
@@ -260,7 +259,7 @@ function ProfilePage() {
 		file: File,
 		maxWidth: number,
 		maxHeight: number,
-		quality: number = 0.8
+		quality = 0.8
 	): Promise<File> => {
 		return new Promise((resolve, reject) => {
 			const reader = new FileReader();
@@ -339,7 +338,6 @@ function ProfilePage() {
 		}
 
 		setIsUploadingAvatar(true);
-		let uploadKey: string | undefined;
 
 		try {
 			// Resize image to max 512x512 with 0.8 quality to reduce size
@@ -352,57 +350,29 @@ function ProfilePage() {
 				return;
 			}
 
-			// Get file extension
-			const extension = resizedFile.name.split(".").pop()?.toLowerCase() || "jpg";
-
-			// Get presigned upload URL from tRPC
-			const uploadUrlResult = await uploadUrlMutation.mutateAsync({
-				extension,
-				contentType: resizedFile.type || "image/jpeg",
-			});
-			uploadKey = uploadUrlResult.uploadKey;
-			const uploadUrl = uploadUrlResult.uploadUrl;
-
 			// Optimistic update - create a preview URL
 			const previewUrl = URL.createObjectURL(resizedFile);
 			setOptimisticAvatar(previewUrl);
 
-			// Upload directly to R2 using presigned URL
-			const uploadResponse = await fetch(uploadUrl, {
-				method: "PUT",
-				headers: {
-					"Content-Type": resizedFile.type || "image/jpeg",
-				},
-				body: resizedFile,
+			// Convert file to base64 data URL
+			const imageData = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => {
+					if (typeof reader.result === "string") {
+						resolve(reader.result);
+					} else {
+						reject(new Error("Failed to read file as data URL"));
+					}
+				};
+				reader.onerror = () => reject(new Error("Failed to read file"));
+				reader.readAsDataURL(resizedFile);
 			});
 
-			if (!uploadResponse.ok) {
-				throw new Error("Failed to upload to R2");
-			}
+			// Upload avatar in single request
+			await uploadAvatarMutation.mutateAsync({ imageData });
 
-			// Get the public URL for the uploaded file
-			const url = `/api/upload/avatar/get?key=${encodeURIComponent(uploadKey)}`;
-
-			// Update user profile with R2 URL using better-auth React client
-			const { error } = await authClient.updateUser({
-				image: url,
-			});
-
-			if (error) {
-				// Revert optimistic update on error
-				if (optimisticAvatar) {
-					URL.revokeObjectURL(optimisticAvatar);
-				}
-				setOptimisticAvatar(null);
-				// Try to delete the uploaded file from R2
-				try {
-					await deleteAvatarMutation.mutateAsync({ key: uploadKey });
-				} catch {
-					// Ignore deletion errors
-				}
-				toast.error(error.message || "Failed to update avatar URL");
-				return;
-			}
+			// Refresh session to get updated user data
+			await authClient.getSession();
 
 			// Clean up preview URL
 			if (optimisticAvatar) {
@@ -417,15 +387,6 @@ function ProfilePage() {
 				URL.revokeObjectURL(optimisticAvatar);
 			}
 			setOptimisticAvatar(null);
-
-			// Try to delete the uploaded file from R2 if upload succeeded but update failed
-			if (uploadKey) {
-				try {
-					await deleteAvatarMutation.mutateAsync({ key: uploadKey });
-				} catch {
-					// Ignore deletion errors
-				}
-			}
 
 			toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
 		} finally {
@@ -466,10 +427,7 @@ function ProfilePage() {
 						>
 							<Avatar className="h-20 w-20 rounded-lg ring-2 ring-transparent group-hover:ring-primary transition-all pointer-events-none">
 								<AvatarImage
-									src={
-										optimisticAvatar ||
-										(user?.image?.startsWith("/") ? user.image : user?.image || undefined)
-									}
+									src={optimisticAvatar ?? "/api/user-assets/user-avatar"}
 									alt={user?.name || ""}
 									className="rounded-lg"
 								/>
@@ -554,7 +512,7 @@ function ProfilePage() {
 						<div className="flex items-center gap-3">
 							<Avatar className="h-10 w-10 rounded-lg">
 								<AvatarImage
-									src={user?.image || undefined}
+									src="/api/user-assets/user-avatar"
 									alt={user?.name || ""}
 									className="rounded-lg"
 								/>

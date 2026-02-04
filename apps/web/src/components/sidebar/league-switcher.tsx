@@ -1,4 +1,4 @@
-import { Add01Icon, ArrowUpDoubleIcon } from "hugeicons-react";
+import { Add01Icon, ArrowUpDoubleIcon, ListViewIcon } from "hugeicons-react";
 import type * as React from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 
@@ -28,7 +28,7 @@ export function LeagueSwitcher({
 }: {
 	teams: {
 		name: string;
-		logo: React.ElementType | string;
+		logo: React.ElementType | string | null;
 		plan: string;
 	}[];
 	activeTeam?: {
@@ -54,16 +54,33 @@ export function LeagueSwitcher({
 		return null;
 	}
 
+	const getInitials = (name: string) => {
+		return name
+			.split(" ")
+			.map((n) => n[0])
+			.join("")
+			.toUpperCase()
+			.slice(0, 2);
+	};
+
 	const renderLogo = (
-		logo: React.ElementType | string,
+		logo: React.ElementType | string | null,
+		name: string,
 		className: string,
 		size: "sm" | "default" = "default"
 	) => {
 		if (typeof logo === "string") {
 			return (
 				<Avatar className={cn("rounded-lg", size === "sm" ? "h-6 w-6" : "h-8 w-8")}>
-					<AvatarImage src={logo} alt="" className="rounded-lg" />
-					<AvatarFallback className="rounded-lg" />
+					<AvatarImage src={logo || undefined} alt={name} className="rounded-lg" />
+					<AvatarFallback className="rounded-lg text-xs">{getInitials(name)}</AvatarFallback>
+				</Avatar>
+			);
+		}
+		if (logo === null) {
+			return (
+				<Avatar className={cn("rounded-lg", size === "sm" ? "h-6 w-6" : "h-8 w-8")}>
+					<AvatarFallback className="rounded-lg text-xs">{getInitials(name)}</AvatarFallback>
 				</Avatar>
 			);
 		}
@@ -73,7 +90,7 @@ export function LeagueSwitcher({
 
 	const handleTeamSelect = async (team: {
 		name: string;
-		logo: React.ElementType | string;
+		logo: React.ElementType | string | null;
 		plan: string;
 	}) => {
 		await authClient.organization.setActive({
@@ -91,7 +108,7 @@ export function LeagueSwitcher({
 				<DropdownMenu>
 					<SidebarMenuButton size="lg" asChild>
 						<DropdownMenuTrigger className="w-full data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-							{renderLogo(currentActiveTeam.logo, "size-4", "default")}
+							{renderLogo(currentActiveTeam.logo, currentActiveTeam.name, "size-4", "default")}
 							<div className="grid flex-1 text-left text-sm leading-tight">
 								<span className="truncate font-medium">{currentActiveTeam.name}</span>
 								<span className="truncate text-xs">/{currentActiveTeam.plan}</span>
@@ -116,15 +133,24 @@ export function LeagueSwitcher({
 								onClick={() => handleTeamSelect(team)}
 								className="gap-2 p-2"
 							>
-								{renderLogo(team.logo, "size-3.5 shrink-0", "sm")}
+								{renderLogo(team.logo, team.name, "size-3.5 shrink-0", "sm")}
 								{team.name}
 								<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
 							</DropdownMenuItem>
 						))}
 						<DropdownMenuSeparator />
-						<DropdownMenuItem className="gap-2 p-2" onClick={() => navigate({ to: "/leagues" })}>
+						<DropdownMenuItem
+							className="gap-2 p-2"
+							onClick={() => navigate({ to: "/leagues/create" })}
+						>
 							<div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
 								<Add01Icon className="size-4" />
+							</div>
+							<div className="text-muted-foreground font-medium">Create league</div>
+						</DropdownMenuItem>
+						<DropdownMenuItem className="gap-2 p-2" onClick={() => navigate({ to: "/leagues" })}>
+							<div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+								<ListViewIcon className="size-4" />
 							</div>
 							<div className="text-muted-foreground font-medium">All leagues</div>
 						</DropdownMenuItem>

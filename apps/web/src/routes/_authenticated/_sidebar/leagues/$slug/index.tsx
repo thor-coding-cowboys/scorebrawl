@@ -18,6 +18,11 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/")(
 	},
 });
 
+function truncateSlug(slug: string, maxLength = 10): string {
+	if (slug.length <= maxLength) return slug;
+	return `${slug.slice(0, maxLength)}...`;
+}
+
 function LeagueIndexPage() {
 	const { slug } = Route.useLoaderData();
 
@@ -33,7 +38,7 @@ function LeagueIndexPage() {
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>
-							<BreadcrumbPage>{slug}</BreadcrumbPage>
+							<BreadcrumbPage>{truncateSlug(slug)}</BreadcrumbPage>
 						</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>

@@ -24,7 +24,9 @@
 	},
 	"vars": {
 		"VITE_GITHUB_CLIENT_ID": "Ov23liEHPLUdBgTj5Cxu",
-		"VITE_GOOGLE_CLIENT_ID": "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com"
+		"VITE_GOOGLE_CLIENT_ID": "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
+		"R2_ACCOUNT_ID": "",
+		"USER_ASSETS_BUCKET_NAME": "scorebrawl-user-assets"
 	},
 	"upload_source_maps": true,
 	"assets": {
