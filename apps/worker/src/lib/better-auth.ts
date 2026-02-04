@@ -4,6 +4,9 @@ import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
+import { eq, and, or, gt, isNull } from "drizzle-orm";
+import { player, season, seasonPlayer } from "../db/schema";
+import { createId } from "../utils/id-util";
 
 import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
 
@@ -40,6 +43,7 @@ export function createAuth({
 	googleClientId,
 	googleClientSecret,
 	origin,
+	resendApiKey,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -48,6 +52,7 @@ export function createAuth({
 	googleClientId?: string;
 	googleClientSecret?: string;
 	origin?: string;
+	resendApiKey?: string;
 }) {
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
@@ -126,6 +131,78 @@ export function createAuth({
 					organization: {
 						modelName: "league",
 					},
+				},
+				organizationHooks: {
+					afterAcceptInvitation: async ({ invitation, member: _member, user }) => {
+						// Skip for viewer role
+						if (invitation.role === "viewer") {
+							return;
+						}
+
+						const now = new Date();
+
+						// Insert into player table
+						const playerId = createId();
+						await db.insert(player).values({
+							id: playerId,
+							userId: user.id,
+							organizationId: invitation.organizationId,
+							disabled: false,
+							createdAt: now,
+							updatedAt: now,
+						});
+
+						// Find future or ongoing seasons
+						const ongoingAndFutureSeasons = await db
+							.select({ id: season.id, initialScore: season.initialScore })
+							.from(season)
+							.where(
+								and(
+									eq(season.organizationId, invitation.organizationId),
+									or(gt(season.endDate, now), isNull(season.endDate))
+								)
+							);
+
+						// Insert into seasonPlayer for each ongoing season
+						if (ongoingAndFutureSeasons.length > 0) {
+							await db.insert(seasonPlayer).values(
+								ongoingAndFutureSeasons.map((s: { id: string; initialScore: number }) => ({
+									id: createId(),
+									seasonId: s.id,
+									playerId,
+									score: s.initialScore,
+									disabled: false,
+									createdAt: now,
+									updatedAt: now,
+								}))
+							);
+						}
+					},
+				},
+				async sendInvitationEmail(data, _request) {
+					const { Resend } = await import("resend");
+					const { email, organization, invitation } = data;
+					const invitationAcceptLink = `${origin}/accept-invitation/${invitation.id}`;
+					if (!resendApiKey) {
+						console.log("Resend API key not provided. Cannot send invitation email.");
+						console.log(`Invitation link for ${email}: ${invitationAcceptLink}`);
+						return;
+					}
+
+					// Send email using Resend
+					const resend = new Resend(resendApiKey || "");
+					await resend.emails.send({
+						from: "no-reply@scorebrawl.com",
+						to: email,
+						subject: `Invitation to join ${organization.name} on Scorebrawl`,
+						html: `
+							<p>You have been invited to join the organization <strong>${organization.name}</strong> on Scorebrawl.</p>
+							<p>Click the link below to accept the invitation:</p>
+							<p><a href="${invitationAcceptLink}">Join ${organization.name}</a></p>
+							<p>If you did not expect this invitation, you can safely ignore this email.</p>
+						`,
+					});
+					console.log(`Invitation for organization ${organization.name} sent to ${email}`);
 				},
 			}),
 			passkey({

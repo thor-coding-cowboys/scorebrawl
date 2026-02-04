@@ -1,0 +1,451 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Header } from "@/components/layout/header";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+	Add01Icon,
+	Mail01Icon,
+	Clock01Icon,
+	Alert02Icon,
+	Cancel01Icon,
+	ArrowRight01Icon,
+	CheckmarkCircle02Icon,
+	UserMultipleIcon,
+} from "@hugeicons/core-free-icons";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/invitations")({
+	component: InvitationsPage,
+	loader: async ({ params }) => {
+		return { slug: params.slug };
+	},
+});
+
+interface Invitation {
+	id: string;
+	organizationId: string;
+	email: string;
+	role: string | null;
+	teamId: string | null;
+	status: "pending" | "accepted" | "rejected" | "canceled";
+	expiresAt: Date;
+	createdAt: Date;
+	inviterId: string;
+}
+
+const ITEMS_PER_PAGE = 10;
+
+function InvitationsPage() {
+	const { slug } = Route.useLoaderData();
+	const navigate = useNavigate();
+	const queryClient = useQueryClient();
+	const [inviteEmail, setInviteEmail] = useState("");
+	const [inviteRole, setInviteRole] = useState<string>("member");
+	const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+	const [displayLimit, setDisplayLimit] = useState(ITEMS_PER_PAGE);
+
+	const { data: activeMember } = authClient.useActiveMember();
+
+	const role = activeMember?.role;
+	const canAccess = role === "owner" || role === "editor";
+
+	useEffect(() => {
+		if (role && !canAccess) {
+			toast.error("You do not have permission to access invitations. Redirecting...", {
+				duration: 3000,
+			});
+			setTimeout(() => {
+				void navigate({ to: "/leagues/$slug", params: { slug } });
+			}, 100);
+		}
+	}, [role, canAccess, navigate, slug]);
+
+	const {
+		data: invitationsData,
+		isLoading,
+		refetch,
+	} = useQuery({
+		queryKey: ["invitations", slug],
+		queryFn: async () => {
+			const { data, error } = await authClient.organization.listInvitations({});
+			if (error) {
+				throw error;
+			}
+			return data as Invitation[];
+		},
+		enabled: canAccess,
+	});
+
+	const invitations = invitationsData || [];
+
+	const stats = {
+		total: invitations.length,
+		pending: invitations.filter((i) => i.status === "pending").length,
+		accepted: invitations.filter((i) => i.status === "accepted").length,
+	};
+
+	const inviteMutation = useMutation({
+		mutationFn: async ({ email, role }: { email: string; role: string }) => {
+			const { data, error } = await authClient.organization.inviteMember({
+				email,
+				role: role as "member" | "admin" | "owner",
+			});
+			if (error) {
+				throw error;
+			}
+			return data;
+		},
+		onSuccess: () => {
+			toast.success("Invitation sent successfully");
+			setInviteEmail("");
+			setInviteRole("member");
+			setIsInviteDialogOpen(false);
+			void queryClient.invalidateQueries({ queryKey: ["invitations", slug] });
+			void refetch();
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to send invitation");
+		},
+	});
+
+	const cancelMutation = useMutation({
+		mutationFn: async (invitationId: string) => {
+			const { error } = await authClient.organization.cancelInvitation({
+				invitationId,
+			});
+			if (error) {
+				throw error;
+			}
+		},
+		onSuccess: () => {
+			toast.success("Invitation canceled");
+			void queryClient.invalidateQueries({ queryKey: ["invitations", slug] });
+			void refetch();
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to cancel invitation");
+		},
+	});
+
+	const resendMutation = useMutation({
+		mutationFn: async ({ email, role }: { email: string; role: string | null }) => {
+			const { data, error } = await authClient.organization.inviteMember({
+				email,
+				role: (role || "member") as "member" | "admin" | "owner",
+				resend: true,
+			});
+			if (error) {
+				throw error;
+			}
+			return data;
+		},
+		onSuccess: () => {
+			toast.success("Invitation resent successfully");
+			void queryClient.invalidateQueries({ queryKey: ["invitations", slug] });
+			void refetch();
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to resend invitation");
+		},
+	});
+
+	const handleInvite = () => {
+		if (!inviteEmail) {
+			toast.error("Please enter an email address");
+			return;
+		}
+		inviteMutation.mutate({ email: inviteEmail, role: inviteRole });
+	};
+
+	const handleCancel = (invitationId: string) => {
+		cancelMutation.mutate(invitationId);
+	};
+
+	const handleResend = (email: string, role: string | null) => {
+		resendMutation.mutate({ email, role });
+	};
+
+	const handleLoadMore = () => {
+		setDisplayLimit((prev) => prev + ITEMS_PER_PAGE);
+	};
+
+	const displayedInvitations = invitations.slice(0, displayLimit);
+	const hasMore = invitations.length > displayLimit;
+
+	if (!canAccess) {
+		return null;
+	}
+
+	const getStatusIcon = (status: string) => {
+		switch (status) {
+			case "pending":
+				return <HugeiconsIcon icon={Clock01Icon} className="size-4 text-yellow-500" />;
+			case "accepted":
+				return <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-green-500" />;
+			case "rejected":
+				return <HugeiconsIcon icon={Cancel01Icon} className="size-4 text-red-500" />;
+			case "canceled":
+				return <HugeiconsIcon icon={Alert02Icon} className="size-4 text-gray-500" />;
+			default:
+				return <HugeiconsIcon icon={Clock01Icon} className="size-4 text-yellow-500" />;
+		}
+	};
+
+	const getStatusColor = (status: string) => {
+		switch (status) {
+			case "pending":
+				return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+			case "accepted":
+				return "bg-green-500/10 text-green-600 border-green-500/20";
+			case "rejected":
+				return "bg-red-500/10 text-red-600 border-red-500/20";
+			case "canceled":
+				return "bg-gray-500/10 text-gray-600 border-gray-500/20";
+			default:
+				return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+		}
+	};
+
+	const formatDate = (date: Date) => {
+		return new Date(date).toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	};
+
+	return (
+		<>
+			<Header
+				rightContent={
+					<Button size="sm" className="gap-1.5" onClick={() => setIsInviteDialogOpen(true)}>
+						<HugeiconsIcon icon={Add01Icon} className="size-4" />
+						Invitation
+					</Button>
+				}
+			>
+				<SidebarTrigger className="-ml-1" />
+				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+				<Breadcrumb>
+					<BreadcrumbList>
+						<BreadcrumbItem className="hidden md:block">
+							<BreadcrumbLink href="#">League</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator className="hidden md:block" />
+						<BreadcrumbItem>
+							<BreadcrumbLink href={`/leagues/${slug}`}>{slug}</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator className="hidden md:block" />
+						<BreadcrumbItem>
+							<BreadcrumbPage>Invitations</BreadcrumbPage>
+						</BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+			</Header>
+			<Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+				<DialogContent className="sm:max-w-[425px]">
+					<DialogHeader>
+						<DialogTitle>Invite Member</DialogTitle>
+						<DialogDescription>
+							Send an invitation to join this league. They will receive an email with a link to
+							accept.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid gap-2">
+							<Label htmlFor="email">Email address</Label>
+							<Input
+								id="email"
+								type="email"
+								placeholder="member@example.com"
+								value={inviteEmail}
+								onChange={(e) => setInviteEmail(e.target.value)}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="role">Role</Label>
+							<Select
+								value={inviteRole}
+								onValueChange={(value: string | null) => {
+									if (value) setInviteRole(value);
+								}}
+							>
+								<SelectTrigger id="role">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="member">Member</SelectItem>
+									<SelectItem value="editor">Editor</SelectItem>
+									<SelectItem value="viewer">Viewer</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button onClick={handleInvite} disabled={inviteMutation.isPending || !inviteEmail}>
+							{inviteMutation.isPending ? "Sending..." : "Send Invitation"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+				<div className="grid auto-rows-min gap-3 md:grid-cols-3 xl:grid-cols-3">
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between pb-2">
+							<CardTitle className="text-sm font-medium">Total Invites</CardTitle>
+							<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{stats.total}</div>
+							<p className="text-xs text-muted-foreground">All invitations sent to date</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between pb-2">
+							<CardTitle className="text-sm font-medium">Pending</CardTitle>
+							<HugeiconsIcon icon={Clock01Icon} className="size-4 text-yellow-500" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{stats.pending}</div>
+							<p className="text-xs text-muted-foreground">Awaiting response</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between pb-2">
+							<CardTitle className="text-sm font-medium">Accepted</CardTitle>
+							<HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-green-500" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{stats.accepted}</div>
+							<p className="text-xs text-muted-foreground">Successfully joined</p>
+						</CardContent>
+					</Card>
+				</div>
+				<div className="bg-muted/50 min-h-[100vh] flex-1 md:min-h-min p-6">
+					{isLoading ? (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-muted-foreground">Loading invitations...</div>
+						</div>
+					) : invitations.length === 0 ? (
+						<div className="flex flex-col items-center justify-center h-64 gap-4">
+							<HugeiconsIcon icon={Mail01Icon} className="size-12 text-muted-foreground" />
+							<p className="text-muted-foreground">No invitations sent yet</p>
+							<Button
+								variant="outline"
+								onClick={() => setIsInviteDialogOpen(true)}
+								className="gap-1.5"
+							>
+								<HugeiconsIcon icon={Add01Icon} className="size-4" />
+								Send First Invitation
+							</Button>
+						</div>
+					) : (
+						<div className="space-y-4">
+							<div className="flex items-center justify-between">
+								<h3 className="text-lg font-medium">Invitations</h3>
+								<span className="text-sm text-muted-foreground">
+									Showing {displayedInvitations.length} of {invitations.length}
+								</span>
+							</div>
+							<div className="divide-y divide-border rounded-lg border">
+								{displayedInvitations.map((invitation) => (
+									<div key={invitation.id} className="p-4 hover:bg-muted/50 transition-colors">
+										<div className="flex items-center justify-between gap-3">
+											<div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+												<div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+													<HugeiconsIcon icon={Mail01Icon} className="size-5 text-primary" />
+												</div>
+												<div className="min-w-0">
+													<p className="font-medium text-sm truncate">{invitation.email}</p>
+													<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+														<span className="capitalize">{invitation.role || "member"}</span>
+														<span>•</span>
+														<span>Sent {formatDate(invitation.createdAt)}</span>
+													</div>
+												</div>
+											</div>
+											<div className="flex items-center gap-2 flex-shrink-0">
+												<div
+													className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
+														invitation.status
+													)}`}
+												>
+													{getStatusIcon(invitation.status)}
+													<span className="hidden sm:inline capitalize">{invitation.status}</span>
+												</div>
+												{(invitation.status === "pending" ||
+													new Date(invitation.expiresAt) < new Date()) && (
+													<div className="flex gap-1">
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() => handleResend(invitation.email, invitation.role)}
+															disabled={resendMutation.isPending}
+														>
+															<span className="hidden sm:inline">Resend</span>
+															<span className="sm:hidden text-base">↻</span>
+														</Button>
+														{invitation.status === "pending" && (
+															<Button
+																variant="ghost"
+																size="sm"
+																onClick={() => handleCancel(invitation.id)}
+																disabled={cancelMutation.isPending}
+															>
+																<span className="hidden sm:inline">Cancel</span>
+																<span className="sm:hidden text-base">✕</span>
+															</Button>
+														)}
+													</div>
+												)}
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+							{hasMore && (
+								<div className="flex justify-center pt-4">
+									<Button variant="outline" onClick={handleLoadMore} className="gap-1.5">
+										Load More
+										<HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+									</Button>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
+			</div>
+		</>
+	);
+}

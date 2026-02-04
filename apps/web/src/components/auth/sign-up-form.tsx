@@ -62,7 +62,6 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 				name: values.name,
 				email: values.email,
 				password: values.password,
-				callbackURL: callbackURL || "/",
 			});
 
 			if (error) {
@@ -71,6 +70,22 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 			}
 
 			if (data) {
+				// Auto sign-in after successful sign-up
+				const { error: signInError } = await authClient.signIn.email({
+					email: values.email,
+					password: values.password,
+				});
+
+				if (signInError) {
+					// If auto sign-in fails, redirect to sign-in page
+					void navigate({
+						to: "/auth/sign-in",
+						search: { redirect: callbackURL },
+					});
+					return;
+				}
+
+				// Successfully signed in, redirect to callback URL
 				navigate({ to: callbackURL || "/" });
 			} else {
 				setApiError("Failed to create account. Please try again.");

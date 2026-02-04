@@ -1,10 +1,10 @@
-import { createFileRoute, Outlet, redirect, useParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useCallback } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/_sidebar/leagues")({
+export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 	component: LeaguesLayout,
 	beforeLoad: async () => {
 		const { data: session } = await authClient.getSession();
@@ -12,12 +12,15 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues")({
 			throw redirect({ to: "/auth/sign-in" });
 		}
 	},
+	loader: async ({ params }) => {
+		return { slug: params.slug };
+	},
 });
 
 function LeaguesLayout() {
-	const { slug } = useParams({ from: "/_authenticated/_sidebar/leagues/$slug" });
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { slug } = Route.useLoaderData();
 
 	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
