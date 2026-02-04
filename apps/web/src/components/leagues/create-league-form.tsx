@@ -363,7 +363,6 @@ export function CreateLeagueForm({ onCancel, cancelLabel = "Cancel" }: CreateLea
 								<p className="text-sm text-destructive">{errors.slug.message}</p>
 							)}
 							<div className="min-h-5">
-								{isCheckingSlug && <p className="text-sm text-muted-foreground">Checking...</p>}
 								{isSlugTaken && (
 									<p className="text-sm text-destructive">This slug is already taken</p>
 								)}
