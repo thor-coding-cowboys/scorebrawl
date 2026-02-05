@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -585,13 +586,14 @@ export function EditSeasonForm({ isOpen, onClose, onSuccess, season }: EditSeaso
 							>
 								Cancel
 							</Button>
-							<Button
+							<GlowButton
 								type="submit"
+								glowColor={glowColors.blue}
 								disabled={!canSubmit}
-								className="flex-1 font-mono font-bold h-8 text-sm"
+								className="flex-1 font-mono h-8 text-sm"
 							>
 								{editMutation.isPending ? "Saving..." : "Save Changes"}
-							</Button>
+							</GlowButton>
 						</div>
 					</form>
 				</div>

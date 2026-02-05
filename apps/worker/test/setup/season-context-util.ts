@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { randNumber, randSlug, randSports, randUuid } from "@ngneat/falso";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../../src/db/index";
 import { player } from "../../src/db/schema/competition-schema";
 import { createUser, type AuthContext } from "./auth-context-util";
@@ -22,7 +22,7 @@ export interface PlayerInput {
 /**
  * Generate season input with defaults
  */
-export function aSeason(overrides: CompetitionInput = {}): Required<CompetitionInput> {
+export function aSeason(overrides: SeasonInput = {}): Required<SeasonInput> {
 	const name = overrides.name ?? randSports();
 	return {
 		name,
@@ -59,6 +59,18 @@ export async function createPlayer(
 	const now = new Date();
 
 	const playerInput = aPlayer(userId, overrides);
+
+	// Check if player already exists for this user-organization combination
+	const [existingPlayer] = await db
+		.select()
+		.from(player)
+		.where(
+			and(eq(player.userId, playerInput.userId), eq(player.organizationId, authContext.league.id))
+		);
+
+	if (existingPlayer) {
+		return existingPlayer;
+	}
 
 	const [p] = await db
 		.insert(player)

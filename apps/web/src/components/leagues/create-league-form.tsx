@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
@@ -377,9 +378,14 @@ export function CreateLeagueForm({
 							{cancelLabel}
 						</Button>
 					)}
-					<Button type="submit" disabled={!canSubmit} className="flex-1">
+					<GlowButton
+						glowColor={glowColors.blue}
+						type="submit"
+						disabled={!canSubmit}
+						className="flex-1"
+					>
 						{isSubmitting ? "Creating..." : "Create League"}
-					</Button>
+					</GlowButton>
 				</div>
 			</FieldGroup>
 		</form>

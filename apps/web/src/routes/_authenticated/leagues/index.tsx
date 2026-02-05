@@ -3,24 +3,16 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Add01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RowCard } from "@/components/ui/row-card";
 import { CreateLeagueDialog } from "@/components/leagues/create-league-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 
 export const Route = createFileRoute("/_authenticated/leagues/")({
 	component: LeaguesListPage,
 });
-
-function getInitials(name: string) {
-	return name
-		.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
-}
 
 function LeaguesListPage() {
 	const { data: organizations, isPending } = authClient.useListOrganizations();
@@ -31,10 +23,15 @@ function LeaguesListPage() {
 			<Header
 				includeLogoutButton
 				rightContent={
-					<Button size="sm" className="gap-1.5" onClick={() => setIsCreateDialogOpen(true)}>
-						<HugeiconsIcon icon={Add01Icon} className="size-4" />
+					<GlowButton
+						icon={Add01Icon}
+						glowColor={glowColors.blue}
+						size="sm"
+						className="gap-1.5"
+						onClick={() => setIsCreateDialogOpen(true)}
+					>
 						League
-					</Button>
+					</GlowButton>
 				}
 			/>
 			<main className="flex-1 p-4">
@@ -49,14 +46,15 @@ function LeaguesListPage() {
 								<span className="text-lg">🏆</span>
 							</div>
 							<p>No leagues found</p>
-							<Button
+							<GlowButton
+								icon={Add01Icon}
+								glowColor={glowColors.blue}
 								variant="outline"
 								className="gap-1.5"
 								onClick={() => setIsCreateDialogOpen(true)}
 							>
-								<HugeiconsIcon icon={Add01Icon} className="size-4" />
 								Create First League
-							</Button>
+							</GlowButton>
 						</div>
 					) : (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,16 +63,12 @@ function LeaguesListPage() {
 									<Link to="/leagues/$slug" params={{ slug: org.slug }} className="block">
 										<RowCard
 											icon={
-												<Avatar className="h-10 w-10 rounded-lg border-0 ring-0 outline-none">
-													<AvatarImage
-														src={org.logo || undefined}
-														alt={org.name}
-														className="rounded-lg"
-													/>
-													<AvatarFallback className="rounded-lg text-xs">
-														{getInitials(org.name)}
-													</AvatarFallback>
-												</Avatar>
+												<AvatarWithFallback
+													src={org.logo}
+													name={org.name}
+													alt={org.name}
+													size="lg"
+												/>
 											}
 											title={org.name}
 											subtitle={<span>/{org.slug}</span>}

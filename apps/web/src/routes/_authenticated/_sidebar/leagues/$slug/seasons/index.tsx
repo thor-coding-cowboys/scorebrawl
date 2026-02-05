@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { authClient } from "@/lib/auth-client";
 import { trpcClient } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -34,7 +35,7 @@ import { CreateSeasonForm } from "@/components/seasons/create-season-form";
 import { EditSeasonForm } from "@/components/seasons/edit-season-form";
 import { CloseSeasonDialog } from "@/components/seasons/close-season-dialog";
 
-export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons")({
+export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/")({
 	component: SeasonsPage,
 	loader: async ({ params }) => {
 		return { slug: params.slug };
@@ -76,7 +77,7 @@ function formatDate(date: Date) {
 
 function getSeasonStatus(season: Season) {
 	if (season.archived) return "archived";
-	if (season.closed) return "closed";
+	if (season.closed) return "locked";
 
 	const now = new Date();
 	const startDate = new Date(season.startDate);
@@ -95,8 +96,8 @@ function getStatusIcon(status: string) {
 			return <HugeiconsIcon icon={Clock01Icon} className="size-4 text-blue-500" />;
 		case "ended":
 			return <HugeiconsIcon icon={AwardIcon} className="size-4 text-amber-500" />;
-		case "closed":
-			return <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-gray-500" />;
+		case "locked":
+			return <HugeiconsIcon icon={SecurityLockIcon} className="size-4 text-gray-500" />;
 		case "archived":
 			return <HugeiconsIcon icon={Archive01Icon} className="size-4 text-gray-400" />;
 		default:
@@ -145,7 +146,7 @@ function getStatusColor(status: string) {
 			return "bg-blue-500/10 text-blue-600 border-blue-500/20";
 		case "ended":
 			return "bg-amber-500/10 text-amber-600 border-amber-500/20";
-		case "closed":
+		case "locked":
 			return "bg-gray-500/10 text-gray-600 border-gray-500/20";
 		case "archived":
 			return "bg-gray-400/10 text-gray-500 border-gray-400/20";
@@ -225,10 +226,15 @@ function SeasonsPage() {
 			<Header
 				rightContent={
 					canCreate && (
-						<Button size="sm" className="gap-1.5" onClick={() => setIsCreateDialogOpen(true)}>
-							<HugeiconsIcon icon={Add01Icon} className="size-4" />
+						<GlowButton
+							icon={Add01Icon}
+							size="sm"
+							className="gap-1.5"
+							glowColor={glowColors.blue}
+							onClick={() => setIsCreateDialogOpen(true)}
+						>
 							Season
-						</Button>
+						</GlowButton>
 					)
 				}
 			>
@@ -305,14 +311,14 @@ function SeasonsPage() {
 								</div>
 								<p>No seasons created yet</p>
 								{canCreate && (
-									<Button
+									<GlowButton
+										icon={Add01Icon}
 										variant="outline"
 										className="gap-1.5"
 										onClick={() => setIsCreateDialogOpen(true)}
 									>
-										<HugeiconsIcon icon={Add01Icon} className="size-4" />
 										Create First Season
-									</Button>
+									</GlowButton>
 								)}
 							</div>
 						) : (
@@ -336,27 +342,27 @@ function SeasonsPage() {
 											}
 											title={season.name}
 											subtitle={
-												<>
-													<span>{formatDate(season.startDate)}</span>
+												<div className="flex items-center gap-1.5 min-w-0">
+													<span className="capitalize shrink-0">{season.scoreType}</span>
+													<span className="shrink-0">•</span>
+													<span className="truncate">{formatDate(season.startDate)}</span>
 													{season.endDate && (
 														<>
-															<span>-</span>
-															<span>{formatDate(season.endDate)}</span>
+															<span className="shrink-0">-</span>
+															<span className="truncate">{formatDate(season.endDate)}</span>
 														</>
 													)}
-													<span>•</span>
-													<span className="capitalize">{season.scoreType}</span>
-													{season.rounds && (
-														<>
-															<span>•</span>
-															<span>{season.rounds} rounds</span>
-														</>
-													)}
-												</>
+												</div>
 											}
+											onClick={() => {
+												navigate({
+													to: "/leagues/$slug/seasons/$seasonSlug",
+													params: { slug, seasonSlug: season.slug },
+												});
+											}}
 										>
 											<div
-												className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
+												className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
 													status
 												)}`}
 											>
@@ -368,7 +374,8 @@ function SeasonsPage() {
 													<Button
 														variant="ghost"
 														size="sm"
-														onClick={() => {
+														onClick={(e) => {
+															e.stopPropagation();
 															setSelectedSeason(season);
 															setIsEditDialogOpen(true);
 														}}
@@ -381,7 +388,8 @@ function SeasonsPage() {
 													<Button
 														variant="ghost"
 														size="sm"
-														onClick={() => {
+														onClick={(e) => {
+															e.stopPropagation();
 															setSelectedSeason(season);
 															setIsCloseDialogOpen(true);
 														}}
