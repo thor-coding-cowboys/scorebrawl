@@ -1,17 +1,15 @@
 import {
-	AudioBook01Icon,
-	Book03Icon,
-	ConsoleIcon,
-	CropIcon,
-	MachineRobotIcon,
-	MapsIcon,
-	PieChartIcon,
-	Settings02Icon,
-} from "hugeicons-react";
+	Activity01Icon,
+	Award01Icon,
+	UserMultipleIcon,
+	Mail01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useQuery } from "@tanstack/react-query";
 import type * as React from "react";
+import { useMemo } from "react";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 
-import { NavMain } from "@/components/sidebar/nav-main";
-import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavUser } from "@/components/sidebar/nav-user";
 import { LeagueSwitcher } from "@/components/sidebar/league-switcher";
 import {
@@ -20,138 +18,14 @@ import {
 	SidebarFooter,
 	SidebarHeader,
 	SidebarRail,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarGroup,
+	SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-
-// This is sample data.
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Coding Cowboys",
-			logo: "https://avatars.githubusercontent.com/u/246662916",
-			plan: "Enterprise",
-		},
-		{
-			name: "Acme Corp.",
-			logo: AudioBook01Icon,
-			plan: "Startup",
-		},
-		{
-			name: "Evil Corp.",
-			logo: Settings02Icon,
-			plan: "Free",
-		},
-	],
-	navMain: [
-		{
-			title: "Playground",
-			url: "#",
-			icon: ConsoleIcon,
-			isActive: true,
-			items: [
-				{
-					title: "History",
-					url: "#",
-				},
-				{
-					title: "Starred",
-					url: "#",
-				},
-				{
-					title: "Settings",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Models",
-			url: "#",
-			icon: MachineRobotIcon,
-			items: [
-				{
-					title: "Genesis",
-					url: "#",
-				},
-				{
-					title: "Explorer",
-					url: "#",
-				},
-				{
-					title: "Quantum",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Documentation",
-			url: "#",
-			icon: Book03Icon,
-			items: [
-				{
-					title: "Introduction",
-					url: "#",
-				},
-				{
-					title: "Get Started",
-					url: "#",
-				},
-				{
-					title: "Tutorials",
-					url: "#",
-				},
-				{
-					title: "Changelog",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Settings",
-			url: "#",
-			icon: Settings02Icon,
-			items: [
-				{
-					title: "General",
-					url: "#",
-				},
-				{
-					title: "Team",
-					url: "#",
-				},
-				{
-					title: "Billing",
-					url: "#",
-				},
-				{
-					title: "Limits",
-					url: "#",
-				},
-			],
-		},
-	],
-	projects: [
-		{
-			name: "Design Engineering",
-			url: "#",
-			icon: CropIcon,
-		},
-		{
-			name: "Sales & Marketing",
-			url: "#",
-			icon: PieChartIcon,
-		},
-		{
-			name: "Travel",
-			url: "#",
-			icon: MapsIcon,
-		},
-	],
-};
+import { trpcClient } from "@/lib/trpc";
 
 // Helper to construct asset URL from key
 const getAssetUrl = (key: string | null | undefined): string | null => {
@@ -167,6 +41,7 @@ const getAssetUrl = (key: string | null | undefined): string | null => {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
+	const matchRoute = useMatchRoute();
 	const user = session?.user;
 
 	const userData = user
@@ -204,14 +79,81 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			plan: org.slug,
 		})) || [];
 
+	// Get active league slug for navigation
+	const leagueSlug = activeOrg?.slug;
+
+	// Check which routes are active
+	const routeMatches = useMemo(() => {
+		const isActiveSeasonRoute = matchRoute({
+			to: "/leagues/$slug/seasons/$seasonSlug",
+			fuzzy: true,
+		});
+		const isSeasonsListRoute =
+			matchRoute({ to: "/leagues/$slug/seasons", fuzzy: true }) && !isActiveSeasonRoute;
+		const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: true });
+		const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: true });
+		return { isActiveSeasonRoute, isSeasonsListRoute, isMembersRoute, isInvitationsRoute };
+	}, [matchRoute]);
+
+	// Fetch active season for the current league
+	const { data: activeSeason } = useQuery({
+		queryKey: ["active-season", leagueSlug],
+		queryFn: async () => {
+			return await trpcClient.season.findActive.query();
+		},
+		enabled: !!leagueSlug,
+	});
+
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
 				<LeagueSwitcher teams={teams} activeTeam={activeOrgWithLogo} />
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={data.navMain} />
-				<NavProjects projects={data.projects} />
+				{leagueSlug && (
+					<SidebarGroup>
+						<SidebarGroupLabel>League</SidebarGroupLabel>
+						<SidebarMenu>
+							{activeSeason && (
+								<SidebarMenuItem>
+									<SidebarMenuButton asChild isActive={!!routeMatches.isActiveSeasonRoute}>
+										<Link
+											to="/leagues/$slug/seasons/$seasonSlug"
+											params={{ slug: leagueSlug, seasonSlug: activeSeason.slug }}
+										>
+											<HugeiconsIcon icon={Activity01Icon} className="size-4" />
+											<span>Active Season</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							)}
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={!!routeMatches.isSeasonsListRoute}>
+									<Link to="/leagues/$slug/seasons" params={{ slug: leagueSlug }}>
+										<HugeiconsIcon icon={Award01Icon} className="size-4" />
+										<span>Seasons</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={!!routeMatches.isMembersRoute}>
+									<Link to="/leagues/$slug/members" params={{ slug: leagueSlug }}>
+										<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
+										<span>Members</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={!!routeMatches.isInvitationsRoute}>
+									<Link to="/leagues/$slug/invitations" params={{ slug: leagueSlug }}>
+										<HugeiconsIcon icon={Mail01Icon} className="size-4" />
+										<span>Invitations</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarGroup>
+				)}
 			</SidebarContent>
 			<SidebarFooter>
 				<NavUser user={userData} />
