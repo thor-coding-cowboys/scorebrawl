@@ -21,15 +21,18 @@ import {
 	AwardIcon,
 	Award01Icon,
 	Target01Icon,
-	Calendar01Icon,
 	Clock01Icon,
 	Add01Icon,
+	SecurityLockIcon,
 	Archive01Icon,
 	CheckmarkCircle02Icon,
+	PencilEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { useQuery } from "@tanstack/react-query";
 import { CreateSeasonForm } from "@/components/seasons/create-season-form";
+import { EditSeasonForm } from "@/components/seasons/edit-season-form";
+import { CloseSeasonDialog } from "@/components/seasons/close-season-dialog";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons")({
 	component: SeasonsPage,
@@ -155,6 +158,9 @@ function SeasonsPage() {
 	const { slug } = Route.useLoaderData();
 	const navigate = useNavigate();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+	const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -357,12 +363,38 @@ function SeasonsPage() {
 												{getStatusIcon(status)}
 												<span className="hidden sm:inline">{statusLabel}</span>
 											</div>
-											<Button variant="ghost" size="sm">
-												<span className="hidden sm:inline">View Details</span>
-												<span className="sm:hidden">
-													<HugeiconsIcon icon={Calendar01Icon} className="size-4" />
-												</span>
-											</Button>
+											{canCreate && !season.archived && (
+												<div className="flex items-center gap-1">
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => {
+															setSelectedSeason(season);
+															setIsEditDialogOpen(true);
+														}}
+													>
+														<span className="hidden sm:inline">Edit Season</span>
+														<span className="sm:hidden">
+															<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+														</span>
+													</Button>
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => {
+															setSelectedSeason(season);
+															setIsCloseDialogOpen(true);
+														}}
+													>
+														<span className="hidden sm:inline">
+															{season.closed ? "Unlock Season" : "Lock Season"}
+														</span>
+														<span className="sm:hidden">
+															<HugeiconsIcon icon={SecurityLockIcon} className="size-4" />
+														</span>
+													</Button>
+												</div>
+											)}
 										</RowCard>
 									);
 								})}
@@ -375,6 +407,30 @@ function SeasonsPage() {
 				isOpen={isCreateDialogOpen}
 				onClose={() => setIsCreateDialogOpen(false)}
 				onSuccess={() => void refetch()}
+			/>
+			<EditSeasonForm
+				isOpen={isEditDialogOpen}
+				onClose={() => {
+					setIsEditDialogOpen(false);
+					setSelectedSeason(null);
+				}}
+				onSuccess={() => {
+					void refetch();
+					setSelectedSeason(null);
+				}}
+				season={selectedSeason}
+			/>
+			<CloseSeasonDialog
+				isOpen={isCloseDialogOpen}
+				onClose={() => {
+					setIsCloseDialogOpen(false);
+					setSelectedSeason(null);
+				}}
+				onSuccess={() => {
+					void refetch();
+					setSelectedSeason(null);
+				}}
+				season={selectedSeason}
 			/>
 		</>
 	);

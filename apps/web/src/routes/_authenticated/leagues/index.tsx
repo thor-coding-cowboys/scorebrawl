@@ -1,67 +1,110 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Add01Icon } from "hugeicons-react";
+import { Add01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { RowCard } from "@/components/ui/row-card";
+import { CreateLeagueDialog } from "@/components/leagues/create-league-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_authenticated/leagues/")({
 	component: LeaguesListPage,
 });
 
+function getInitials(name: string) {
+	return name
+		.split(" ")
+		.map((n) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
+
 function LeaguesListPage() {
 	const { data: organizations, isPending } = authClient.useListOrganizations();
-
-	if (isPending) {
-		return (
-			<div className="flex min-h-screen flex-col">
-				<Header includeLogoutButton />
-				<main className="flex flex-1 items-center justify-center p-4">
-					<div className="text-muted-foreground">Loading leagues...</div>
-				</main>
-			</div>
-		);
-	}
-
-	if (!organizations || organizations.length === 0) {
-		return (
-			<div className="flex min-h-screen flex-col">
-				<Header includeLogoutButton />
-				<main className="flex flex-1 items-center justify-center p-4">
-					<div className="text-muted-foreground">No leagues found.</div>
-				</main>
-			</div>
-		);
-	}
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
 	return (
 		<div className="flex min-h-screen flex-col">
-			<Header includeLogoutButton />
+			<Header
+				includeLogoutButton
+				rightContent={
+					<Button size="sm" className="gap-1.5" onClick={() => setIsCreateDialogOpen(true)}>
+						<HugeiconsIcon icon={Add01Icon} className="size-4" />
+						League
+					</Button>
+				}
+			/>
 			<main className="flex-1 p-4">
 				<div className="mx-auto max-w-4xl">
-					<div className="mb-6 flex items-center justify-between">
-						<h1 className="text-2xl font-semibold">Your Leagues</h1>
-						<Link to="/leagues/create">
-							<Button>
-								<Add01Icon className="h-4 w-4" />
-								League
+					{isPending ? (
+						<div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+							Loading leagues...
+						</div>
+					) : !organizations || organizations.length === 0 ? (
+						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
+								<span className="text-lg">🏆</span>
+							</div>
+							<p>No leagues found</p>
+							<Button
+								variant="outline"
+								className="gap-1.5"
+								onClick={() => setIsCreateDialogOpen(true)}
+							>
+								<HugeiconsIcon icon={Add01Icon} className="size-4" />
+								Create First League
 							</Button>
-						</Link>
-					</div>
-					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-						{organizations.map((org) => (
-							<Link key={org.id} to="/leagues/$slug" params={{ slug: org.slug }} className="block">
-								<Card className="hover:border-primary/50 cursor-pointer transition-all">
-									<CardHeader>
-										<CardTitle className="truncate">{org.name}</CardTitle>
-										<CardDescription className="truncate">/{org.slug}</CardDescription>
-									</CardHeader>
-								</Card>
-							</Link>
-						))}
-					</div>
+						</div>
+					) : (
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							{organizations.map((org) => (
+								<div key={org.id} className="border">
+									<Link to="/leagues/$slug" params={{ slug: org.slug }} className="block">
+										<RowCard
+											icon={
+												<Avatar className="h-10 w-10 rounded-lg border-0 ring-0 outline-none">
+													<AvatarImage
+														src={org.logo || undefined}
+														alt={org.name}
+														className="rounded-lg"
+													/>
+													<AvatarFallback className="rounded-lg text-xs">
+														{getInitials(org.name)}
+													</AvatarFallback>
+												</Avatar>
+											}
+											title={org.name}
+											subtitle={<span>/{org.slug}</span>}
+										>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													// TODO: Open edit dialog
+												}}
+											>
+												<span className="hidden sm:inline">Edit League</span>
+												<span className="sm:hidden">
+													<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+												</span>
+											</Button>
+										</RowCard>
+									</Link>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			</main>
+			<CreateLeagueDialog
+				isOpen={isCreateDialogOpen}
+				onClose={() => setIsCreateDialogOpen(false)}
+			/>
 		</div>
 	);
 }

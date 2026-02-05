@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
@@ -29,9 +28,14 @@ type CreateLeagueFormValues = z.infer<typeof createLeagueSchema>;
 interface CreateLeagueFormProps {
 	onCancel?: () => void;
 	cancelLabel?: string;
+	onSuccess?: (slug: string) => void;
 }
 
-export function CreateLeagueForm({ onCancel, cancelLabel = "Cancel" }: CreateLeagueFormProps) {
+export function CreateLeagueForm({
+	onCancel,
+	cancelLabel = "Cancel",
+	onSuccess,
+}: CreateLeagueFormProps) {
 	const navigate = useNavigate();
 	const [apiError, setApiError] = useState<string>("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -250,7 +254,11 @@ export function CreateLeagueForm({ onCancel, cancelLabel = "Cancel" }: CreateLea
 				URL.revokeObjectURL(logoPreview);
 			}
 
-			navigate({ to: "/leagues/$slug", params: { slug: values.slug } });
+			if (onSuccess) {
+				onSuccess(values.slug);
+			} else {
+				navigate({ to: "/leagues/$slug", params: { slug: values.slug } });
+			}
 		} catch (err) {
 			setApiError(
 				err instanceof Error ? err.message : "Failed to create league. Please try again."
@@ -277,125 +285,103 @@ export function CreateLeagueForm({ onCancel, cancelLabel = "Cancel" }: CreateLea
 	};
 
 	return (
-		<Card>
-			<CardHeader className="pb-4 border-b border-border">
-				<div className="flex items-center gap-3">
-					<div className="w-2 h-6 bg-purple-500 rounded-full shadow-lg shadow-purple-500/25" />
-					<CardTitle className="text-xl font-bold font-mono tracking-tight">
-						Create a New League
-					</CardTitle>
-				</div>
-				<CardDescription className="mt-2">
-					Start tracking scores and competing with your friends
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<form onSubmit={handleSubmit(onSubmit)}>
-					<FieldGroup>
-						<Field>
-							<FieldLabel className="mb-2">League Logo (Optional)</FieldLabel>
-							<div className="flex items-center gap-4">
+		<form onSubmit={handleSubmit(onSubmit)}>
+			<FieldGroup>
+				<Field>
+					<FieldLabel className="mb-2">League Logo (Optional)</FieldLabel>
+					<div className="flex items-center gap-4">
+						<button
+							type="button"
+							className="relative group cursor-pointer border-0 bg-transparent p-0"
+							onClick={handleLogoClick}
+						>
+							<Avatar className="h-24 w-24 rounded-xl ring-2 ring-transparent group-hover:ring-primary transition-all pointer-events-none">
+								<AvatarImage
+									src={logoPreview || undefined}
+									alt={"League logo"}
+									className="rounded-xl"
+								/>
+								<AvatarFallback className="text-2xl rounded-xl bg-muted">
+									{getInitials(logoPreview ? undefined : nameValue)}
+								</AvatarFallback>
+							</Avatar>
+							<div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+								<Camera01Icon className="h-8 w-8 text-white" />
+							</div>
+							{logoPreview && (
 								<button
 									type="button"
-									className="relative group cursor-pointer border-0 bg-transparent p-0"
-									onClick={handleLogoClick}
+									onClick={handleRemoveLogo}
+									className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-red-600 text-white border border-red-600 flex items-center justify-center transition-opacity pointer-events-auto z-10"
+									aria-label="Remove logo"
 								>
-									<Avatar className="h-24 w-24 rounded-xl ring-2 ring-transparent group-hover:ring-primary transition-all pointer-events-none">
-										<AvatarImage
-											src={logoPreview || undefined}
-											alt={"League logo"}
-											className="rounded-xl"
-										/>
-										<AvatarFallback className="text-2xl rounded-xl bg-muted">
-											{getInitials(logoPreview ? undefined : nameValue)}
-										</AvatarFallback>
-									</Avatar>
-									<div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-										<Camera01Icon className="h-8 w-8 text-white" />
-									</div>
-									{logoPreview && (
-										<button
-											type="button"
-											onClick={handleRemoveLogo}
-											className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-red-600 text-white border border-red-600 flex items-center justify-center transition-opacity pointer-events-auto z-10"
-											aria-label="Remove logo"
-										>
-											<Cancel01Icon className="h-3 w-3" />
-										</button>
-									)}
-									<input
-										ref={fileInputRef}
-										type="file"
-										accept="image/*"
-										onChange={handleLogoChange}
-										className="hidden"
-										disabled={isSubmitting}
-									/>
+									<Cancel01Icon className="h-3 w-3" />
 								</button>
-								<div className="flex flex-col gap-1">
-									<p className="text-sm text-muted-foreground">Click to upload a logo</p>
-									<p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, or WebP.</p>
-								</div>
-							</div>
-						</Field>
-
-						<Field>
-							<FieldLabel htmlFor="name">League Name</FieldLabel>
-							<Input
-								id="name"
-								type="text"
-								placeholder="My Awesome League"
+							)}
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept="image/*"
+								onChange={handleLogoChange}
+								className="hidden"
 								disabled={isSubmitting}
-								{...register("name")}
 							/>
-							{errors.name?.message && (
-								<p className="text-sm text-destructive">{errors.name.message}</p>
-							)}
-						</Field>
-
-						<Field>
-							<FieldLabel htmlFor="slug">League Slug</FieldLabel>
-							<Input
-								id="slug"
-								type="text"
-								placeholder="my-awesome-league"
-								disabled={isSubmitting}
-								{...register("slug")}
-								onChange={(e) => {
-									setSlugTouched(true);
-									register("slug").onChange(e);
-								}}
-							/>
-							{errors.slug?.message && (
-								<p className="text-sm text-destructive">{errors.slug.message}</p>
-							)}
-							<div className="min-h-5">
-								{isSlugTaken && (
-									<p className="text-sm text-destructive">This slug is already taken</p>
-								)}
-							</div>
-						</Field>
-
-						{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-
-						<div className="flex gap-4">
-							{onCancel && (
-								<Button
-									type="button"
-									variant="outline"
-									onClick={handleCancel}
-									disabled={isSubmitting}
-								>
-									{cancelLabel}
-								</Button>
-							)}
-							<Button type="submit" disabled={!canSubmit} className="flex-1">
-								{isSubmitting ? "Creating..." : "Create League"}
-							</Button>
+						</button>
+						<div className="flex flex-col gap-1">
+							<p className="text-sm text-muted-foreground">Click to upload a logo</p>
+							<p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, or WebP.</p>
 						</div>
-					</FieldGroup>
-				</form>
-			</CardContent>
-		</Card>
+					</div>
+				</Field>
+
+				<Field>
+					<FieldLabel htmlFor="name">League Name</FieldLabel>
+					<Input
+						id="name"
+						type="text"
+						placeholder="My Awesome League"
+						disabled={isSubmitting}
+						{...register("name")}
+					/>
+					{errors.name?.message && (
+						<p className="text-sm text-destructive">{errors.name.message}</p>
+					)}
+				</Field>
+
+				<Field>
+					<FieldLabel htmlFor="slug">League Slug</FieldLabel>
+					<Input
+						id="slug"
+						type="text"
+						placeholder="my-awesome-league"
+						disabled={isSubmitting}
+						{...register("slug")}
+						onChange={(e) => {
+							setSlugTouched(true);
+							register("slug").onChange(e);
+						}}
+					/>
+					{errors.slug?.message && (
+						<p className="text-sm text-destructive">{errors.slug.message}</p>
+					)}
+					<div className="min-h-5">
+						{isSlugTaken && <p className="text-sm text-destructive">This slug is already taken</p>}
+					</div>
+				</Field>
+
+				{apiError && <p className="text-sm text-destructive">{apiError}</p>}
+
+				<div className="flex gap-4">
+					{onCancel && (
+						<Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+							{cancelLabel}
+						</Button>
+					)}
+					<Button type="submit" disabled={!canSubmit} className="flex-1">
+						{isSubmitting ? "Creating..." : "Create League"}
+					</Button>
+				</div>
+			</FieldGroup>
+		</form>
 	);
 }

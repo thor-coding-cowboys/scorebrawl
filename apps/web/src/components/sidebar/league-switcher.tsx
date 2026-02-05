@@ -1,6 +1,7 @@
 import { Add01Icon, ArrowUpDoubleIcon, ListViewIcon } from "hugeicons-react";
 import type * as React from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { CreateLeagueDialog } from "@/components/leagues/create-league-dialog";
 
 export function LeagueSwitcher({
 	teams,
@@ -40,6 +42,7 @@ export function LeagueSwitcher({
 	const { isMobile } = useSidebar();
 	const navigate = useNavigate();
 	const location = useLocation();
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
 	const currentActiveTeam = activeTeam
 		? {
@@ -137,10 +140,7 @@ export function LeagueSwitcher({
 							</DropdownMenuItem>
 						))}
 						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							className="gap-2 p-2"
-							onClick={() => navigate({ to: "/leagues/create" })}
-						>
+						<DropdownMenuItem className="gap-2 p-2" onClick={() => setIsCreateDialogOpen(true)}>
 							<div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
 								<Add01Icon className="size-4" />
 							</div>
@@ -154,6 +154,10 @@ export function LeagueSwitcher({
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+				<CreateLeagueDialog
+					isOpen={isCreateDialogOpen}
+					onClose={() => setIsCreateDialogOpen(false)}
+				/>
 			</SidebarMenuItem>
 		</SidebarMenu>
 	);

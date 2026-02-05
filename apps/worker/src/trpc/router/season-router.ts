@@ -122,6 +122,12 @@ export const seasonRouter = {
 			z.object({
 				seasonSlug: z.string(),
 				name: z.string().min(1).max(100).optional(),
+				slug: z
+					.string()
+					.min(1)
+					.max(100)
+					.regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens")
+					.optional(),
 				startDate: z.date().optional(),
 				endDate: z.date().optional(),
 				initialScore: z.number().int().optional(),
@@ -141,8 +147,13 @@ export const seasonRouter = {
 				leagueId: typedCtx.organizationId,
 			});
 
-			// Check if season already started
-			if (comp.startDate < new Date()) {
+			// Check if season has matches registered
+			const countInfo = await seasonRepository.getCountInfoById({
+				db: typedCtx.db,
+				seasonId: comp.id,
+			});
+
+			if (countInfo.matchCount > 0) {
 				const restrictedFields = [
 					input.startDate,
 					input.endDate,
@@ -153,7 +164,7 @@ export const seasonRouter = {
 				if (restrictedFields) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Can only update name of a season that has started",
+						message: "Can only update name, slug, and dates of a season with registered matches",
 					});
 				}
 			}

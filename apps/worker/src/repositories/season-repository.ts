@@ -101,6 +101,30 @@ export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSl
 	};
 };
 
+export const getCountInfoById = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	const [matchCount] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(match)
+		.where(eq(match.seasonId, seasonId));
+
+	const [teamCount] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(orgTeam)
+		.innerJoin(season, eq(season.organizationId, orgTeam.organizationId))
+		.where(eq(season.id, seasonId));
+
+	const [playerCount] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(seasonPlayer)
+		.where(eq(seasonPlayer.seasonId, seasonId));
+
+	return {
+		matchCount: matchCount?.count || 0,
+		teamCount: teamCount?.count || 0,
+		playerCount: playerCount?.count || 0,
+	};
+};
+
 export const getById = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	const [comp] = await db.select().from(season).where(eq(season.id, seasonId));
 	if (!comp) {
