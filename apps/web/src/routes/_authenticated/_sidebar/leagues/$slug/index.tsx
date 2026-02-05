@@ -1,56 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { trpcClient } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/")({
 	component: LeagueIndexPage,
 	loader: async ({ params }) => {
 		return { slug: params.slug };
 	},
+	beforeLoad: async ({ params }) => {
+		// Check for active season
+		const activeSeason = await trpcClient.season.findActive.query();
+
+		if (activeSeason) {
+			// Redirect to active season
+			throw redirect({
+				to: "/leagues/$slug/seasons/$seasonSlug",
+				params: { slug: params.slug, seasonSlug: activeSeason.slug },
+			});
+		} else {
+			// No active season, redirect to seasons list
+			throw redirect({
+				to: "/leagues/$slug/seasons",
+				params: { slug: params.slug },
+			});
+		}
+	},
 });
 
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
-
 function LeagueIndexPage() {
-	const { slug } = Route.useLoaderData();
-
-	return (
-		<>
-			<Header>
-				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="/leagues">Leagues</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbPage>{truncateSlug(slug)}</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
-			</Header>
-			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-				<div className="grid auto-rows-min gap-4 md:grid-cols-3">
-					<div className="bg-muted/50 aspect-video rounded-xl" />
-					<div className="bg-muted/50 aspect-video rounded-xl" />
-					<div className="bg-muted/50 aspect-video rounded-xl" />
-				</div>
-				<div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
-			</div>
-		</>
-	);
+	// This component never renders due to the redirect
+	return null;
 }

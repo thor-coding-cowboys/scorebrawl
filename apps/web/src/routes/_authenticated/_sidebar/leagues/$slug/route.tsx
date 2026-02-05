@@ -1,15 +1,32 @@
 import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 	component: LeaguesLayout,
-	beforeLoad: async () => {
+	beforeLoad: async ({ params }) => {
 		const { data: session } = await authClient.getSession();
 		if (!session) {
 			throw redirect({ to: "/auth/sign-in" });
+		}
+
+		const { data: organizations } = await authClient.organization.list();
+		const org = organizations?.find((o) => o.slug === params.slug);
+
+		if (!org) {
+			throw redirect({ to: "/leagues" });
+		}
+
+		const currentActiveOrgId = session.session?.activeOrganizationId;
+		if (currentActiveOrgId !== org.id) {
+			const { error } = await authClient.organization.setActive({
+				organizationSlug: params.slug,
+			});
+			if (error) {
+				console.error("Failed to set active organization:", error);
+				throw redirect({ to: "/leagues" });
+			}
 		}
 	},
 	loader: async ({ params }) => {
@@ -19,39 +36,15 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 
 function LeaguesLayout() {
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
 	const { slug } = Route.useLoaderData();
 
 	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
 
-	const setActiveMutation = useMutation({
-		mutationFn: async (orgSlug: string) => {
-			await authClient.organization.setActive({
-				organizationSlug: orgSlug,
-			});
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session"] });
-		},
-	});
-
-	const handleSetActive = useCallback(
-		(orgSlug: string) => {
-			setActiveMutation.mutate(orgSlug);
-		},
-		[setActiveMutation]
-	);
-
 	useEffect(() => {
-		if (slug && organizations && session && !setActiveMutation.isPending) {
+		if (slug && organizations && session) {
 			const org = organizations.find((o) => o.slug === slug);
-			if (org) {
-				const currentActiveOrgId = session.session?.activeOrganizationId;
-				if (currentActiveOrgId !== org.id) {
-					handleSetActive(slug);
-				}
-			} else {
+			if (!org) {
 				const activeOrgId = session.session?.activeOrganizationId;
 				const targetOrg = activeOrgId
 					? organizations.find((o) => o.id === activeOrgId)
@@ -65,7 +58,7 @@ function LeaguesLayout() {
 				}
 			}
 		}
-	}, [slug, organizations, session, handleSetActive, navigate, setActiveMutation.isPending]);
+	}, [slug, organizations, session, navigate]);
 
 	return <Outlet />;
 }

@@ -14,7 +14,6 @@ import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInvitationInvitationIdRouteImport } from './routes/accept-invitation.$invitationId'
 import { Route as PublicHomeRouteImport } from './routes/_public/home'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedSidebarRouteRouteImport } from './routes/_authenticated/_sidebar/route'
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedLeaguesIndexRouteImport } from './routes/_authenticated/leagues/index'
@@ -56,11 +55,6 @@ const PublicHomeRoute = PublicHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedSidebarRouteRoute =
   AuthenticatedSidebarRouteRouteImport.update({
     id: '/_sidebar',
@@ -68,9 +62,9 @@ const AuthenticatedSidebarRouteRoute =
   } as any)
 const AuthenticatedOnboardingIndexRoute =
   AuthenticatedOnboardingIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedOnboardingRoute,
+    id: '/onboarding/',
+    path: '/onboarding/',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLeaguesIndexRoute =
   AuthenticatedLeaguesIndexRouteImport.update({
@@ -80,9 +74,9 @@ const AuthenticatedLeaguesIndexRoute =
   } as any)
 const AuthenticatedOnboardingCreateLeagueRoute =
   AuthenticatedOnboardingCreateLeagueRouteImport.update({
-    id: '/create-league',
-    path: '/create-league',
-    getParentRoute: () => AuthenticatedOnboardingRoute,
+    id: '/onboarding/create-league',
+    path: '/onboarding/create-league',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSidebarTestRoute =
   AuthenticatedSidebarTestRouteImport.update({
@@ -157,7 +151,6 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
@@ -167,7 +160,7 @@ export interface FileRoutesByFullPath {
   '/test': typeof AuthenticatedSidebarTestRoute
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
-  '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
@@ -200,7 +193,6 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/_sidebar': typeof AuthenticatedSidebarRouteRouteWithChildren
-  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
   '/_public/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/_auth/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
@@ -223,7 +215,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/onboarding'
     | '/home'
     | '/accept-invitation/$invitationId'
     | '/auth/forgot-password'
@@ -233,7 +224,7 @@ export interface FileRouteTypes {
     | '/test'
     | '/onboarding/create-league'
     | '/leagues'
-    | '/onboarding/'
+    | '/onboarding'
     | '/leagues/$slug'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
@@ -265,7 +256,6 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_authenticated'
     | '/_authenticated/_sidebar'
-    | '/_authenticated/onboarding'
     | '/_public/home'
     | '/accept-invitation/$invitationId'
     | '/_auth/auth/forgot-password'
@@ -330,13 +320,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/_sidebar': {
       id: '/_authenticated/_sidebar'
       path: ''
@@ -346,10 +329,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/onboarding/': {
       id: '/_authenticated/onboarding/'
-      path: '/'
-      fullPath: '/onboarding/'
+      path: '/onboarding'
+      fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingIndexRouteImport
-      parentRoute: typeof AuthenticatedOnboardingRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/leagues/': {
       id: '/_authenticated/leagues/'
@@ -360,10 +343,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/onboarding/create-league': {
       id: '/_authenticated/onboarding/create-league'
-      path: '/create-league'
+      path: '/onboarding/create-league'
       fullPath: '/onboarding/create-league'
       preLoaderRoute: typeof AuthenticatedOnboardingCreateLeagueRouteImport
-      parentRoute: typeof AuthenticatedOnboardingRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/_sidebar/test': {
       id: '/_authenticated/_sidebar/test'
@@ -529,33 +512,19 @@ const AuthenticatedSidebarRouteRouteWithChildren =
     AuthenticatedSidebarRouteRouteChildren,
   )
 
-interface AuthenticatedOnboardingRouteChildren {
-  AuthenticatedOnboardingCreateLeagueRoute: typeof AuthenticatedOnboardingCreateLeagueRoute
-  AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
-}
-
-const AuthenticatedOnboardingRouteChildren: AuthenticatedOnboardingRouteChildren =
-  {
-    AuthenticatedOnboardingCreateLeagueRoute:
-      AuthenticatedOnboardingCreateLeagueRoute,
-    AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
-  }
-
-const AuthenticatedOnboardingRouteWithChildren =
-  AuthenticatedOnboardingRoute._addFileChildren(
-    AuthenticatedOnboardingRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSidebarRouteRoute: typeof AuthenticatedSidebarRouteRouteWithChildren
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRouteWithChildren
+  AuthenticatedOnboardingCreateLeagueRoute: typeof AuthenticatedOnboardingCreateLeagueRoute
   AuthenticatedLeaguesIndexRoute: typeof AuthenticatedLeaguesIndexRoute
+  AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSidebarRouteRoute: AuthenticatedSidebarRouteRouteWithChildren,
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRouteWithChildren,
+  AuthenticatedOnboardingCreateLeagueRoute:
+    AuthenticatedOnboardingCreateLeagueRoute,
   AuthenticatedLeaguesIndexRoute: AuthenticatedLeaguesIndexRoute,
+  AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

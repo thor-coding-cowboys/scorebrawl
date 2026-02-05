@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Logout02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { authClient } from "@/lib/auth-client";
@@ -33,7 +32,6 @@ export function Header({ children, includeLogoutButton = false, rightContent }: 
 						<HugeiconsIcon icon={Logout02Icon} className="size-4" />
 					</Button>
 				)}
-				<ThemeSwitcher />
 			</div>
 		</header>
 	);

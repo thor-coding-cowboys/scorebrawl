@@ -1,12 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import {
-	ArrowUpDoubleIcon,
-	CheckmarkBadge01Icon,
-	CreditCardIcon,
-	Logout01Icon,
-	Notification03Icon,
-	SparklesIcon,
-} from "hugeicons-react";
+import { ArrowUpDoubleIcon, CheckmarkBadge01Icon, Logout01Icon } from "hugeicons-react";
+import { ComputerIcon, Moon02Icon, Sun01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -36,6 +32,29 @@ export function NavUser({
 }) {
 	const { isMobile } = useSidebar();
 	const navigate = useNavigate();
+	const { theme, setTheme } = useTheme();
+
+	const cycleTheme = () => {
+		if (theme === "light") {
+			setTheme("dark");
+		} else if (theme === "dark") {
+			setTheme("system");
+		} else {
+			setTheme("light");
+		}
+	};
+
+	const getThemeIcon = () => {
+		if (theme === "light") return Sun01Icon;
+		if (theme === "dark") return Moon02Icon;
+		return ComputerIcon;
+	};
+
+	const getThemeLabel = () => {
+		if (theme === "light") return "Light";
+		if (theme === "dark") return "Dark";
+		return "System";
+	};
 
 	return (
 		<SidebarMenu>
@@ -66,7 +85,7 @@ export function NavUser({
 						</DropdownMenuTrigger>
 					</SidebarMenuButton>
 					<DropdownMenuContent
-						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-none"
 						side={isMobile ? "bottom" : "right"}
 						align="end"
 						sideOffset={4}
@@ -98,26 +117,24 @@ export function NavUser({
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<SparklesIcon />
-								Upgrade to Pro
-							</DropdownMenuItem>
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
 							<DropdownMenuItem onClick={() => navigate({ to: "/profile" })}>
 								<CheckmarkBadge01Icon />
 								Profile
 							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<CreditCardIcon />
-								Billing
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<Notification03Icon />
-								Notifications
-							</DropdownMenuItem>
 						</DropdownMenuGroup>
+						<DropdownMenuSeparator />
+						<div
+							className="focus:bg-accent focus:text-accent-foreground gap-2 rounded-none px-2 py-2 text-xs relative flex cursor-pointer items-center select-none outline-hidden"
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								cycleTheme();
+							}}
+							tabIndex={-1}
+						>
+							<HugeiconsIcon icon={getThemeIcon()} className="size-4" />
+							<span>{getThemeLabel()} mode</span>
+						</div>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							onClick={async () => {
