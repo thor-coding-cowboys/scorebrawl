@@ -4,9 +4,7 @@ import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
-import { eq, and, or, gt, isNull } from "drizzle-orm";
-import { player, season, seasonPlayer } from "../db/schema";
-import { createId } from "../utils/id-util";
+import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
 
 import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
 
@@ -133,50 +131,11 @@ export function createAuth({
 					},
 				},
 				organizationHooks: {
-					afterAcceptInvitation: async ({ invitation, member: _member, user }) => {
-						// Skip for viewer role
-						if (invitation.role === "viewer") {
-							return;
-						}
-
-						const now = new Date();
-
-						// Insert into player table
-						const playerId = createId();
-						await db.insert(player).values({
-							id: playerId,
-							userId: user.id,
-							organizationId: invitation.organizationId,
-							disabled: false,
-							createdAt: now,
-							updatedAt: now,
-						});
-
-						// Find future or ongoing seasons
-						const ongoingAndFutureSeasons = await db
-							.select({ id: season.id, initialScore: season.initialScore })
-							.from(season)
-							.where(
-								and(
-									eq(season.organizationId, invitation.organizationId),
-									or(gt(season.endDate, now), isNull(season.endDate))
-								)
-							);
-
-						// Insert into seasonPlayer for each ongoing season
-						if (ongoingAndFutureSeasons.length > 0) {
-							await db.insert(seasonPlayer).values(
-								ongoingAndFutureSeasons.map((s: { id: string; initialScore: number }) => ({
-									id: createId(),
-									seasonId: s.id,
-									playerId,
-									score: s.initialScore,
-									disabled: false,
-									createdAt: now,
-									updatedAt: now,
-								}))
-							);
-						}
+					afterAcceptInvitation: async (params) => {
+						await afterAcceptInvitation({ ...params, db });
+					},
+					afterCreateOrganization: async (params) => {
+						await afterCreateOrganization({ ...params, db });
 					},
 				},
 				async sendInvitationEmail(data, _request) {

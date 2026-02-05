@@ -71,17 +71,23 @@ export const matchRouter = {
 			})
 		)
 		.query(async ({ ctx, input }) => {
-			return matchRepository.findById({
+			return matchRepository.getMatchWithPlayers({
 				db: ctx.db,
 				matchId: input.matchId,
-				seasonId: ctx.season.id,
 			});
 		}),
 
 	getLatest: seasonProcedure.query(async ({ ctx }) => {
-		return matchRepository.findLatest({
+		const match = await matchRepository.findLatest({
 			db: ctx.db,
 			seasonId: ctx.season.id,
+		});
+
+		if (!match) return null;
+
+		return matchRepository.getMatchWithPlayers({
+			db: ctx.db,
+			matchId: match.id,
 		});
 	}),
 

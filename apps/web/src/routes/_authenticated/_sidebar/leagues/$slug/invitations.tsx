@@ -12,6 +12,7 @@ import { Header } from "@/components/layout/header";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
@@ -25,24 +26,20 @@ import {
 	ArrowRight01Icon,
 	CheckmarkCircle02Icon,
 	UserMultipleIcon,
+	UserIcon,
+	UserCheck01Icon,
+	UserShield01Icon,
 } from "@hugeicons/core-free-icons";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RowCard } from "@/components/ui/row-card";
 
@@ -65,7 +62,30 @@ interface Invitation {
 	inviterId: string;
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 30;
+
+const ROLE_OPTIONS = ["member", "editor", "viewer"] as const;
+
+const roleConfig = {
+	member: {
+		label: "Member",
+		icon: UserIcon,
+		color: "blue",
+		description: "Can participate and view content",
+	},
+	editor: {
+		label: "Editor",
+		icon: UserShield01Icon,
+		color: "emerald",
+		description: "Can manage content and members",
+	},
+	viewer: {
+		label: "Viewer",
+		icon: UserCheck01Icon,
+		color: "amber",
+		description: "Read-only access to content",
+	},
+} as const;
 
 function truncateSlug(slug: string, maxLength = 10): string {
 	if (slug.length <= maxLength) return slug;
@@ -255,10 +275,15 @@ function InvitationsPage() {
 		<>
 			<Header
 				rightContent={
-					<Button size="sm" className="gap-1.5" onClick={() => setIsInviteDialogOpen(true)}>
-						<HugeiconsIcon icon={Add01Icon} className="size-4" />
+					<GlowButton
+						icon={Add01Icon}
+						glowColor={glowColors.blue}
+						size="sm"
+						className="gap-1.5"
+						onClick={() => setIsInviteDialogOpen(true)}
+					>
 						Invitation
-					</Button>
+					</GlowButton>
 				}
 			>
 				<SidebarTrigger className="-ml-1" />
@@ -280,49 +305,159 @@ function InvitationsPage() {
 				</Breadcrumb>
 			</Header>
 			<Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-				<DialogContent className="sm:max-w-[425px]">
-					<DialogHeader>
-						<DialogTitle>Invite Member</DialogTitle>
-						<DialogDescription>
+				<DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden">
+					{/* Technical Grid Background */}
+					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
+						<div
+							className="w-full h-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
+						/>
+					</div>
+
+					{/* Header */}
+					<DialogHeader className="relative z-10 pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 bg-blue-500 rounded-full shadow-lg shadow-blue-500/25" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Invite Member
+							</DialogTitle>
+						</div>
+						<DialogDescription className="font-mono text-sm text-muted-foreground">
 							Send an invitation to join this league. They will receive an email with a link to
 							accept.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						<div className="grid gap-2">
-							<Label htmlFor="email">Email address</Label>
-							<Input
-								id="email"
-								type="email"
-								placeholder="member@example.com"
-								value={inviteEmail}
-								onChange={(e) => setInviteEmail(e.target.value)}
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="role">Role</Label>
-							<Select
-								value={inviteRole}
-								onValueChange={(value: string | null) => {
-									if (value) setInviteRole(value);
-								}}
-							>
-								<SelectTrigger id="role">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="member">Member</SelectItem>
-									<SelectItem value="editor">Editor</SelectItem>
-									<SelectItem value="viewer">Viewer</SelectItem>
-								</SelectContent>
-							</Select>
+
+					<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-140px)]">
+						<div className="space-y-2 p-1">
+							{/* Role Selection */}
+							<div className="grid grid-cols-3 gap-2">
+								{ROLE_OPTIONS.map((type) => {
+									const config = roleConfig[type];
+									const isSelected = inviteRole === type;
+
+									// Define explicit classes to ensure Tailwind generates them
+									const selectedClasses = {
+										member: "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20",
+										editor: "border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/20",
+										viewer: "border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/20",
+									};
+
+									const iconClasses = {
+										member: "bg-blue-500/20",
+										editor: "bg-emerald-500/20",
+										viewer: "bg-amber-500/20",
+									};
+
+									const iconColorClasses = {
+										member: "text-blue-400",
+										editor: "text-emerald-400",
+										viewer: "text-amber-400",
+									};
+
+									const textColorClasses = {
+										member: "text-blue-300 dark:text-blue-300",
+										editor: "text-emerald-300 dark:text-emerald-300",
+										viewer: "text-amber-300 dark:text-amber-300",
+									};
+
+									const topBorderClasses = {
+										member: "from-blue-400 to-blue-600",
+										editor: "from-emerald-400 to-emerald-600",
+										viewer: "from-amber-400 to-amber-600",
+									};
+
+									return (
+										<button
+											key={type}
+											type="button"
+											onClick={() => setInviteRole(type)}
+											className={`
+                        relative overflow-hidden rounded-lg p-3 border-2 transition-all duration-300
+                        ${
+													isSelected
+														? selectedClasses[type]
+														: "border-border bg-card/50 hover:border-border/80 hover:bg-card/80"
+												}
+                      `}
+										>
+											{/* Selection Indicator */}
+											{isSelected && (
+												<div
+													className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${topBorderClasses[type]}`}
+												/>
+											)}
+
+											<div className="flex flex-col items-center space-y-2 text-center">
+												<div
+													className={`w-6 h-6 rounded-lg ${iconClasses[type]} flex items-center justify-center`}
+												>
+													<HugeiconsIcon
+														icon={config.icon}
+														className={`w-4 h-4 ${iconColorClasses[type]}`}
+													/>
+												</div>
+
+												<div>
+													<div
+														className={`font-mono text-xs font-bold ${
+															isSelected ? textColorClasses[type] : "text-foreground"
+														}`}
+													>
+														{config.label}
+													</div>
+													<div className="text-xs text-muted-foreground leading-tight">
+														{config.description}
+													</div>
+												</div>
+											</div>
+										</button>
+									);
+								})}
+							</div>
+
+							<FieldGroup className="space-y-2">
+								{/* Email Input */}
+								<Field>
+									<FieldLabel className="font-mono text-xs font-medium tracking-wide mb-0.5">
+										Email Address
+									</FieldLabel>
+									<Input
+										id="email"
+										type="email"
+										placeholder="member@example.com"
+										value={inviteEmail}
+										onChange={(e) => setInviteEmail(e.target.value)}
+										className="h-8 font-mono focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+									/>
+								</Field>
+							</FieldGroup>
+
+							{/* Action Buttons */}
+							<div className="flex gap-4 pt-2">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setIsInviteDialogOpen(false)}
+									className="font-mono h-8 text-sm"
+								>
+									Cancel
+								</Button>
+								<GlowButton
+									glowColor={glowColors.blue}
+									onClick={handleInvite}
+									disabled={inviteMutation.isPending || !inviteEmail}
+									className="flex-1 font-mono h-8 text-sm"
+								>
+									{inviteMutation.isPending ? "Sending..." : "Send Invitation"}
+								</GlowButton>
+							</div>
 						</div>
 					</div>
-					<DialogFooter>
-						<Button onClick={handleInvite} disabled={inviteMutation.isPending || !inviteEmail}>
-							{inviteMutation.isPending ? "Sending..." : "Send Invitation"}
-						</Button>
-					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -370,14 +505,15 @@ function InvitationsPage() {
 						<div className="flex flex-col items-center justify-center h-64 gap-4">
 							<HugeiconsIcon icon={Mail01Icon} className="size-12 text-muted-foreground" />
 							<p className="text-muted-foreground">No invitations sent yet</p>
-							<Button
+							<GlowButton
+								icon={Add01Icon}
+								glowColor={glowColors.blue}
 								variant="outline"
 								onClick={() => setIsInviteDialogOpen(true)}
 								className="gap-1.5"
 							>
-								<HugeiconsIcon icon={Add01Icon} className="size-4" />
 								Send First Invitation
-							</Button>
+							</GlowButton>
 						</div>
 					) : (
 						<div className="space-y-4">

@@ -12,7 +12,7 @@ import { Header } from "@/components/layout/header";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -72,24 +72,8 @@ function truncateSlug(slug: string, maxLength = 10): string {
 	return `${slug.slice(0, maxLength)}...`;
 }
 
-function getInitials(name?: string | null, email?: string | null) {
-	const value = name || email || "";
-	const parts = value.trim().split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "U";
-	if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? "U";
-	return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
 function formatRole(role: string) {
 	return role.replace(/_/g, " ");
-}
-
-function getAssetUrl(key: string | null | undefined): string | undefined {
-	if (!key) return undefined;
-	if (key.startsWith("http://") || key.startsWith("https://")) {
-		return key;
-	}
-	return `/api/user-assets/${key}`;
 }
 
 function MembersPage() {
@@ -341,21 +325,14 @@ function MembersPage() {
 								{members.map((member: Member) => {
 									const name = member.user?.name || member.name || "Unknown";
 									const email = member.user?.email || member.email || "";
-									const image = getAssetUrl(member.user?.image || member.image);
+									const imageKey = member.user?.image || member.image;
 									const currentRole = member.role || "member";
 									const canEditThisRole = canManageRole && currentRole !== "owner";
 
 									return (
 										<RowCard
 											key={member.id}
-											icon={
-												<Avatar className="h-10 w-10 rounded-lg">
-													<AvatarImage src={image} alt={name} className="rounded-lg" />
-													<AvatarFallback className="rounded-lg text-sm">
-														{getInitials(name, email)}
-													</AvatarFallback>
-												</Avatar>
-											}
+											icon={<AvatarWithFallback src={imageKey} name={name} alt={name} size="lg" />}
 											title={name}
 											subtitle={
 												<>

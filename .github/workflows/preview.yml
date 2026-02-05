@@ -98,12 +98,11 @@ jobs:
             const dbName = '${{ steps.get-db.outputs.database_name }}';
 
             const bucketName = '${{ steps.create-r2.outputs.bucket_name }}';
-            const orgBucketName = '${{ steps.create-r2.outputs.org_bucket_name }}';
             const comment = `## 🚀 Preview Environment Deployed
 
             **Preview URL:** <a href="${previewUrl}" target="_blank">${previewUrl}</a>
             **Database:** \`${dbName}\`
-            **R2 Buckets:** \`${bucketName}\`, \`${orgBucketName}\`
+            **R2 Buckets:** \`${bucketName}\`
 
             This preview environment will be automatically cleaned up when the PR is closed.`;
 

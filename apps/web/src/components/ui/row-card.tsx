@@ -8,11 +8,25 @@ interface RowCardProps {
 	children?: ReactNode;
 	className?: string;
 	iconClassName?: string;
+	onClick?: () => void;
 }
 
-export function RowCard({ icon, title, subtitle, children, className, iconClassName }: RowCardProps) {
+export function RowCard({ icon, title, subtitle, children, className, iconClassName, onClick }: RowCardProps) {
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (onClick && (e.key === "Enter" || e.key === " ")) {
+			e.preventDefault();
+			onClick();
+		}
+	};
+
 	return (
-		<div className={cn("p-4 hover:bg-muted/50 transition-colors", className)}>
+		<div 
+			className={cn("p-4 hover:bg-muted/50 transition-colors cursor-pointer", onClick && "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset", className)}
+			onClick={onClick}
+			onKeyDown={handleKeyDown}
+			tabIndex={onClick ? 0 : undefined}
+			role={onClick ? "button" : undefined}
+		>
 			<div className="flex items-center justify-between gap-3">
 				<div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
 					{iconClassName ? (
