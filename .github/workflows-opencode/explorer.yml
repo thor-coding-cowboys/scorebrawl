@@ -1,0 +1,94 @@
+name: Web Explorer (OpenCode)
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # Daily at 8am UTC
+  workflow_dispatch:
+    inputs:
+      focus_area:
+        description: "Optional focus area for exploration (e.g., 'overview', 'sessions', 'chat', 'dark mode')"
+        required: false
+        type: string
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install web dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Build web app
+        working-directory: web
+        run: bun run build
+
+      - name: Start preview server
+        working-directory: web
+        run: |
+          USE_MOCK=true bun run start &
+          sleep 5
+          curl -s --retry 10 --retry-delay 1 --retry-connrefused http://localhost:3000 > /dev/null
+
+      - name: Capture screenshots for exploration
+        run: bun run .github/scripts/capture-web-screenshots.ts
+
+      - name: Read prompt template
+        id: prompt
+        run: |
+          PROMPT=$(cat .github/opencode-prompts/explore-web.md)
+          FOCUS_AREA="${{ inputs.focus_area }}"
+          if [ -z "$FOCUS_AREA" ]; then
+            FOCUS_AREA="Explore broadly - check all pages, both themes, and look for any issues"
+          fi
+          PROMPT="${PROMPT//\$FOCUS_AREA/$FOCUS_AREA}"
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run Web Explorer with OpenCode
+        id: opencode
+        uses: opencode-ai/action@v1
+        with:
+          model: zen/kimi-k2.5
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_tools: |
+            Read
+            Glob
+            Write
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_ZEN_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Create issues for findings
+        if: steps.opencode.outputs.output != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ vars.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.output }}
+        run: bun run .github/scripts/create-exploration-issues.ts

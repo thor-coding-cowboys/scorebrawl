@@ -1,0 +1,123 @@
+name: Web Visual Review (OpenCode)
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+    paths:
+      - "web/**"
+
+jobs:
+  visual-review:
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REVIEW_BOT_APP_ID }}
+          private-key: ${{ secrets.REVIEW_BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install web dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Build web app
+        working-directory: web
+        run: bun run build
+
+      - name: Start preview server
+        working-directory: web
+        run: |
+          USE_MOCK=true bun run start &
+          sleep 5
+          curl -s --retry 10 --retry-delay 1 --retry-connrefused http://localhost:3000 > /dev/null
+
+      - name: Capture screenshots
+        run: bun run .github/scripts/capture-web-screenshots.ts
+
+      - name: Read prompt template
+        id: prompt
+        run: |
+          PROMPT=$(cat .github/opencode-prompts/visual-review.md)
+          PROMPT="${PROMPT//\$PR_NUMBER/${{ github.event.pull_request.number }}}"
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run visual review with OpenCode
+        id: opencode
+        uses: opencode-ai/action@v1
+        with:
+          model: zen/kimi-k2.5
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_tools: |
+            Bash(gh pr diff:*)
+            Bash(gh pr view:*)
+            Read
+            Glob
+            Write
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_ZEN_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Process visual review output
+        if: steps.opencode.outcome == 'success'
+        env:
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.output }}
+        run: |
+          # Extract review content and video script from JSON output
+          echo "$STRUCTURED_OUTPUT" > /tmp/visual-review-output.json
+          # Extract review field to visual-review.md
+          bun -e "
+            const output = JSON.parse(require('fs').readFileSync('/tmp/visual-review-output.json', 'utf8'));
+            if (output.review) {
+              require('fs').writeFileSync('/tmp/web-screenshots/visual-review.md', output.review);
+            }
+            if (output.video_script) {
+              require('fs').writeFileSync('/tmp/web-screenshots/video-script.json', JSON.stringify(output.video_script, null, 2));
+            }
+          "
+
+      - name: Record demo video
+        run: bun run .github/scripts/record-web-video.ts
+        continue-on-error: true
+
+      - name: Upload screenshots
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-screenshots
+          path: /tmp/web-screenshots/
+          retention-days: 7
+
+      - name: Post visual review with screenshots
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ vars.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: bun run .github/scripts/post-visual-review-comment.ts

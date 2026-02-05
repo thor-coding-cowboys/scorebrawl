@@ -1,0 +1,104 @@
+name: PR Review Fix (OpenCode)
+
+on:
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to fix"
+        required: true
+        type: number
+
+jobs:
+  fix-review:
+    # Only run on changes_requested reviews for automated PRs
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.review.state == 'changes_requested' &&
+       contains(github.event.pull_request.labels.*.name, 'automated'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      id-token: write
+    env:
+      PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - name: Get PR info
+        id: pr-info
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          PR_DATA=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json headRefName,headRepository,headRepositoryOwner)
+          BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr-info.outputs.branch }}
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Configure git
+        env:
+          BOT_NAME: ${{ vars.BOT_NAME }}
+          BOT_EMAIL: ${{ vars.BOT_EMAIL }}
+        run: |
+          git config user.name "${BOT_NAME:-opencode-bot[bot]}"
+          git config user.email "${BOT_EMAIL:-opencode-bot[bot]@users.noreply.github.com}"
+
+      - name: Read prompt template
+        id: prompt
+        run: |
+          PROMPT=$(cat .github/opencode-prompts/fix-review.md)
+          PROMPT="${PROMPT//\$PR_NUMBER/${{ env.PR_NUMBER }}}"
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Fix review feedback with OpenCode
+        id: opencode
+        uses: opencode-ai/action@v1
+        with:
+          model: zen/kimi-k2.5
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_tools: |
+            Read
+            Write
+            Edit
+            Glob
+            Grep
+            Bash(bun *)
+            Bash(biome *)
+            Bash(./scripts/*)
+            Bash(git diff *)
+            Bash(git status)
+            Bash(gh pr view *)
+            Bash(gh pr diff *)
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_ZEN_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Bun
+        if: steps.opencode.outcome == 'success'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Commit and push fixes
+        if: steps.opencode.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_NAME: ${{ steps.pr-info.outputs.branch }}
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.output }}
+        run: |
+          echo "$STRUCTURED_OUTPUT" > /tmp/fix-output.json
+          bun run .github/scripts/submit-pr-review-fix.ts /tmp/fix-output.json

@@ -1,0 +1,85 @@
+name: PR Review (OpenCode)
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+jobs:
+  review:
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    env:
+      REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REVIEW_BOT_APP_ID }}
+          private-key: ${{ secrets.REVIEW_BOT_APP_PRIVATE_KEY }}
+
+      - name: Check review status
+        id: check
+        if: github.event.action == 'synchronize'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          BOT_LOGIN="${REVIEW_BOT_LOGIN:-opencode-review[bot]}"
+          REVIEWS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+            | jq --arg bot "$BOT_LOGIN" '[.[] | select(.user.login == $bot)]')
+          TOTAL=$(echo "$REVIEWS" | jq 'length')
+          PENDING=$(echo "$REVIEWS" | jq '[.[] | select(.state == "CHANGES_REQUESTED")] | length')
+          # Review if: no prior review exists (initial review missed) OR has pending changes requested
+          echo "should_review=$([[ $TOTAL -eq 0 || $PENDING -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Read prompt template
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        id: prompt
+        run: |
+          PROMPT=$(cat .github/opencode-prompts/review-pr.md)
+          PROMPT="${PROMPT//\$PR_NUMBER/${{ github.event.pull_request.number }}}"
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Review PR with OpenCode
+        id: opencode
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        uses: opencode-ai/action@v1
+        with:
+          model: zen/kimi-k2.5
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_tools: |
+            Bash(gh pr diff:*)
+            Bash(gh pr view:*)
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_ZEN_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Bun
+        if: steps.opencode.outcome == 'success'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Submit review
+        if: steps.opencode.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.output }}
+        run: |
+          echo "$STRUCTURED_OUTPUT" > /tmp/review-output.json
+          bun run .github/scripts/submit-pr-review.ts /tmp/review-output.json

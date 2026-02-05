@@ -1,0 +1,127 @@
+name: Issue Implementation (OpenCode)
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to implement"
+        required: true
+        type: number
+
+jobs:
+  implement:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'approved' &&
+       contains(github.event.issue.labels.*.name, 'triaged'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git
+        env:
+          BOT_NAME: ${{ vars.BOT_NAME }}
+          BOT_EMAIL: ${{ vars.BOT_EMAIL }}
+        run: |
+          git config user.name "${BOT_NAME:-opencode-bot[bot]}"
+          git config user.email "${BOT_EMAIL:-opencode-bot[bot]@users.noreply.github.com}"
+
+      - name: Ensure automated label exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh label create "automated" \
+            --description "PR created by automation" \
+            --color "7057ff" \
+            2>/dev/null || true
+
+      - name: Check for existing PR
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          EXISTING_PR=$(gh pr list --search "head:auto/issue-${ISSUE_NUMBER}" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for this issue, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create branch
+        if: steps.check-pr.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          BRANCH_NAME="auto/issue-${ISSUE_NUMBER}"
+          # Delete existing remote branch if it exists (from failed previous runs)
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          git checkout -b "$BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Read prompt template
+        if: steps.check-pr.outputs.skip != 'true'
+        id: prompt
+        run: |
+          PROMPT=$(cat .github/opencode-prompts/implement-issue.md)
+          PROMPT="${PROMPT//\$ISSUE_NUMBER/${{ env.ISSUE_NUMBER }}}"
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Implement issue with OpenCode
+        if: steps.check-pr.outputs.skip != 'true'
+        id: opencode
+        uses: opencode-ai/action@v1
+        with:
+          model: zen/kimi-k2.5
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_tools: |
+            Bash(git *)
+            Bash(gh issue view *)
+            Bash(npm *)
+            Bash(bun *)
+            Bash(biome *)
+            Bash(./scripts/*)
+            Glob
+            Grep
+            Read
+            Edit
+            Write
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_ZEN_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Bun
+        if: steps.check-pr.outputs.skip != 'true' && steps.opencode.outcome == 'success'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Create PR
+        if: steps.check-pr.outputs.skip != 'true' && steps.opencode.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.output }}
+        run: |
+          echo "$STRUCTURED_OUTPUT" > /tmp/implementation-output.json
+          bun run .github/scripts/submit-issue-implementation.ts /tmp/implementation-output.json
