@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { user, league as organization } from "./auth-schema";
+import { user, league } from "./auth-schema";
 import { timestampAuditFields } from "./common";
 
 export const achievementType = [
@@ -29,15 +29,15 @@ export const player = sqliteTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		organizationId: text("organization_id")
+		leagueId: text("league_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		disabled: integer("disabled", { mode: "boolean" }).default(false).notNull(),
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("player_organization_user_uidx").on(table.organizationId, table.userId),
-		index("player_organization_id_idx").on(table.organizationId),
+		uniqueIndex("player_organization_user_uidx").on(table.leagueId, table.userId),
+		index("player_organization_id_idx").on(table.leagueId),
 		index("player_user_id_idx").on(table.userId),
 	]
 );
@@ -47,12 +47,12 @@ export const orgTeam = sqliteTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
-		organizationId: text("organization_id")
+		leagueId: text("league_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		...timestampAuditFields,
 	},
-	(table) => [index("org_team_organization_id_idx").on(table.organizationId)]
+	(table) => [index("org_team_organization_id_idx").on(table.leagueId)]
 );
 
 export const orgTeamPlayer = sqliteTable(
@@ -86,9 +86,9 @@ export const season = sqliteTable(
 		startDate: integer("start_date", { mode: "timestamp" }).notNull(),
 		endDate: integer("end_date", { mode: "timestamp" }),
 		rounds: integer("rounds"),
-		organizationId: text("organization_id")
+		leagueId: text("league_id")
 			.notNull()
-			.references(() => organization.id, { onDelete: "cascade" }),
+			.references(() => league.id, { onDelete: "cascade" }),
 		archived: integer("archived", { mode: "boolean" }).default(false).notNull(),
 		closed: integer("closed", { mode: "boolean" }).default(false).notNull(),
 		createdBy: text("created_by").notNull(),
@@ -96,8 +96,8 @@ export const season = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("season_slug_uidx").on(table.slug),
-		index("season_organization_id_idx").on(table.organizationId),
+		uniqueIndex("season_slug_uidx").on(table.leagueId, table.slug),
+		index("season_organization_id_idx").on(table.leagueId),
 	]
 );
 

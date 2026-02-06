@@ -5,7 +5,7 @@ import superjson from "superjson";
 import { z } from "zod";
 import type { getDb } from "../db";
 import { member, league as organization } from "../db/schema/auth-schema";
-import { season } from "../db/schema/competition-schema";
+import { season } from "../db/schema/league-schema";
 import type { AuthType } from "../middleware/context";
 import type { R2BucketRef } from "../lib/asset-util";
 
@@ -133,10 +133,10 @@ const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
 			rounds: season.rounds,
 			closed: season.closed,
 			archived: season.archived,
-			organizationId: season.organizationId,
+			organizationId: season.leagueId,
 		})
 		.from(season)
-		.where(and(eq(season.slug, seasonSlug), eq(season.organizationId, organizationId)))
+		.where(and(eq(season.slug, seasonSlug), eq(season.leagueId, organizationId)))
 		.limit(1);
 
 	if (comp.length === 0) {

@@ -22,6 +22,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { CreateLeagueDialog } from "@/components/leagues/create-league-dialog";
+import { useSessionInvalidate } from "@/hooks/useSession";
 
 export function LeagueSwitcher({
 	teams,
@@ -43,6 +44,7 @@ export function LeagueSwitcher({
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	const invalidateSession = useSessionInvalidate();
 
 	const currentActiveTeam = activeTeam
 		? {
@@ -98,6 +100,10 @@ export function LeagueSwitcher({
 		await authClient.organization.setActive({
 			organizationSlug: team.plan,
 		});
+
+		// Invalidate session to update active organization in UI
+		invalidateSession();
+
 		const currentPath = location.pathname;
 		if (currentPath.startsWith("/leagues/")) {
 			navigate({ to: "/leagues/$slug", params: { slug: team.plan }, replace: true });

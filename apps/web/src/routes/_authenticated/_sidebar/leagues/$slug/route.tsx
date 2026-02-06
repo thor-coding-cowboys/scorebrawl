@@ -2,11 +2,12 @@ import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-
 import { useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { fetchSessionForRoute, useSession } from "@/hooks/useSession.ts";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 	component: LeaguesLayout,
-	beforeLoad: async ({ params }) => {
-		const { data: session } = await authClient.getSession();
+	beforeLoad: async ({ params, context }) => {
+		const session = await fetchSessionForRoute(context.queryClient);
 		if (!session) {
 			throw redirect({ to: "/auth/sign-in" });
 		}
@@ -38,7 +39,7 @@ function LeaguesLayout() {
 	const navigate = useNavigate();
 	const { slug } = Route.useLoaderData();
 
-	const { data: session } = authClient.useSession();
+	const { data: session } = useSession();
 	const { data: organizations } = authClient.useListOrganizations();
 
 	useEffect(() => {

@@ -1,14 +1,14 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
-import { matchPlayer, player } from "../db/schema/competition-schema";
+import { matchPlayer, player } from "../db/schema/league-schema";
 
 export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizationId: string }) => {
 	return db
 		.select({
 			id: player.id,
 			userId: player.userId,
-			organizationId: player.organizationId,
+			organizationId: player.leagueId,
 			disabled: player.disabled,
 			createdAt: player.createdAt,
 			updatedAt: player.updatedAt,
@@ -17,7 +17,7 @@ export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizati
 		})
 		.from(player)
 		.innerJoin(user, eq(player.userId, user.id))
-		.where(eq(player.organizationId, organizationId));
+		.where(eq(player.leagueId, organizationId));
 };
 
 export const getById = async ({
@@ -33,7 +33,7 @@ export const getById = async ({
 		.select({
 			id: player.id,
 			userId: player.userId,
-			organizationId: player.organizationId,
+			organizationId: player.leagueId,
 			disabled: player.disabled,
 			createdAt: player.createdAt,
 			updatedAt: player.updatedAt,
@@ -42,7 +42,7 @@ export const getById = async ({
 		})
 		.from(player)
 		.innerJoin(user, eq(player.userId, user.id))
-		.where(and(eq(player.id, playerId), eq(player.organizationId, organizationId)))
+		.where(and(eq(player.id, playerId), eq(player.leagueId, organizationId)))
 		.limit(1);
 	return p;
 };

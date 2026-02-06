@@ -1,13 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
-import {
-	seasonPlayer,
-	match,
-	matchPlayer,
-	matchResult,
-	player,
-} from "../db/schema/competition-schema";
+import { seasonPlayer, match, matchPlayer, matchResult, player } from "../db/schema/league-schema";
 
 export interface MatchCreateInput {
 	seasonId: string;

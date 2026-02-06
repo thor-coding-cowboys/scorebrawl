@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
-import { seasonPlayer, matchPlayer, player } from "../db/schema/competition-schema";
+import { seasonPlayer, matchPlayer, player } from "../db/schema/league-schema";
 
 export const findAll = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	return db

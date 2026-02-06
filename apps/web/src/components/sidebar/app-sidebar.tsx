@@ -25,6 +25,8 @@ import {
 	SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/hooks/useSession";
+
 import { trpcClient } from "@/lib/trpc";
 
 // Helper to construct asset URL from key
@@ -39,7 +41,7 @@ const getAssetUrl = (key: string | null | undefined): string | null => {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-	const { data: session } = authClient.useSession();
+	const { data: session } = useSession();
 	const { data: organizations } = authClient.useListOrganizations();
 	const matchRoute = useMatchRoute();
 	const user = session?.user;

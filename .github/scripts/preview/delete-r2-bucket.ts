@@ -33,9 +33,36 @@ try {
 
 	for (const bucketName of buckets) {
 		if (existingBuckets.has(bucketName)) {
-			console.log(`Deleting R2 bucket: ${bucketName}`);
+			console.log(`Processing R2 bucket: ${bucketName}`);
+
 			try {
+				// First, list and delete all objects in the bucket
+				console.log(`Removing all objects from bucket: ${bucketName}`);
+
+				// List all objects using wrangler CLI
+				const listResult = await $`bun wrangler r2 object list ${bucketName} --json`.quiet();
+				const objects = JSON.parse(listResult.text());
+
+				if (objects && objects.length > 0) {
+					console.log(`Found ${objects.length} objects to delete`);
+
+					// Delete objects one by one using wrangler CLI
+					for (const obj of objects) {
+						try {
+							await $`bun wrangler r2 object delete ${bucketName} ${obj.key}`.quiet();
+						} catch (error) {
+							console.error(`Failed to delete object ${obj.key}:`, error);
+						}
+					}
+					console.log(`Deleted ${objects.length} objects from bucket: ${bucketName}`);
+				} else {
+					console.log(`Bucket ${bucketName} is already empty`);
+				}
+
+				// Now delete the empty bucket
+				console.log(`Deleting empty R2 bucket: ${bucketName}`);
 				await $`bun wrangler r2 bucket delete ${bucketName}`.quiet();
+				console.log(`Successfully deleted bucket: ${bucketName}`);
 			} catch (error) {
 				console.error(`Failed to delete R2 bucket ${bucketName}:`, error);
 			}

@@ -2,13 +2,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import Landing from "@/components/landing";
 import { authClient } from "@/lib/auth-client";
 import { useEffect } from "react";
+import { fetchSessionForRoute } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/")({
 	component: App,
-	beforeLoad: async () => {
-		const { data } = await authClient.getSession();
+	beforeLoad: async ({ context }) => {
+		const session = await fetchSessionForRoute(context.queryClient);
 
-		return { session: data };
+		return { session };
 	},
 });
 

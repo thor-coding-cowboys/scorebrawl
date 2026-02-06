@@ -16,7 +16,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/hooks/useSession";
 
 const GetStartedButton = ({
 	variant = "default",
@@ -43,7 +43,7 @@ const GetStartedButton = ({
 const Landing = () => {
 	const navigate = useNavigate();
 	const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
-	const { data: session, isPending } = authClient.useSession();
+	const { data: session, isPending } = useSession();
 
 	return (
 		<div className="min-h-screen bg-background">
