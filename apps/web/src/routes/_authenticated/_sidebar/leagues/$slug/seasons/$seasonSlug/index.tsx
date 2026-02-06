@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -21,6 +21,7 @@ import { StandingTabs } from "@/components/season/standing-tabs";
 import { LatestMatches } from "@/components/season/latest-matches";
 import { Fixtures } from "@/components/season/fixtures";
 import { OverviewCard } from "@/components/season/overview-card";
+import { CreateMatchDialog } from "@/components/match/create-match-drawer";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/")(
 	{
@@ -64,10 +65,7 @@ function SeasonDashboardPage() {
 	const isEloSeason = season?.scoreType === "elo";
 	const isSeasonLocked = season?.closed || season?.archived;
 
-	const handleCreateMatch = () => {
-		// TODO: Implement match creation dialog/navigation
-		console.log("Create match for season:", seasonSlug);
-	};
+	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
 
 	return (
 		<>
@@ -79,7 +77,7 @@ function SeasonDashboardPage() {
 							glowColor={glowColors.blue}
 							size="sm"
 							className="gap-1.5"
-							onClick={handleCreateMatch}
+							onClick={() => setIsCreateMatchOpen(true)}
 							disabled={isSeasonLocked}
 						>
 							Match
@@ -125,6 +123,14 @@ function SeasonDashboardPage() {
 					</div>
 				</div>
 			</div>
+			{isEloSeason && (
+				<CreateMatchDialog
+					isOpen={isCreateMatchOpen}
+					onClose={() => setIsCreateMatchOpen(false)}
+					slug={slug}
+					seasonSlug={seasonSlug}
+				/>
+			)}
 		</>
 	);
 }

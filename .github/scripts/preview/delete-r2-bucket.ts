@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { $ } from "bun";
 import { Cloudflare } from "cloudflare";
 
 const prNumber = process.env.PR_NUMBER;
@@ -35,39 +36,21 @@ try {
 			console.log(`Processing R2 bucket: ${bucketName}`);
 
 			try {
-				// First, list and delete all objects in the bucket using Cloudflare SDK
+				// First, remove all objects from the bucket using Wrangler CLI
 				console.log(`Removing all objects from bucket: ${bucketName}`);
 
-				// List all objects using Cloudflare SDK
-				const objectsList = await cloudflare.r2.buckets.objects.list(bucketName, {
-					account_id: accountId,
-				});
-
-				const objects = objectsList.objects ?? [];
-
-				if (objects.length > 0) {
-					console.log(`Found ${objects.length} objects to delete`);
-
-					// Delete objects one by one using Cloudflare SDK
-					for (const obj of objects) {
-						try {
-							await cloudflare.r2.buckets.objects.delete(bucketName, obj.key, {
-								account_id: accountId,
-							});
-						} catch (error) {
-							console.error(`Failed to delete object ${obj.key}:`, error);
-						}
-					}
-					console.log(`Deleted ${objects.length} objects from bucket: ${bucketName}`);
-				} else {
-					console.log(`Bucket ${bucketName} is already empty`);
+				// Use Wrangler to delete all objects in the bucket
+				try {
+					await $`bun wrangler r2 object delete --bucket ${bucketName} --prefix ""`.quiet();
+					console.log(`Removed all objects from bucket: ${bucketName}`);
+				} catch {
+					// If the bucket is empty or the delete fails, continue with bucket deletion
+					console.log(`No objects found or failed to delete objects from bucket: ${bucketName}`);
 				}
 
-				// Now delete the empty bucket using Cloudflare SDK
-				console.log(`Deleting empty R2 bucket: ${bucketName}`);
-				await cloudflare.r2.buckets.delete(bucketName, {
-					account_id: accountId,
-				});
+				// Now delete the empty bucket using Wrangler CLI
+				console.log(`Deleting R2 bucket: ${bucketName}`);
+				await $`bun wrangler r2 bucket delete ${bucketName}`.quiet();
 				console.log(`Successfully deleted bucket: ${bucketName}`);
 			} catch (error) {
 				console.error(`Failed to delete R2 bucket ${bucketName}:`, error);

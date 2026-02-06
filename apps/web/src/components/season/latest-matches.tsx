@@ -28,6 +28,7 @@ interface MatchPlayer {
 	scoreAfter: number;
 	name: string;
 	image: string | null;
+	teamName: string | null;
 }
 
 interface Match {
@@ -111,6 +112,16 @@ function MatchTable({ matches, seasonSlug }: { matches: Match[]; seasonSlug: str
 	);
 }
 
+function getSideLabel(players: MatchPlayer[]): string {
+	if (players.length === 0) return "Unknown";
+	const teamNames = players.map((p) => p.teamName).filter(Boolean);
+	const uniqueTeams = [...new Set(teamNames)];
+	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
+		return uniqueTeams[0]!;
+	}
+	return players.map((p) => p.name).join(", ");
+}
+
 function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
 	const { data: matchDetails } = useQuery<{ players: MatchPlayer[] } | null>({
 		queryKey: ["match", "details", match.id],
@@ -132,10 +143,10 @@ function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
 
 	return (
 		<TableRow>
-			<TableCell>
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center gap-2">
-						<div className="flex -space-x-2">
+			<TableCell className="max-w-[200px]">
+				<div className="flex flex-col gap-2 min-w-0">
+					<div className="flex items-center gap-2 min-w-0">
+						<div className="flex -space-x-2 shrink-0">
 							{homePlayers.map((player) => (
 								<AvatarWithFallback
 									key={player.id}
@@ -146,12 +157,12 @@ function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
 								/>
 							))}
 						</div>
-						<span className="text-xs text-muted-foreground">
-							{homePlayers.map((p) => p.name).join(", ") || "Unknown"}
+						<span className="text-xs text-muted-foreground truncate">
+							{getSideLabel(homePlayers)}
 						</span>
 					</div>
-					<div className="flex items-center gap-2">
-						<div className="flex -space-x-2">
+					<div className="flex items-center gap-2 min-w-0">
+						<div className="flex -space-x-2 shrink-0">
 							{awayPlayers.map((player) => (
 								<AvatarWithFallback
 									key={player.id}
@@ -162,8 +173,8 @@ function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
 								/>
 							))}
 						</div>
-						<span className="text-xs text-muted-foreground">
-							{awayPlayers.map((p) => p.name).join(", ") || "Unknown"}
+						<span className="text-xs text-muted-foreground truncate">
+							{getSideLabel(awayPlayers)}
 						</span>
 					</div>
 				</div>
