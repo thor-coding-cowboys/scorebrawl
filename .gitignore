@@ -106,6 +106,9 @@ web_modules/
 # Optional stylelint cache
 .stylelintcache
 
+# Intellij
+.idea
+
 # Microbundle cache
 .rpt2_cache/
 .rts2_cache_cjs/

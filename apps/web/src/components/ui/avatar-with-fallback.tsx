@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
  * Converts asset keys to proper authenticated URLs
  */
 function getAssetUrl(assetKey: string | null | undefined): string | undefined {
-	if (!assetKey) return undefined
+	if (!assetKey || assetKey === "null") return undefined
 	if (assetKey.startsWith("http")) return assetKey
 	return `/api/user-assets/${assetKey}`
 }

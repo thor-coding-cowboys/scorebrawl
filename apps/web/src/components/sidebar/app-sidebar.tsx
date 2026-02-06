@@ -3,11 +3,12 @@ import {
 	Award01Icon,
 	UserMultipleIcon,
 	Mail01Icon,
+	ArrowDown01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
 import type * as React from "react";
-import { useMemo } from "react";
+
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
 import { NavUser } from "@/components/sidebar/nav-user";
@@ -23,10 +24,15 @@ import {
 	SidebarMenuItem,
 	SidebarGroup,
 	SidebarGroupLabel,
+	useSidebar,
 } from "@/components/ui/sidebar";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { useSession } from "@/hooks/useSession";
-
 import { trpcClient } from "@/lib/trpc";
 
 // Helper to construct asset URL from key
@@ -41,10 +47,18 @@ const getAssetUrl = (key: string | null | undefined): string | null => {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-	const { data: session } = useSession();
+	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
 	const matchRoute = useMatchRoute();
+	const { isMobile, setOpenMobile } = useSidebar();
 	const user = session?.user;
+
+	// Helper to close sidebar on mobile when navigating
+	const handleNavClick = () => {
+		if (isMobile) {
+			setOpenMobile(false);
+		}
+	};
 
 	const userData = user
 		? {
@@ -84,27 +98,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	// Get active league slug for navigation
 	const leagueSlug = activeOrg?.slug;
 
-	// Check which routes are active
-	const routeMatches = useMemo(() => {
-		const isActiveSeasonRoute = matchRoute({
-			to: "/leagues/$slug/seasons/$seasonSlug",
-			fuzzy: true,
-		});
-		const isSeasonsListRoute =
-			matchRoute({ to: "/leagues/$slug/seasons", fuzzy: true }) && !isActiveSeasonRoute;
-		const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: true });
-		const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: true });
-		return { isActiveSeasonRoute, isSeasonsListRoute, isMembersRoute, isInvitationsRoute };
-	}, [matchRoute]);
+	// Check which routes are active - call matchRoute directly without memo
+	// to ensure it re-evaluates on every render when route changes
+	const isActiveSeasonRoute = matchRoute({
+		to: "/leagues/$slug/seasons/$seasonSlug",
+		fuzzy: false,
+	});
+	const isSeasonsListRoute = matchRoute({
+		to: "/leagues/$slug/seasons",
+		fuzzy: false,
+	});
+	const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: false });
+	const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: false });
 
-	// Fetch active season for the current league
-	const { data: activeSeason } = useQuery({
-		queryKey: ["active-season", leagueSlug],
+	// Fetch all active seasons for the current league
+	const { data: activeSeasons } = useQuery({
+		queryKey: ["active-seasons", leagueSlug],
 		queryFn: async () => {
-			return await trpcClient.season.findActive.query();
+			return await trpcClient.season.findAllActive.query();
 		},
 		enabled: !!leagueSlug,
 	});
+
+	const activeSeasonCount = activeSeasons?.length ?? 0;
+	const hasMultipleActiveSeasons = activeSeasonCount > 1;
+	const singleActiveSeason = activeSeasonCount === 1 && activeSeasons ? activeSeasons[0] : null;
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -116,38 +134,78 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					<SidebarGroup>
 						<SidebarGroupLabel>League</SidebarGroupLabel>
 						<SidebarMenu>
-							{activeSeason && (
+							{activeSeasonCount > 0 && (
 								<SidebarMenuItem>
-									<SidebarMenuButton asChild isActive={!!routeMatches.isActiveSeasonRoute}>
-										<Link
-											to="/leagues/$slug/seasons/$seasonSlug"
-											params={{ slug: leagueSlug, seasonSlug: activeSeason.slug }}
-										>
-											<HugeiconsIcon icon={Activity01Icon} className="size-4" />
-											<span>Active Season</span>
-										</Link>
-									</SidebarMenuButton>
+									{hasMultipleActiveSeasons ? (
+										<DropdownMenu>
+											<DropdownMenuTrigger
+												render={
+													<SidebarMenuButton isActive={!!isActiveSeasonRoute}>
+														<HugeiconsIcon icon={Activity01Icon} className="size-4" />
+														<span>Active Seasons</span>
+														<HugeiconsIcon icon={ArrowDown01Icon} className="size-3 ml-auto" />
+													</SidebarMenuButton>
+												}
+											/>
+											<DropdownMenuContent align="start" className="w-48">
+												{activeSeasons?.map((season) => (
+													<DropdownMenuItem key={season.id} onClick={handleNavClick}>
+														<Link
+															to="/leagues/$slug/seasons/$seasonSlug"
+															params={{ slug: leagueSlug, seasonSlug: season.slug }}
+															className="flex items-center w-full"
+														>
+															{season.name}
+														</Link>
+													</DropdownMenuItem>
+												))}
+											</DropdownMenuContent>
+										</DropdownMenu>
+									) : (
+										<SidebarMenuButton asChild isActive={!!isActiveSeasonRoute}>
+											<Link
+												to="/leagues/$slug/seasons/$seasonSlug"
+												params={{ slug: leagueSlug, seasonSlug: singleActiveSeason!.slug }}
+												onClick={handleNavClick}
+											>
+												<HugeiconsIcon icon={Activity01Icon} className="size-4" />
+												<span>Active Season</span>
+											</Link>
+										</SidebarMenuButton>
+									)}
 								</SidebarMenuItem>
 							)}
 							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!routeMatches.isSeasonsListRoute}>
-									<Link to="/leagues/$slug/seasons" params={{ slug: leagueSlug }}>
+								<SidebarMenuButton asChild isActive={!!isSeasonsListRoute}>
+									<Link
+										to="/leagues/$slug/seasons"
+										params={{ slug: leagueSlug }}
+										onClick={handleNavClick}
+									>
 										<HugeiconsIcon icon={Award01Icon} className="size-4" />
 										<span>Seasons</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!routeMatches.isMembersRoute}>
-									<Link to="/leagues/$slug/members" params={{ slug: leagueSlug }}>
+								<SidebarMenuButton asChild isActive={!!isMembersRoute}>
+									<Link
+										to="/leagues/$slug/members"
+										params={{ slug: leagueSlug }}
+										onClick={handleNavClick}
+									>
 										<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
 										<span>Members</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!routeMatches.isInvitationsRoute}>
-									<Link to="/leagues/$slug/invitations" params={{ slug: leagueSlug }}>
+								<SidebarMenuButton asChild isActive={!!isInvitationsRoute}>
+									<Link
+										to="/leagues/$slug/invitations"
+										params={{ slug: leagueSlug }}
+										onClick={handleNavClick}
+									>
 										<HugeiconsIcon icon={Mail01Icon} className="size-4" />
 										<span>Invitations</span>
 									</Link>

@@ -6,7 +6,12 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/")(
 	loader: async ({ params }) => {
 		return { slug: params.slug };
 	},
-	beforeLoad: async ({ params }) => {
+	beforeLoad: async ({ params, location }) => {
+		// If already navigating to a specific season or seasons list, don't redirect
+		if (location.pathname.includes(`/leagues/${params.slug}/seasons`)) {
+			return;
+		}
+
 		// Check for active season
 		const activeSeason = await trpcClient.season.findActive.query();
 

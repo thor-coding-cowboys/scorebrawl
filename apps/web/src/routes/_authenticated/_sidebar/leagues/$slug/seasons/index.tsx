@@ -150,7 +150,7 @@ function SeasonsPage() {
 	const canAccess = role === "owner" || role === "editor" || role === "member" || role === "viewer";
 	const canCreate = role === "owner" || role === "editor";
 
-	const { data: seasons } = useQuery({
+	const { data: seasons, refetch } = useQuery({
 		queryKey: ["seasons", slug],
 		queryFn: async () => {
 			return await trpcClient.season.getAll.query();
@@ -221,7 +221,7 @@ function SeasonsPage() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="#">League</BreadcrumbLink>
+							<BreadcrumbLink href="/leagues">League</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>
@@ -385,7 +385,17 @@ function SeasonsPage() {
 					</div>
 				</div>
 			</div>
-			<CreateSeasonForm isOpen={isCreateDialogOpen} onClose={() => setIsCreateDialogOpen(false)} />
+			<CreateSeasonForm
+				isOpen={isCreateDialogOpen}
+				onClose={() => setIsCreateDialogOpen(false)}
+				onSuccess={(seasonSlug) => {
+					void refetch();
+					void navigate({
+						to: "/leagues/$slug/seasons/$seasonSlug",
+						params: { slug, seasonSlug },
+					});
+				}}
+			/>
 			<EditSeasonForm
 				isOpen={isEditDialogOpen}
 				onClose={() => {

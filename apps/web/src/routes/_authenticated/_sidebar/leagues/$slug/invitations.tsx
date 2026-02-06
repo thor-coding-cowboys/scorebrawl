@@ -291,7 +291,7 @@ function InvitationsPage() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="#">League</BreadcrumbLink>
+							<BreadcrumbLink href="/leagues">League</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator className="hidden md:block" />
 						<BreadcrumbItem>

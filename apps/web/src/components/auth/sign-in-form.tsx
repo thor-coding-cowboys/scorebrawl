@@ -45,7 +45,10 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 
 	// Preload passkeys for conditional UI
 	useEffect(() => {
-		if (!PublicKeyCredential.isConditionalMediationAvailable) {
+		if (
+			typeof PublicKeyCredential === "undefined" ||
+			!PublicKeyCredential.isConditionalMediationAvailable
+		) {
 			return;
 		}
 
