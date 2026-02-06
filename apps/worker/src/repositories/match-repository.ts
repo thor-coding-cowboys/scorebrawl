@@ -1,7 +1,15 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
-import { seasonPlayer, match, matchPlayer, matchResult, player } from "../db/schema/league-schema";
+import {
+	seasonPlayer,
+	match,
+	matchPlayer,
+	matchResult,
+	player,
+	orgTeamPlayer,
+	orgTeam,
+} from "../db/schema/league-schema";
 
 export interface MatchCreateInput {
 	seasonId: string;
@@ -178,6 +186,13 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 			scoreAfter: matchPlayer.scoreAfter,
 			name: user.name,
 			image: user.image,
+			teamName: sql<string | null>`(
+				SELECT ${orgTeam.name} FROM ${orgTeamPlayer}
+				INNER JOIN ${orgTeam} ON ${orgTeam.id} = ${orgTeamPlayer.orgTeamId}
+				WHERE ${orgTeamPlayer.playerId} = ${player.id}
+				AND ${orgTeam.leagueId} = ${player.leagueId}
+				LIMIT 1
+			)`.as("team_name"),
 		})
 		.from(matchPlayer)
 		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))

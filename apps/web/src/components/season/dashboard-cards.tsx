@@ -28,10 +28,10 @@ function OnFireCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) 
 			{isLoading ? (
 				<Skeleton className="h-12 w-full" />
 			) : data ? (
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-3 min-w-0">
 					<AvatarWithFallback src={data.image} name={data.name} size="md" />
-					<div className="flex flex-col">
-						<span className="text-sm font-medium">{data.name}</span>
+					<div className="flex flex-col min-w-0">
+						<span className="text-sm font-medium truncate">{data.name}</span>
 						<span className="text-xs text-muted-foreground">{data.score} points</span>
 					</div>
 				</div>
@@ -65,10 +65,10 @@ function StrugglingCard({ slug, seasonSlug }: { slug: string; seasonSlug: string
 			{!allPlayers ? (
 				<Skeleton className="h-12 w-full" />
 			) : strugglingPlayer ? (
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-3 min-w-0">
 					<AvatarWithFallback src={strugglingPlayer.image} name={strugglingPlayer.name} size="md" />
-					<div className="flex flex-col">
-						<span className="text-sm font-medium">{strugglingPlayer.name}</span>
+					<div className="flex flex-col min-w-0">
+						<span className="text-sm font-medium truncate">{strugglingPlayer.name}</span>
 						<span className="text-xs text-muted-foreground">{strugglingPlayer.score} points</span>
 					</div>
 				</div>
@@ -127,6 +127,7 @@ interface MatchPlayer {
 	scoreAfter: number;
 	name: string;
 	image: string | null;
+	teamName: string | null;
 }
 
 interface MatchWithPlayers {
@@ -136,6 +137,16 @@ interface MatchWithPlayers {
 	awayScore: number;
 	createdAt: Date;
 	players: MatchPlayer[];
+}
+
+function getSideLabel(players: MatchPlayer[]): string {
+	if (players.length === 0) return "Unknown";
+	const teamNames = players.map((p) => p.teamName).filter(Boolean);
+	const uniqueTeams = [...new Set(teamNames)];
+	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
+		return uniqueTeams[0]!;
+	}
+	return players.map((p) => p.name).join(", ");
 }
 
 function LatestMatchCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) {
@@ -156,23 +167,17 @@ function LatestMatchCard({ slug, seasonSlug }: { slug: string; seasonSlug: strin
 			{isLoading ? (
 				<Skeleton className="h-12 w-full" />
 			) : latestMatch ? (
-				<div className="flex items-center justify-between">
-					<div className="flex flex-col gap-1">
-						<div className="text-sm font-medium">
-							{latestMatch.players
-								?.filter((p: MatchPlayer) => p.homeTeam)
-								.map((p: MatchPlayer) => p.name)
-								.join(", ")}
+				<div className="flex items-center justify-between gap-2">
+					<div className="flex flex-col gap-1 min-w-0 flex-1">
+						<div className="text-sm font-medium truncate">
+							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [])}
 						</div>
 						<div className="text-xs text-muted-foreground">vs</div>
-						<div className="text-sm font-medium">
-							{latestMatch.players
-								?.filter((p: MatchPlayer) => !p.homeTeam)
-								.map((p: MatchPlayer) => p.name)
-								.join(", ")}
+						<div className="text-sm font-medium truncate">
+							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [])}
 						</div>
 					</div>
-					<div className="text-lg font-bold">
+					<div className="text-lg font-bold shrink-0">
 						{latestMatch.homeScore} - {latestMatch.awayScore}
 					</div>
 				</div>

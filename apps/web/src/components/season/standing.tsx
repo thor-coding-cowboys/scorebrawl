@@ -86,9 +86,14 @@ export function Standing({ slug, seasonSlug }: StandingProps) {
 				<TableBody className="text-sm">
 					{sortedData.map((item) => (
 						<TableRow key={item.id} className="h-14">
-							<TableCell className="py-2">
-								<div className="flex items-center gap-3">
-									<AvatarWithFallback src={item.image} name={item.name} size="md" />
+							<TableCell className="py-2 max-w-[120px]">
+								<div className="flex items-center gap-3 min-w-0">
+									<AvatarWithFallback
+										src={item.image}
+										name={item.name}
+										size="md"
+										className="shrink-0"
+									/>
 									<span className="font-medium truncate">{item.name}</span>
 								</div>
 							</TableCell>

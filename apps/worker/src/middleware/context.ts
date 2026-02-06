@@ -24,6 +24,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		VITE_GOOGLE_CLIENT_ID: googleClientId,
 		GOOGLE_CLIENT_SECRET: googleClientSecret,
 		BETTER_AUTH_SECRET: betterAuthSecret,
+		RESEND_API_KEY: resendApiKey,
 	} = c.env;
 	const db = getDb(DB);
 
@@ -40,6 +41,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		googleClientId,
 		googleClientSecret,
 		origin,
+		resendApiKey,
 	});
 	c.set("db", db);
 	c.set("betterAuth", auth);
