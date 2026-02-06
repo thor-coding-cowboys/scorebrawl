@@ -31,7 +31,7 @@ export function GlowButton({
   ...props
 }: GlowButtonProps) {
   // Use purple as default glow color for default variant
-  const finalGlowColor = glowColor || glowColors.purple
+  const finalGlowColor = glowColor || glowColors.blue
 
   // Handle both old string format and new object format
   const backgroundClass = typeof finalGlowColor === 'string' ? finalGlowColor : finalGlowColor.background
