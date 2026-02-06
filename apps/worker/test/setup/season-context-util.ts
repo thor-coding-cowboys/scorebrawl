@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { randNumber, randSlug, randSports, randUuid } from "@ngneat/falso";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../src/db/index";
-import { player } from "../../src/db/schema/competition-schema";
+import { player } from "../../src/db/schema/league-schema";
 import { createUser, type AuthContext } from "./auth-context-util";
 
 export interface SeasonInput {
@@ -64,9 +64,7 @@ export async function createPlayer(
 	const [existingPlayer] = await db
 		.select()
 		.from(player)
-		.where(
-			and(eq(player.userId, playerInput.userId), eq(player.organizationId, authContext.league.id))
-		);
+		.where(and(eq(player.userId, playerInput.userId), eq(player.leagueId, authContext.league.id)));
 
 	if (existingPlayer) {
 		return existingPlayer;
@@ -77,7 +75,7 @@ export async function createPlayer(
 		.values({
 			id: randUuid(),
 			userId: playerInput.userId,
-			organizationId: authContext.league.id,
+			leagueId: authContext.league.id,
 			disabled: playerInput.disabled,
 			createdAt: now,
 			updatedAt: now,
@@ -108,7 +106,7 @@ export async function createPlayers(authContext: AuthContext, count: number) {
  */
 export async function getPlayers(authContext: AuthContext) {
 	const db = getDb(env.DB);
-	return db.select().from(player).where(eq(player.organizationId, authContext.league.id));
+	return db.select().from(player).where(eq(player.leagueId, authContext.league.id));
 }
 
 /**

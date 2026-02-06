@@ -112,7 +112,7 @@ export const seasonRouter = {
 			return seasonRepository.create({
 				db: typedCtx.db,
 				...input,
-				organizationId: typedCtx.organizationId,
+				leagueId: typedCtx.organizationId,
 				userId: typedCtx.authentication.user.id,
 			});
 		}),

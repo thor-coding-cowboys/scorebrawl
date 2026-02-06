@@ -186,11 +186,11 @@ CREATE TABLE `match_team` (
 CREATE TABLE `org_team` (
 	`id` text PRIMARY KEY,
 	`name` text NOT NULL,
-	`organization_id` text NOT NULL,
+	`league_id` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_org_team_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_org_team_league_id_league_id_fk` FOREIGN KEY (`league_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `org_team_player` (
@@ -207,13 +207,13 @@ CREATE TABLE `org_team_player` (
 CREATE TABLE `player` (
 	`id` text PRIMARY KEY,
 	`user_id` text NOT NULL,
-	`organization_id` text NOT NULL,
+	`league_id` text NOT NULL,
 	`disabled` integer DEFAULT 0 NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
 	CONSTRAINT `fk_player_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE cascade,
-	CONSTRAINT `fk_player_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_player_league_id_league_id_fk` FOREIGN KEY (`league_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `player_achievement` (
@@ -236,7 +236,7 @@ CREATE TABLE `season` (
 	`start_date` integer NOT NULL,
 	`end_date` integer,
 	`rounds` integer,
-	`organization_id` text NOT NULL,
+	`league_id` text NOT NULL,
 	`archived` integer DEFAULT 0 NOT NULL,
 	`closed` integer DEFAULT 0 NOT NULL,
 	`created_by` text NOT NULL,
@@ -244,7 +244,7 @@ CREATE TABLE `season` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`deleted_at` integer,
-	CONSTRAINT `fk_season_organization_id_league_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `league`(`id`) ON DELETE cascade
+	CONSTRAINT `fk_season_league_id_league_id_fk` FOREIGN KEY (`league_id`) REFERENCES `league`(`id`) ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `season_player` (
@@ -294,17 +294,17 @@ CREATE INDEX `match_player_match_id_idx` ON `match_player` (`match_id`);--> stat
 CREATE INDEX `match_team_season_team_id_idx` ON `match_team` (`season_team_id`);--> statement-breakpoint
 CREATE INDEX `match_team_match_id_idx` ON `match_team` (`match_id`);--> statement-breakpoint
 CREATE INDEX `match_team_created_at_idx` ON `match_team` (`created_at`);--> statement-breakpoint
-CREATE INDEX `org_team_organization_id_idx` ON `org_team` (`organization_id`);--> statement-breakpoint
+CREATE INDEX `org_team_organization_id_idx` ON `org_team` (`league_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `org_team_player_team_player_uidx` ON `org_team_player` (`org_team_id`,`player_id`);--> statement-breakpoint
 CREATE INDEX `org_team_player_team_id_idx` ON `org_team_player` (`org_team_id`);--> statement-breakpoint
 CREATE INDEX `org_team_player_player_id_idx` ON `org_team_player` (`player_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `player_organization_user_uidx` ON `player` (`organization_id`,`user_id`);--> statement-breakpoint
-CREATE INDEX `player_organization_id_idx` ON `player` (`organization_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `player_organization_user_uidx` ON `player` (`league_id`,`user_id`);--> statement-breakpoint
+CREATE INDEX `player_organization_id_idx` ON `player` (`league_id`);--> statement-breakpoint
 CREATE INDEX `player_user_id_idx` ON `player` (`user_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `player_achievement_player_type_uidx` ON `player_achievement` (`player_id`,`type`);--> statement-breakpoint
 CREATE INDEX `player_achievement_player_id_idx` ON `player_achievement` (`player_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `season_slug_uidx` ON `season` (`slug`);--> statement-breakpoint
-CREATE INDEX `season_organization_id_idx` ON `season` (`organization_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `season_slug_uidx` ON `season` (`league_id`,`slug`);--> statement-breakpoint
+CREATE INDEX `season_organization_id_idx` ON `season` (`league_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `season_player_season_player_uidx` ON `season_player` (`season_id`,`player_id`);--> statement-breakpoint
 CREATE INDEX `season_player_season_id_idx` ON `season_player` (`season_id`);--> statement-breakpoint
 CREATE INDEX `season_player_player_id_idx` ON `season_player` (`player_id`);--> statement-breakpoint

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ function AcceptInvitationPage() {
 	const [isAccepting, setIsAccepting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const { data: session, isPending: isSessionLoading } = authClient.useSession();
+	const { data: session, isPending: isSessionLoading } = useSession();
 	const isAuthenticated = !!session?.user;
 
 	// Redirect to sign-in if not authenticated

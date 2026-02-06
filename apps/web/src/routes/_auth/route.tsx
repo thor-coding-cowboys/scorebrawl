@@ -1,13 +1,13 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { authClient } from "@/lib/auth-client";
+import { fetchSessionForRoute } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/_auth")({
 	component: LayoutComponent,
-	beforeLoad: async () => {
-		const session = await authClient.getSession();
-		if (session.data?.session) {
+	beforeLoad: async ({ context }) => {
+		const session = await fetchSessionForRoute(context.queryClient);
+		if (session?.session) {
 			throw redirect({ to: "/" });
 		}
 	},

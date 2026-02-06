@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { authClient } from "@/lib/auth-client";
+import { fetchSessionForRoute } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug")({
 	component: SeasonLayout,
-	beforeLoad: async () => {
-		const { data: session } = await authClient.getSession();
+	beforeLoad: async ({ context }) => {
+		const session = await fetchSessionForRoute(context.queryClient);
 		if (!session) {
 			throw redirect({ to: "/auth/sign-in" });
 		}

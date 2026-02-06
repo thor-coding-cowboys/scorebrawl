@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
-import { orgTeam, orgTeamPlayer, player } from "../db/schema/competition-schema";
+import { orgTeam, orgTeamPlayer, player } from "../db/schema/league-schema";
 
 export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizationId: string }) => {
-	return db.select().from(orgTeam).where(eq(orgTeam.organizationId, organizationId));
+	return db.select().from(orgTeam).where(eq(orgTeam.leagueId, organizationId));
 };
 
 export const getById = async ({
@@ -18,7 +18,7 @@ export const getById = async ({
 	const [t] = await db
 		.select()
 		.from(orgTeam)
-		.where(and(eq(orgTeam.id, teamId), eq(orgTeam.organizationId, organizationId)))
+		.where(and(eq(orgTeam.id, teamId), eq(orgTeam.leagueId, organizationId)))
 		.limit(1);
 	return t;
 };

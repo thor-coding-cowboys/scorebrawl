@@ -22,7 +22,7 @@ import {
 	player,
 	type scoreType,
 	match,
-} from "../db/schema/competition-schema";
+} from "../db/schema/league-schema";
 import { slugifyWithCustomReplacement } from "./slug";
 
 export interface SeasonCreateInput {
@@ -34,7 +34,7 @@ export interface SeasonCreateInput {
 	startDate: Date;
 	endDate?: Date;
 	rounds?: number;
-	organizationId: string;
+	leagueId: string;
 	userId: string;
 }
 
@@ -51,12 +51,12 @@ export interface SeasonEditInput {
 
 export const findOverlappingSeason = async ({
 	db,
-	organizationId,
+	leagueId,
 	startDate,
 	endDate,
 }: {
 	db: DrizzleDB;
-	organizationId: string;
+	leagueId: string;
 	startDate: Date;
 	endDate?: Date;
 }) => {
@@ -65,7 +65,7 @@ export const findOverlappingSeason = async ({
 		.from(season)
 		.where(
 			and(
-				eq(season.organizationId, organizationId),
+				eq(season.leagueId, leagueId),
 				lte(season.startDate, endDate ?? new Date("2099-12-31")),
 				or(isNull(season.endDate), gte(season.endDate, startDate))
 			)
@@ -84,8 +84,8 @@ export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSl
 	const [teamCount] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(orgTeam)
-		.innerJoin(organization, eq(orgTeam.organizationId, organization.id))
-		.innerJoin(season, eq(season.organizationId, organization.id))
+		.innerJoin(organization, eq(orgTeam.leagueId, organization.id))
+		.innerJoin(season, eq(season.leagueId, organization.id))
 		.where(eq(season.slug, seasonSlug));
 
 	const [playerCount] = await db
@@ -110,7 +110,7 @@ export const getCountInfoById = async ({ db, seasonId }: { db: DrizzleDB; season
 	const [teamCount] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(orgTeam)
-		.innerJoin(season, eq(season.organizationId, orgTeam.organizationId))
+		.innerJoin(season, eq(season.leagueId, orgTeam.leagueId))
 		.where(eq(season.id, seasonId));
 
 	const [playerCount] = await db
@@ -144,7 +144,7 @@ export const getBySlug = async ({
 }) => {
 	const whereConditions = [eq(season.slug, seasonSlug)];
 	if (leagueId) {
-		whereConditions.push(eq(season.organizationId, leagueId));
+		whereConditions.push(eq(season.leagueId, leagueId));
 	}
 
 	const [comp] = await db
@@ -169,10 +169,10 @@ export const findActive = async ({
 	const [comp] = await db
 		.select(getTableColumns(season))
 		.from(season)
-		.innerJoin(organization, eq(organization.id, season.organizationId))
+		.innerJoin(organization, eq(organization.id, season.leagueId))
 		.where(
 			and(
-				eq(season.organizationId, organizationId),
+				eq(season.leagueId, organizationId),
 				eq(season.closed, false),
 				lt(season.startDate, now),
 				or(isNull(season.endDate), gt(season.endDate, now))
@@ -185,7 +185,7 @@ export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizati
 	db
 		.select(getTableColumns(season))
 		.from(season)
-		.where(eq(season.organizationId, organizationId))
+		.where(eq(season.leagueId, organizationId))
 		.orderBy(desc(season.startDate));
 
 export const update = async ({
@@ -241,7 +241,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 					id: crypto.randomUUID(),
 					name: input.name,
 					slug,
-					organizationId: input.organizationId,
+					leagueId: input.leagueId,
 					startDate: input.startDate,
 					endDate: input.endDate ?? null,
 					initialScore: input.initialScore,
@@ -259,7 +259,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 					id: crypto.randomUUID(),
 					name: input.name,
 					slug,
-					organizationId: input.organizationId,
+					leagueId: input.leagueId,
 					startDate: input.startDate,
 					endDate: input.endDate ?? null,
 					initialScore: 0,
@@ -281,7 +281,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 	const players = await db
 		.select({ id: player.id })
 		.from(player)
-		.where(and(eq(player.organizationId, input.organizationId), eq(player.disabled, false)));
+		.where(and(eq(player.leagueId, input.leagueId), eq(player.disabled, false)));
 
 	const seasonPlayerValues = players.map((p) => ({
 		id: crypto.randomUUID(),

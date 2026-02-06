@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "aafaf1df-d123-4fde-8ecf-67ff97e6481c",
+	"id": "83ea8939-0b7e-44db-af23-b421c13ceaac",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -1318,7 +1318,7 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "organization_id",
+			"name": "league_id",
 			"entityType": "columns",
 			"table": "org_team"
 		},
@@ -1438,7 +1438,7 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "organization_id",
+			"name": "league_id",
 			"entityType": "columns",
 			"table": "player"
 		},
@@ -1638,7 +1638,7 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "organization_id",
+			"name": "league_id",
 			"entityType": "columns",
 			"table": "season"
 		},
@@ -2083,13 +2083,13 @@
 			"table": "match_team"
 		},
 		{
-			"columns": ["organization_id"],
+			"columns": ["league_id"],
 			"tableTo": "league",
 			"columnsTo": ["id"],
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_org_team_organization_id_league_id_fk",
+			"name": "fk_org_team_league_id_league_id_fk",
 			"entityType": "fks",
 			"table": "org_team"
 		},
@@ -2127,13 +2127,13 @@
 			"table": "player"
 		},
 		{
-			"columns": ["organization_id"],
+			"columns": ["league_id"],
 			"tableTo": "league",
 			"columnsTo": ["id"],
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_player_organization_id_league_id_fk",
+			"name": "fk_player_league_id_league_id_fk",
 			"entityType": "fks",
 			"table": "player"
 		},
@@ -2149,13 +2149,13 @@
 			"table": "player_achievement"
 		},
 		{
-			"columns": ["organization_id"],
+			"columns": ["league_id"],
 			"tableTo": "league",
 			"columnsTo": ["id"],
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_season_organization_id_league_id_fk",
+			"name": "fk_season_league_id_league_id_fk",
 			"entityType": "fks",
 			"table": "season"
 		},
@@ -2668,7 +2668,7 @@
 		{
 			"columns": [
 				{
-					"value": "organization_id",
+					"value": "league_id",
 					"isExpression": false
 				}
 			],
@@ -2728,7 +2728,7 @@
 		{
 			"columns": [
 				{
-					"value": "organization_id",
+					"value": "league_id",
 					"isExpression": false
 				},
 				{
@@ -2746,7 +2746,7 @@
 		{
 			"columns": [
 				{
-					"value": "organization_id",
+					"value": "league_id",
 					"isExpression": false
 				}
 			],
@@ -2806,6 +2806,10 @@
 		{
 			"columns": [
 				{
+					"value": "league_id",
+					"isExpression": false
+				},
+				{
 					"value": "slug",
 					"isExpression": false
 				}
@@ -2820,7 +2824,7 @@
 		{
 			"columns": [
 				{
-					"value": "organization_id",
+					"value": "league_id",
 					"isExpression": false
 				}
 			],

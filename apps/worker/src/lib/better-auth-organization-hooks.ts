@@ -22,7 +22,7 @@ async function createPlayerForUser({
 	await db.insert(player).values({
 		id: playerId,
 		userId: userId,
-		organizationId: organizationId,
+		leagueId: organizationId,
 		disabled: false,
 		createdAt: now,
 		updatedAt: now,
@@ -33,10 +33,7 @@ async function createPlayerForUser({
 		.select({ id: season.id, initialScore: season.initialScore })
 		.from(season)
 		.where(
-			and(
-				eq(season.organizationId, organizationId),
-				or(gt(season.endDate, now), isNull(season.endDate))
-			)
+			and(eq(season.leagueId, organizationId), or(gt(season.endDate, now), isNull(season.endDate)))
 		);
 
 	// Insert into seasonPlayer for each ongoing season

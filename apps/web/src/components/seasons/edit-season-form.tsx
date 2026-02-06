@@ -69,7 +69,7 @@ interface Season {
 	createdAt: Date;
 	updatedAt: Date;
 	deletedAt: Date | null;
-	organizationId: string;
+	leagueId: string;
 	createdBy: string;
 	updatedBy: string;
 }

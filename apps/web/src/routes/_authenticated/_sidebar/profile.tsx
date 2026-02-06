@@ -37,11 +37,12 @@ import { Header } from "@/components/layout/header";
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
+import { useSession, useSessionInvalidate, fetchSessionForRoute } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/profile")({
 	component: ProfilePage,
-	beforeLoad: async ({ location }) => {
-		const { data: session } = await authClient.getSession();
+	beforeLoad: async ({ location, context }) => {
+		const session = await fetchSessionForRoute(context.queryClient);
 		if (!session) {
 			throw redirect({
 				to: "/auth/sign-in",
@@ -56,7 +57,8 @@ export const Route = createFileRoute("/_authenticated/_sidebar/profile")({
 
 function ProfilePage() {
 	const { session: routeSession } = Route.useRouteContext();
-	const { data: session } = authClient.useSession();
+	const { data: session } = useSession();
+	const invalidateSession = useSessionInvalidate();
 	const navigate = useNavigate();
 	// Use reactive session if available, fallback to route session
 	const currentSession = session || routeSession;
@@ -168,9 +170,10 @@ function ProfilePage() {
 	});
 
 	const handleUpdateName = async () => {
+		if (!user || !name.trim()) return;
 		try {
 			const { error } = await authClient.updateUser({
-				name,
+				name: name.trim(),
 			});
 			if (error) {
 				toast.error(error.message || "Failed to update name");
@@ -178,7 +181,7 @@ function ProfilePage() {
 			}
 			toast.success("Name updated successfully");
 			setIsEditingName(false);
-			await authClient.getSession();
+			invalidateSession();
 		} catch {
 			toast.error("Failed to update name");
 		}
@@ -226,7 +229,7 @@ function ProfilePage() {
 			setNewPassword("");
 			setIsChangingPassword(false);
 			setRevokeOtherSessions(true);
-			await authClient.getSession();
+			invalidateSession();
 		} catch {
 			toast.error("Failed to change password");
 		}
@@ -374,8 +377,8 @@ function ProfilePage() {
 			// Upload avatar in single request
 			await uploadAvatarMutation.mutateAsync({ imageData });
 
-			// Refresh session to get updated user data
-			await authClient.getSession();
+			// Invalidate session to get updated user data
+			invalidateSession();
 
 			// Clean up preview URL
 			if (optimisticAvatar) {
