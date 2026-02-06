@@ -19,10 +19,8 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { CreateLeagueDialog } from "@/components/leagues/create-league-dialog";
-import { useSessionInvalidate } from "@/hooks/useSession";
 
 export function LeagueSwitcher({
 	teams,
@@ -44,7 +42,6 @@ export function LeagueSwitcher({
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-	const invalidateSession = useSessionInvalidate();
 
 	const currentActiveTeam = activeTeam
 		? {
@@ -97,13 +94,7 @@ export function LeagueSwitcher({
 		logo: React.ElementType | string | null;
 		plan: string;
 	}) => {
-		await authClient.organization.setActive({
-			organizationSlug: team.plan,
-		});
-
-		// Invalidate session to update active organization in UI
-		invalidateSession();
-
+		// Navigate to the new league route - the route's beforeLoad will handle setActive
 		const currentPath = location.pathname;
 		if (currentPath.startsWith("/leagues/")) {
 			navigate({ to: "/leagues/$slug", params: { slug: team.plan }, replace: true });
