@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
+import { SESSION_QUERY_KEY } from "@/hooks/useSession";
 
 const signUpSchema = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -27,6 +29,7 @@ interface SignUpFormProps {
 
 export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const [isGitHubLoading, setIsGitHubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [apiError, setApiError] = useState<string>("");
@@ -85,8 +88,11 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 					return;
 				}
 
+				// Invalidate session cache to ensure fresh data
+				void queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+
 				// Successfully signed in, redirect to callback URL
-				navigate({ to: callbackURL || "/" });
+				void navigate({ to: callbackURL || "/" });
 			} else {
 				setApiError("Failed to create account. Please try again.");
 			}

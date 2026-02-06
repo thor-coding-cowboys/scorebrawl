@@ -3,6 +3,8 @@ import Landing from "@/components/landing";
 import { authClient } from "@/lib/auth-client";
 import { useEffect } from "react";
 import { fetchSessionForRoute } from "@/hooks/useSession";
+import { useTRPC } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/")({
 	component: App,
@@ -20,23 +22,45 @@ function App() {
 		return <Landing />;
 	}
 
-	// For authenticated users, we need to check organizations
-	return <OrgRedirect session={session} />;
+	// For authenticated users, check pending invitations first, then organizations
+	return <AuthenticatedRedirect session={session} />;
 }
 
-function OrgRedirect({
+function AuthenticatedRedirect({
 	session,
 }: {
 	session: NonNullable<Awaited<ReturnType<typeof authClient.getSession>>["data"]>;
 }) {
-	const { data: organizations, isPending } = authClient.useListOrganizations();
+	const trpc = useTRPC();
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		if (isPending) return;
+	// Check for pending invitations first
+	const { data: pendingInvitations, isPending: isPendingInvitations } = useQuery({
+		...trpc.member.listPendingInvitations.queryOptions(),
+		enabled: !!session,
+	});
 
+	// Check organizations
+	const { data: organizations, isPending: isPendingOrganizations } =
+		authClient.useListOrganizations();
+
+	useEffect(() => {
+		// Wait for both queries to finish loading
+		if (isPendingInvitations || isPendingOrganizations) return;
+
+		// If user has pending invitations, redirect to the first one
+		if (pendingInvitations && pendingInvitations.length > 0) {
+			const firstInvitation = pendingInvitations[0];
+			void navigate({
+				to: "/accept-invitation/$invitationId",
+				params: { invitationId: firstInvitation.id },
+			});
+			return;
+		}
+
+		// No pending invitations, check organizations
 		if (organizations && organizations.length === 0) {
-			navigate({ to: "/onboarding" });
+			void navigate({ to: "/onboarding" });
 		} else if (organizations && organizations.length > 0) {
 			const activeOrgId = session?.session?.activeOrganizationId;
 			const targetOrg = activeOrgId
@@ -44,10 +68,17 @@ function OrgRedirect({
 				: organizations[0];
 
 			if (targetOrg) {
-				navigate({ to: "/leagues/$slug", params: { slug: targetOrg.slug } });
+				void navigate({ to: "/leagues/$slug", params: { slug: targetOrg.slug } });
 			}
 		}
-	}, [organizations, isPending, navigate, session]);
+	}, [
+		pendingInvitations,
+		organizations,
+		isPendingInvitations,
+		isPendingOrganizations,
+		navigate,
+		session,
+	]);
 
 	return null;
 }

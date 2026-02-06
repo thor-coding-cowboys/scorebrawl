@@ -58,7 +58,7 @@ type CreateSeasonFormValues = z.infer<typeof createSeasonSchema>;
 interface CreateSeasonFormProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSuccess?: () => void;
+	onSuccess?: (slug: string) => void;
 }
 
 const scoreTypeConfig = {
@@ -172,10 +172,10 @@ export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFor
 				kFactor: isElo ? values.kFactor : 0,
 			};
 
-			await createMutation.mutateAsync(input);
+			const result = await createMutation.mutateAsync(input);
 
 			toast.success("Season created successfully");
-			onSuccess?.();
+			onSuccess?.(result.slug);
 			reset();
 			onClose();
 		} catch (err) {

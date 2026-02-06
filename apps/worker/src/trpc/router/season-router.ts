@@ -48,14 +48,21 @@ export const seasonRouter = {
 	findActive: leagueProcedure.query(async ({ ctx }) => {
 		return seasonRepository.findActive({
 			db: ctx.db,
-			organizationId: ctx.organizationId,
+			leagueId: ctx.organizationId,
+		});
+	}),
+
+	findAllActive: leagueProcedure.query(async ({ ctx }) => {
+		return seasonRepository.findAllActive({
+			db: ctx.db,
+			leagueId: ctx.organizationId,
 		});
 	}),
 
 	getAll: leagueProcedure.query(async ({ ctx }) => {
 		return seasonRepository.getAll({
 			db: ctx.db,
-			organizationId: ctx.organizationId,
+			leagueId: ctx.organizationId,
 		});
 	}),
 
@@ -127,7 +134,7 @@ export const seasonRouter = {
 			// Check if at least 2 players exist
 			const players = await playerRepository.getAll({
 				db: typedCtx.db,
-				organizationId: typedCtx.organizationId,
+				leagueId: typedCtx.organizationId,
 			});
 
 			if (players.length < 2) {

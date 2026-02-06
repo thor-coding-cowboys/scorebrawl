@@ -1,8 +1,9 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { member, team, teamMember, user } from "../../db/schema/auth-schema";
-import { activeOrgProcedure } from "../trpc";
+import { member, team, teamMember, user, invitation, league } from "../../db/schema/auth-schema";
+import { activeOrgProcedure, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const memberRouter = {
 	list: activeOrgProcedure
@@ -86,4 +87,96 @@ export const memberRouter = {
 				nextCursor,
 			};
 		}),
+
+	getInvitationById: protectedProcedure
+		.input(z.object({ invitationId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const { db, authentication } = ctx;
+			const userEmail = authentication.user.email;
+
+			const [inv] = await db
+				.select({
+					id: invitation.id,
+					email: invitation.email,
+					role: invitation.role,
+					status: invitation.status,
+					expiresAt: invitation.expiresAt,
+					league: {
+						id: league.id,
+						name: league.name,
+						slug: league.slug,
+						logo: league.logo,
+					},
+					inviter: {
+						id: user.id,
+						name: user.name,
+						email: user.email,
+						image: user.image,
+					},
+				})
+				.from(invitation)
+				.innerJoin(league, eq(invitation.organizationId, league.id))
+				.innerJoin(user, eq(invitation.inviterId, user.id))
+				.where(eq(invitation.id, input.invitationId))
+				.limit(1);
+
+			if (!inv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
+			}
+
+			if (inv.email !== userEmail) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "This invitation is for a different email address",
+				});
+			}
+
+			if (inv.status !== "pending") {
+				throw new TRPCError({ code: "BAD_REQUEST", message: `Invitation is ${inv.status}` });
+			}
+
+			if (new Date() > inv.expiresAt) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation has expired" });
+			}
+
+			return inv;
+		}),
+
+	listPendingInvitations: protectedProcedure.query(async ({ ctx }) => {
+		const { db, authentication } = ctx;
+		const userEmail = authentication.user.email;
+
+		const pendingInvitations = await db
+			.select({
+				id: invitation.id,
+				email: invitation.email,
+				role: invitation.role,
+				status: invitation.status,
+				expiresAt: invitation.expiresAt,
+				createdAt: invitation.createdAt,
+				league: {
+					id: league.id,
+					name: league.name,
+					slug: league.slug,
+					logo: league.logo,
+				},
+				inviter: {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					image: user.image,
+				},
+			})
+			.from(invitation)
+			.innerJoin(league, eq(invitation.organizationId, league.id))
+			.innerJoin(user, eq(invitation.inviterId, user.id))
+			.where(and(eq(invitation.email, userEmail), eq(invitation.status, "pending")))
+			.orderBy(invitation.createdAt);
+
+		// Filter out expired invitations
+		const now = new Date();
+		const validInvitations = pendingInvitations.filter((inv) => inv.expiresAt > now);
+
+		return validInvitations;
+	}),
 } satisfies TRPCRouterRecord;

@@ -122,13 +122,7 @@ export const getBySlug = async ({
 	return comp;
 };
 
-export const findActive = async ({
-	db,
-	organizationId,
-}: {
-	db: DrizzleDB;
-	organizationId: string;
-}) => {
+export const findActive = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string }) => {
 	const now = new Date();
 	const [comp] = await db
 		.select(getTableColumns(season))
@@ -136,20 +130,37 @@ export const findActive = async ({
 		.innerJoin(organization, eq(organization.id, season.leagueId))
 		.where(
 			and(
-				eq(season.leagueId, organizationId),
+				eq(season.leagueId, leagueId),
 				eq(season.closed, false),
 				lt(season.startDate, now),
 				or(isNull(season.endDate), gt(season.endDate, now))
 			)
 		);
-	return comp;
+	return comp ?? null;
 };
 
-export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizationId: string }) =>
+export const findAllActive = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string }) => {
+	const now = new Date();
+	return db
+		.select(getTableColumns(season))
+		.from(season)
+		.innerJoin(organization, eq(organization.id, season.leagueId))
+		.where(
+			and(
+				eq(season.leagueId, leagueId),
+				eq(season.closed, false),
+				lt(season.startDate, now),
+				or(isNull(season.endDate), gt(season.endDate, now))
+			)
+		)
+		.orderBy(desc(season.startDate));
+};
+
+export const getAll = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string }) =>
 	db
 		.select(getTableColumns(season))
 		.from(season)
-		.where(eq(season.leagueId, organizationId))
+		.where(eq(season.leagueId, leagueId))
 		.orderBy(desc(season.startDate));
 
 export const update = async ({

@@ -8,14 +8,14 @@ import { seasonProcedure, leagueProcedure } from "../trpc";
 
 const checkSeasonSupportsPlayerProfiles = async ({
 	db,
-	organizationId,
+	leagueId,
 }: {
 	db: any;
-	organizationId: string;
+	leagueId: string;
 }) => {
 	const activeSeason = await seasonRepository.findActive({
 		db,
-		organizationId,
+		leagueId,
 	});
 
 	if (!activeSeason) {
@@ -39,7 +39,7 @@ export const playerRouter = {
 	getAll: leagueProcedure.query(async ({ ctx }) => {
 		return playerRepository.getAll({
 			db: ctx.db,
-			organizationId: ctx.organizationId,
+			leagueId: ctx.organizationId,
 		});
 	}),
 
@@ -48,13 +48,13 @@ export const playerRouter = {
 		.query(async ({ input, ctx }) => {
 			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
-				organizationId: ctx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			const player = await playerRepository.getById({
 				db: ctx.db,
 				playerId: input.playerId,
-				organizationId: ctx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			if (!player) {
@@ -72,7 +72,7 @@ export const playerRouter = {
 		.query(async ({ input, ctx }) => {
 			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
-				organizationId: ctx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			// Get season player ID from player ID
@@ -100,7 +100,7 @@ export const playerRouter = {
 		.query(async ({ input, ctx }) => {
 			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
-				organizationId: ctx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			const seasonPlayers = await seasonPlayerRepository.findAll({
@@ -128,7 +128,7 @@ export const playerRouter = {
 		.query(async ({ input, ctx }) => {
 			await checkSeasonSupportsPlayerProfiles({
 				db: ctx.db,
-				organizationId: ctx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			const seasonPlayers = await seasonPlayerRepository.findAll({

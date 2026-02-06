@@ -77,7 +77,7 @@ const enforceActiveOrg = t.middleware(({ ctx, next }) => {
 });
 
 // Editor roles constant
-export const editorRoles = ["owner", "admin"];
+export const editorRoles = ["owner", "editor"];
 
 // League access middleware - verifies user is member of organization
 const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {

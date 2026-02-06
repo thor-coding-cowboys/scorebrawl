@@ -18,7 +18,6 @@ import { Route as AuthenticatedSidebarRouteRouteImport } from './routes/_authent
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedLeaguesIndexRouteImport } from './routes/_authenticated/leagues/index'
 import { Route as AuthenticatedOnboardingCreateLeagueRouteImport } from './routes/_authenticated/onboarding/create-league'
-import { Route as AuthenticatedSidebarTestRouteImport } from './routes/_authenticated/_sidebar/test'
 import { Route as AuthenticatedSidebarProfileRouteImport } from './routes/_authenticated/_sidebar/profile'
 import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
@@ -78,12 +77,6 @@ const AuthenticatedOnboardingCreateLeagueRoute =
     id: '/onboarding/create-league',
     path: '/onboarding/create-league',
     getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSidebarTestRoute =
-  AuthenticatedSidebarTestRouteImport.update({
-    id: '/test',
-    path: '/test',
-    getParentRoute: () => AuthenticatedSidebarRouteRoute,
   } as any)
 const AuthenticatedSidebarProfileRoute =
   AuthenticatedSidebarProfileRouteImport.update({
@@ -165,7 +158,6 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthAuthSignInRoute
   '/auth/sign-up': typeof AuthAuthSignUpRoute
   '/profile': typeof AuthenticatedSidebarProfileRoute
-  '/test': typeof AuthenticatedSidebarTestRoute
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
@@ -186,7 +178,6 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthAuthSignInRoute
   '/auth/sign-up': typeof AuthAuthSignUpRoute
   '/profile': typeof AuthenticatedSidebarProfileRoute
-  '/test': typeof AuthenticatedSidebarTestRoute
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
@@ -209,7 +200,6 @@ export interface FileRoutesById {
   '/_auth/auth/sign-in': typeof AuthAuthSignInRoute
   '/_auth/auth/sign-up': typeof AuthAuthSignUpRoute
   '/_authenticated/_sidebar/profile': typeof AuthenticatedSidebarProfileRoute
-  '/_authenticated/_sidebar/test': typeof AuthenticatedSidebarTestRoute
   '/_authenticated/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/_authenticated/leagues/': typeof AuthenticatedLeaguesIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
@@ -232,7 +222,6 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/profile'
-    | '/test'
     | '/onboarding/create-league'
     | '/leagues'
     | '/onboarding'
@@ -253,7 +242,6 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/profile'
-    | '/test'
     | '/onboarding/create-league'
     | '/leagues'
     | '/onboarding'
@@ -275,7 +263,6 @@ export interface FileRouteTypes {
     | '/_auth/auth/sign-in'
     | '/_auth/auth/sign-up'
     | '/_authenticated/_sidebar/profile'
-    | '/_authenticated/_sidebar/test'
     | '/_authenticated/onboarding/create-league'
     | '/_authenticated/leagues/'
     | '/_authenticated/onboarding/'
@@ -361,13 +348,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding/create-league'
       preLoaderRoute: typeof AuthenticatedOnboardingCreateLeagueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/_sidebar/test': {
-      id: '/_authenticated/_sidebar/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof AuthenticatedSidebarTestRouteImport
-      parentRoute: typeof AuthenticatedSidebarRouteRoute
     }
     '/_authenticated/_sidebar/profile': {
       id: '/_authenticated/_sidebar/profile'
@@ -519,14 +499,12 @@ const AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren =
 
 interface AuthenticatedSidebarRouteRouteChildren {
   AuthenticatedSidebarProfileRoute: typeof AuthenticatedSidebarProfileRoute
-  AuthenticatedSidebarTestRoute: typeof AuthenticatedSidebarTestRoute
   AuthenticatedSidebarLeaguesSlugRouteRoute: typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
 }
 
 const AuthenticatedSidebarRouteRouteChildren: AuthenticatedSidebarRouteRouteChildren =
   {
     AuthenticatedSidebarProfileRoute: AuthenticatedSidebarProfileRoute,
-    AuthenticatedSidebarTestRoute: AuthenticatedSidebarTestRoute,
     AuthenticatedSidebarLeaguesSlugRouteRoute:
       AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren,
   }

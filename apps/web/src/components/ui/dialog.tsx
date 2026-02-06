@@ -60,17 +60,16 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="pointer-events-none" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+            render={(
+              <button
+                type="button"
+                className="absolute top-2 right-2 h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent cursor-pointer bg-transparent border-0 z-50"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+                <span className="sr-only">Close</span>
+              </button>
+            )}
+          />
         )}
       </DialogPrimitive.Popup>
     </DialogPortal>

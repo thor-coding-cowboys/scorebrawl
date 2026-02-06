@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Mail01Icon,
@@ -12,6 +12,8 @@ import {
 	Loading03Icon,
 	Alert02Icon,
 } from "@hugeicons/core-free-icons";
+import { useTRPC } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/accept-invitation/$invitationId")({
 	component: AcceptInvitationPage,
@@ -20,29 +22,29 @@ export const Route = createFileRoute("/accept-invitation/$invitationId")({
 function AcceptInvitationPage() {
 	const { invitationId } = Route.useParams();
 	const navigate = useNavigate();
-	const [isLoading, setIsLoading] = useState(true);
 	const [isAccepting, setIsAccepting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const trpc = useTRPC();
 
-	const { data: session, isPending: isSessionLoading } = useSession();
+	const { data: session, isPending: isSessionLoading } = authClient.useSession();
 	const isAuthenticated = !!session?.user;
 
-	// Redirect to sign-in if not authenticated
-	useEffect(() => {
-		if (!isSessionLoading && !isAuthenticated) {
-			void navigate({
-				to: "/auth/sign-in",
-				search: { redirect: `/accept-invitation/${invitationId}` },
-			});
-		}
-	}, [isSessionLoading, isAuthenticated, invitationId, navigate]);
+	const {
+		data: invitation,
+		isLoading: isInvitationLoading,
+		error: invitationError,
+	} = useQuery({
+		...trpc.member.getInvitationById.queryOptions({ invitationId }),
+		enabled: isAuthenticated && !!invitationId,
+	});
 
-	// Stop loading once session is determined
-	useEffect(() => {
-		if (!isSessionLoading) {
-			setIsLoading(false);
-		}
-	}, [isSessionLoading]);
+	// Redirect to sign-in if not authenticated
+	if (!isSessionLoading && !isAuthenticated) {
+		void navigate({
+			to: "/auth/sign-in",
+			search: { redirect: `/accept-invitation/${invitationId}` },
+		});
+		return null;
+	}
 
 	// Handle acceptance
 	const handleAccept = async () => {
@@ -67,13 +69,9 @@ function AcceptInvitationPage() {
 					error.message?.toLowerCase().includes("match") ||
 					error.message?.toLowerCase().includes("recipient")
 				) {
-					setError(
-						"This invitation was sent to a different email address. Please sign in with the correct account."
-					);
 					toast.error(
 						"This invitation was sent to a different email address. Please sign in with the correct account."
 					);
-					// Redirect after showing the error
 					setTimeout(() => {
 						void navigate({ to: "/" });
 					}, 3000);
@@ -89,7 +87,6 @@ function AcceptInvitationPage() {
 					void navigate({ to: "/" });
 				} else {
 					toast.error(error.message || "Failed to accept invitation");
-					setError(error.message || "Failed to accept invitation");
 				}
 			} else if (data) {
 				toast.success("You have joined the league!");
@@ -97,7 +94,6 @@ function AcceptInvitationPage() {
 			}
 		} catch {
 			toast.error("An error occurred while accepting the invitation");
-			setError("An error occurred");
 		} finally {
 			setIsAccepting(false);
 		}
@@ -130,7 +126,7 @@ function AcceptInvitationPage() {
 		}
 	};
 
-	if (isLoading || isSessionLoading || !isAuthenticated) {
+	if (isSessionLoading || isInvitationLoading || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center p-4">
 				<Card className="w-full max-w-md">
@@ -143,7 +139,7 @@ function AcceptInvitationPage() {
 		);
 	}
 
-	if (error) {
+	if (invitationError) {
 		return (
 			<div className="flex min-h-screen items-center justify-center p-4">
 				<Card className="w-full max-w-md">
@@ -152,7 +148,7 @@ function AcceptInvitationPage() {
 							<HugeiconsIcon icon={Alert02Icon} className="size-8 text-red-500" />
 						</div>
 						<CardTitle className="text-xl">Cannot Accept Invitation</CardTitle>
-						<CardDescription className="text-base mt-2">{error}</CardDescription>
+						<CardDescription className="text-base mt-2">{invitationError.message}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button onClick={() => void navigate({ to: "/" })} className="w-full">
@@ -173,7 +169,45 @@ function AcceptInvitationPage() {
 					</div>
 					<CardTitle className="text-2xl">You&apos;ve been invited!</CardTitle>
 					<CardDescription className="text-base">
-						<p className="mb-2">You have been invited to join a league</p>
+						{invitation?.league ? (
+							<div className="mt-4 space-y-4">
+								<div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+									<AvatarWithFallback
+										src={invitation.league.logo}
+										name={invitation.league.name}
+										alt={invitation.league.name}
+										size="lg"
+									/>
+									<div className="text-left">
+										<p className="font-medium">{invitation.league.name}</p>
+										<p className="text-sm text-muted-foreground">League</p>
+									</div>
+								</div>
+
+								{invitation.inviter && (
+									<div className="flex items-center gap-3 text-sm text-muted-foreground">
+										<span>Invited by</span>
+										<AvatarWithFallback
+											src={invitation.inviter.image}
+											name={invitation.inviter.name}
+											alt={invitation.inviter.name}
+											size="sm"
+										/>
+										<span className="font-medium text-foreground">{invitation.inviter.name}</span>
+										{invitation.role && (
+											<>
+												<span>as</span>
+												<span className="capitalize font-medium text-foreground">
+													{invitation.role}
+												</span>
+											</>
+										)}
+									</div>
+								)}
+							</div>
+						) : (
+							<p className="mb-2">You have been invited to join a league</p>
+						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
