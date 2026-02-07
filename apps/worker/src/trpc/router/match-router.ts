@@ -20,6 +20,22 @@ export const matchRouter = {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const typedCtx = ctx as any;
 
+			// Validate teams have at least one player each
+			if (input.homeTeamPlayerIds.length === 0 || input.awayTeamPlayerIds.length === 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Each team must have at least one player",
+				});
+			}
+
+			// Validate teams have equal number of players
+			if (input.homeTeamPlayerIds.length !== input.awayTeamPlayerIds.length) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Teams must have equal number of players",
+				});
+			}
+
 			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,
 				seasonSlug: input.seasonSlug,

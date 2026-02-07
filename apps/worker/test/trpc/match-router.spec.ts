@@ -39,6 +39,76 @@ describe("match router", () => {
 		expect(match.awayScore).toBe(1);
 	});
 
+	it("fails to create match with uneven teams", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		// Create players and season
+		await createPlayers(ctx, 4);
+		const season = await client.season.create.mutate({
+			name: "Test Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		// Get season players
+		const seasonPlayers = await client.seasonPlayer.getAll.query({
+			seasonSlug: season.slug,
+		});
+
+		expect(seasonPlayers.length).toBe(4);
+
+		// Try to create match with uneven teams (3 vs 1)
+		await expect(
+			client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 1,
+				homeTeamPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id, seasonPlayers[2].id],
+				awayTeamPlayerIds: [seasonPlayers[3].id],
+			})
+		).rejects.toThrow("Teams must have equal number of players");
+	});
+
+	it("fails to create match with empty teams", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		// Create players and season
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Test Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		// Try to create match with empty home team
+		await expect(
+			client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 1,
+				homeTeamPlayerIds: [],
+				awayTeamPlayerIds: ["some-id"],
+			})
+		).rejects.toThrow("Each team must have at least one player");
+
+		// Try to create match with empty away team
+		await expect(
+			client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 1,
+				homeTeamPlayerIds: ["some-id"],
+				awayTeamPlayerIds: [],
+			})
+		).rejects.toThrow("Each team must have at least one player");
+	});
+
 	it("lists matches in season", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });

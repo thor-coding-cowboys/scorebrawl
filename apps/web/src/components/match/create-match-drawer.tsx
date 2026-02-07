@@ -49,12 +49,17 @@ type PlayerWithSelection = StandingPlayer & { team?: "home" | "away" };
 
 // --- Schema ---
 
-const createMatchSchema = z.object({
-	homeScore: z.number().int().min(0),
-	awayScore: z.number().int().min(0),
-	homePlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 home player"),
-	awayPlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 away player"),
-});
+const createMatchSchema = z
+	.object({
+		homeScore: z.number().int().min(0),
+		awayScore: z.number().int().min(0),
+		homePlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 home player"),
+		awayPlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 away player"),
+	})
+	.refine((data) => data.homePlayers.length === data.awayPlayers.length, {
+		message: "Teams must have equal number of players",
+		path: ["homePlayers"], // Show error on home players field
+	});
 
 type CreateMatchFormValues = z.infer<typeof createMatchSchema>;
 
@@ -97,6 +102,7 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 		setValue,
 		handleSubmit,
 		reset,
+		trigger,
 		formState: { errors },
 	} = useForm<CreateMatchFormValues>({
 		resolver: zodResolver(createMatchSchema),
@@ -149,14 +155,16 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 		setTeamSelection(updated);
 		setValue(
 			"homePlayers",
-			updated.filter((p) => p.team === "home").map((p) => ({ id: p.id })),
-			{ shouldValidate: true }
+			updated.filter((p) => p.team === "home").map((p) => ({ id: p.id }))
 		);
 		setValue(
 			"awayPlayers",
-			updated.filter((p) => p.team === "away").map((p) => ({ id: p.id })),
-			{ shouldValidate: true }
+			updated.filter((p) => p.team === "away").map((p) => ({ id: p.id }))
 		);
+		// Use setTimeout to ensure form state is updated before validation
+		setTimeout(() => {
+			trigger(["homePlayers", "awayPlayers"]);
+		}, 0);
 	};
 
 	const shuffleTeams = () => {
@@ -187,6 +195,10 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 			"awayPlayers",
 			updated.filter((p) => p.team === "away").map((p) => ({ id: p.id }))
 		);
+		// Use setTimeout to ensure form state is updated before validation
+		setTimeout(() => {
+			trigger(["homePlayers", "awayPlayers"]);
+		}, 0);
 	};
 
 	const evenTeams = () => {
@@ -225,10 +237,13 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 			"awayPlayers",
 			updated.filter((p) => p.team === "away").map((p) => ({ id: p.id }))
 		);
+		// Use setTimeout to ensure form state is updated before validation
+		setTimeout(() => {
+			trigger(["homePlayers", "awayPlayers"]);
+		}, 0);
 	};
 
 	const selectedCount = teamSelection.filter((p) => p.team).length;
-	const canReorder = selectedCount > 0 && selectedCount % 2 === 0;
 
 	const isSeasonActive = (() => {
 		if (!season) return true;
@@ -243,6 +258,8 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 
 	const homePlayers = teamSelection.filter((p) => p.team === "home");
 	const awayPlayers = teamSelection.filter((p) => p.team === "away");
+	const canReorder =
+		selectedCount > 0 && selectedCount % 2 === 0 && homePlayers.length === awayPlayers.length;
 
 	const handleClose = () => {
 		reset();
@@ -294,8 +311,8 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 
 							{/* Team Roster Cards */}
 							<div className="grid grid-cols-2 gap-4">
-								<TeamRosterCard label="Home" players={homePlayers} />
-								<TeamRosterCard label="Away" players={awayPlayers} />
+								<TeamRosterCard label="Home" players={homePlayers} count={homePlayers.length} />
+								<TeamRosterCard label="Away" players={awayPlayers} count={awayPlayers.length} />
 							</div>
 
 							{/* Add Players Button */}
@@ -317,6 +334,17 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 								{errors.awayPlayers?.message && (
 									<p className="text-destructive text-xs font-mono">{errors.awayPlayers.message}</p>
 								)}
+								{errors.root?.message && (
+									<p className="text-destructive text-xs font-mono">{errors.root.message}</p>
+								)}
+								{homePlayers.length !== awayPlayers.length &&
+									homePlayers.length > 0 &&
+									awayPlayers.length > 0 && (
+										<div className="flex items-center gap-1.5 text-xs text-amber-600">
+											<HugeiconsIcon icon={Alert01Icon} className="size-3.5" />
+											Teams have unequal players ({homePlayers.length} vs {awayPlayers.length})
+										</div>
+									)}
 								{!isSeasonActive && (
 									<div className="flex items-center gap-1.5 text-xs text-amber-600">
 										<HugeiconsIcon icon={Alert01Icon} className="size-3.5" />
@@ -334,7 +362,7 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 									type="submit"
 									glowColor={glowColors.blue}
 									className="flex-1 font-mono"
-									disabled={createMutation.isPending}
+									disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
 								>
 									{createMutation.isPending ? "Creating..." : "Create Match"}
 								</GlowButton>
@@ -399,13 +427,26 @@ function ScoreStepper({
 
 // --- Team Roster Card ---
 
-function TeamRosterCard({ label, players }: { label: string; players: PlayerWithSelection[] }) {
+function TeamRosterCard({
+	label,
+	players,
+	count,
+}: {
+	label: string;
+	players: PlayerWithSelection[];
+	count: number;
+}) {
 	return (
 		<div className="border border-border">
 			<div className="px-3 py-2 border-b border-border bg-muted/30">
-				<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
-					{label} Team
-				</span>
+				<div className="flex items-center justify-between">
+					<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
+						{label} Team
+					</span>
+					<span className="text-xs font-mono text-muted-foreground">
+						{count} player{count !== 1 ? "s" : ""}
+					</span>
+				</div>
 			</div>
 			<div className="h-32 overflow-y-auto p-2">
 				{players.length === 0 ? (
