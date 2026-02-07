@@ -31,6 +31,9 @@ config.d1_databases[0].database_name = dbName;
 config.d1_databases[0].migrations_dir = "./apps/worker/migrations";
 config.r2_buckets[0].bucket_name = bucketName;
 
+// Remove custom domain routes for preview
+config.routes = undefined;
+
 // Write preview config
 const previewConfigPath = "wrangler.preview.jsonc";
 await Bun.write(previewConfigPath, JSON.stringify(config, null, "\t"));

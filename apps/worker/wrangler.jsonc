@@ -28,6 +28,12 @@
 		"R2_ACCOUNT_ID": "",
 		"USER_ASSETS_BUCKET_NAME": "scorebrawl-user-assets"
 	},
+	"routes": [
+		{
+			"pattern": "scorebrawl.com",
+			"custom_domain": true
+		}
+	],
 	"upload_source_maps": true,
 	"assets": {
 		"directory": "../../apps/web/dist/client",
