@@ -60,10 +60,76 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(desc(seasonPlayer.score));
 
+	// Calculate point differences for today's matches (final implementation)
+	const pointDiff: { seasonPlayerId: string; pointDiff: number }[] = [];
+
+	try {
+		// Get all matches from today using a more robust date comparison
+		const todayMatches = await db
+			.select({
+				seasonPlayerId: matchPlayer.seasonPlayerId,
+				scoreAfter: matchPlayer.scoreAfter,
+				scoreBefore: matchPlayer.scoreBefore,
+				createdAt: matchPlayer.createdAt,
+			})
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.where(
+				and(
+					eq(seasonPlayer.seasonId, seasonId),
+					// Convert Unix timestamp to date string for proper comparison
+					sql`strftime('%Y-%m-%d', datetime(${matchPlayer.createdAt}, 'unixepoch')) = strftime('%Y-%m-%d', 'now', 'localtime')`
+				)
+			);
+
+		// Calculate net point differences for each player today
+		const pointDiffMap = new Map<string, number>();
+		for (const match of todayMatches) {
+			const currentDiff = pointDiffMap.get(match.seasonPlayerId) || 0;
+			const matchDiff = match.scoreAfter - match.scoreBefore;
+			pointDiffMap.set(match.seasonPlayerId, currentDiff + matchDiff);
+		}
+
+		// Convert to array format
+		for (const [seasonPlayerId, diff] of pointDiffMap) {
+			pointDiff.push({ seasonPlayerId, pointDiff: diff });
+		}
+	} catch (error) {
+		console.error("Error calculating point diff:", error);
+		// Continue with empty pointDiff array if there's an error
+	}
+
+	// Get recent match form (last 5 results)
+	const recentForms = await db
+		.select({
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			result: matchPlayer.result,
+			createdAt: matchPlayer.createdAt,
+		})
+		.from(matchPlayer)
+		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+		.where(eq(seasonPlayer.seasonId, seasonId))
+		.orderBy(desc(matchPlayer.createdAt));
+
+	// Group form data by player and take last 5 matches
+	const formMap = recentForms.reduce(
+		(acc, match) => {
+			if (!acc[match.seasonPlayerId]) {
+				acc[match.seasonPlayerId] = [];
+			}
+			if (acc[match.seasonPlayerId].length < 5) {
+				acc[match.seasonPlayerId].push(match.result as "W" | "D" | "L");
+			}
+			return acc;
+		},
+		{} as Record<string, ("W" | "D" | "L")[]>
+	);
+
 	return results.map((r, index) => ({
 		...r,
 		rank: index + 1,
-		pointDiff: r.winCount * 3 + r.drawCount - (results[0]?.score || 0),
+		pointDiff: pointDiff.find((pd) => pd.seasonPlayerId === r.id)?.pointDiff ?? 0,
+		form: formMap[r.id] || [],
 	}));
 };
 

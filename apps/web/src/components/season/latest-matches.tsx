@@ -135,10 +135,33 @@ function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
 	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
 
 	const formatDate = (date: Date) => {
-		return new Date(date).toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-		});
+		const now = new Date();
+		const matchDate = new Date(date);
+
+		// Check if the match was today (same year, month, and day)
+		const isToday =
+			now.getFullYear() === matchDate.getFullYear() &&
+			now.getMonth() === matchDate.getMonth() &&
+			now.getDate() === matchDate.getDate();
+
+		if (isToday) {
+			// Calculate time difference in minutes
+			const diffMs = now.getTime() - matchDate.getTime();
+			const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+			if (diffMinutes < 60) {
+				return diffMinutes <= 1 ? "1m ago" : `${diffMinutes}m ago`;
+			} else {
+				const diffHours = Math.floor(diffMinutes / 60);
+				return `${diffHours}h ago`;
+			}
+		} else {
+			// Show regular date format for older matches
+			return matchDate.toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+			});
+		}
 	};
 
 	return (

@@ -1,17 +1,4 @@
-import {
-	and,
-	asc,
-	desc,
-	eq,
-	getTableColumns,
-	gt,
-	gte,
-	isNull,
-	lt,
-	lte,
-	or,
-	sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, isNull, lt, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { league as organization } from "../db/schema/auth-schema";
 import {
@@ -48,31 +35,6 @@ export interface SeasonEditInput {
 	kFactor?: number;
 	userId: string;
 }
-
-export const findOverlappingSeason = async ({
-	db,
-	leagueId,
-	startDate,
-	endDate,
-}: {
-	db: DrizzleDB;
-	leagueId: string;
-	startDate: Date;
-	endDate?: Date;
-}) => {
-	const [comp] = await db
-		.select()
-		.from(season)
-		.where(
-			and(
-				eq(season.leagueId, leagueId),
-				lte(season.startDate, endDate ?? new Date("2099-12-31")),
-				or(isNull(season.endDate), gte(season.endDate, startDate))
-			)
-		)
-		.limit(1);
-	return comp;
-};
 
 export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSlug: string }) => {
 	const [matchCount] = await db
