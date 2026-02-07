@@ -93,9 +93,11 @@
 		"cf-typegen": "bun --cwd apps/worker cf-typegen"
 	},
 	"devDependencies": {
+		"@types/pg": "^8.16.0",
 		"@typescript/native-preview": "catalog:",
 		"oxfmt": "^0.17.0",
 		"oxlint": "^0.17.0",
+		"pg": "^8.18.0",
 		"turbo": "^2.8.3",
 		"typescript": "catalog:"
 	},
