@@ -37,7 +37,6 @@ export const player = sqliteTable(
 	},
 	(table) => [
 		uniqueIndex("player_organization_user_uidx").on(table.leagueId, table.userId),
-		index("player_organization_id_idx").on(table.leagueId),
 		index("player_user_id_idx").on(table.userId),
 	]
 );
@@ -69,7 +68,6 @@ export const orgTeamPlayer = sqliteTable(
 	},
 	(table) => [
 		uniqueIndex("org_team_player_team_player_uidx").on(table.orgTeamId, table.playerId),
-		index("org_team_player_team_id_idx").on(table.orgTeamId),
 		index("org_team_player_player_id_idx").on(table.playerId),
 	]
 );
@@ -95,10 +93,7 @@ export const season = sqliteTable(
 		updatedBy: text("updated_by").notNull(),
 		...timestampAuditFields,
 	},
-	(table) => [
-		uniqueIndex("season_slug_uidx").on(table.leagueId, table.slug),
-		index("season_organization_id_idx").on(table.leagueId),
-	]
+	(table) => [uniqueIndex("season_slug_uidx").on(table.leagueId, table.slug)]
 );
 
 export const seasonPlayer = sqliteTable(
@@ -117,7 +112,6 @@ export const seasonPlayer = sqliteTable(
 	},
 	(table) => [
 		uniqueIndex("season_player_season_player_uidx").on(table.seasonId, table.playerId),
-		index("season_player_season_id_idx").on(table.seasonId),
 		index("season_player_player_id_idx").on(table.playerId),
 	]
 );
@@ -137,7 +131,6 @@ export const seasonTeam = sqliteTable(
 	},
 	(table) => [
 		uniqueIndex("season_team_season_team_uidx").on(table.seasonId, table.orgTeamId),
-		index("season_team_season_id_idx").on(table.seasonId),
 		index("season_team_org_team_id_idx").on(table.orgTeamId),
 	]
 );
@@ -157,10 +150,7 @@ export const match = sqliteTable(
 		updatedBy: text("updated_by").notNull(),
 		...timestampAuditFields,
 	},
-	(table) => [
-		index("match_season_id_idx").on(table.seasonId),
-		index("match_created_at_idx").on(table.createdAt),
-	]
+	(table) => [index("match_season_created_idx").on(table.seasonId, table.createdAt)]
 );
 
 export const matchPlayer = sqliteTable(
@@ -180,8 +170,9 @@ export const matchPlayer = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		index("match_player_season_player_id_idx").on(table.seasonPlayerId),
 		index("match_player_match_id_idx").on(table.matchId),
+		index("match_player_season_player_result_idx").on(table.seasonPlayerId, table.result),
+		index("match_player_season_player_created_idx").on(table.seasonPlayerId, table.createdAt),
 	]
 );
 
@@ -240,8 +231,5 @@ export const playerAchievement = sqliteTable(
 		type: text("type", { enum: achievementType }).notNull(),
 		...timestampAuditFields,
 	},
-	(table) => [
-		uniqueIndex("player_achievement_player_type_uidx").on(table.playerId, table.type),
-		index("player_achievement_player_id_idx").on(table.playerId),
-	]
+	(table) => [uniqueIndex("player_achievement_player_type_uidx").on(table.playerId, table.type)]
 );
