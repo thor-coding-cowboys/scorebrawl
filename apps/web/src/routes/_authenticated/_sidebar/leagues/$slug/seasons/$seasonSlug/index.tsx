@@ -46,13 +46,14 @@ function SeasonDashboardPage() {
 	const canCreateMatches = role === "owner" || role === "editor";
 
 	const { data: season, error } = useQuery({
-		queryKey: ["season", slug, seasonSlug],
+		queryKey: ["season", seasonSlug],
 		queryFn: async () => {
 			return await trpcClient.season.getBySlug.query({ seasonSlug });
 		},
 	});
 
-	// Redirect to seasons list if season not found
+	const seasonId = season?.id;
+
 	useEffect(() => {
 		if (error) {
 			navigate({
@@ -111,8 +112,12 @@ function SeasonDashboardPage() {
 				<DashboardCards slug={slug} seasonSlug={seasonSlug} />
 				<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 					<div className="flex flex-col gap-4">
-						<StandingTabs slug={slug} seasonSlug={seasonSlug} />
-						<LatestMatches slug={slug} seasonSlug={seasonSlug} />
+						{seasonId && (
+							<>
+								<StandingTabs seasonId={seasonId} seasonSlug={seasonSlug} />
+								<LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />
+							</>
+						)}
 					</div>
 					<div className="flex flex-col gap-4">
 						{!isEloSeason && season && (
@@ -123,11 +128,11 @@ function SeasonDashboardPage() {
 					</div>
 				</div>
 			</div>
-			{isEloSeason && (
+			{isEloSeason && seasonId && (
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
-					slug={slug}
+					seasonId={seasonId}
 					seasonSlug={seasonSlug}
 				/>
 			)}

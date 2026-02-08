@@ -1,14 +1,19 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
-import { seasonProcedure, leagueEditorProcedure } from "../trpc";
+import { seasonProcedure, leagueEditorProcedure, type LeagueContext } from "../trpc";
+
+// Schema for optional match ID validation
+const matchIdSchema = createOptionalIdSchema("match");
 
 export const matchRouter = {
 	create: leagueEditorProcedure
 		.input(
 			z.object({
+				id: matchIdSchema,
 				seasonSlug: z.string(),
 				homeScore: z.number().int().min(0),
 				awayScore: z.number().int().min(0),
@@ -17,8 +22,7 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const typedCtx = ctx as any;
+			const typedCtx = ctx as unknown as LeagueContext;
 
 			// Validate teams have at least one player each
 			if (input.homeTeamPlayerIds.length === 0 || input.awayTeamPlayerIds.length === 0) {
@@ -49,9 +53,30 @@ export const matchRouter = {
 				});
 			}
 
+			// If an ID is provided, verify it doesn't already exist
+			if (input.id) {
+				try {
+					await matchRepository.findById({
+						db: typedCtx.db,
+						matchId: input.id,
+						seasonId: comp.id,
+					});
+					// If we get here, the match exists
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "A match with this ID already exists",
+					});
+				} catch (error) {
+					// If it's our conflict error, rethrow it
+					if (error instanceof TRPCError) throw error;
+					// Otherwise, the match doesn't exist (expected), continue
+				}
+			}
+
 			return matchRepository.create({
 				db: typedCtx.db,
 				input: {
+					id: input.id,
 					seasonId: comp.id,
 					homeScore: input.homeScore,
 					awayScore: input.awayScore,

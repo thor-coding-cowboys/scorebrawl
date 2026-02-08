@@ -30,6 +30,7 @@ import { Route as AuthenticatedSidebarLeaguesSlugInvitationsRouteImport } from '
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/index'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/route'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/index'
+import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -148,6 +149,13 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute =
     getParentRoute: () =>
       AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute,
   } as any)
+const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute =
+  AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRouteImport.update({
+    id: '/matches',
+    path: '/matches',
+    getParentRoute: () =>
+      AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -167,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/leagues/$slug/': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren
   '/leagues/$slug/seasons': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
+  '/leagues/$slug/seasons/$seasonSlug/matches': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute
   '/leagues/$slug/seasons/$seasonSlug/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -185,6 +194,7 @@ export interface FileRoutesByTo {
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/leagues/$slug/seasons': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
+  '/leagues/$slug/seasons/$seasonSlug/matches': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute
   '/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -209,6 +219,7 @@ export interface FileRoutesById {
   '/_authenticated/_sidebar/leagues/$slug/': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren
   '/_authenticated/_sidebar/leagues/$slug/seasons/': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
+  '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/leagues/$slug/'
     | '/leagues/$slug/seasons/$seasonSlug'
     | '/leagues/$slug/seasons'
+    | '/leagues/$slug/seasons/$seasonSlug/matches'
     | '/leagues/$slug/seasons/$seasonSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -249,6 +261,7 @@ export interface FileRouteTypes {
     | '/leagues/$slug/members'
     | '/leagues/$slug'
     | '/leagues/$slug/seasons'
+    | '/leagues/$slug/seasons/$seasonSlug/matches'
     | '/leagues/$slug/seasons/$seasonSlug'
   id:
     | '__root__'
@@ -272,6 +285,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_sidebar/leagues/$slug/'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/'
+    | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/'
   fileRoutesById: FileRoutesById
 }
@@ -432,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRouteImport
       parentRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute
     }
+    '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches': {
+      id: '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches'
+      path: '/matches'
+      fullPath: '/leagues/$slug/seasons/$seasonSlug/matches'
+      preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRouteImport
+      parentRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute
+    }
   }
 }
 
@@ -452,11 +473,14 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 )
 
 interface AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteChildren {
+  AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute
   AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
 }
 
 const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteChildren: AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteChildren =
   {
+    AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute:
+      AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRoute,
     AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute:
       AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute,
   }

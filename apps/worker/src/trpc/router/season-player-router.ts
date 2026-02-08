@@ -28,7 +28,7 @@ export const seasonPlayerRouter = {
 		return seasonPlayerRepository.isUserInSeason({
 			db: ctx.db,
 			seasonId: ctx.season.id,
-			userId: ctx.authentication.user.id,
+			userId: (ctx as { authentication: { user: { id: string } } }).authentication.user.id,
 		});
 	}),
 

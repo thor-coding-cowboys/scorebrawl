@@ -5,14 +5,20 @@ interface OverviewCardProps {
 	title: string;
 	description?: string;
 	children: ReactNode;
+	action?: ReactNode;
 }
 
-export function OverviewCard({ title, description, children }: OverviewCardProps) {
+export function OverviewCard({ title, description, children, action }: OverviewCardProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>{title}</CardTitle>
-				{description && <CardDescription>{description}</CardDescription>}
+				<div className="flex items-center justify-between">
+					<div>
+						<CardTitle>{title}</CardTitle>
+						{description && <CardDescription>{description}</CardDescription>}
+					</div>
+					{action && <div>{action}</div>}
+				</div>
 			</CardHeader>
 			<CardContent>{children}</CardContent>
 		</Card>

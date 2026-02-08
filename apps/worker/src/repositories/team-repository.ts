@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
-import { orgTeam, orgTeamPlayer, player } from "../db/schema/league-schema";
+import { leagueTeam, leagueTeamPlayer, player } from "../db/schema/league-schema";
 
 export const getAll = async ({ db, organizationId }: { db: DrizzleDB; organizationId: string }) => {
-	return db.select().from(orgTeam).where(eq(orgTeam.leagueId, organizationId));
+	return db.select().from(leagueTeam).where(eq(leagueTeam.leagueId, organizationId));
 };
 
 export const getById = async ({
@@ -17,8 +17,8 @@ export const getById = async ({
 }) => {
 	const [t] = await db
 		.select()
-		.from(orgTeam)
-		.where(and(eq(orgTeam.id, teamId), eq(orgTeam.leagueId, organizationId)))
+		.from(leagueTeam)
+		.where(and(eq(leagueTeam.id, teamId), eq(leagueTeam.leagueId, organizationId)))
 		.limit(1);
 	return t;
 };
@@ -29,9 +29,9 @@ export const getTeamPlayers = async ({ db, teamId }: { db: DrizzleDB; teamId: st
 			id: player.id,
 			userId: player.userId,
 		})
-		.from(orgTeamPlayer)
-		.innerJoin(player, eq(orgTeamPlayer.playerId, player.id))
-		.where(eq(orgTeamPlayer.orgTeamId, teamId));
+		.from(leagueTeamPlayer)
+		.innerJoin(player, eq(leagueTeamPlayer.playerId, player.id))
+		.where(eq(leagueTeamPlayer.leagueTeamId, teamId));
 };
 
 export const addPlayerToTeam = async ({
@@ -44,9 +44,9 @@ export const addPlayerToTeam = async ({
 	playerId: string;
 }) => {
 	const now = new Date();
-	await db.insert(orgTeamPlayer).values({
+	await db.insert(leagueTeamPlayer).values({
 		id: crypto.randomUUID(),
-		orgTeamId: teamId,
+		leagueTeamId: teamId,
 		playerId,
 		createdAt: now,
 		updatedAt: now,
@@ -63,6 +63,6 @@ export const removePlayerFromTeam = async ({
 	playerId: string;
 }) => {
 	await db
-		.delete(orgTeamPlayer)
-		.where(and(eq(orgTeamPlayer.orgTeamId, teamId), eq(orgTeamPlayer.playerId, playerId)));
+		.delete(leagueTeamPlayer)
+		.where(and(eq(leagueTeamPlayer.leagueTeamId, teamId), eq(leagueTeamPlayer.playerId, playerId)));
 };
