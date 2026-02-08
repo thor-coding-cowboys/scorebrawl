@@ -6,6 +6,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTRPC, trpcClient } from "@/lib/trpc";
+import { queryClient } from "@/lib/query-client";
 import { slugify } from "@/lib/slug";
 import {
 	Award01Icon,
@@ -82,7 +83,12 @@ export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFor
 	const [endDateOpen, setEndDateOpen] = useState(false);
 	const [slugTouched, setSlugTouched] = useState(false);
 
-	const createMutation = useMutation(trpc.season.create.mutationOptions());
+	const createMutation = useMutation({
+		...trpc.season.create.mutationOptions(),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["seasons"] });
+		},
+	});
 
 	const {
 		register,

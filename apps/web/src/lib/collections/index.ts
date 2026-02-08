@@ -1,4 +1,3 @@
-export { createSeasonCollection, useSeasons, seasonSchema, type Season } from "./season-collection";
 export {
 	createMatchCollection,
 	useMatches,

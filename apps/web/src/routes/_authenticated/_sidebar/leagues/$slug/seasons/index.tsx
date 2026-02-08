@@ -29,11 +29,11 @@ import {
 	PencilEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
-import { useSeasons } from "@/lib/collections";
+import { trpcClient, type RouterOutput } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
 import { CreateSeasonForm } from "@/components/seasons/create-season-form";
 import { EditSeasonForm } from "@/components/seasons/edit-season-form";
 import { CloseSeasonDialog } from "@/components/seasons/close-season-dialog";
-import type { Season } from "@/lib/collections/season-collection";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/")({
 	component: SeasonsPage,
@@ -41,6 +41,8 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 		return { slug: params.slug };
 	},
 });
+
+type Season = RouterOutput["season"]["getAll"][number];
 
 function truncateSlug(slug: string, maxLength = 10): string {
 	if (slug.length <= maxLength) return slug;
@@ -144,13 +146,17 @@ function SeasonsPage() {
 	const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
 
 	const { data: activeMember } = authClient.useActiveMember();
-	const leagueId = activeMember?.organizationId;
 	const role = activeMember?.role;
 	const canAccess = role === "owner" || role === "editor" || role === "member" || role === "viewer";
 	const canCreate = role === "owner" || role === "editor";
 
-	// Use season collection - must call hooks unconditionally
-	const seasonCollection = useSeasons(leagueId || "");
+	const { data: seasons } = useQuery({
+		queryKey: ["seasons", slug],
+		queryFn: async () => {
+			return await trpcClient.season.getAll.query();
+		},
+		enabled: canAccess,
+	});
 
 	useEffect(() => {
 		if (role && !canAccess) {
@@ -164,11 +170,11 @@ function SeasonsPage() {
 	}, [role, canAccess, navigate, slug]);
 
 	const seasonsData = useMemo(() => {
-		if (!seasonCollection) return [];
-		return seasonCollection.seasons.sort(
-			(a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+		if (!seasons) return [];
+		return seasons.sort(
+			(a: Season, b: Season) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
 		);
-	}, [seasonCollection]);
+	}, [seasons]);
 
 	const stats = useMemo(() => {
 		if (!seasonsData) return { total: 0, active: 0, upcoming: 0, ended: 0 };
@@ -379,13 +385,7 @@ function SeasonsPage() {
 					</div>
 				</div>
 			</div>
-			<CreateSeasonForm
-				isOpen={isCreateDialogOpen}
-				onClose={() => setIsCreateDialogOpen(false)}
-				onSuccess={() => {
-					// Collection will auto-update via SSE
-				}}
-			/>
+			<CreateSeasonForm isOpen={isCreateDialogOpen} onClose={() => setIsCreateDialogOpen(false)} />
 			<EditSeasonForm
 				isOpen={isEditDialogOpen}
 				onClose={() => {
@@ -393,7 +393,6 @@ function SeasonsPage() {
 					setSelectedSeason(null);
 				}}
 				onSuccess={() => {
-					// Collection will auto-update via SSE
 					setSelectedSeason(null);
 				}}
 				// @ts-ignore - Collection Season type differs from form Season type
@@ -406,7 +405,6 @@ function SeasonsPage() {
 					setSelectedSeason(null);
 				}}
 				onSuccess={() => {
-					// Collection will auto-update via SSE
 					setSelectedSeason(null);
 				}}
 				// @ts-ignore - Collection Season type differs from form Season type
