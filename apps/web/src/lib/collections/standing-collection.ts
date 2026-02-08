@@ -33,7 +33,7 @@ function createStandingCollectionInternal(seasonId: string, seasonSlug: string) 
 			queryClient,
 			schema: standingPlayerSchema,
 			getKey: (item) => item.id,
-			refetchInterval: 5000, // Poll every 5 seconds for real-time updates
+			// SSE handles real-time updates, no need for polling
 			queryFn: async () => {
 				const standings = await trpcClient.seasonPlayer.getStanding.query({
 					seasonSlug,

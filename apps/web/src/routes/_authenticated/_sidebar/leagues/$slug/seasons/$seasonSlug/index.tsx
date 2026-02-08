@@ -15,6 +15,7 @@ import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/hooks/useSession";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { DashboardCards } from "@/components/season/dashboard-cards";
 import { StandingTabs } from "@/components/season/standing-tabs";
@@ -22,6 +23,7 @@ import { LatestMatches } from "@/components/season/latest-matches";
 import { Fixtures } from "@/components/season/fixtures";
 import { OverviewCard } from "@/components/season/overview-card";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
+import { useSeasonSSE } from "@/hooks/use-season-sse";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/")(
 	{
@@ -41,6 +43,7 @@ function SeasonDashboardPage() {
 	const { slug, seasonSlug } = Route.useLoaderData();
 	const navigate = useNavigate();
 
+	const { data: session } = useSession();
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor";
@@ -53,6 +56,15 @@ function SeasonDashboardPage() {
 	});
 
 	const seasonId = season?.id;
+
+	// Connect to SSE for real-time updates
+	useSeasonSSE({
+		leagueSlug: slug,
+		seasonSlug,
+		seasonId: seasonId ?? "",
+		currentUserId: session?.user.id,
+		enabled: !!seasonId,
+	});
 
 	useEffect(() => {
 		if (error) {

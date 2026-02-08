@@ -4,7 +4,14 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
-import { seasonProcedure, leagueEditorProcedure, type LeagueContext } from "../trpc";
+import * as seasonPlayerRepository from "../../repositories/season-player-repository";
+import { broadcastSeasonEvent } from "../../routes/sse-router";
+import {
+	seasonProcedure,
+	leagueEditorProcedure,
+	type LeagueContext,
+	type SeasonContext,
+} from "../trpc";
 
 // Schema for optional match ID validation
 const matchIdSchema = createOptionalIdSchema("match");
@@ -73,18 +80,50 @@ export const matchRouter = {
 				}
 			}
 
-			return matchRepository.create({
-				db: typedCtx.db,
-				input: {
-					id: input.id,
-					seasonId: comp.id,
-					homeScore: input.homeScore,
-					awayScore: input.awayScore,
-					homeTeamPlayerIds: input.homeTeamPlayerIds,
-					awayTeamPlayerIds: input.awayTeamPlayerIds,
-					userId: typedCtx.authentication.user.id,
-				},
-			});
+			return matchRepository
+				.create({
+					db: typedCtx.db,
+					input: {
+						id: input.id,
+						seasonId: comp.id,
+						homeScore: input.homeScore,
+						awayScore: input.awayScore,
+						homeTeamPlayerIds: input.homeTeamPlayerIds,
+						awayTeamPlayerIds: input.awayTeamPlayerIds,
+						userId: typedCtx.authentication.user.id,
+					},
+				})
+				.then(async (createdMatch) => {
+					// Fetch updated standings
+					const standings = await seasonPlayerRepository.getStanding({
+						db: typedCtx.db,
+						seasonId: comp.id,
+					});
+
+					// Broadcast match insert and standings update
+					const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+					console.log("[SSE] Broadcasting match:insert", {
+						hasSseEnv: !!sseEnv.SEASON_SSE,
+						leagueSlug: typedCtx.organization.slug,
+						seasonSlug: input.seasonSlug,
+					});
+					if (sseEnv.SEASON_SSE) {
+						await broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+							type: "match:insert",
+							data: {
+								match: createdMatch,
+								standings,
+							},
+							user: {
+								id: typedCtx.authentication.user.id,
+								name: typedCtx.authentication.user.name,
+							},
+						});
+						console.log("[SSE] Broadcast complete");
+					}
+
+					return createdMatch;
+				});
 		}),
 
 	remove: seasonProcedure
@@ -95,11 +134,35 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
+			const typedCtx = ctx as unknown as SeasonContext;
+
 			await matchRepository.remove({
 				db: ctx.db,
 				matchId: input.matchId,
 				seasonId: ctx.season.id,
 			});
+
+			// Fetch updated standings
+			const standings = await seasonPlayerRepository.getStanding({
+				db: ctx.db,
+				seasonId: ctx.season.id,
+			});
+
+			// Broadcast match delete and standings update
+			const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+			if (sseEnv.SEASON_SSE) {
+				broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+					type: "match:delete",
+					data: {
+						matchId: input.matchId,
+						standings,
+					},
+					user: {
+						id: typedCtx.authentication.user.id,
+						name: typedCtx.authentication.user.name,
+					},
+				});
+			}
 
 			return { success: true };
 		}),

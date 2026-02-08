@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { getDb } from "../db";
 import { member, league as organization } from "../db/schema/auth-schema";
 import { season } from "../db/schema/league-schema";
-import type { AuthType } from "../middleware/context";
+import type { AuthType, HonoEnv } from "../middleware/context";
 import type { R2BucketRef } from "../lib/asset-util";
 
 // Base context type
@@ -15,6 +15,7 @@ interface BaseContext {
 	db: ReturnType<typeof getDb>;
 	betterAuth: ReturnType<typeof betterAuth>;
 	userAssets: R2BucketRef;
+	env: HonoEnv["Bindings"];
 }
 
 // Extended context types
