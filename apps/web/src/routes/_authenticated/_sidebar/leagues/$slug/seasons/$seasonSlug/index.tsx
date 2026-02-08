@@ -19,11 +19,13 @@ import { useSession } from "@/hooks/useSession";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { DashboardCards } from "@/components/season/dashboard-cards";
 import { StandingTabs } from "@/components/season/standing-tabs";
+import { TeamStandingCard } from "@/components/season/team-standing-card";
 import { LatestMatches } from "@/components/season/latest-matches";
 import { Fixtures } from "@/components/season/fixtures";
 import { OverviewCard } from "@/components/season/overview-card";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
+import { useTeamStandings } from "@/lib/collections";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/")(
 	{
@@ -65,6 +67,9 @@ function SeasonDashboardPage() {
 		currentUserId: session?.user.id,
 		enabled: !!seasonId,
 	});
+
+	const { teamStandings } = useTeamStandings(seasonId ?? "", seasonSlug);
+	const hasTeams = teamStandings.length > 0;
 
 	useEffect(() => {
 		if (error) {
@@ -122,23 +127,24 @@ function SeasonDashboardPage() {
 			</Header>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<DashboardCards seasonSlug={seasonSlug} />
-				<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+				<div className="grid gap-4 grid-cols-1 lg:grid-cols-2 lg:items-start">
 					<div className="flex flex-col gap-4">
-						{seasonId && (
-							<>
-								<StandingTabs seasonId={seasonId} seasonSlug={seasonSlug} />
-								<LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />
-							</>
-						)}
-					</div>
-					<div className="flex flex-col gap-4">
+						{seasonId && <StandingTabs seasonId={seasonId} seasonSlug={seasonSlug} />}
 						{!isEloSeason && season && (
 							<OverviewCard title="Fixtures">
 								<Fixtures slug={slug} seasonSlug={seasonSlug} />
 							</OverviewCard>
 						)}
 					</div>
+					<div className="flex flex-col gap-4 lg:h-full">
+						{hasTeams && seasonId ? (
+							<TeamStandingCard seasonId={seasonId} seasonSlug={seasonSlug} />
+						) : (
+							seasonId && <LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />
+						)}
+					</div>
 				</div>
+				{hasTeams && seasonId && <LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />}
 			</div>
 			{isEloSeason && seasonId && (
 				<CreateMatchDialog

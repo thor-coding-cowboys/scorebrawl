@@ -8,41 +8,12 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { FormDots } from "@/components/ui/form-dots";
 import { cn } from "@/lib/utils";
 
 interface StandingProps {
 	seasonId: string;
 	seasonSlug: string;
-}
-
-function FormDots({ form }: { form: ("W" | "D" | "L")[] | undefined }) {
-	if (!form || form.length === 0) {
-		return (
-			<div className="flex gap-1 justify-center">
-				<span className="text-muted-foreground text-xs">-</span>
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex gap-1 justify-center">
-			{form.map((result, index) => {
-				let className = "w-2 h-2 rounded-full";
-				switch (result) {
-					case "W":
-						className += " bg-green-600";
-						break;
-					case "D":
-						className += " bg-yellow-600";
-						break;
-					case "L":
-						className += " bg-red-600";
-						break;
-				}
-				return <div key={`form-${index}-${result}`} className={className} />;
-			})}
-		</div>
-	);
 }
 
 export function Standing({ seasonId, seasonSlug }: StandingProps) {

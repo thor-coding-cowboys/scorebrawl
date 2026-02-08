@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
 import { createMatchCollection } from "@/lib/collections/match-collection";
 import { createStandingCollection } from "@/lib/collections/standing-collection";
+import { createTeamStandingCollection } from "@/lib/collections/team-standing-collection";
 
 export interface SeasonSSEEvent {
 	type: "connected" | "match:insert" | "match:delete" | "standings:update";
@@ -96,6 +97,7 @@ export function useSeasonSSE({
 
 					const matchCollection = createMatchCollection(seasonId, seasonSlug);
 					const standingCollection = createStandingCollection(seasonId, seasonSlug);
+					const teamStandingCollection = createTeamStandingCollection(seasonId, seasonSlug);
 
 					// Use refetch to update the collections - this is safer than direct writes
 					// as it handles the case where the collection might not be fully initialized
@@ -113,6 +115,10 @@ export function useSeasonSSE({
 					) {
 						standingCollection.utils.refetch().catch((err) => {
 							console.error("[SSE] Failed to refetch standings:", err);
+						});
+
+						teamStandingCollection.utils.refetch().catch((err) => {
+							console.error("[SSE] Failed to refetch team standings:", err);
 						});
 
 						// Invalidate tRPC queries for dashboard cards and player data

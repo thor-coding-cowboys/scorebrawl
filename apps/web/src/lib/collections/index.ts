@@ -12,3 +12,9 @@ export {
 	standingPlayerSchema,
 	type StandingPlayer,
 } from "./standing-collection";
+export {
+	createTeamStandingCollection,
+	useTeamStandings,
+	standingTeamSchema,
+	type StandingTeam,
+} from "./team-standing-collection";

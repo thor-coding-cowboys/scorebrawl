@@ -4,6 +4,7 @@ import { FireIcon, SnowIcon, BarChartIcon, Award01Icon } from "@hugeicons/core-f
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { FormDots } from "@/components/ui/form-dots";
 
 interface DashboardCardsProps {
 	seasonSlug: string;
@@ -25,10 +26,11 @@ function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 			) : data ? (
 				<div className="flex items-center gap-3 min-w-0">
 					<AvatarWithFallback src={data.image} name={data.name} size="md" />
-					<div className="flex flex-col min-w-0">
+					<div className="flex flex-col min-w-0 flex-1">
 						<span className="text-sm font-medium truncate">{data.name}</span>
 						<span className="text-xs text-muted-foreground">{data.score} points</span>
 					</div>
+					{data.form && data.form.length > 0 && <FormDots form={data.form} />}
 				</div>
 			) : (
 				<div className="text-sm text-muted-foreground">No matches yet</div>
@@ -39,11 +41,12 @@ function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 
 function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
-	const { data: allPlayers } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
+	const { data: standings } = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
 
-	// Get lowest scoring player as "struggling"
-	const strugglingPlayer = allPlayers?.length
-		? [...allPlayers].sort((a, b) => a.score - b.score)[0]
+	// Get lowest scoring player with at least 3 matches
+	const strugglingPlayer = standings?.length
+		? standings.filter((player) => player.matchCount >= 3).sort((a, b) => a.score - b.score)[0] ||
+			null
 		: null;
 
 	return (
@@ -53,18 +56,21 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
 			iconColor="text-blue-600"
 		>
-			{!allPlayers ? (
+			{!standings ? (
 				<Skeleton className="h-12 w-full" />
 			) : strugglingPlayer ? (
 				<div className="flex items-center gap-3 min-w-0">
 					<AvatarWithFallback src={strugglingPlayer.image} name={strugglingPlayer.name} size="md" />
-					<div className="flex flex-col min-w-0">
+					<div className="flex flex-col min-w-0 flex-1">
 						<span className="text-sm font-medium truncate">{strugglingPlayer.name}</span>
 						<span className="text-xs text-muted-foreground">{strugglingPlayer.score} points</span>
 					</div>
+					{strugglingPlayer.form && strugglingPlayer.form.length > 0 && (
+						<FormDots form={strugglingPlayer.form} />
+					)}
 				</div>
 			) : (
-				<div className="text-sm text-muted-foreground">No players</div>
+				<div className="text-sm text-muted-foreground">No players with 3+ matches</div>
 			)}
 		</DashboardCard>
 	);
