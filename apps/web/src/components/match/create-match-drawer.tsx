@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { trpcClient, useTRPC } from "@/lib/trpc";
-import { queryClient } from "@/lib/query-client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -82,16 +81,13 @@ export function CreateMatchDialog({
 	seasonSlug,
 }: CreateMatchDialogProps) {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 
-	const { data: season } = useQuery({
-		queryKey: ["season", seasonId],
-		queryFn: async () => trpcClient.season.getBySlug.query({ seasonSlug }),
-	});
+	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
-	const { data: seasonPlayers } = useQuery<StandingPlayer[]>({
-		queryKey: ["seasonPlayer", "standing", seasonId],
-		queryFn: async () => trpcClient.seasonPlayer.getStanding.query({ seasonSlug }),
-	});
+	const { data: seasonPlayers } = useQuery(
+		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug })
+	);
 
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);
@@ -128,9 +124,24 @@ export function CreateMatchDialog({
 				toast.success("Match created successfully");
 				handleClose();
 
-				// Invalidate queries to trigger refetch
+				// Invalidate match and standings collections (used by custom collection hooks)
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
 				queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
+
+				// Invalidate tRPC queries for dashboard cards and player data
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getAll.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
 			},
 			onError: (err) => {
 				toast.error(err instanceof Error ? err.message : "Failed to create match");
