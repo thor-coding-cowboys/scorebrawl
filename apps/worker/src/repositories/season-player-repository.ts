@@ -149,7 +149,23 @@ export const getTopPlayer = async ({ db, seasonId }: { db: DrizzleDB; seasonId: 
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(desc(seasonPlayer.score))
 		.limit(1);
-	return topPlayer;
+
+	if (!topPlayer) return null;
+
+	// Get recent match form (last 5 results)
+	const recentMatches = await db
+		.select({
+			result: matchPlayer.result,
+		})
+		.from(matchPlayer)
+		.where(eq(matchPlayer.seasonPlayerId, topPlayer.id))
+		.orderBy(desc(matchPlayer.createdAt))
+		.limit(5);
+
+	return {
+		...topPlayer,
+		form: recentMatches.map((m) => m.result as "W" | "D" | "L"),
+	};
 };
 
 export const isUserInSeason = async ({

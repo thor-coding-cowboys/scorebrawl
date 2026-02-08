@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import * as EloLib from "@ihs7/ts-elo";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import type { DrizzleDB } from "../db";
@@ -8,10 +8,12 @@ import {
 	season,
 	match,
 	matchPlayer,
+	matchTeam,
 	type matchResult,
 	player,
 	leagueTeamPlayer,
 	leagueTeam,
+	seasonTeam,
 } from "../db/schema/league-schema";
 
 export interface MatchCreateInput {
@@ -133,6 +135,81 @@ const calculate310 = (
 	},
 });
 
+const getOrInsertTeam = async ({
+	db,
+	seasonData,
+	players,
+	now,
+}: {
+	db: DrizzleDB;
+	seasonData: SeasonData & { id: string; leagueId: string };
+	players: { id: string; playerId: string; name: string }[];
+	now: Date;
+}): Promise<{ seasonTeamId: string; score: number }> => {
+	// Find team by matching all player IDs
+	const [teamIdResult] = await db
+		.select({ leagueTeamId: leagueTeamPlayer.leagueTeamId })
+		.from(leagueTeamPlayer)
+		.where(
+			inArray(
+				leagueTeamPlayer.playerId,
+				players.map((p) => p.playerId)
+			)
+		)
+		.groupBy(leagueTeamPlayer.leagueTeamId)
+		.having(sql`COUNT(DISTINCT ${leagueTeamPlayer.playerId}) = ${players.length}`);
+
+	let leagueTeamId = teamIdResult?.leagueTeamId;
+
+	// Create league team if doesn't exist
+	if (!leagueTeamId) {
+		leagueTeamId = newId("team");
+		const teamName = players.map((p) => p.name.split(" ")[0]).join(" & ");
+
+		await db.insert(leagueTeam).values({
+			id: leagueTeamId,
+			name: teamName,
+			leagueId: seasonData.leagueId,
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		await db.insert(leagueTeamPlayer).values(
+			players.map((p) => ({
+				id: newId("team"),
+				leagueTeamId: leagueTeamId as string,
+				playerId: p.playerId,
+				createdAt: now,
+				updatedAt: now,
+			}))
+		);
+	}
+
+	// Check if season team exists
+	const [existingSeasonTeam] = await db
+		.select({ id: seasonTeam.id, score: seasonTeam.score })
+		.from(seasonTeam)
+		.where(and(eq(seasonTeam.leagueTeamId, leagueTeamId), eq(seasonTeam.seasonId, seasonData.id)))
+		.limit(1);
+
+	if (existingSeasonTeam) {
+		return { seasonTeamId: existingSeasonTeam.id, score: existingSeasonTeam.score };
+	}
+
+	// Create season team
+	const seasonTeamId = newId("team");
+	await db.insert(seasonTeam).values({
+		id: seasonTeamId,
+		leagueTeamId,
+		seasonId: seasonData.id,
+		score: seasonData.initialScore,
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	return { seasonTeamId, score: seasonData.initialScore };
+};
+
 export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateInput }) => {
 	const now = new Date();
 	const matchId = input.id ?? newId("match");
@@ -140,9 +217,11 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 	// Get season data for ELO calculation
 	const [seasonData] = await db
 		.select({
+			id: season.id,
 			scoreType: season.scoreType,
 			kFactor: season.kFactor,
 			initialScore: season.initialScore,
+			leagueId: season.leagueId,
 		})
 		.from(season)
 		.where(eq(season.id, input.seasonId));
@@ -151,29 +230,37 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		throw new Error("Season not found");
 	}
 
-	// Get current scores for all players
+	// Get current scores for all players with their names
 	const allPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
 	const seasonPlayerData = await db
 		.select({
 			id: seasonPlayer.id,
 			score: seasonPlayer.score,
+			playerId: seasonPlayer.playerId,
+			name: user.name,
 		})
 		.from(seasonPlayer)
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+		.innerJoin(user, eq(player.userId, user.id))
 		.where(
 			and(eq(seasonPlayer.seasonId, input.seasonId), sql`${seasonPlayer.id} IN ${allPlayerIds}`)
 		);
 
-	const playerScoreMap = new Map(seasonPlayerData.map((p) => [p.id, p.score]));
+	const playerDataMap = new Map(seasonPlayerData.map((p) => [p.id, p]));
 
 	// Prepare players data for ELO calculation
 	const homePlayers = input.homeTeamPlayerIds.map((id) => ({
 		id,
-		score: playerScoreMap.get(id) || seasonData.initialScore,
+		score: playerDataMap.get(id)?.score || seasonData.initialScore,
+		playerId: playerDataMap.get(id)?.playerId || "",
+		name: playerDataMap.get(id)?.name || "",
 	}));
 
 	const awayPlayers = input.awayTeamPlayerIds.map((id) => ({
 		id,
-		score: playerScoreMap.get(id) || seasonData.initialScore,
+		score: playerDataMap.get(id)?.score || seasonData.initialScore,
+		playerId: playerDataMap.get(id)?.playerId || "",
+		name: playerDataMap.get(id)?.name || "",
 	}));
 
 	// Calculate ELO scores
@@ -191,6 +278,8 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		seasonId: input.seasonId,
 		homeScore: input.homeScore,
 		awayScore: input.awayScore,
+		homeExpectedElo: eloResult.homeTeam.winningOdds,
+		awayExpectedElo: eloResult.awayTeam.winningOdds,
 		createdBy: input.userId,
 		updatedBy: input.userId,
 		createdAt: now,
@@ -256,6 +345,71 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 	);
 	await Promise.all(updatePromises);
 
+	// Handle team creation and scoring for 2+ player matches
+	if (homePlayers.length > 1 && awayPlayers.length > 1) {
+		const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = await getOrInsertTeam({
+			db,
+			seasonData,
+			players: homePlayers,
+			now,
+		});
+
+		const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = await getOrInsertTeam({
+			db,
+			seasonData,
+			players: awayPlayers,
+			now,
+		});
+
+		// Calculate team scores
+		const teamMatchResult = calculateMatchResult({
+			seasonData,
+			homeScore: input.homeScore,
+			awayScore: input.awayScore,
+			homePlayers: [{ id: homeSeasonTeamId, score: homeSeasonTeamScore }],
+			awayPlayers: [{ id: awaySeasonTeamId, score: awaySeasonTeamScore }],
+		});
+
+		// Create match team records
+		await db.insert(matchTeam).values([
+			{
+				id: newId("team"),
+				matchId,
+				seasonTeamId: homeSeasonTeamId,
+				scoreBefore: homeSeasonTeamScore,
+				scoreAfter:
+					teamMatchResult.homeTeam.players.find((r) => r.id === homeSeasonTeamId)?.scoreAfter ||
+					homeSeasonTeamScore,
+				result: homeMatchResult,
+				createdAt: now,
+				updatedAt: now,
+			},
+			{
+				id: newId("team"),
+				matchId,
+				seasonTeamId: awaySeasonTeamId,
+				scoreBefore: awaySeasonTeamScore,
+				scoreAfter:
+					teamMatchResult.awayTeam.players.find((r) => r.id === awaySeasonTeamId)?.scoreAfter ||
+					awaySeasonTeamScore,
+				result: awayMatchResult,
+				createdAt: now,
+				updatedAt: now,
+			},
+		]);
+
+		// Update season team scores
+		for (const teamResult of [
+			...teamMatchResult.homeTeam.players,
+			...teamMatchResult.awayTeam.players,
+		]) {
+			await db
+				.update(seasonTeam)
+				.set({ score: teamResult.scoreAfter })
+				.where(eq(seasonTeam.id, teamResult.id));
+		}
+	}
+
 	return {
 		id: matchId,
 		seasonId: input.seasonId,
@@ -274,7 +428,44 @@ export const remove = async ({
 	matchId: string;
 	seasonId: string;
 }) => {
-	// Remove match players first
+	// Revert player scores
+	const matchPlayers = await db
+		.select({
+			id: matchPlayer.id,
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			scoreBefore: matchPlayer.scoreBefore,
+		})
+		.from(matchPlayer)
+		.where(eq(matchPlayer.matchId, matchId));
+
+	for (const mp of matchPlayers) {
+		await db
+			.update(seasonPlayer)
+			.set({ score: mp.scoreBefore })
+			.where(eq(seasonPlayer.id, mp.seasonPlayerId));
+	}
+
+	// Revert team scores
+	const matchTeams = await db
+		.select({
+			id: matchTeam.id,
+			seasonTeamId: matchTeam.seasonTeamId,
+			scoreBefore: matchTeam.scoreBefore,
+		})
+		.from(matchTeam)
+		.where(eq(matchTeam.matchId, matchId));
+
+	for (const mt of matchTeams) {
+		await db
+			.update(seasonTeam)
+			.set({ score: mt.scoreBefore })
+			.where(eq(seasonTeam.id, mt.seasonTeamId));
+	}
+
+	// Remove match teams
+	await db.delete(matchTeam).where(eq(matchTeam.matchId, matchId));
+
+	// Remove match players
 	await db.delete(matchPlayer).where(eq(matchPlayer.matchId, matchId));
 
 	// Remove match
