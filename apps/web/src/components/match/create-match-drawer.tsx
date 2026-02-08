@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpcClient, useTRPC } from "@/lib/trpc";
+import { queryClient } from "@/lib/query-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -68,23 +69,27 @@ type CreateMatchFormValues = z.infer<typeof createMatchSchema>;
 interface CreateMatchDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	slug: string;
+	seasonId: string;
 	seasonSlug: string;
 }
 
 // --- Main Component ---
 
-export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateMatchDialogProps) {
-	const queryClient = useQueryClient();
+export function CreateMatchDialog({
+	isOpen,
+	onClose,
+	seasonId,
+	seasonSlug,
+}: CreateMatchDialogProps) {
 	const trpc = useTRPC();
 
 	const { data: season } = useQuery({
-		queryKey: ["season", slug, seasonSlug],
+		queryKey: ["season", seasonId],
 		queryFn: async () => trpcClient.season.getBySlug.query({ seasonSlug }),
 	});
 
 	const { data: seasonPlayers } = useQuery<StandingPlayer[]>({
-		queryKey: ["seasonPlayer", "standing", slug, seasonSlug],
+		queryKey: ["seasonPlayer", "standing", seasonId],
 		queryFn: async () => trpcClient.seasonPlayer.getStanding.query({ seasonSlug }),
 	});
 
@@ -122,15 +127,10 @@ export function CreateMatchDialog({ isOpen, onClose, slug, seasonSlug }: CreateM
 			onSuccess: () => {
 				toast.success("Match created successfully");
 				handleClose();
-				queryClient.invalidateQueries({
-					queryKey: ["seasonPlayer"],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["match"],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["season", slug, seasonSlug],
-				});
+
+				// Invalidate queries to trigger refetch
+				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
 			},
 			onError: (err) => {
 				toast.error(err instanceof Error ? err.message : "Failed to create match");

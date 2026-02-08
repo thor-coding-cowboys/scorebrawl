@@ -1,11 +1,12 @@
 import { and, asc, desc, eq, getTableColumns, gt, isNull, lt, or, sql } from "drizzle-orm";
+import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import type { DrizzleDB } from "../db";
 import { league as organization } from "../db/schema/auth-schema";
 import {
 	season,
 	seasonPlayer,
 	fixture,
-	orgTeam,
+	leagueTeam,
 	player,
 	type scoreType,
 	match,
@@ -13,6 +14,7 @@ import {
 import { slugifyWithCustomReplacement } from "./slug";
 
 export interface SeasonCreateInput {
+	id?: string;
 	name: string;
 	slug?: string;
 	initialScore: number;
@@ -45,8 +47,8 @@ export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSl
 
 	const [teamCount] = await db
 		.select({ count: sql<number>`count(*)` })
-		.from(orgTeam)
-		.innerJoin(organization, eq(orgTeam.leagueId, organization.id))
+		.from(leagueTeam)
+		.innerJoin(organization, eq(leagueTeam.leagueId, organization.id))
 		.innerJoin(season, eq(season.leagueId, organization.id))
 		.where(eq(season.slug, seasonSlug));
 
@@ -71,8 +73,8 @@ export const getCountInfoById = async ({ db, seasonId }: { db: DrizzleDB; season
 
 	const [teamCount] = await db
 		.select({ count: sql<number>`count(*)` })
-		.from(orgTeam)
-		.innerJoin(season, eq(season.leagueId, orgTeam.leagueId))
+		.from(leagueTeam)
+		.innerJoin(season, eq(season.leagueId, leagueTeam.leagueId))
 		.where(eq(season.id, seasonId));
 
 	const [playerCount] = await db
@@ -166,6 +168,7 @@ export const update = async ({
 		})
 		.where(eq(season.id, seasonId))
 		.returning();
+
 	return comp;
 };
 
@@ -190,17 +193,19 @@ export const updateClosedStatus = async ({
 		})
 		.where(eq(season.id, seasonId))
 		.returning();
+
 	return comp;
 };
 
 export const create = async ({ db, ...input }: SeasonCreateInput & { db: DrizzleDB }) => {
 	const slug = input.slug || (await slugifySeasonName({ db, name: input.name }));
 	const now = new Date();
+	const seasonId = input.id ?? newId("season");
 
 	const values =
 		input.scoreType === "elo"
 			? {
-					id: crypto.randomUUID(),
+					id: seasonId,
 					name: input.name,
 					slug,
 					leagueId: input.leagueId,
@@ -218,7 +223,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 					closed: false,
 				}
 			: {
-					id: crypto.randomUUID(),
+					id: seasonId,
 					name: input.name,
 					slug,
 					leagueId: input.leagueId,
@@ -237,7 +242,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 				};
 
 	const comps = await db.insert(season).values(values).returning();
-	const comp = comps[0]!;
+	const comp = comps[0];
 
 	// Get all enabled players from organization and create season players
 	const players = await db
@@ -246,7 +251,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 		.where(and(eq(player.leagueId, input.leagueId), eq(player.disabled, false)));
 
 	const seasonPlayerValues = players.map((p) => ({
-		id: crypto.randomUUID(),
+		id: newId("seasonPlayer"),
 		disabled: false,
 		score: comp.initialScore,
 		playerId: p.id,
@@ -278,7 +283,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 
 			for (let roundNum = 0; roundNum < roundsPerCompleteTournament; roundNum++) {
 				const actualRound = tournament * roundsPerCompleteTournament + roundNum;
-				const roundFixtures: Array<{ homeId: string | null; awayId: string | null }> = [];
+				const roundFixtures: Array<{ homeId: string; awayId: string }> = [];
 
 				for (let i = 0; i < matchesPerRound; i++) {
 					const homeId = tournamentPlayers[i];
@@ -293,9 +298,9 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 
 				for (const f of roundFixtures) {
 					fixturesList.push({
-						id: crypto.randomUUID(),
-						homePlayerId: f.homeId!,
-						awayPlayerId: f.awayId!,
+						id: newId("fixture"),
+						homePlayerId: f.homeId,
+						awayPlayerId: f.awayId,
 						seasonId: comp.id,
 						round: actualRound + 1,
 						createdAt: now,

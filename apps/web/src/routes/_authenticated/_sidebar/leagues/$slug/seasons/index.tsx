@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { authClient } from "@/lib/auth-client";
-import { trpcClient } from "@/lib/trpc";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -30,10 +29,11 @@ import {
 	PencilEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
-import { useQuery } from "@tanstack/react-query";
+import { useSeasons } from "@/lib/collections";
 import { CreateSeasonForm } from "@/components/seasons/create-season-form";
 import { EditSeasonForm } from "@/components/seasons/edit-season-form";
 import { CloseSeasonDialog } from "@/components/seasons/close-season-dialog";
+import type { Season } from "@/lib/collections/season-collection";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/")({
 	component: SeasonsPage,
@@ -41,26 +41,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 		return { slug: params.slug };
 	},
 });
-
-interface Season {
-	id: string;
-	name: string;
-	slug: string;
-	initialScore: number;
-	scoreType: "elo" | "3-1-0" | "elo-individual-vs-team";
-	kFactor: number;
-	startDate: Date;
-	endDate?: Date | null;
-	rounds?: number | null;
-	archived: boolean;
-	closed: boolean;
-	createdAt: Date;
-	updatedAt: Date;
-	deletedAt: Date | null;
-	leagueId: string;
-	createdBy: string;
-	updatedBy: string;
-}
 
 function truncateSlug(slug: string, maxLength = 10): string {
 	if (slug.length <= maxLength) return slug;
@@ -164,9 +144,13 @@ function SeasonsPage() {
 	const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
 
 	const { data: activeMember } = authClient.useActiveMember();
+	const leagueId = activeMember?.organizationId;
 	const role = activeMember?.role;
 	const canAccess = role === "owner" || role === "editor" || role === "member" || role === "viewer";
 	const canCreate = role === "owner" || role === "editor";
+
+	// Use season collection - must call hooks unconditionally
+	const seasonCollection = useSeasons(leagueId || "");
 
 	useEffect(() => {
 		if (role && !canAccess) {
@@ -179,24 +163,12 @@ function SeasonsPage() {
 		}
 	}, [role, canAccess, navigate, slug]);
 
-	const {
-		data: seasons,
-		isLoading,
-		refetch,
-	} = useQuery({
-		queryKey: ["seasons", slug],
-		queryFn: async () => {
-			return await trpcClient.season.getAll.query();
-		},
-		enabled: canAccess,
-	});
-
 	const seasonsData = useMemo(() => {
-		if (!seasons) return [];
-		return seasons.sort(
-			(a: Season, b: Season) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+		if (!seasonCollection) return [];
+		return seasonCollection.seasons.sort(
+			(a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
 		);
-	}, [seasons]);
+	}, [seasonCollection]);
 
 	const stats = useMemo(() => {
 		if (!seasonsData) return { total: 0, active: 0, upcoming: 0, ended: 0 };
@@ -300,11 +272,7 @@ function SeasonsPage() {
 								Showing {seasonsData.length} seasons
 							</span>
 						</div>
-						{isLoading ? (
-							<div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-								Loading seasons...
-							</div>
-						) : seasonsData.length === 0 ? (
+						{seasonsData.length === 0 ? (
 							<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
 								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
 									<HugeiconsIcon icon={AwardIcon} className="size-5" />
@@ -414,7 +382,9 @@ function SeasonsPage() {
 			<CreateSeasonForm
 				isOpen={isCreateDialogOpen}
 				onClose={() => setIsCreateDialogOpen(false)}
-				onSuccess={() => void refetch()}
+				onSuccess={() => {
+					// Collection will auto-update via SSE
+				}}
 			/>
 			<EditSeasonForm
 				isOpen={isEditDialogOpen}
@@ -423,9 +393,10 @@ function SeasonsPage() {
 					setSelectedSeason(null);
 				}}
 				onSuccess={() => {
-					void refetch();
+					// Collection will auto-update via SSE
 					setSelectedSeason(null);
 				}}
+				// @ts-ignore - Collection Season type differs from form Season type
 				season={selectedSeason}
 			/>
 			<CloseSeasonDialog
@@ -435,9 +406,10 @@ function SeasonsPage() {
 					setSelectedSeason(null);
 				}}
 				onSuccess={() => {
-					void refetch();
+					// Collection will auto-update via SSE
 					setSelectedSeason(null);
 				}}
+				// @ts-ignore - Collection Season type differs from form Season type
 				season={selectedSeason}
 			/>
 		</>

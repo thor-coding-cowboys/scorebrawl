@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
 import {
@@ -10,80 +9,54 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { MatchRow } from "@/components/match/match-row";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
+import { Link, useParams } from "@tanstack/react-router";
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 interface LatestMatchesProps {
-	slug: string;
+	seasonId: string;
 	seasonSlug: string;
 }
 
-interface MatchPlayer {
-	id: string;
-	seasonPlayerId: string;
-	homeTeam: boolean;
-	result: "W" | "L" | "D";
-	scoreBefore: number;
-	scoreAfter: number;
-	name: string;
-	image: string | null;
-	teamName: string | null;
-}
+export function LatestMatches({ seasonId, seasonSlug }: LatestMatchesProps) {
+	const params = useParams({ strict: false });
+	const slug = params.slug as string;
 
-interface Match {
-	id: string;
-	seasonId: string;
-	homeScore: number;
-	awayScore: number;
-	createdAt: Date;
-	updatedAt: Date;
-	deletedAt: Date | null;
-	homeExpectedElo: number | null;
-	awayExpectedElo: number | null;
-	createdBy: string;
-	updatedBy: string;
-}
-
-interface MatchesData {
-	matches: Match[];
-	total: number;
-}
-
-export function LatestMatches({ slug, seasonSlug }: LatestMatchesProps) {
-	const navigate = useNavigate();
-	const { data, isLoading } = useQuery<MatchesData>({
-		queryKey: ["match", "all", slug, seasonSlug],
+	const { data: matchesData } = useQuery({
+		queryKey: ["matches", seasonId],
 		queryFn: async () => {
-			return await trpcClient.match.getAll.query({ seasonSlug, limit: 8 });
+			return await trpcClient.match.getAll.query({ seasonSlug, limit: 50, offset: 0 });
 		},
+		refetchInterval: 5000,
 	});
+	const matches = matchesData?.matches ?? [];
 
-	const showEmptyState = !isLoading && data && data.matches.length < 1;
-	const showMatches = !isLoading && data && data.matches.length > 0;
+	const latestMatches = matches.slice(0, 5);
+	const showEmptyState = latestMatches.length < 1;
+	const showMatches = latestMatches.length > 0;
 
 	return (
-		<OverviewCard title="Latest Matches">
-			{isLoading ? (
-				<Skeleton className="w-full h-40" />
-			) : showMatches ? (
-				<>
-					<MatchTable matches={data.matches} seasonSlug={seasonSlug} />
-					<div className="flex items-center justify-end space-x-2 pt-4">
-						<Button
-							variant="outline"
+		<OverviewCard
+			title="Latest Matches"
+			action={
+				showMatches && (
+					<Link to="/leagues/$slug/seasons/$seasonSlug/matches" params={{ slug, seasonSlug }}>
+						<GlowButton
+							icon={ArrowRight01Icon}
+							glowColor={glowColors.amber}
 							size="sm"
-							onClick={() =>
-								navigate({
-									to: "/leagues/$slug/seasons/$seasonSlug",
-									params: { slug, seasonSlug },
-								})
-							}
+							variant="outline"
+							className="gap-1.5 whitespace-nowrap"
 						>
-							Show all
-						</Button>
-					</div>
-				</>
+							<span className="hidden sm:inline">View All</span>
+						</GlowButton>
+					</Link>
+				)
+			}
+		>
+			{showMatches ? (
+				<MatchTable matches={latestMatches} seasonSlug={seasonSlug} />
 			) : showEmptyState ? (
 				<div className="flex items-center justify-center h-40 text-muted-foreground">
 					No registered matches
@@ -93,7 +66,13 @@ export function LatestMatches({ slug, seasonSlug }: LatestMatchesProps) {
 	);
 }
 
-function MatchTable({ matches, seasonSlug }: { matches: Match[]; seasonSlug: string }) {
+function MatchTable({
+	matches,
+	seasonSlug,
+}: {
+	matches: { id: string; homeScore: number; awayScore: number; createdAt: Date }[];
+	seasonSlug: string;
+}) {
 	return (
 		<Table>
 			<TableHeader className="text-xs">
@@ -105,109 +84,13 @@ function MatchTable({ matches, seasonSlug }: { matches: Match[]; seasonSlug: str
 			</TableHeader>
 			<TableBody className="text-sm">
 				{matches.map((match) => (
-					<MatchRow key={match.id} match={match} seasonSlug={seasonSlug} />
+					<TableRow key={match.id}>
+						<TableCell colSpan={3} className="p-0">
+							<MatchRow match={match} seasonSlug={seasonSlug} />
+						</TableCell>
+					</TableRow>
 				))}
 			</TableBody>
 		</Table>
-	);
-}
-
-function getSideLabel(players: MatchPlayer[]): string {
-	if (players.length === 0) return "Unknown";
-	const teamNames = players.map((p) => p.teamName).filter(Boolean);
-	const uniqueTeams = [...new Set(teamNames)];
-	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
-		return uniqueTeams[0]!;
-	}
-	return players.map((p) => p.name).join(", ");
-}
-
-function MatchRow({ match, seasonSlug }: { match: Match; seasonSlug: string }) {
-	const { data: matchDetails } = useQuery<{ players: MatchPlayer[] } | null>({
-		queryKey: ["match", "details", match.id],
-		queryFn: async () => {
-			return await trpcClient.match.getById.query({ seasonSlug, matchId: match.id });
-		},
-		enabled: !!match.id,
-	});
-
-	const homePlayers = matchDetails?.players?.filter((p) => p.homeTeam) ?? [];
-	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
-
-	const formatDate = (date: Date) => {
-		const now = new Date();
-		const matchDate = new Date(date);
-
-		// Check if the match was today (same year, month, and day)
-		const isToday =
-			now.getFullYear() === matchDate.getFullYear() &&
-			now.getMonth() === matchDate.getMonth() &&
-			now.getDate() === matchDate.getDate();
-
-		if (isToday) {
-			// Calculate time difference in minutes
-			const diffMs = now.getTime() - matchDate.getTime();
-			const diffMinutes = Math.floor(diffMs / (1000 * 60));
-
-			if (diffMinutes < 60) {
-				return diffMinutes <= 1 ? "1m ago" : `${diffMinutes}m ago`;
-			} else {
-				const diffHours = Math.floor(diffMinutes / 60);
-				return `${diffHours}h ago`;
-			}
-		} else {
-			// Show regular date format for older matches
-			return matchDate.toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-			});
-		}
-	};
-
-	return (
-		<TableRow>
-			<TableCell className="max-w-[200px]">
-				<div className="flex flex-col gap-2 min-w-0">
-					<div className="flex items-center gap-2 min-w-0">
-						<div className="flex -space-x-2 shrink-0">
-							{homePlayers.map((player) => (
-								<AvatarWithFallback
-									key={player.id}
-									src={player.image}
-									name={player.name}
-									size="sm"
-									className="border-2 border-background"
-								/>
-							))}
-						</div>
-						<span className="text-xs text-muted-foreground truncate">
-							{getSideLabel(homePlayers)}
-						</span>
-					</div>
-					<div className="flex items-center gap-2 min-w-0">
-						<div className="flex -space-x-2 shrink-0">
-							{awayPlayers.map((player) => (
-								<AvatarWithFallback
-									key={player.id}
-									src={player.image}
-									name={player.name}
-									size="sm"
-									className="border-2 border-background"
-								/>
-							))}
-						</div>
-						<span className="text-xs text-muted-foreground truncate">
-							{getSideLabel(awayPlayers)}
-						</span>
-					</div>
-				</div>
-			</TableCell>
-			<TableCell className="text-center font-bold">
-				{match.homeScore} - {match.awayScore}
-			</TableCell>
-			<TableCell className="text-right text-xs text-muted-foreground">
-				{formatDate(match.createdAt)}
-			</TableCell>
-		</TableRow>
 	);
 }

@@ -13,13 +13,17 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "catalog:",
+		"@coding-cowboys/scorebrawl-worker": "workspace:*",
 		"@fontsource-variable/jetbrains-mono": "catalog:",
 		"@hugeicons/core-free-icons": "catalog:",
 		"@hugeicons/react": "catalog:",
 		"@tanstack/devtools-vite": "catalog:",
+		"@tanstack/query-db-collection": "^1.0.22",
+		"@tanstack/react-db": "^0.1.69",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"@tanstack/react-router-devtools": "catalog:",
+		"@tanstack/react-virtual": "^3.13.18",
 		"@tanstack/router-plugin": "catalog:",
 		"@tanstack/zod-adapter": "catalog:",
 		"@trpc/client": "catalog:",
@@ -46,8 +50,7 @@
 		"tailwindcss": "catalog:",
 		"tw-animate-css": "catalog:",
 		"vaul": "catalog:",
-		"web-vitals": "catalog:",
-		"@coding-cowboys/scorebrawl-worker": "workspace:*"
+		"web-vitals": "catalog:"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "catalog:",

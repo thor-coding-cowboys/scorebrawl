@@ -13,23 +13,22 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StandingTabsProps {
-	slug: string;
+	seasonId: string;
 	seasonSlug: string;
 }
 
 interface TeamStandingItem {
 	id: string;
 	seasonId: string;
-	orgTeamId: string;
+	leagueTeamId: string;
 	score: number;
 	name: string;
 }
 
-function TeamStanding({ slug, seasonSlug }: { slug: string; seasonSlug: string }) {
+function TeamStanding({ seasonSlug }: { seasonSlug: string }) {
 	const { data, isLoading } = useQuery<TeamStandingItem[]>({
-		queryKey: ["seasonTeam", "standing", slug, seasonSlug],
+		queryKey: ["seasonTeam", "standing", seasonSlug],
 		queryFn: async () => {
-			// For now, return empty - will need to implement team standing endpoint
 			return [];
 		},
 	});
@@ -70,23 +69,16 @@ function TeamStanding({ slug, seasonSlug }: { slug: string; seasonSlug: string }
 	);
 }
 
-export function StandingTabs({ slug, seasonSlug }: StandingTabsProps) {
+export function StandingTabs({ seasonId, seasonSlug }: StandingTabsProps) {
 	const { data: season } = useQuery({
-		queryKey: ["season", slug, seasonSlug],
+		queryKey: ["season", seasonSlug],
 		queryFn: async () => {
 			return await trpcClient.season.getBySlug.query({ seasonSlug });
 		},
 	});
 
-	// Check if season has teams by looking at score type and team data
-	// For now, only ELO and elo-individual-vs-team seasons can have teams
-	// 3-1-0 is always individual only
 	const canHaveTeams = season?.scoreType !== "3-1-0";
-
-	// For now, we'll assume no teams exist until we implement team checking
-	// When teams are implemented, we'd check: const hasTeams = teamData && teamData.length > 0;
 	const hasTeams = false;
-
 	const showTeamStandings = canHaveTeams && hasTeams;
 
 	return (
@@ -95,15 +87,15 @@ export function StandingTabs({ slug, seasonSlug }: StandingTabsProps) {
 				<div className="space-y-6">
 					<div>
 						<h3 className="text-sm font-medium text-muted-foreground mb-3">Individual</h3>
-						<Standing slug={slug} seasonSlug={seasonSlug} />
+						<Standing seasonId={seasonId} seasonSlug={seasonSlug} />
 					</div>
 					<div>
 						<h3 className="text-sm font-medium text-muted-foreground mb-3">Team</h3>
-						<TeamStanding slug={slug} seasonSlug={seasonSlug} />
+						<TeamStanding seasonSlug={seasonSlug} />
 					</div>
 				</div>
 			) : (
-				<Standing slug={slug} seasonSlug={seasonSlug} />
+				<Standing seasonId={seasonId} seasonSlug={seasonSlug} />
 			)}
 		</OverviewCard>
 	);

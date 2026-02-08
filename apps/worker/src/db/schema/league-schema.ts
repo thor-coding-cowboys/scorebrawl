@@ -41,8 +41,8 @@ export const player = sqliteTable(
 	]
 );
 
-export const orgTeam = sqliteTable(
-	"org_team",
+export const leagueTeam = sqliteTable(
+	"league_team",
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
@@ -51,24 +51,24 @@ export const orgTeam = sqliteTable(
 			.references(() => league.id, { onDelete: "cascade" }),
 		...timestampAuditFields,
 	},
-	(table) => [index("org_team_organization_id_idx").on(table.leagueId)]
+	(table) => [index("league_team_league_id_idx").on(table.leagueId)]
 );
 
-export const orgTeamPlayer = sqliteTable(
-	"org_team_player",
+export const leagueTeamPlayer = sqliteTable(
+	"league_team_player",
 	{
 		id: text("id").primaryKey(),
 		playerId: text("player_id")
 			.notNull()
 			.references(() => player.id, { onDelete: "cascade" }),
-		orgTeamId: text("org_team_id")
+		leagueTeamId: text("league_team_id")
 			.notNull()
-			.references(() => orgTeam.id, { onDelete: "cascade" }),
+			.references(() => leagueTeam.id, { onDelete: "cascade" }),
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("org_team_player_team_player_uidx").on(table.orgTeamId, table.playerId),
-		index("org_team_player_player_id_idx").on(table.playerId),
+		uniqueIndex("league_team_player_team_player_uidx").on(table.leagueTeamId, table.playerId),
+		index("league_team_player_player_id_idx").on(table.playerId),
 	]
 );
 
@@ -123,15 +123,15 @@ export const seasonTeam = sqliteTable(
 		seasonId: text("season_id")
 			.notNull()
 			.references(() => season.id, { onDelete: "cascade" }),
-		orgTeamId: text("org_team_id")
+		leagueTeamId: text("league_team_id")
 			.notNull()
-			.references(() => orgTeam.id, { onDelete: "cascade" }),
+			.references(() => leagueTeam.id, { onDelete: "cascade" }),
 		score: integer("score").notNull(),
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("season_team_season_team_uidx").on(table.seasonId, table.orgTeamId),
-		index("season_team_org_team_id_idx").on(table.orgTeamId),
+		uniqueIndex("season_team_season_team_uidx").on(table.seasonId, table.leagueTeamId),
+		index("season_team_league_team_id_idx").on(table.leagueTeamId),
 	]
 );
 

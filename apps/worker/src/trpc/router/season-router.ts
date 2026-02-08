@@ -1,9 +1,15 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
-import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
+import {
+	seasonProcedure,
+	leagueEditorProcedure,
+	leagueProcedure,
+	type LeagueContext,
+} from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
 	if (endDate && startDate && startDate > endDate) {
@@ -13,6 +19,9 @@ const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endD
 		});
 	}
 };
+
+// Schema for optional season ID validation
+const seasonIdSchema = createOptionalIdSchema("season");
 
 export const seasonRouter = {
 	getBySlug: seasonProcedure.query(({ ctx }) => ({
@@ -75,6 +84,7 @@ export const seasonRouter = {
 	create: leagueEditorProcedure
 		.input(
 			z.object({
+				id: seasonIdSchema,
 				name: z.string().min(1).max(100),
 				slug: z
 					.string()
@@ -93,8 +103,26 @@ export const seasonRouter = {
 		.mutation(async ({ ctx, input }) => {
 			validateStartBeforeEnd(input);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const typedCtx = ctx as any;
+			const typedCtx = ctx as unknown as LeagueContext;
+
+			// If an ID is provided, verify it doesn't already exist
+			if (input.id) {
+				try {
+					await seasonRepository.getById({
+						db: typedCtx.db,
+						seasonId: input.id,
+					});
+					// If we get here, the season exists
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "A season with this ID already exists",
+					});
+				} catch (error) {
+					// If it's our conflict error, rethrow it
+					if (error instanceof TRPCError) throw error;
+					// Otherwise, the season doesn't exist (expected), continue
+				}
+			}
 
 			// Check if at least 2 players exist
 			const players = await playerRepository.getAll({
@@ -111,6 +139,7 @@ export const seasonRouter = {
 
 			return seasonRepository.create({
 				db: typedCtx.db,
+				id: input.id,
 				...input,
 				leagueId: typedCtx.organizationId,
 				userId: typedCtx.authentication.user.id,
@@ -137,8 +166,7 @@ export const seasonRouter = {
 		.mutation(async ({ ctx, input }) => {
 			validateStartBeforeEnd(input);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const typedCtx = ctx as any;
+			const typedCtx = ctx as unknown as LeagueContext;
 
 			// Get season to verify it exists
 			const comp = await seasonRepository.getBySlug({
@@ -185,8 +213,7 @@ export const seasonRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const typedCtx = ctx as any;
+			const typedCtx = ctx as unknown as LeagueContext;
 
 			const comp = await seasonRepository.getBySlug({
 				db: typedCtx.db,

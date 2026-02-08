@@ -1,5 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import * as EloLib from "@ihs7/ts-elo";
+import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
@@ -9,11 +10,12 @@ import {
 	matchPlayer,
 	type matchResult,
 	player,
-	orgTeamPlayer,
-	orgTeam,
+	leagueTeamPlayer,
+	leagueTeam,
 } from "../db/schema/league-schema";
 
 export interface MatchCreateInput {
+	id?: string;
 	seasonId: string;
 	homeScore: number;
 	awayScore: number;
@@ -133,7 +135,7 @@ const calculate310 = (
 
 export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateInput }) => {
 	const now = new Date();
-	const matchId = crypto.randomUUID();
+	const matchId = input.id ?? newId("match");
 
 	// Get season data for ELO calculation
 	const [seasonData] = await db
@@ -215,7 +217,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		...input.homeTeamPlayerIds.map((id, index) => {
 			const playerResult = eloResult.homeTeam.players.find((p) => p.id === id);
 			return {
-				id: crypto.randomUUID(),
+				id: newId("matchPlayer"),
 				matchId,
 				seasonPlayerId: id,
 				homeTeam: true,
@@ -229,7 +231,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		...input.awayTeamPlayerIds.map((id, index) => {
 			const playerResult = eloResult.awayTeam.players.find((p) => p.id === id);
 			return {
-				id: crypto.randomUUID(),
+				id: newId("matchPlayer"),
 				matchId,
 				seasonPlayerId: id,
 				homeTeam: false,
@@ -362,10 +364,10 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 			name: user.name,
 			image: user.image,
 			teamName: sql<string | null>`(
-				SELECT ${orgTeam.name} FROM ${orgTeamPlayer}
-				INNER JOIN ${orgTeam} ON ${orgTeam.id} = ${orgTeamPlayer.orgTeamId}
-				WHERE ${orgTeamPlayer.playerId} = ${player.id}
-				AND ${orgTeam.leagueId} = ${player.leagueId}
+				SELECT ${leagueTeam.name} FROM ${leagueTeamPlayer}
+				INNER JOIN ${leagueTeam} ON ${leagueTeam.id} = ${leagueTeamPlayer.leagueTeamId}
+				WHERE ${leagueTeamPlayer.playerId} = ${player.id}
+				AND ${leagueTeam.leagueId} = ${player.leagueId}
 				LIMIT 1
 			)`.as("team_name"),
 		})

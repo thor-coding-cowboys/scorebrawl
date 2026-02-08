@@ -1,0 +1,25 @@
+{
+	"name": "@coding-cowboys/scorebrawl-util",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./id-util": "./src/id-util/index.ts",
+		"./elo-util": "./src/elo-util/index.ts",
+		"./point-diff-util": "./src/point-diff-util/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"ulid": "catalog:",
+		"@ihs7/ts-elo": "catalog:"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}
