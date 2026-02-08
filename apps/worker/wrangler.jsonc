@@ -14,6 +14,20 @@
 			"database_id": "f13c8616-2696-4365-8aa3-3989dc216210"
 		}
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "SEASON_SSE",
+				"class_name": "SeasonSSE"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["SeasonSSE"]
+		}
+	],
 	"r2_buckets": [
 		{
 			"binding": "USER_ASSETS_BUCKET",

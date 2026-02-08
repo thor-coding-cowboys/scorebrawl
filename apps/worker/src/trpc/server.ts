@@ -15,6 +15,7 @@ export const trpcServer = honoTrpcServer({
 			db: c.get("db"),
 			betterAuth,
 			userAssets: c.get("userAssets"),
+			env: c.env,
 		};
 	},
 });

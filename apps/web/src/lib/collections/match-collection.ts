@@ -40,7 +40,7 @@ function createMatchCollectionInternal(seasonId: string, seasonSlug: string) {
 			queryClient,
 			schema: matchSchema,
 			getKey: (item) => item.id,
-			refetchInterval: 5000, // Poll every 5 seconds for real-time updates
+			// SSE handles real-time updates, no need for polling
 			queryFn: async () => {
 				const result = await trpcClient.match.getAll.query({
 					seasonSlug,
