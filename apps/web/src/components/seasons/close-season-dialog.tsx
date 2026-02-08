@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTRPC } from "@/lib/trpc";
+import { queryClient } from "@/lib/query-client";
 import { SecurityLockIcon, Alert02Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
@@ -25,7 +26,12 @@ export function CloseSeasonDialog({ isOpen, onClose, onSuccess, season }: CloseS
 	const trpc = useTRPC();
 	const [apiError, setApiError] = useState<string>("");
 
-	const closeMutation = useMutation(trpc.season.updateClosedStatus.mutationOptions());
+	const closeMutation = useMutation({
+		...trpc.season.updateClosedStatus.mutationOptions(),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["seasons"] });
+		},
+	});
 
 	const isClosed = season?.closed ?? false;
 
