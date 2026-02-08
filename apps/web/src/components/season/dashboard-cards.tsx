@@ -2,21 +2,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCard } from "./dashboard-card";
 import { FireIcon, SnowIcon, BarChartIcon, Award01Icon } from "@hugeicons/core-free-icons";
 import { useQuery } from "@tanstack/react-query";
-import { trpcClient } from "@/lib/trpc";
+import { useTRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 
 interface DashboardCardsProps {
-	slug: string;
 	seasonSlug: string;
 }
 
-function OnFireCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) {
-	const { data, isLoading } = useQuery({
-		queryKey: ["seasonPlayer", "onFire", slug, seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.seasonPlayer.getTop.query({ seasonSlug });
-		},
-	});
+function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
+	const trpc = useTRPC();
+	const { data, isLoading } = useQuery(trpc.seasonPlayer.getTop.queryOptions({ seasonSlug }));
 
 	return (
 		<DashboardCard
@@ -42,13 +37,9 @@ function OnFireCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) 
 	);
 }
 
-function StrugglingCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) {
-	const { data: allPlayers } = useQuery({
-		queryKey: ["seasonPlayer", "all", slug, seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.seasonPlayer.getAll.query({ seasonSlug });
-		},
-	});
+function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
+	const trpc = useTRPC();
+	const { data: allPlayers } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
 
 	// Get lowest scoring player as "struggling"
 	const strugglingPlayer = allPlayers?.length
@@ -80,12 +71,8 @@ function StrugglingCard({ slug, seasonSlug }: { slug: string; seasonSlug: string
 }
 
 function InfoCard({ seasonSlug }: { seasonSlug: string }) {
-	const { data, isLoading } = useQuery({
-		queryKey: ["season", "countInfo", seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.season.getCountInfo.query({ seasonSlug });
-		},
-	});
+	const trpc = useTRPC();
+	const { data, isLoading } = useQuery(trpc.season.getCountInfo.queryOptions({ seasonSlug }));
 
 	return (
 		<DashboardCard
@@ -130,32 +117,21 @@ interface MatchPlayer {
 	teamName: string | null;
 }
 
-interface MatchWithPlayers {
-	id: string;
-	seasonId: string;
-	homeScore: number;
-	awayScore: number;
-	createdAt: Date;
-	players: MatchPlayer[];
-}
-
 function getSideLabel(players: MatchPlayer[]): string {
 	if (players.length === 0) return "Unknown";
 	const teamNames = players.map((p) => p.teamName).filter(Boolean);
 	const uniqueTeams = [...new Set(teamNames)];
 	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
-		return uniqueTeams[0]!;
+		return uniqueTeams[0] ?? "Unknown";
 	}
 	return players.map((p) => p.name).join(", ");
 }
 
-function LatestMatchCard({ slug, seasonSlug }: { slug: string; seasonSlug: string }) {
-	const { data: latestMatch, isLoading } = useQuery<MatchWithPlayers | null>({
-		queryKey: ["match", "latest", slug, seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.match.getLatest.query({ seasonSlug });
-		},
-	});
+function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
+	const trpc = useTRPC();
+	const { data: latestMatch, isLoading } = useQuery(
+		trpc.match.getLatest.queryOptions({ seasonSlug })
+	);
 
 	return (
 		<DashboardCard
@@ -188,35 +164,24 @@ function LatestMatchCard({ slug, seasonSlug }: { slug: string; seasonSlug: strin
 	);
 }
 
-export function DashboardCards({ slug, seasonSlug }: DashboardCardsProps) {
-	const { data: season } = useQuery({
-		queryKey: ["season", slug, seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.season.getBySlug.query({ seasonSlug });
-		},
-	});
+export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
+	const trpc = useTRPC();
+	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
-	const { data: isInSeason } = useQuery({
-		queryKey: ["seasonPlayer", "isInSeason", slug, seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.seasonPlayer.isInSeason.query({ seasonSlug });
-		},
-	});
+	const { data: isInSeason } = useQuery(trpc.seasonPlayer.isInSeason.queryOptions({ seasonSlug }));
 
 	const isPointsSeason = season?.scoreType === "3-1-0";
 
 	return (
 		<div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
-			<OnFireCard slug={slug} seasonSlug={seasonSlug} />
-			<StrugglingCard slug={slug} seasonSlug={seasonSlug} />
+			<OnFireCard seasonSlug={seasonSlug} />
+			<StrugglingCard seasonSlug={seasonSlug} />
 			{isInSeason && isPointsSeason ? (
-				<LatestMatchCard slug={slug} seasonSlug={seasonSlug} />
+				<LatestMatchCard seasonSlug={seasonSlug} />
 			) : (
 				<InfoCard seasonSlug={seasonSlug} />
 			)}
-			{!isInSeason || !isPointsSeason ? (
-				<LatestMatchCard slug={slug} seasonSlug={seasonSlug} />
-			) : null}
+			{!isInSeason || !isPointsSeason ? <LatestMatchCard seasonSlug={seasonSlug} /> : null}
 		</div>
 	);
 }

@@ -121,7 +121,7 @@ function SeasonDashboardPage() {
 				</Breadcrumb>
 			</Header>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-				<DashboardCards slug={slug} seasonSlug={seasonSlug} />
+				<DashboardCards seasonSlug={seasonSlug} />
 				<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 					<div className="flex flex-col gap-4">
 						{seasonId && (

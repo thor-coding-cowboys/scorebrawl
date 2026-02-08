@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTRPC } from "@/lib/trpc";
 import { createMatchCollection } from "@/lib/collections/match-collection";
 import { createStandingCollection } from "@/lib/collections/standing-collection";
 
@@ -53,10 +55,18 @@ export function useSeasonSSE({
 	currentUserId,
 	enabled = true,
 }: UseSeasonSSEOptions) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const eventSourceRef = useRef<EventSource | null>(null);
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const enabledRef = useRef(enabled);
 	const paramsRef = useRef({ leagueSlug, seasonSlug, seasonId, currentUserId });
+
+	// Store trpc and queryClient in refs so they're accessible in callbacks
+	const trpcRef = useRef(trpc);
+	const queryClientRef = useRef(queryClient);
+	trpcRef.current = trpc;
+	queryClientRef.current = queryClient;
 
 	// Update refs when params change
 	enabledRef.current = enabled;
@@ -104,6 +114,15 @@ export function useSeasonSSE({
 						standingCollection.utils.refetch().catch((err) => {
 							console.error("[SSE] Failed to refetch standings:", err);
 						});
+
+						// Invalidate tRPC queries for dashboard cards and player data
+						const t = trpcRef.current;
+						const qc = queryClientRef.current;
+						qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
+						qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
+						qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }) });
+						qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
+						qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
 					}
 
 					// Show toast for match events from other users
