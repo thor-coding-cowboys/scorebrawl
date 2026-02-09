@@ -1,18 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useTRPC } from "@/lib/trpc";
+import { useTRPC, trpcClient } from "@/lib/trpc";
 import { queryClient } from "@/lib/query-client";
 import { Delete01Icon, Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+
+interface MatchInfo {
+	id: string;
+	homeScore: number;
+	awayScore: number;
+	createdAt: Date;
+}
 
 interface RemoveMatchDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onSuccess?: () => void;
 	matchId: string | null;
+	matchInfo?: MatchInfo;
 	seasonSlug: string;
 	seasonId: string;
 }
@@ -22,11 +30,39 @@ export function RemoveMatchDialog({
 	onClose,
 	onSuccess,
 	matchId,
+	matchInfo,
 	seasonSlug,
 	seasonId,
 }: RemoveMatchDialogProps) {
 	const trpc = useTRPC();
 	const [apiError, setApiError] = useState<string>("");
+
+	// Fetch player details for the match
+	const { data: matchDetails } = useQuery({
+		queryKey: ["match", "details", matchId],
+		queryFn: async () => {
+			if (!matchId) return null;
+			return await trpcClient.match.getById.query({ seasonSlug, matchId });
+		},
+		enabled: isOpen && !!matchId,
+	});
+
+	const homePlayers = matchDetails?.players?.filter((p) => p.homeTeam) ?? [];
+	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
+
+	const getTeamLabel = (players: { name: string; teamName: string | null }[]): string => {
+		if (players.length === 0) return "Unknown";
+		if (players.length > 1 && players[0]?.teamName) {
+			return players[0].teamName;
+		}
+		if (players.length > 1) {
+			return players.map((p) => p.name.split(" ")[0]).join(" & ");
+		}
+		return players[0]?.name ?? "Unknown";
+	};
+
+	const homeLabel = getTeamLabel(homePlayers);
+	const awayLabel = getTeamLabel(awayPlayers);
 
 	const removeMutation = useMutation({
 		...trpc.match.remove.mutationOptions(),
@@ -106,18 +142,33 @@ export function RemoveMatchDialog({
 				</DialogHeader>
 
 				<div className="relative z-10 space-y-4 py-4">
-					{/* Icon */}
-					<div className="flex justify-center">
-						<div className="w-16 h-16 rounded-full flex items-center justify-center bg-red-500/10">
-							<HugeiconsIcon icon={Delete01Icon} className="w-8 h-8 text-red-500" />
+					{/* Match Info Card */}
+					{matchInfo && (
+						<div className="border border-border rounded-lg p-4 bg-muted/30">
+							<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1 min-w-0 flex-1">
+									<span className="text-sm font-medium truncate">{homeLabel}</span>
+									<span className="text-sm font-medium truncate">{awayLabel}</span>
+								</div>
+								<div className="text-center font-bold text-lg font-mono px-4">
+									{matchInfo.homeScore} - {matchInfo.awayScore}
+								</div>
+								<div className="text-xs text-muted-foreground text-right min-w-[80px]">
+									{new Date(matchInfo.createdAt).toLocaleDateString("en-US", {
+										month: "short",
+										day: "numeric",
+										hour: "numeric",
+										minute: "2-digit",
+									})}
+								</div>
+							</div>
 						</div>
-					</div>
+					)}
 
 					{/* Content */}
 					<div className="text-center space-y-2">
-						<h3 className="font-mono font-semibold text-lg">Remove Latest Match</h3>
 						<p className="text-muted-foreground text-sm">
-							Are you sure you want to remove the most recent match?
+							Are you sure you want to remove this match?
 						</p>
 					</div>
 

@@ -11,6 +11,48 @@ Design system for Scorebrawl views. Sharp borders (no radius), RowCard lists, re
 
 ## Core Patterns
 
+### Header with Breadcrumbs
+
+The Header component accepts a `breadcrumbs` prop for navigation:
+
+```tsx
+import { Header } from "@/components/layout/header";
+
+// Basic breadcrumb (last item has no href = current page)
+<Header
+  breadcrumbs={[
+    { name: "League", href: "/leagues" },
+    { name: "my-league", href: "/leagues/my-league" },
+    { name: "Seasons" },
+  ]}
+/>
+
+// With right content (action button)
+<Header
+  breadcrumbs={[
+    { name: "League", href: "/leagues" },
+    { name: "my-league", href: "/leagues/my-league" },
+    { name: "Seasons" },
+  ]}
+  rightContent={
+    <GlowButton icon={Add01Icon} glowColor={glowColors.blue} size="sm">
+      Season
+    </GlowButton>
+  }
+/>
+
+// Standalone page (no sidebar, with logout)
+<Header includeLogoutButton rightContent={<Button>Action</Button>} />
+```
+
+**BreadcrumbItem type:**
+```tsx
+interface BreadcrumbItem {
+  name: string;
+  href?: string;  // omit for current page (last item)
+}
+```
+
 ### List View Structure
 
 Template for list views (seasons, members, invitations):
@@ -18,8 +60,6 @@ Template for list views (seasons, members, invitations):
 ```tsx
 import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RowCard } from "@/components/ui/row-card";
@@ -31,20 +71,23 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/ite
 });
 
 function ItemsPage() {
+  const { slug } = Route.useLoaderData();
+  
   return (
     <>
       <Header
+        breadcrumbs={[
+          { name: "League", href: "/leagues" },
+          { name: slug, href: `/leagues/${slug}` },
+          { name: "Items" },
+        ]}
         rightContent={
           <Button size="sm" className="gap-1.5" onClick={() => setIsCreateOpen(true)}>
             <HugeiconsIcon icon={Add01Icon} className="size-4" />
             Item
           </Button>
         }
-      >
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-        <Breadcrumb>...</Breadcrumb>
-      </Header>
+      />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {/* Stats Cards */}
         <div className="grid gap-3 md:grid-cols-3">
@@ -280,6 +323,8 @@ For pages without sidebar (e.g., /leagues):
   }
 />
 ```
+
+Note: Standalone pages don't use `breadcrumbs` prop - Header renders children or nothing for the left side.
 
 ## Key Rules
 

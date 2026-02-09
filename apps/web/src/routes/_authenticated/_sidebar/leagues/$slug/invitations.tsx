@@ -1,16 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,6 +264,11 @@ function InvitationsPage() {
 	return (
 		<>
 			<Header
+				breadcrumbs={[
+					{ name: "League", href: "/leagues" },
+					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
+					{ name: "Invitations" },
+				]}
 				rightContent={
 					<GlowButton
 						icon={Add01Icon}
@@ -285,25 +280,7 @@ function InvitationsPage() {
 						Invitation
 					</GlowButton>
 				}
-			>
-				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2" />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="/leagues">League</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}`}>{truncateSlug(slug)}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Invitations</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
-			</Header>
+			/>
 			<Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
 				<DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden">
 					{/* Technical Grid Background */}

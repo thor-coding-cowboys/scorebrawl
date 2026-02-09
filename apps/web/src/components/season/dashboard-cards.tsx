@@ -150,14 +150,13 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 				<Skeleton className="h-12 w-full" />
 			) : latestMatch ? (
 				<div className="flex items-center justify-between gap-2">
-					<div className="flex flex-col gap-1 min-w-0 flex-1">
-						<div className="text-sm font-medium truncate">
+					<div className="flex flex-col min-w-0 flex-1">
+						<span className="text-sm font-medium truncate">
 							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [])}
-						</div>
-						<div className="text-xs text-muted-foreground">vs</div>
-						<div className="text-sm font-medium truncate">
+						</span>
+						<span className="text-sm font-medium truncate">
 							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [])}
-						</div>
+						</span>
 					</div>
 					<div className="text-lg font-bold shrink-0">
 						{latestMatch.homeScore} - {latestMatch.awayScore}

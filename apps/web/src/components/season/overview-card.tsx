@@ -20,7 +20,7 @@ export function OverviewCard({
 	return (
 		<Card className={cn(className)}>
 			<CardHeader>
-				<div className="flex items-center justify-between">
+				<div className="flex items-center justify-between min-h-7">
 					<div>
 						<CardTitle>{title}</CardTitle>
 						{description && <CardDescription>{description}</CardDescription>}

@@ -1,16 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -345,25 +335,13 @@ function TeamsPage() {
 				</DialogContent>
 			</Dialog>
 
-			<Header>
-				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2" />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="#">League</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}`}>{truncateSlug(slug)}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Teams</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
-			</Header>
+			<Header
+				breadcrumbs={[
+					{ name: "League", href: "/leagues" },
+					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
+					{ name: "Teams" },
+				]}
+			/>
 
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-3">

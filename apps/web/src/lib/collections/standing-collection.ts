@@ -1,4 +1,4 @@
-import { createCollection, useLiveQuery } from "@tanstack/react-db";
+import { createCollection, useLiveQuery, eq } from "@tanstack/react-db";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { z } from "zod";
 import { trpcClient } from "../trpc";
@@ -69,25 +69,39 @@ export function createStandingCollection(seasonId: string, seasonSlug: string) {
 }
 
 export function useStandings(seasonId: string, seasonSlug: string) {
+	// Skip if no valid seasonId
+	if (!seasonId) {
+		return {
+			standings: [],
+			collection: null,
+		};
+	}
+
 	const collection = createStandingCollection(seasonId, seasonSlug);
 
-	const { data: standings } = useLiveQuery((q) =>
-		q.from({ standing: collection }).select(({ standing }) => ({
-			id: standing.id,
-			seasonId: standing.seasonId,
-			playerId: standing.playerId,
-			score: standing.score,
-			name: standing.name,
-			image: standing.image,
-			userId: standing.userId,
-			matchCount: standing.matchCount,
-			winCount: standing.winCount,
-			lossCount: standing.lossCount,
-			drawCount: standing.drawCount,
-			rank: standing.rank,
-			pointDiff: standing.pointDiff,
-			form: standing.form,
-		}))
+	// eslint-disable-next-line react-hooks/rules-of-hooks
+	const { data: standings } = useLiveQuery(
+		(q) =>
+			q
+				.from({ standing: collection })
+				.where(({ standing }) => eq(standing.seasonId, seasonId))
+				.select(({ standing }) => ({
+					id: standing.id,
+					seasonId: standing.seasonId,
+					playerId: standing.playerId,
+					score: standing.score,
+					name: standing.name,
+					image: standing.image,
+					userId: standing.userId,
+					matchCount: standing.matchCount,
+					winCount: standing.winCount,
+					lossCount: standing.lossCount,
+					drawCount: standing.drawCount,
+					rank: standing.rank,
+					pointDiff: standing.pointDiff,
+					form: standing.form,
+				})),
+		[seasonId]
 	);
 
 	return {

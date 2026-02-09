@@ -25,23 +25,24 @@ export function TeamStandingCard({ seasonId, seasonSlug }: TeamStandingCardProps
 	return (
 		<OverviewCard
 			title="Team Standings"
-			className="h-full"
 			action={
 				showPagination ? (
 					<div className="flex gap-2">
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
 							disabled={currentPage === 0}
+							className="text-muted-foreground hover:text-foreground"
 						>
 							<HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
 						</Button>
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
 							disabled={currentPage === totalPages - 1}
+							className="text-muted-foreground hover:text-foreground"
 						>
 							<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
 						</Button>
