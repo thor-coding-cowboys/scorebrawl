@@ -105,8 +105,11 @@ test.describe("Seeded Match CRUD", () => {
 		// Wait for the new match to appear in the list - verify score 11-0
 		await expect(async () => {
 			const latestMatchRow = page.locator('[data-testid^="match-row-"]').first();
-			const scoreEl = latestMatchRow.locator('[data-testid^="match-score-"]');
-			await expect(scoreEl).toHaveText("11 - 0");
+			const scoreEls = latestMatchRow.locator('[data-testid^="match-score-"]');
+			await expect(scoreEls).toHaveCount(2);
+			const scores = await scoreEls.allTextContents();
+			expect(scores[0]).toBe("11");
+			expect(scores[1]).toBe("0");
 		}).toPass({ timeout: 10000 });
 
 		// Verify standings updated
@@ -132,9 +135,11 @@ test.describe("Seeded Match CRUD", () => {
 		// Wait for the match with 11-0 score to disappear
 		await expect(async () => {
 			const latestMatchRow = page.locator('[data-testid^="match-row-"]').first();
-			const scoreEl = latestMatchRow.locator('[data-testid^="match-score-"]');
+			const scoreEls = latestMatchRow.locator('[data-testid^="match-score-"]');
+			await expect(scoreEls).toHaveCount(2);
+			const scores = await scoreEls.allTextContents();
 			// The 11-0 match should no longer be the first row
-			await expect(scoreEl).not.toHaveText("11 - 0");
+			expect(scores[0] !== "11" || scores[1] !== "0").toBe(true);
 		}).toPass({ timeout: 10000 });
 
 		// Step 8: Verify scores went back to original (with retry for timing)
@@ -177,11 +182,13 @@ test.describe("Seeded Match CRUD", () => {
 		const count = await matchRows.count();
 		expect(count).toBeGreaterThan(0);
 
-		// Verify match has score displayed
+		// Verify match has scores displayed (new format: inline with team names)
 		const firstMatch = matchRows.first();
-		const scoreEl = firstMatch.locator('[data-testid^="match-score-"]');
-		await expect(scoreEl).toBeVisible();
-		const scoreText = await scoreEl.textContent();
-		expect(scoreText).toMatch(/\d+\s*-\s*\d+/);
+		const scoreEls = firstMatch.locator('[data-testid^="match-score-"]');
+		await expect(scoreEls).toHaveCount(2);
+		const scores = await scoreEls.allTextContents();
+		expect(scores.length).toBe(2);
+		expect(Number.parseInt(scores[0], 10)).toBeGreaterThanOrEqual(0);
+		expect(Number.parseInt(scores[1], 10)).toBeGreaterThanOrEqual(0);
 	});
 });

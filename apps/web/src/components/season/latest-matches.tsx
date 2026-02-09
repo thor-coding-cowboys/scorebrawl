@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { MatchRow } from "@/components/match/match-row";
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "@tanstack/react-router";
@@ -104,16 +103,12 @@ function MatchTable({
 	seasonId: string;
 }) {
 	return (
-		<Table data-testid="latest-matches-table">
-			<TableBody className="text-sm">
-				{matches.map((match) => (
-					<TableRow key={match.id} data-testid={`latest-match-row-${match.id}`}>
-						<TableCell colSpan={3} className="p-0">
-							<MatchRow match={match} seasonSlug={seasonSlug} seasonId={seasonId} />
-						</TableCell>
-					</TableRow>
-				))}
-			</TableBody>
-		</Table>
+		<div className="divide-y divide-border overflow-hidden" data-testid="latest-matches-table">
+			{matches.map((match) => (
+				<div key={match.id} className="py-3 px-2" data-testid={`latest-match-row-${match.id}`}>
+					<MatchRow match={match} seasonSlug={seasonSlug} seasonId={seasonId} />
+				</div>
+			))}
+		</div>
 	);
 }

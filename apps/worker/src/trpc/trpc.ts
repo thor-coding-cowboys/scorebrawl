@@ -78,6 +78,7 @@ const enforceActiveOrg = t.middleware(({ ctx, next }) => {
 
 // Editor roles constant
 export const editorRoles = ["owner", "editor"];
+export const memberRoles = ["owner", "editor", "member"];
 
 // League access middleware - verifies user is member of organization
 const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
@@ -167,6 +168,15 @@ const editorCheckMiddleware = t.middleware(({ ctx, next }) => {
 	return next({ ctx });
 });
 
+// Member check middleware - allows members to create content
+const memberCheckMiddleware = t.middleware(({ ctx, next }) => {
+	const typedCtx = ctx as unknown as LeagueContext;
+	if (!memberRoles.includes(typedCtx.role)) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions" });
+	}
+	return next({ ctx });
+});
+
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
@@ -186,6 +196,11 @@ export const leagueEditorProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(editorCheckMiddleware);
+
+export const leagueMemberProcedure = t.procedure
+	.use(enforceUserIsAuthed)
+	.use(leagueAccessMiddleware)
+	.use(memberCheckMiddleware);
 
 // Export types for use in routers
 export type { LeagueContext, SeasonContext };

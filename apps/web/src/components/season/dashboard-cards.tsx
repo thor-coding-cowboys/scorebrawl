@@ -1,10 +1,50 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCard } from "./dashboard-card";
-import { FireIcon, SnowIcon, BarChartIcon, Award01Icon } from "@hugeicons/core-free-icons";
+import {
+	FireIcon,
+	SnowIcon,
+	BarChartIcon,
+	Award01Icon,
+	UserMultipleIcon,
+} from "@hugeicons/core-free-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { FormDots } from "@/components/ui/form-dots";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useState } from "react";
+
+const getAssetUrl = (key: string | null | undefined): string | null => {
+	if (!key) return null;
+	if (key.startsWith("http://") || key.startsWith("https://")) {
+		return key;
+	}
+	return `/api/user-assets/${key}`;
+};
+
+function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
+	const [hasError, setHasError] = useState(false);
+	const logoUrl = getAssetUrl(logo);
+
+	if (!logoUrl || hasError) {
+		return (
+			<div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
+				<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-blue-500" />
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden">
+			<img
+				src={logoUrl}
+				alt={name}
+				className="h-full w-full object-cover"
+				onError={() => setHasError(true)}
+			/>
+		</div>
+	);
+}
 
 interface DashboardCardsProps {
 	seasonSlug: string;
@@ -121,16 +161,46 @@ interface MatchPlayer {
 	name: string;
 	image: string | null;
 	teamName: string | null;
+	teamLogo: string | null;
+}
+
+function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {
+	if (players.length <= 1) return null;
+	const teamName = players[0]?.teamName;
+	const teamLogo = players[0]?.teamLogo ?? null;
+	if (teamName) {
+		return { name: teamName, logo: teamLogo };
+	}
+	const fallbackName = players.map((p) => p.name.split(" ")[0]).join(" & ");
+	return { name: fallbackName, logo: teamLogo };
 }
 
 function getSideLabel(players: MatchPlayer[]): string {
 	if (players.length === 0) return "Unknown";
-	const teamNames = players.map((p) => p.teamName).filter(Boolean);
-	const uniqueTeams = [...new Set(teamNames)];
-	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
-		return uniqueTeams[0] ?? "Unknown";
+	const teamInfo = getTeamInfo(players);
+	if (teamInfo) {
+		return teamInfo.name;
 	}
 	return players.map((p) => p.name).join(", ");
+}
+
+function SideDisplay({ players }: { players: MatchPlayer[] }) {
+	const teamInfo = getTeamInfo(players);
+
+	return (
+		<div className="flex items-center gap-2 min-w-0">
+			<div className="flex gap-1 shrink-0">
+				{teamInfo ? (
+					<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />
+				) : (
+					players.map((player) => (
+						<AvatarWithFallback key={player.id} src={player.image} name={player.name} size="sm" />
+					))
+				)}
+			</div>
+			<span className="text-xs text-muted-foreground truncate">{getSideLabel(players)}</span>
+		</div>
+	);
 }
 
 function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
@@ -138,6 +208,9 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	const { data: latestMatch, isLoading } = useQuery(
 		trpc.match.getLatest.queryOptions({ seasonSlug })
 	);
+
+	const homePlayers = latestMatch?.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [];
+	const awayPlayers = latestMatch?.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [];
 
 	return (
 		<DashboardCard
@@ -149,17 +222,18 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 			{isLoading ? (
 				<Skeleton className="h-12 w-full" />
 			) : latestMatch ? (
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex flex-col min-w-0 flex-1">
-						<span className="text-sm font-medium truncate">
-							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [])}
-						</span>
-						<span className="text-sm font-medium truncate">
-							{getSideLabel(latestMatch.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [])}
-						</span>
+				<div className="flex flex-col gap-1.5 min-w-0">
+					<div className="flex items-center justify-between gap-2 min-w-0">
+						<div className="min-w-0 flex-1">
+							<SideDisplay players={homePlayers} />
+						</div>
+						<span className="text-base font-medium shrink-0">{latestMatch.homeScore}</span>
 					</div>
-					<div className="text-lg font-bold shrink-0">
-						{latestMatch.homeScore} - {latestMatch.awayScore}
+					<div className="flex items-center justify-between gap-2 min-w-0">
+						<div className="min-w-0 flex-1">
+							<SideDisplay players={awayPlayers} />
+						</div>
+						<span className="text-base font-medium shrink-0">{latestMatch.awayScore}</span>
 					</div>
 				</div>
 			) : (
