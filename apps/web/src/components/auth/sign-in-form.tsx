@@ -11,6 +11,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
+import { useSessionInvalidate } from "@/hooks/useSession";
 
 const signInSchema = z.object({
 	email: z.string().email("Please enter a valid email address"),
@@ -28,6 +29,7 @@ const isEmailPasswordEnabled = !import.meta.env.VITE_DISABLE_EMAIL_PASSWORD;
 
 export function SignInForm({ callbackURL, error }: SignInFormProps) {
 	const navigate = useNavigate();
+	const invalidateSession = useSessionInvalidate();
 	const [isGitHubLoading, setIsGitHubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
@@ -93,6 +95,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 			}
 
 			if (data) {
+				await invalidateSession();
 				navigate({ to: callbackURL || "/" });
 			} else {
 				setApiError("Failed to sign in. Please try again.");
@@ -184,6 +187,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 			}
 
 			if (data) {
+				await invalidateSession();
 				navigate({ to: callbackURL || "/" });
 			} else {
 				setApiError("Failed to sign in with passkey. Please try again.");

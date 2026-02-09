@@ -22,13 +22,14 @@ export function useSession() {
 }
 
 /**
- * Hook to get session invalidation function for use in mutations
+ * Hook to get session refetch function for use after auth state changes
+ * Returns a promise that resolves when the session is refetched
  */
 export function useSessionInvalidate() {
 	const queryClient = useQueryClient();
 
 	return () => {
-		queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+		return queryClient.refetchQueries({ queryKey: SESSION_QUERY_KEY });
 	};
 }
 
