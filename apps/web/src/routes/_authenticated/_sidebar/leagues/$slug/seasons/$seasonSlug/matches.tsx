@@ -1,27 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
-import { Add01Icon, Award01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Award01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMatches, loadMoreMatches } from "@/lib/collections";
 import { MatchRow } from "@/components/match/match-row";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
+import { RemoveMatchDialog } from "@/components/match/remove-match-dialog";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute(
 	"/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches"
@@ -56,10 +48,12 @@ function MatchesPage() {
 	const isSeasonLocked = season?.closed || season?.archived;
 
 	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
+	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [totalMatches, setTotalMatches] = useState<number | null>(null);
 
 	const { matches } = useMatches(seasonId ?? "", seasonSlug);
+	const latestMatch = matches[0];
 
 	useEffect(() => {
 		if (seasonId && totalMatches === null) {
@@ -103,6 +97,16 @@ function MatchesPage() {
 	return (
 		<>
 			<Header
+				breadcrumbs={[
+					{ name: "Leagues", href: "/leagues" },
+					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
+					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
+					{
+						name: season?.name ?? truncateSlug(seasonSlug),
+						href: `/leagues/${slug}/seasons/${seasonSlug}`,
+					},
+					{ name: "Matches" },
+				]}
 				rightContent={
 					canCreateMatches && (
 						<GlowButton
@@ -117,35 +121,7 @@ function MatchesPage() {
 						</GlowButton>
 					)
 				}
-			>
-				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2" />
-				<Breadcrumb>
-					<BreadcrumbList>
-						<BreadcrumbItem className="hidden md:block">
-							<BreadcrumbLink href="/leagues">Leagues</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}`}>{truncateSlug(slug)}</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}/seasons`}>Seasons</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbLink href={`/leagues/${slug}/seasons/${seasonSlug}`}>
-								{season?.name ?? truncateSlug(seasonSlug)}
-							</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator className="hidden md:block" />
-						<BreadcrumbItem>
-							<BreadcrumbPage>Matches</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
-			</Header>
+			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-1">
 					<Card className="relative overflow-hidden">
@@ -184,10 +160,23 @@ function MatchesPage() {
 						<div className="space-y-4">
 							<div className="flex items-center justify-between">
 								<h3 className="text-lg font-medium">Matches</h3>
-								<span className="text-sm text-muted-foreground">
-									Showing {matches.length}
-									{totalMatches !== null && ` of ${totalMatches}`}
-								</span>
+								<div className="flex items-center gap-2">
+									{canDeleteMatches && !isSeasonLocked && latestMatch && (
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => setIsRemoveDialogOpen(true)}
+											className="text-muted-foreground hover:text-destructive"
+										>
+											<span className="hidden sm:inline">Remove Latest</span>
+											<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
+										</Button>
+									)}
+									<span className="text-sm text-muted-foreground">
+										Showing {matches.length}
+										{totalMatches !== null && ` of ${totalMatches}`}
+									</span>
+								</div>
 							</div>
 							<div
 								ref={parentRef}
@@ -224,8 +213,6 @@ function MatchesPage() {
 														match={match}
 														seasonSlug={seasonSlug}
 														seasonId={seasonId ?? ""}
-														isLatest={virtualItem.index === 0}
-														canDelete={canDeleteMatches && !isSeasonLocked}
 													/>
 												</div>
 											);
@@ -247,6 +234,16 @@ function MatchesPage() {
 					onClose={() => setIsCreateMatchOpen(false)}
 					seasonId={seasonId}
 					seasonSlug={seasonSlug}
+				/>
+			)}
+			{seasonId && latestMatch && (
+				<RemoveMatchDialog
+					isOpen={isRemoveDialogOpen}
+					onClose={() => setIsRemoveDialogOpen(false)}
+					matchId={latestMatch.id}
+					matchInfo={latestMatch}
+					seasonSlug={seasonSlug}
+					seasonId={seasonId}
 				/>
 			)}
 		</>

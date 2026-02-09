@@ -32,9 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Header } from "@/components/layout/header";
-import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 import { useSession, useSessionInvalidate, fetchSessionForRoute } from "@/hooks/useSession";
@@ -411,11 +409,7 @@ function ProfilePage() {
 
 	return (
 		<>
-			<Header>
-				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2" />
-				<h1 className="text-lg font-semibold">Profile</h1>
-			</Header>
+			<Header breadcrumbs={[{ name: "Profile" }]} />
 			<div className="flex flex-1 flex-col gap-6 p-6 pt-0">
 				<div className="flex flex-col gap-2">
 					<h2 className="text-2xl font-semibold">Profile</h2>

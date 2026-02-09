@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
@@ -6,7 +7,8 @@ import { MatchRow } from "@/components/match/match-row";
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
+import { RemoveMatchDialog } from "@/components/match/remove-match-dialog";
 
 interface LatestMatchesProps {
 	seasonId: string;
@@ -17,6 +19,7 @@ interface LatestMatchesProps {
 export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatchesProps) {
 	const params = useParams({ strict: false });
 	const slug = params.slug as string;
+	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 
 	const { data: matchesData } = useQuery({
 		queryKey: ["matches", seasonId],
@@ -28,36 +31,61 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 	const matches = matchesData?.matches ?? [];
 
 	const latestMatches = matches.slice(0, 5);
+	const latestMatch = latestMatches[0];
 	const showEmptyState = latestMatches.length < 1;
 	const showMatches = latestMatches.length > 0;
 
 	return (
-		<OverviewCard
-			title="Latest Matches"
-			action={
-				showMatches && (
-					<Link to="/leagues/$slug/seasons/$seasonSlug/matches" params={{ slug, seasonSlug }}>
-						<Button variant="outline" size="sm">
-							<span className="hidden sm:inline">See All</span>
-							<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
-						</Button>
-					</Link>
-				)
-			}
-		>
-			{showMatches ? (
-				<MatchTable
-					matches={latestMatches}
+		<>
+			<OverviewCard
+				title="Latest Matches"
+				action={
+					showMatches && (
+						<div className="flex items-center gap-2">
+							{canDelete && latestMatch && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setIsRemoveDialogOpen(true)}
+									className="text-muted-foreground hover:text-destructive"
+								>
+									<span className="hidden sm:inline">Remove Latest</span>
+									<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
+								</Button>
+							)}
+							<Link to="/leagues/$slug/seasons/$seasonSlug/matches" params={{ slug, seasonSlug }}>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-muted-foreground hover:text-foreground"
+								>
+									<span className="hidden sm:inline">See All</span>
+									<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+								</Button>
+							</Link>
+						</div>
+					)
+				}
+			>
+				{showMatches ? (
+					<MatchTable matches={latestMatches} seasonSlug={seasonSlug} seasonId={seasonId} />
+				) : showEmptyState ? (
+					<div className="flex items-center justify-center h-40 text-muted-foreground">
+						No registered matches
+					</div>
+				) : null}
+			</OverviewCard>
+			{latestMatch && (
+				<RemoveMatchDialog
+					isOpen={isRemoveDialogOpen}
+					onClose={() => setIsRemoveDialogOpen(false)}
+					matchId={latestMatch.id}
+					matchInfo={latestMatch}
 					seasonSlug={seasonSlug}
 					seasonId={seasonId}
-					canDelete={canDelete}
 				/>
-			) : showEmptyState ? (
-				<div className="flex items-center justify-center h-40 text-muted-foreground">
-					No registered matches
-				</div>
-			) : null}
-		</OverviewCard>
+			)}
+		</>
 	);
 }
 
@@ -65,26 +93,18 @@ function MatchTable({
 	matches,
 	seasonSlug,
 	seasonId,
-	canDelete,
 }: {
 	matches: { id: string; homeScore: number; awayScore: number; createdAt: Date }[];
 	seasonSlug: string;
 	seasonId: string;
-	canDelete?: boolean;
 }) {
 	return (
 		<Table>
 			<TableBody className="text-sm">
-				{matches.map((match, index) => (
+				{matches.map((match) => (
 					<TableRow key={match.id}>
 						<TableCell colSpan={3} className="p-0">
-							<MatchRow
-								match={match}
-								seasonSlug={seasonSlug}
-								seasonId={seasonId}
-								isLatest={index === 0}
-								canDelete={canDelete}
-							/>
+							<MatchRow match={match} seasonSlug={seasonSlug} seasonId={seasonId} />
 						</TableCell>
 					</TableRow>
 				))}

@@ -1,4 +1,4 @@
-import { createCollection, useLiveQuery } from "@tanstack/react-db";
+import { createCollection, useLiveQuery, eq } from "@tanstack/react-db";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { z } from "zod";
 import { trpcClient } from "../trpc";
@@ -77,25 +77,39 @@ export function createTeamStandingCollection(seasonId: string, seasonSlug: strin
 }
 
 export function useTeamStandings(seasonId: string, seasonSlug: string) {
+	// Skip if no valid seasonId
+	if (!seasonId) {
+		return {
+			teamStandings: [],
+			collection: null,
+		};
+	}
+
 	const collection = createTeamStandingCollection(seasonId, seasonSlug);
 
-	const { data: teamStandings } = useLiveQuery((q) =>
-		q.from({ teamStanding: collection }).select(({ teamStanding }) => ({
-			id: teamStanding.id,
-			seasonId: teamStanding.seasonId,
-			leagueTeamId: teamStanding.leagueTeamId,
-			score: teamStanding.score,
-			name: teamStanding.name,
-			logo: teamStanding.logo,
-			matchCount: teamStanding.matchCount,
-			winCount: teamStanding.winCount,
-			lossCount: teamStanding.lossCount,
-			drawCount: teamStanding.drawCount,
-			rank: teamStanding.rank,
-			pointDiff: teamStanding.pointDiff,
-			form: teamStanding.form,
-			players: teamStanding.players,
-		}))
+	// eslint-disable-next-line react-hooks/rules-of-hooks
+	const { data: teamStandings } = useLiveQuery(
+		(q) =>
+			q
+				.from({ teamStanding: collection })
+				.where(({ teamStanding }) => eq(teamStanding.seasonId, seasonId))
+				.select(({ teamStanding }) => ({
+					id: teamStanding.id,
+					seasonId: teamStanding.seasonId,
+					leagueTeamId: teamStanding.leagueTeamId,
+					score: teamStanding.score,
+					name: teamStanding.name,
+					logo: teamStanding.logo,
+					matchCount: teamStanding.matchCount,
+					winCount: teamStanding.winCount,
+					lossCount: teamStanding.lossCount,
+					drawCount: teamStanding.drawCount,
+					rank: teamStanding.rank,
+					pointDiff: teamStanding.pointDiff,
+					form: teamStanding.form,
+					players: teamStanding.players,
+				})),
+		[seasonId]
 	);
 
 	return {

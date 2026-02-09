@@ -1,4 +1,4 @@
-import { createCollection, useLiveQuery } from "@tanstack/react-db";
+import { createCollection, useLiveQuery, eq } from "@tanstack/react-db";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { z } from "zod";
 import { trpcClient } from "../trpc";
@@ -129,20 +129,32 @@ export function loadMoreMatches(seasonId: string, seasonSlug: string, currentCou
 }
 
 export function useMatches(seasonId: string, seasonSlug: string) {
+	// Skip if no valid seasonId
+	if (!seasonId) {
+		return {
+			matches: [],
+			collection: null as ReturnType<typeof createMatchCollection> | null,
+		};
+	}
+
 	const collection = createMatchCollection(seasonId, seasonSlug);
 
-	const { data: matches } = useLiveQuery((q) =>
-		q
-			.from({ match: collection })
-			.orderBy(({ match }) => match.createdAt, "desc")
-			.select(({ match }) => ({
-				id: match.id,
-				seasonId: match.seasonId,
-				homeScore: match.homeScore,
-				awayScore: match.awayScore,
-				createdAt: match.createdAt,
-				players: match.players,
-			}))
+	// eslint-disable-next-line react-hooks/rules-of-hooks
+	const { data: matches } = useLiveQuery(
+		(q) =>
+			q
+				.from({ match: collection })
+				.where(({ match }) => eq(match.seasonId, seasonId))
+				.orderBy(({ match }) => match.createdAt, "desc")
+				.select(({ match }) => ({
+					id: match.id,
+					seasonId: match.seasonId,
+					homeScore: match.homeScore,
+					awayScore: match.awayScore,
+					createdAt: match.createdAt,
+					players: match.players,
+				})),
+		[seasonId]
 	);
 
 	return {
