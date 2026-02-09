@@ -34,6 +34,10 @@ config.r2_buckets[0].bucket_name = bucketName;
 // Remove custom domain routes for preview
 config.routes = undefined;
 
+// Clear vars to avoid using production values in preview
+// Preview-specific vars should be set via secrets or env in the workflow
+config.vars = {};
+
 // Write preview config
 const previewConfigPath = "wrangler.preview.jsonc";
 await Bun.write(previewConfigPath, JSON.stringify(config, null, "\t"));
