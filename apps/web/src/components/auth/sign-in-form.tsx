@@ -24,6 +24,8 @@ interface SignInFormProps {
 	error?: string;
 }
 
+const isEmailPasswordEnabled = !import.meta.env.VITE_DISABLE_EMAIL_PASSWORD;
+
 export function SignInForm({ callbackURL, error }: SignInFormProps) {
 	const navigate = useNavigate();
 	const [isGitHubLoading, setIsGitHubLoading] = useState(false);
@@ -223,73 +225,85 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 		<Card className="w-full max-w-md border-border">
 			<CardHeader>
 				<CardTitle className="text-2xl">Sign In</CardTitle>
-				<CardDescription>Enter your email below to login to your account</CardDescription>
+				<CardDescription>
+					{isEmailPasswordEnabled
+						? "Enter your email below to login to your account"
+						: "Sign in to your account"}
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<form onSubmit={handleSubmit(onSubmit)}>
-					<FieldGroup>
-						<Field>
-							<FieldLabel htmlFor="email">Email</FieldLabel>
-							<Input
-								id="email"
-								type="text"
-								placeholder="m@example.com"
-								autoComplete="username webauthn"
-								disabled={isSubmitting}
-								{...register("email")}
-								onChange={(e) => {
-									register("email").onChange(e);
-									setApiError("");
-								}}
-							/>
-							{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-						</Field>
-						<Field>
-							<div className="flex items-center justify-between">
-								<FieldLabel htmlFor="password">Password</FieldLabel>
-								<Link
-									to="/auth/forgot-password"
-									search={{ redirect: callbackURL }}
-									className="text-sm text-primary hover:underline"
-								>
-									Forgot your password?
-								</Link>
-							</div>
-							<Input
-								id="password"
-								type="password"
-								placeholder="Password"
-								autoComplete="current-password webauthn"
-								disabled={isSubmitting}
-								{...register("password")}
-								onChange={(e) => {
-									register("password").onChange(e);
-									setApiError("");
-								}}
-							/>
-							{errors.password && (
-								<p className="text-sm text-destructive">{errors.password.message}</p>
-							)}
-						</Field>
-						{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-						<Button type="submit" className="w-full" disabled={isSubmitting}>
-							{isSubmitting ? "Signing in..." : "Sign In"}
-						</Button>
-					</FieldGroup>
-				</form>
+				{isEmailPasswordEnabled && (
+					<form onSubmit={handleSubmit(onSubmit)}>
+						<FieldGroup>
+							<Field>
+								<FieldLabel htmlFor="email">Email</FieldLabel>
+								<Input
+									id="email"
+									type="text"
+									placeholder="m@example.com"
+									autoComplete="username webauthn"
+									disabled={isSubmitting}
+									{...register("email")}
+									onChange={(e) => {
+										register("email").onChange(e);
+										setApiError("");
+									}}
+								/>
+								{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+							</Field>
+							<Field>
+								<div className="flex items-center justify-between">
+									<FieldLabel htmlFor="password">Password</FieldLabel>
+									<Link
+										to="/auth/forgot-password"
+										search={{ redirect: callbackURL }}
+										className="text-sm text-primary hover:underline"
+									>
+										Forgot your password?
+									</Link>
+								</div>
+								<Input
+									id="password"
+									type="password"
+									placeholder="Password"
+									autoComplete="current-password webauthn"
+									disabled={isSubmitting}
+									{...register("password")}
+									onChange={(e) => {
+										register("password").onChange(e);
+										setApiError("");
+									}}
+								/>
+								{errors.password && (
+									<p className="text-sm text-destructive">{errors.password.message}</p>
+								)}
+							</Field>
+							{apiError && <p className="text-sm text-destructive">{apiError}</p>}
+							<Button type="submit" className="w-full" disabled={isSubmitting}>
+								{isSubmitting ? "Signing in..." : "Sign In"}
+							</Button>
+						</FieldGroup>
+					</form>
+				)}
 
 				{(import.meta.env.VITE_GITHUB_CLIENT_ID ||
 					import.meta.env.VITE_GOOGLE_CLIENT_ID ||
 					supportsPasskey) && (
 					<>
-						<div className="relative my-4">
-							<div className="absolute inset-0 flex items-center">
-								<Separator />
+						{isEmailPasswordEnabled && (
+							<div className="relative my-4">
+								<div className="absolute inset-0 flex items-center">
+									<Separator />
+								</div>
+								<div className="relative flex justify-center text-xs uppercase">
+									<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+								</div>
 							</div>
-							<div className="relative flex justify-center text-xs uppercase">
-								<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-							</div>
-						</div>
+						)}
+
+						{!isEmailPasswordEnabled && apiError && (
+							<p className="mb-4 text-sm text-destructive">{apiError}</p>
+						)}
 
 						<div className="flex flex-col gap-2">
 							{supportsPasskey && (

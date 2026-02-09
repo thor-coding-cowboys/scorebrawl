@@ -27,6 +27,8 @@ interface SignUpFormProps {
 	error?: string;
 }
 
+const isEmailPasswordEnabled = !import.meta.env.VITE_DISABLE_EMAIL_PASSWORD;
+
 export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -151,76 +153,88 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 		<Card className="w-full max-w-md border-border">
 			<CardHeader>
 				<CardTitle className="text-2xl">Sign Up</CardTitle>
-				<CardDescription>Enter your information to create an account</CardDescription>
+				<CardDescription>
+					{isEmailPasswordEnabled
+						? "Enter your information to create an account"
+						: "Create an account"}
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<form onSubmit={handleSubmit(onSubmit)}>
-					<FieldGroup>
-						<Field>
-							<FieldLabel htmlFor="name">Name</FieldLabel>
-							<Input
-								id="name"
-								type="text"
-								placeholder="Name"
-								disabled={isSubmitting}
-								{...register("name")}
-								onChange={(e) => {
-									register("name").onChange(e);
-									setApiError("");
-								}}
-							/>
-							{errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-						</Field>
-						<Field>
-							<FieldLabel htmlFor="email">Email</FieldLabel>
-							<Input
-								id="email"
-								type="text"
-								placeholder="m@example.com"
-								autoComplete="email"
-								disabled={isSubmitting}
-								{...register("email")}
-								onChange={(e) => {
-									register("email").onChange(e);
-									setApiError("");
-								}}
-							/>
-							{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-						</Field>
-						<Field>
-							<FieldLabel htmlFor="password">Password</FieldLabel>
-							<Input
-								id="password"
-								type="password"
-								placeholder="Password"
-								disabled={isSubmitting}
-								{...register("password")}
-								onChange={(e) => {
-									register("password").onChange(e);
-									setApiError("");
-								}}
-							/>
-							{errors.password && (
-								<p className="text-sm text-destructive">{errors.password.message}</p>
-							)}
-						</Field>
-						{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-						<Button type="submit" className="w-full" disabled={isSubmitting}>
-							{isSubmitting ? "Creating account..." : "Create an account"}
-						</Button>
-					</FieldGroup>
-				</form>
+				{isEmailPasswordEnabled && (
+					<form onSubmit={handleSubmit(onSubmit)}>
+						<FieldGroup>
+							<Field>
+								<FieldLabel htmlFor="name">Name</FieldLabel>
+								<Input
+									id="name"
+									type="text"
+									placeholder="Name"
+									disabled={isSubmitting}
+									{...register("name")}
+									onChange={(e) => {
+										register("name").onChange(e);
+										setApiError("");
+									}}
+								/>
+								{errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="email">Email</FieldLabel>
+								<Input
+									id="email"
+									type="text"
+									placeholder="m@example.com"
+									autoComplete="email"
+									disabled={isSubmitting}
+									{...register("email")}
+									onChange={(e) => {
+										register("email").onChange(e);
+										setApiError("");
+									}}
+								/>
+								{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="password">Password</FieldLabel>
+								<Input
+									id="password"
+									type="password"
+									placeholder="Password"
+									disabled={isSubmitting}
+									{...register("password")}
+									onChange={(e) => {
+										register("password").onChange(e);
+										setApiError("");
+									}}
+								/>
+								{errors.password && (
+									<p className="text-sm text-destructive">{errors.password.message}</p>
+								)}
+							</Field>
+							{apiError && <p className="text-sm text-destructive">{apiError}</p>}
+							<Button type="submit" className="w-full" disabled={isSubmitting}>
+								{isSubmitting ? "Creating account..." : "Create an account"}
+							</Button>
+						</FieldGroup>
+					</form>
+				)}
 
 				{(import.meta.env.VITE_GITHUB_CLIENT_ID || import.meta.env.VITE_GOOGLE_CLIENT_ID) && (
 					<>
-						<div className="relative my-4">
-							<div className="absolute inset-0 flex items-center">
-								<Separator />
+						{isEmailPasswordEnabled && (
+							<div className="relative my-4">
+								<div className="absolute inset-0 flex items-center">
+									<Separator />
+								</div>
+								<div className="relative flex justify-center text-xs uppercase">
+									<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+								</div>
 							</div>
-							<div className="relative flex justify-center text-xs uppercase">
-								<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-							</div>
-						</div>
+						)}
+
+						{!isEmailPasswordEnabled && apiError && (
+							<p className="mb-4 text-sm text-destructive">{apiError}</p>
+						)}
 
 						<div className="flex flex-col gap-2">
 							{import.meta.env.VITE_GITHUB_CLIENT_ID && (

@@ -79,7 +79,7 @@ export function createAuth({
 		}),
 		secret: betterAuthSecret,
 		emailAndPassword: {
-			enabled: true,
+			enabled: process.env.DISABLE_EMAIL_PASSWORD?.toLowerCase() !== "true",
 			password: {
 				hash: async (password) => {
 					return await hashPassword(password);

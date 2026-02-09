@@ -16,11 +16,12 @@
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedSideEffectImports": true,
-		"types": ["@cloudflare/workers-types", "vite/client"],
+		"types": ["@cloudflare/workers-types", "vite/client", "@types/node"],
 		"paths": {
 			"@/*": ["./src/*"],
 			"@coding-cowboys/scorebrawl-worker/*": ["../worker/src/*"],
 		},
 	},
 	"include": ["src", "index.html", "../worker/worker-configuration.d.ts"],
+	"exclude": ["../worker/src"],
 }
