@@ -413,7 +413,7 @@ function ProfilePage() {
 		<>
 			<Header>
 				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+				<Separator orientation="vertical" className="mr-2" />
 				<h1 className="text-lg font-semibold">Profile</h1>
 			</Header>
 			<div className="flex flex-1 flex-col gap-6 p-6 pt-0">

@@ -3,7 +3,7 @@ import {
 	Award01Icon,
 	UserMultipleIcon,
 	Mail01Icon,
-	ArrowDown01Icon,
+	ArrowRight01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -22,16 +22,14 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
 	SidebarGroup,
 	SidebarGroupLabel,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { authClient } from "@/lib/auth-client";
 import { trpcClient } from "@/lib/trpc";
 
@@ -135,47 +133,56 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					<SidebarGroup>
 						<SidebarGroupLabel>League</SidebarGroupLabel>
 						<SidebarMenu>
-							{activeSeasonCount > 0 && (
-								<SidebarMenuItem>
-									{hasMultipleActiveSeasons ? (
-										<DropdownMenu>
-											<DropdownMenuTrigger
-												render={
-													<SidebarMenuButton isActive={!!isActiveSeasonRoute}>
-														<HugeiconsIcon icon={Activity01Icon} className="size-4" />
-														<span>Active Seasons</span>
-														<HugeiconsIcon icon={ArrowDown01Icon} className="size-3 ml-auto" />
-													</SidebarMenuButton>
-												}
-											/>
-											<DropdownMenuContent align="start" className="w-48">
-												{activeSeasons?.map((season) => (
-													<DropdownMenuItem key={season.id} onClick={handleNavClick}>
-														<Link
-															to="/leagues/$slug/seasons/$seasonSlug"
-															params={{ slug: leagueSlug, seasonSlug: season.slug }}
-															className="flex items-center w-full"
-														>
-															{season.name}
-														</Link>
-													</DropdownMenuItem>
-												))}
-											</DropdownMenuContent>
-										</DropdownMenu>
-									) : (
+							{activeSeasonCount > 0 &&
+								(hasMultipleActiveSeasons ? (
+									<Collapsible defaultOpen={!!isActiveSeasonRoute} className="group/collapsible">
+										<SidebarMenuItem>
+											<SidebarMenuButton asChild isActive={!!isActiveSeasonRoute}>
+												<CollapsibleTrigger>
+													<HugeiconsIcon icon={Activity01Icon} className="size-4" />
+													<span>Active Seasons</span>
+													<HugeiconsIcon
+														icon={ArrowRight01Icon}
+														className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+													/>
+												</CollapsibleTrigger>
+											</SidebarMenuButton>
+											<CollapsibleContent>
+												<SidebarMenuSub>
+													{activeSeasons?.map((season) => (
+														<SidebarMenuSubItem key={season.id}>
+															<SidebarMenuSubButton asChild>
+																<Link
+																	to="/leagues/$slug/seasons/$seasonSlug"
+																	params={{ slug: leagueSlug, seasonSlug: season.slug }}
+																	onClick={handleNavClick}
+																>
+																	<span>{season.name}</span>
+																</Link>
+															</SidebarMenuSubButton>
+														</SidebarMenuSubItem>
+													))}
+												</SidebarMenuSub>
+											</CollapsibleContent>
+										</SidebarMenuItem>
+									</Collapsible>
+								) : (
+									<SidebarMenuItem>
 										<SidebarMenuButton asChild isActive={!!isActiveSeasonRoute}>
 											<Link
 												to="/leagues/$slug/seasons/$seasonSlug"
-												params={{ slug: leagueSlug, seasonSlug: singleActiveSeason!.slug }}
+												params={{
+													slug: leagueSlug,
+													seasonSlug: singleActiveSeason?.slug ?? "",
+												}}
 												onClick={handleNavClick}
 											>
 												<HugeiconsIcon icon={Activity01Icon} className="size-4" />
 												<span>Active Season</span>
 											</Link>
 										</SidebarMenuButton>
-									)}
-								</SidebarMenuItem>
-							)}
+									</SidebarMenuItem>
+								))}
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild isActive={!!isSeasonsListRoute}>
 									<Link
