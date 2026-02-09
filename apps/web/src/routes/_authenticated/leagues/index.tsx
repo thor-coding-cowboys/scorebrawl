@@ -33,6 +33,7 @@ function LeaguesListPage() {
 		<div className="flex min-h-screen flex-col">
 			<Header
 				includeLogoutButton
+				includeSidebarTrigger={false}
 				rightContent={
 					<GlowButton
 						icon={Add01Icon}

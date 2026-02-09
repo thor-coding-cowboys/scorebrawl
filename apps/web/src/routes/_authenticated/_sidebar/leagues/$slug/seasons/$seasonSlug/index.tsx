@@ -39,7 +39,7 @@ function SeasonDashboardPage() {
 	const { data: session } = useSession();
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
-	const canCreateMatches = role === "owner" || role === "editor";
+	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 
 	const { data: season, error } = useQuery({
 		queryKey: ["season", seasonSlug],
@@ -123,6 +123,13 @@ function SeasonDashboardPage() {
 									<Fixtures slug={slug} seasonSlug={seasonSlug} />
 								</OverviewCard>
 							)}
+							{seasonId && (
+								<LatestMatches
+									seasonId={seasonId}
+									seasonSlug={seasonSlug}
+									canDelete={canCreateMatches && !isSeasonLocked}
+								/>
+							)}
 						</div>
 						<div className="flex flex-col gap-4">
 							{seasonId && <TeamStandingCard seasonId={seasonId} seasonSlug={seasonSlug} />}
@@ -137,16 +144,14 @@ function SeasonDashboardPage() {
 								<Fixtures slug={slug} seasonSlug={seasonSlug} />
 							</OverviewCard>
 						)}
+						{seasonId && (
+							<LatestMatches
+								seasonId={seasonId}
+								seasonSlug={seasonSlug}
+								canDelete={canCreateMatches && !isSeasonLocked}
+							/>
+						)}
 					</div>
-				)}
-
-				{/* Latest Matches below standings for both layouts */}
-				{seasonId && (
-					<LatestMatches
-						seasonId={seasonId}
-						seasonSlug={seasonSlug}
-						canDelete={canCreateMatches && !isSeasonLocked}
-					/>
 				)}
 			</div>
 			{isEloSeason && seasonId && (

@@ -282,7 +282,7 @@ export function CreateMatchDialog({
 		<>
 			<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 				<DialogContent
-					className="sm:max-w-lg max-h-[95vh] overflow-hidden p-0"
+					className="sm:max-w-lg max-h-[95vh] overflow-hidden p-0 top-8 translate-y-0 data-[state=open]:top-8"
 					data-testid="create-match-dialog"
 				>
 					{/* Decorative grid background */}
@@ -308,19 +308,21 @@ export function CreateMatchDialog({
 					<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-80px)] p-4">
 						<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
 							{/* Score Steppers */}
-							<div className="grid grid-cols-2 gap-4">
-								<ScoreStepper
-									label="Home"
-									score={homeScore}
-									onIncrement={() => setValue("homeScore", homeScore + 1)}
-									onDecrement={() => setValue("homeScore", Math.max(0, homeScore - 1))}
-								/>
-								<ScoreStepper
-									label="Away"
-									score={awayScore}
-									onIncrement={() => setValue("awayScore", awayScore + 1)}
-									onDecrement={() => setValue("awayScore", Math.max(0, awayScore - 1))}
-								/>
+							<div className="bg-muted/30">
+								<div className="grid grid-cols-2">
+									<ScoreStepper
+										label="Home"
+										score={homeScore}
+										onIncrement={() => setValue("homeScore", homeScore + 1)}
+										onDecrement={() => setValue("homeScore", Math.max(0, homeScore - 1))}
+									/>
+									<ScoreStepper
+										label="Away"
+										score={awayScore}
+										onIncrement={() => setValue("awayScore", awayScore + 1)}
+										onDecrement={() => setValue("awayScore", Math.max(0, awayScore - 1))}
+									/>
+								</div>
 							</div>
 
 							{/* Team Roster Cards */}
@@ -423,7 +425,7 @@ function ScoreStepper({
 }) {
 	const testIdPrefix = `match-${label.toLowerCase()}`;
 	return (
-		<div className="flex flex-col items-center gap-1 border border-border p-4">
+		<div className="flex flex-col items-center gap-1 p-4">
 			<div className="text-[0.65rem] uppercase tracking-wider text-muted-foreground font-mono">
 				{label}
 			</div>
@@ -475,9 +477,9 @@ function TeamRosterCard({
 			<div className="px-3 py-2 border-b border-border bg-muted/30">
 				<div className="flex items-center justify-between">
 					<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
-						{label} Team
+						{label.toUpperCase()}
 					</span>
-					<span className="text-xs font-mono text-muted-foreground">
+					<span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
 						{count} player{count !== 1 ? "s" : ""}
 					</span>
 				</div>

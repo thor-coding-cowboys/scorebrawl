@@ -34,7 +34,7 @@ function MatchesPage() {
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
-	const canCreateMatches = role === "owner" || role === "editor";
+	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 	const canDeleteMatches = role === "owner" || role === "editor";
 
 	const { data: season } = useQuery({
@@ -181,7 +181,7 @@ function MatchesPage() {
 							</div>
 							<div
 								ref={parentRef}
-								className="h-[calc(100vh-400px)] overflow-auto border divide-y divide-border"
+								className="h-[calc(100vh-400px)] overflow-auto rounded-lg bg-card mx-auto max-w-2xl"
 							>
 								<div
 									style={{
@@ -208,7 +208,7 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className="hover:bg-muted/50 transition-colors border-b border-border last:border-b-0"
+													className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden"
 												>
 													<MatchRow
 														match={match}

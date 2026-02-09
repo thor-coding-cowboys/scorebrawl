@@ -8,7 +8,7 @@ import * as seasonPlayerRepository from "../../repositories/season-player-reposi
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import {
 	seasonProcedure,
-	leagueEditorProcedure,
+	leagueMemberProcedure,
 	type LeagueContext,
 	type SeasonContext,
 } from "../trpc";
@@ -17,7 +17,7 @@ import {
 const matchIdSchema = createOptionalIdSchema("match");
 
 export const matchRouter = {
-	create: leagueEditorProcedure
+	create: leagueMemberProcedure
 		.input(
 			z.object({
 				id: matchIdSchema,

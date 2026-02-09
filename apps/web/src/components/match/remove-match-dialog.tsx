@@ -7,6 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { MatchScoreDisplay, type MatchDisplayPlayer } from "./match-score-display";
 
 interface MatchInfo {
 	id: string;
@@ -37,7 +38,6 @@ export function RemoveMatchDialog({
 	const trpc = useTRPC();
 	const [apiError, setApiError] = useState<string>("");
 
-	// Fetch player details for the match
 	const { data: matchDetails } = useQuery({
 		queryKey: ["match", "details", matchId],
 		queryFn: async () => {
@@ -47,27 +47,14 @@ export function RemoveMatchDialog({
 		enabled: isOpen && !!matchId,
 	});
 
-	const homePlayers = matchDetails?.players?.filter((p) => p.homeTeam) ?? [];
-	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
-
-	const getTeamLabel = (players: { name: string; teamName: string | null }[]): string => {
-		if (players.length === 0) return "Unknown";
-		if (players.length > 1 && players[0]?.teamName) {
-			return players[0].teamName;
-		}
-		if (players.length > 1) {
-			return players.map((p) => p.name.split(" ")[0]).join(" & ");
-		}
-		return players[0]?.name ?? "Unknown";
-	};
-
-	const homeLabel = getTeamLabel(homePlayers);
-	const awayLabel = getTeamLabel(awayPlayers);
+	const homePlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => p.homeTeam) ??
+		[]) as MatchDisplayPlayer[];
+	const awayPlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => !p.homeTeam) ??
+		[]) as MatchDisplayPlayer[];
 
 	const removeMutation = useMutation({
 		...trpc.match.remove.mutationOptions(),
 		onSuccess: () => {
-			// Invalidate match and standings collections
 			queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
 			queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
 			queryClient.invalidateQueries({ queryKey: ["team-standings", seasonId] });
@@ -91,15 +78,10 @@ export function RemoveMatchDialog({
 
 	const handleRemove = async () => {
 		setApiError("");
-
 		if (!matchId) return;
 
 		try {
-			await removeMutation.mutateAsync({
-				seasonSlug,
-				matchId,
-			});
-
+			await removeMutation.mutateAsync({ seasonSlug, matchId });
 			toast.success("Match removed successfully");
 			onSuccess?.();
 			onClose();
@@ -143,37 +125,26 @@ export function RemoveMatchDialog({
 				</DialogHeader>
 
 				<div className="relative z-10 space-y-4 py-4">
-					{/* Match Info Card */}
 					{matchInfo && (
 						<div className="border border-border rounded-lg p-4 bg-muted/30">
-							<div className="flex items-center justify-between">
-								<div className="flex flex-col gap-1 min-w-0 flex-1">
-									<span className="text-sm font-medium truncate">{homeLabel}</span>
-									<span className="text-sm font-medium truncate">{awayLabel}</span>
-								</div>
-								<div className="text-center font-bold text-lg font-mono px-4">
-									{matchInfo.homeScore} - {matchInfo.awayScore}
-								</div>
-								<div className="text-xs text-muted-foreground text-right min-w-[80px]">
-									{new Date(matchInfo.createdAt).toLocaleDateString("en-US", {
-										month: "short",
-										day: "numeric",
-										hour: "numeric",
-										minute: "2-digit",
-									})}
-								</div>
-							</div>
+							<MatchScoreDisplay
+								matchId={matchInfo.id}
+								homeScore={matchInfo.homeScore}
+								awayScore={matchInfo.awayScore}
+								createdAt={matchInfo.createdAt}
+								homePlayers={homePlayers}
+								awayPlayers={awayPlayers}
+								compact
+							/>
 						</div>
 					)}
 
-					{/* Content */}
 					<div className="text-center space-y-2">
 						<p className="text-muted-foreground text-sm">
 							Are you sure you want to remove this match?
 						</p>
 					</div>
 
-					{/* Warning Box */}
 					<div className="border p-4 space-y-2 bg-red-500/10 border-red-500/20">
 						<div className="flex items-start gap-2">
 							<HugeiconsIcon
@@ -189,14 +160,12 @@ export function RemoveMatchDialog({
 						</div>
 					</div>
 
-					{/* Error Display */}
 					{apiError && (
 						<div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
 							<p className="text-destructive font-mono text-xs">{apiError}</p>
 						</div>
 					)}
 
-					{/* Action Buttons */}
 					<div className="flex gap-3 pt-2">
 						<Button
 							variant="outline"

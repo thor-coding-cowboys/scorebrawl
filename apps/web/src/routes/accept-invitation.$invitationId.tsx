@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
@@ -162,6 +163,7 @@ function AcceptInvitationPage() {
 
 	return (
 		<div className="flex min-h-screen items-center justify-center p-4">
+			<Toaster position="bottom-center" />
 			<Card className="w-full max-w-md">
 				<CardHeader className="text-center">
 					<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">

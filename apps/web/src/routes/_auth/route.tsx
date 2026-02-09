@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { fetchSessionForRoute } from "@/hooks/useSession";
 

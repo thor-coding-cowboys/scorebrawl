@@ -47,9 +47,13 @@ const getAssetUrl = (key: string | null | undefined): string | null => {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: session } = authClient.useSession();
 	const { data: organizations } = authClient.useListOrganizations();
+	const { data: activeMember } = authClient.useActiveMember();
 	const matchRoute = useMatchRoute();
 	const { isMobile, setOpenMobile } = useSidebar();
 	const user = session?.user;
+
+	const userRole = activeMember?.role;
+	const canManageMembers = userRole === "owner" || userRole === "editor";
 
 	// Helper to close sidebar on mobile when navigating
 	const handleNavClick = () => {
@@ -207,30 +211,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!isMembersRoute}>
-									<Link
-										to="/leagues/$slug/members"
-										params={{ slug: leagueSlug }}
-										onClick={handleNavClick}
-									>
-										<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
-										<span>Members</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!isInvitationsRoute}>
-									<Link
-										to="/leagues/$slug/invitations"
-										params={{ slug: leagueSlug }}
-										onClick={handleNavClick}
-									>
-										<HugeiconsIcon icon={Mail01Icon} className="size-4" />
-										<span>Invitations</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
+							{canManageMembers && (
+								<>
+									<SidebarMenuItem>
+										<SidebarMenuButton asChild isActive={!!isMembersRoute}>
+											<Link
+												to="/leagues/$slug/members"
+												params={{ slug: leagueSlug }}
+												onClick={handleNavClick}
+											>
+												<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
+												<span>Members</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+									<SidebarMenuItem>
+										<SidebarMenuButton asChild isActive={!!isInvitationsRoute}>
+											<Link
+												to="/leagues/$slug/invitations"
+												params={{ slug: leagueSlug }}
+												onClick={handleNavClick}
+											>
+												<HugeiconsIcon icon={Mail01Icon} className="size-4" />
+												<span>Invitations</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								</>
+							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				)}
