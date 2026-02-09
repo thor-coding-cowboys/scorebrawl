@@ -6,12 +6,12 @@ import { leagueRouter } from "./router/league-router";
 import { playerRouter } from "./router/player-router";
 import { userRouter } from "./router/user-router";
 import { organizationRouter } from "./router/organization-router";
-import { teamRouter } from "./router/team-router";
 import { seasonTeamRouter } from "./router/season-team-router";
+import { leagueTeamRouter } from "./router/league-team-router";
 import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
-	team: teamRouter,
+	leagueTeam: leagueTeamRouter,
 	member: memberRouter,
 	league: leagueRouter,
 	user: userRouter,

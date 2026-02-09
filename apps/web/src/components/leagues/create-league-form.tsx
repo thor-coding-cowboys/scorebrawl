@@ -1,16 +1,15 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LogoUpload } from "@/components/ui/logo-upload";
 import { authClient } from "@/lib/auth-client";
 import { slugify } from "@/lib/slug";
 import { useTRPC } from "@/lib/trpc";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
-import { Camera01Icon, Cancel01Icon } from "hugeicons-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -43,7 +42,6 @@ export function CreateLeagueForm({
 	const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [slugTouched, setSlugTouched] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const trpc = useTRPC();
 
 	const uploadLogoMutation = useMutation(trpc.organization.uploadLogo.mutationOptions());
@@ -104,110 +102,13 @@ export function CreateLeagueForm({
 	const isSlugTaken = slugCheck && !slugCheck.status;
 	const canSubmit = !isSubmitting && !isCheckingSlug && !isSlugTaken;
 
-	const resizeImage = (
-		file: File,
-		maxWidth: number,
-		maxHeight: number,
-		quality = 0.8
-	): Promise<File> => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const img = new Image();
-				img.onload = () => {
-					const canvas = document.createElement("canvas");
-					let width = img.width;
-					let height = img.height;
-
-					if (width > height) {
-						if (width > maxWidth) {
-							height = Math.round((height * maxWidth) / width);
-							width = maxWidth;
-						}
-					} else {
-						if (height > maxHeight) {
-							width = Math.round((width * maxHeight) / height);
-							height = maxHeight;
-						}
-					}
-
-					canvas.width = width;
-					canvas.height = height;
-
-					const ctx = canvas.getContext("2d");
-					if (!ctx) {
-						reject(new Error("Failed to get canvas context"));
-						return;
-					}
-
-					ctx.drawImage(img, 0, 0, width, height);
-
-					canvas.toBlob(
-						(blob) => {
-							if (!blob) {
-								reject(new Error("Failed to create blob"));
-								return;
-							}
-							const resizedFile = new File([blob], file.name, {
-								type: file.type,
-								lastModified: Date.now(),
-							});
-							resolve(resizedFile);
-						},
-						file.type,
-						quality
-					);
-				};
-				img.onerror = reject;
-				if (typeof e.target?.result === "string") {
-					img.src = e.target.result;
-				} else {
-					reject(new Error("Failed to read file"));
-				}
-			};
-			reader.onerror = reject;
-			reader.readAsDataURL(file);
-		});
+	const handleFileSelect = (file: File) => {
+		setSelectedLogo(file);
+		const previewUrl = URL.createObjectURL(file);
+		setLogoPreview(previewUrl);
 	};
 
-	const handleLogoClick = () => {
-		fileInputRef.current?.click();
-	};
-
-	const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.item(0);
-		if (!file) return;
-
-		if (!file.type.startsWith("image/")) {
-			toast.error("Please select an image file");
-			return;
-		}
-
-		if (file.size > 5 * 1024 * 1024) {
-			toast.error("Image size must be less than 5MB");
-			return;
-		}
-
-		try {
-			const resizedFile = await resizeImage(file, 512, 512, 0.8);
-
-			if (resizedFile.size > 2 * 1024 * 1024) {
-				toast.error("Image is too large after compression. Please try a smaller image.");
-				return;
-			}
-
-			setSelectedLogo(resizedFile);
-			const previewUrl = URL.createObjectURL(resizedFile);
-			setLogoPreview(previewUrl);
-		} catch {
-			toast.error("Failed to process image");
-		}
-
-		event.target.value = "";
-	};
-
-	const handleRemoveLogo = (event: React.MouseEvent) => {
-		event.stopPropagation();
+	const handleRemoveLogo = () => {
 		if (logoPreview) {
 			URL.revokeObjectURL(logoPreview);
 		}
@@ -290,49 +191,16 @@ export function CreateLeagueForm({
 			<FieldGroup>
 				<Field>
 					<FieldLabel className="mb-2">League Logo (Optional)</FieldLabel>
-					<div className="flex items-center gap-4">
-						<button
-							type="button"
-							className="relative group cursor-pointer border-0 bg-transparent p-0"
-							onClick={handleLogoClick}
-						>
-							<Avatar className="h-24 w-24 rounded-xl ring-2 ring-transparent group-hover:ring-primary transition-all pointer-events-none">
-								<AvatarImage
-									src={logoPreview || undefined}
-									alt={"League logo"}
-									className="rounded-xl"
-								/>
-								<AvatarFallback className="text-2xl rounded-xl bg-muted">
-									{getInitials(logoPreview ? undefined : nameValue)}
-								</AvatarFallback>
-							</Avatar>
-							<div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-								<Camera01Icon className="h-8 w-8 text-white" />
-							</div>
-							{logoPreview && (
-								<button
-									type="button"
-									onClick={handleRemoveLogo}
-									className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-red-600 text-white border border-red-600 flex items-center justify-center transition-opacity pointer-events-auto z-10"
-									aria-label="Remove logo"
-								>
-									<Cancel01Icon className="h-3 w-3" />
-								</button>
-							)}
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/*"
-								onChange={handleLogoChange}
-								className="hidden"
-								disabled={isSubmitting}
-							/>
-						</button>
-						<div className="flex flex-col gap-1">
-							<p className="text-sm text-muted-foreground">Click to upload a logo</p>
-							<p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, or WebP.</p>
-						</div>
-					</div>
+					<LogoUpload
+						previewUrl={logoPreview}
+						fallback={
+							<span className="text-2xl">{getInitials(logoPreview ? undefined : nameValue)}</span>
+						}
+						onFileSelect={handleFileSelect}
+						onRemove={logoPreview ? handleRemoveLogo : undefined}
+						disabled={isSubmitting}
+						resizeOptions={{ maxWidth: 512, maxHeight: 512, quality: 0.8 }}
+					/>
 				</Field>
 
 				<Field>

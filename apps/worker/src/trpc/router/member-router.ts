@@ -1,7 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, count, eq, gt, inArray } from "drizzle-orm";
+import { and, count, eq, gt } from "drizzle-orm";
 import { z } from "zod";
-import { member, team, teamMember, user, invitation, league } from "../../db/schema/auth-schema";
+import { member, user, invitation, league } from "../../db/schema/auth-schema";
 import { activeOrgProcedure, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
@@ -48,41 +48,8 @@ export const memberRouter = {
 				nextCursor = nextItem?.id ?? null;
 			}
 
-			const userIds = members.map((m) => m.userId);
-
-			const userTeams =
-				userIds.length > 0
-					? await db
-							.select({
-								userId: teamMember.userId,
-								teamId: team.id,
-								teamName: team.name,
-							})
-							.from(teamMember)
-							.innerJoin(team, eq(teamMember.teamId, team.id))
-							.where(
-								and(inArray(teamMember.userId, userIds), eq(team.organizationId, organizationId))
-							)
-					: [];
-
-			const teamsByUserId = userTeams.reduce(
-				(acc, ut) => {
-					if (!acc[ut.userId]) {
-						acc[ut.userId] = [];
-					}
-					acc[ut.userId].push({ id: ut.teamId, name: ut.teamName });
-					return acc;
-				},
-				{} as Record<string, { id: string; name: string }[]>
-			);
-
-			const membersWithTeams = members.map((m) => ({
-				...m,
-				teams: teamsByUserId[m.userId] ?? [],
-			}));
-
 			return {
-				members: membersWithTeams,
+				members,
 				totalCount: totalCountResult?.count ?? 0,
 				nextCursor,
 			};

@@ -544,6 +544,31 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 
 	if (!matchData[0]) return null;
 
+	// Get teams for this match (ordered by creation - home first, away second)
+	const teams = await db
+		.select({
+			id: matchTeam.id,
+			seasonTeamId: matchTeam.seasonTeamId,
+			result: matchTeam.result,
+			teamName: leagueTeam.name,
+			teamLogo: leagueTeam.logo,
+		})
+		.from(matchTeam)
+		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.where(eq(matchTeam.matchId, matchId))
+		.orderBy(matchTeam.createdAt);
+
+	// Determine which team is home vs away based on result and score
+	const homeTeamData =
+		matchData[0].homeScore > matchData[0].awayScore
+			? teams.find((t) => t.result === "W")
+			: matchData[0].homeScore < matchData[0].awayScore
+				? teams.find((t) => t.result === "L")
+				: teams[0]; // Draw - use first (home was inserted first)
+
+	const awayTeamData = teams.find((t) => t.id !== homeTeamData?.id);
+
 	const players = await db
 		.select({
 			id: matchPlayer.id,
@@ -554,13 +579,6 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 			scoreAfter: matchPlayer.scoreAfter,
 			name: user.name,
 			image: user.image,
-			teamName: sql<string | null>`(
-				SELECT ${leagueTeam.name} FROM ${leagueTeamPlayer}
-				INNER JOIN ${leagueTeam} ON ${leagueTeam.id} = ${leagueTeamPlayer.leagueTeamId}
-				WHERE ${leagueTeamPlayer.playerId} = ${player.id}
-				AND ${leagueTeam.leagueId} = ${player.leagueId}
-				LIMIT 1
-			)`.as("team_name"),
 		})
 		.from(matchPlayer)
 		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
@@ -568,8 +586,15 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 		.innerJoin(user, eq(player.userId, user.id))
 		.where(eq(matchPlayer.matchId, matchId));
 
+	// Add team info to players based on homeTeam flag
+	const playersWithTeam = players.map((p) => ({
+		...p,
+		teamName: p.homeTeam ? (homeTeamData?.teamName ?? null) : (awayTeamData?.teamName ?? null),
+		teamLogo: p.homeTeam ? (homeTeamData?.teamLogo ?? null) : (awayTeamData?.teamLogo ?? null),
+	}));
+
 	return {
 		...matchData[0],
-		players,
+		players: playersWithTeam,
 	};
 };

@@ -46,6 +46,7 @@ export const leagueTeam = sqliteTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
+		logo: text("logo"),
 		leagueId: text("league_id")
 			.notNull()
 			.references(() => league.id, { onDelete: "cascade" }),

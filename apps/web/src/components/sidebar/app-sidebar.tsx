@@ -108,6 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		to: "/leagues/$slug/seasons",
 		fuzzy: false,
 	});
+	const isTeamsRoute = matchRoute({ to: "/leagues/$slug/teams", fuzzy: false });
 	const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: false });
 	const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: false });
 
@@ -184,6 +185,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 									>
 										<HugeiconsIcon icon={Award01Icon} className="size-4" />
 										<span>Seasons</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={!!isTeamsRoute}>
+									<Link
+										to="/leagues/$slug/teams"
+										params={{ slug: leagueSlug }}
+										onClick={handleNavClick}
+									>
+										<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
+										<span>Teams</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>

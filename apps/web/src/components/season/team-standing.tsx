@@ -7,10 +7,43 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { FormDots } from "@/components/ui/form-dots";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { UserMultipleIcon } from "@hugeicons/core-free-icons";
+
+const getAssetUrl = (key: string | null | undefined): string | null => {
+	if (!key) return null;
+	if (key.startsWith("http://") || key.startsWith("https://")) {
+		return key;
+	}
+	return `/api/user-assets/${key}`;
+};
+
+function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
+	const [hasError, setHasError] = useState(false);
+	const logoUrl = getAssetUrl(logo);
+
+	if (!logoUrl || hasError) {
+		return (
+			<div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
+				<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-blue-500" />
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden">
+			<img
+				src={logoUrl}
+				alt={name}
+				className="h-full w-full object-cover"
+				onError={() => setHasError(true)}
+			/>
+		</div>
+	);
+}
 
 interface TeamStandingProps {
 	seasonId: string;
@@ -74,16 +107,7 @@ export function TeamStanding({
 							<TableRow key={item.id} className="h-14">
 								<TableCell className="py-2">
 									<div className="flex items-center gap-2">
-										<div className="flex gap-1 shrink-0">
-											{item.players.map((player) => (
-												<AvatarWithFallback
-													key={player.id}
-													src={player.image}
-													name={player.name}
-													size="sm"
-												/>
-											))}
-										</div>
+										<TeamIcon logo={item.logo} name={item.name} />
 										<span className="font-medium">{item.name}</span>
 									</div>
 								</TableCell>
