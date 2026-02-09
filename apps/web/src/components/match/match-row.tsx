@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UserMultipleIcon } from "@hugeicons/core-free-icons";
+import { UserMultipleIcon, Delete01Icon } from "@hugeicons/core-free-icons";
+import { RemoveMatchDialog } from "./remove-match-dialog";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
@@ -58,6 +60,9 @@ interface MatchRowProps {
 		createdAt: Date;
 	};
 	seasonSlug: string;
+	seasonId: string;
+	isLatest?: boolean;
+	canDelete?: boolean;
 }
 
 function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {
@@ -127,7 +132,8 @@ function SideDisplay({ players }: { players: MatchPlayer[] }) {
 	);
 }
 
-export function MatchRow({ match, seasonSlug }: MatchRowProps) {
+export function MatchRow({ match, seasonSlug, seasonId, isLatest, canDelete }: MatchRowProps) {
+	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 	const { data: matchDetails } = useQuery<{ players: MatchPlayer[] } | null>({
 		queryKey: ["match", "details", match.id],
 		queryFn: async () => {
@@ -139,20 +145,44 @@ export function MatchRow({ match, seasonSlug }: MatchRowProps) {
 	const homePlayers = matchDetails?.players?.filter((p) => p.homeTeam) ?? [];
 	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
 
+	const showRemoveButton = isLatest && canDelete;
+
 	return (
-		<div className="flex items-center justify-between gap-4 p-4">
-			<div className="flex flex-col gap-2 min-w-0 flex-1">
-				<SideDisplay players={homePlayers} />
-				<SideDisplay players={awayPlayers} />
-			</div>
-			<div className="flex items-center gap-4 flex-shrink-0">
-				<div className="text-center font-bold text-sm">
-					{match.homeScore} - {match.awayScore}
+		<>
+			<div className="flex items-center justify-between gap-4 p-4">
+				<div className="flex flex-col gap-2 min-w-0 flex-1">
+					<SideDisplay players={homePlayers} />
+					<SideDisplay players={awayPlayers} />
 				</div>
-				<div className="text-xs text-muted-foreground text-right min-w-[60px]">
-					{formatDate(match.createdAt)}
+				<div className="flex items-center gap-4 flex-shrink-0">
+					<div className="text-center font-bold text-sm">
+						{match.homeScore} - {match.awayScore}
+					</div>
+					<div className="text-xs text-muted-foreground text-right min-w-[60px]">
+						{formatDate(match.createdAt)}
+					</div>
+					<div className="min-w-[70px] flex justify-end">
+						{showRemoveButton && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setIsRemoveDialogOpen(true)}
+								className="text-muted-foreground hover:text-destructive"
+							>
+								<span className="hidden sm:inline">Remove</span>
+								<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
+							</Button>
+						)}
+					</div>
 				</div>
 			</div>
-		</div>
+			<RemoveMatchDialog
+				isOpen={isRemoveDialogOpen}
+				onClose={() => setIsRemoveDialogOpen(false)}
+				matchId={match.id}
+				seasonSlug={seasonSlug}
+				seasonId={seasonId}
+			/>
+		</>
 	);
 }

@@ -3,16 +3,18 @@ import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { MatchRow } from "@/components/match/match-row";
-import { GlowButton, glowColors } from "@/components/ui/glow-button";
+import { Button } from "@/components/ui/button";
 import { Link, useParams } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 interface LatestMatchesProps {
 	seasonId: string;
 	seasonSlug: string;
+	canDelete?: boolean;
 }
 
-export function LatestMatches({ seasonId, seasonSlug }: LatestMatchesProps) {
+export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatchesProps) {
 	const params = useParams({ strict: false });
 	const slug = params.slug as string;
 
@@ -35,21 +37,21 @@ export function LatestMatches({ seasonId, seasonSlug }: LatestMatchesProps) {
 			action={
 				showMatches && (
 					<Link to="/leagues/$slug/seasons/$seasonSlug/matches" params={{ slug, seasonSlug }}>
-						<GlowButton
-							icon={ArrowRight01Icon}
-							glowColor={glowColors.amber}
-							size="sm"
-							variant="outline"
-							className="gap-1.5 whitespace-nowrap"
-						>
-							<span className="hidden sm:inline">View All</span>
-						</GlowButton>
+						<Button variant="outline" size="sm">
+							<span className="hidden sm:inline">See All</span>
+							<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+						</Button>
 					</Link>
 				)
 			}
 		>
 			{showMatches ? (
-				<MatchTable matches={latestMatches} seasonSlug={seasonSlug} />
+				<MatchTable
+					matches={latestMatches}
+					seasonSlug={seasonSlug}
+					seasonId={seasonId}
+					canDelete={canDelete}
+				/>
 			) : showEmptyState ? (
 				<div className="flex items-center justify-center h-40 text-muted-foreground">
 					No registered matches
@@ -62,17 +64,27 @@ export function LatestMatches({ seasonId, seasonSlug }: LatestMatchesProps) {
 function MatchTable({
 	matches,
 	seasonSlug,
+	seasonId,
+	canDelete,
 }: {
 	matches: { id: string; homeScore: number; awayScore: number; createdAt: Date }[];
 	seasonSlug: string;
+	seasonId: string;
+	canDelete?: boolean;
 }) {
 	return (
 		<Table>
 			<TableBody className="text-sm">
-				{matches.map((match) => (
+				{matches.map((match, index) => (
 					<TableRow key={match.id}>
 						<TableCell colSpan={3} className="p-0">
-							<MatchRow match={match} seasonSlug={seasonSlug} />
+							<MatchRow
+								match={match}
+								seasonSlug={seasonSlug}
+								seasonId={seasonId}
+								isLatest={index === 0}
+								canDelete={canDelete}
+							/>
 						</TableCell>
 					</TableRow>
 				))}

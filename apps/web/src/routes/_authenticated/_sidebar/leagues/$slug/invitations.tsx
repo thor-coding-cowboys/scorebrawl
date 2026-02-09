@@ -287,7 +287,7 @@ function InvitationsPage() {
 				}
 			>
 				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+				<Separator orientation="vertical" className="mr-2" />
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">

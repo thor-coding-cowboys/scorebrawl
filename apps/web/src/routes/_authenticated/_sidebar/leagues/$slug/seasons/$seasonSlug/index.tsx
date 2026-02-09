@@ -104,7 +104,7 @@ function SeasonDashboardPage() {
 				}
 			>
 				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+				<Separator orientation="vertical" className="mr-2" />
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
@@ -140,11 +140,23 @@ function SeasonDashboardPage() {
 						{hasTeams && seasonId ? (
 							<TeamStandingCard seasonId={seasonId} seasonSlug={seasonSlug} />
 						) : (
-							seasonId && <LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />
+							seasonId && (
+								<LatestMatches
+									seasonId={seasonId}
+									seasonSlug={seasonSlug}
+									canDelete={canCreateMatches && !isSeasonLocked}
+								/>
+							)
 						)}
 					</div>
 				</div>
-				{hasTeams && seasonId && <LatestMatches seasonId={seasonId} seasonSlug={seasonSlug} />}
+				{hasTeams && seasonId && (
+					<LatestMatches
+						seasonId={seasonId}
+						seasonSlug={seasonSlug}
+						canDelete={canCreateMatches && !isSeasonLocked}
+					/>
+				)}
 			</div>
 			{isEloSeason && seasonId && (
 				<CreateMatchDialog

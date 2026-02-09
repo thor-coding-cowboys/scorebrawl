@@ -17,7 +17,7 @@ export function Header({ children, includeLogoutButton = false, rightContent }: 
 	};
 
 	return (
-		<header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+		<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 mb-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-10">
 			<div className="flex items-center gap-2">{children}</div>
 			<div className="flex items-center gap-2">
 				{rightContent}

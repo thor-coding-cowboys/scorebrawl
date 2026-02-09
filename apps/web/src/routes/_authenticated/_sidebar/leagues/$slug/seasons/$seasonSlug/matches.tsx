@@ -43,6 +43,7 @@ function MatchesPage() {
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor";
+	const canDeleteMatches = role === "owner" || role === "editor";
 
 	const { data: season } = useQuery({
 		queryKey: ["season", seasonSlug],
@@ -118,7 +119,7 @@ function MatchesPage() {
 				}
 			>
 				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+				<Separator orientation="vertical" className="mr-2" />
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem className="hidden md:block">
@@ -219,7 +220,13 @@ function MatchesPage() {
 													}}
 													className="hover:bg-muted/50 transition-colors border-b border-border last:border-b-0"
 												>
-													<MatchRow match={match} seasonSlug={seasonSlug} />
+													<MatchRow
+														match={match}
+														seasonSlug={seasonSlug}
+														seasonId={seasonId ?? ""}
+														isLatest={virtualItem.index === 0}
+														canDelete={canDeleteMatches && !isSeasonLocked}
+													/>
 												</div>
 											);
 										})}
