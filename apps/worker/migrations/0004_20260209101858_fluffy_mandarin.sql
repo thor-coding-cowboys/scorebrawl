@@ -1,0 +1,1 @@
+ALTER TABLE `league_team` ADD `logo` text;

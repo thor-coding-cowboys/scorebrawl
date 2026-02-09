@@ -21,16 +21,6 @@ describe("member router", () => {
 		expect(result.members[0].user.email).toBe(ctx.user.email);
 	});
 
-	it("returns member with teams info", async () => {
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
-		const result = await client.member.list.query({ limit: 10 });
-
-		const member = result.members[0];
-		expect(member).toHaveProperty("teams");
-		expect(member.teams).toBeInstanceOf(Array);
-	});
-
 	describe("pagination", () => {
 		it("respects limit parameter", async () => {
 			const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });

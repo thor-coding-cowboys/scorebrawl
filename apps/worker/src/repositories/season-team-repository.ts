@@ -17,8 +17,9 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 			leagueTeamId: seasonTeam.leagueTeamId,
 			score: seasonTeam.score,
 			name: leagueTeam.name,
+			logo: leagueTeam.logo,
 			matchCount: sql<number>`(
-				select count(*) from ${matchTeam} 
+				select count(*) from ${matchTeam}
 				where ${matchTeam.seasonTeamId} = ${seasonTeam.id}
 			)`,
 			winCount: sql<number>`(

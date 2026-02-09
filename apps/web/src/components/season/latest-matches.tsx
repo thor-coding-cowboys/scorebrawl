@@ -1,14 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { MatchRow } from "@/components/match/match-row";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Link, useParams } from "@tanstack/react-router";
@@ -75,13 +68,6 @@ function MatchTable({
 }) {
 	return (
 		<Table>
-			<TableHeader className="text-xs">
-				<TableRow>
-					<TableHead>Match</TableHead>
-					<TableHead className="text-center">Score</TableHead>
-					<TableHead className="text-right">Date</TableHead>
-				</TableRow>
-			</TableHeader>
 			<TableBody className="text-sm">
 				{matches.map((match) => (
 					<TableRow key={match.id}>

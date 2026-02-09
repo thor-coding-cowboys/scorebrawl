@@ -40,6 +40,19 @@ export function generateOrgLogoKey(organizationId: string, extension: string): s
 }
 
 /**
+ * Generates a key for team logos
+ */
+export function generateTeamLogoKey(
+	organizationId: string,
+	teamId: string,
+	extension: string
+): string {
+	const timestamp = Date.now();
+	const random = Math.random().toString(36).substring(2, 8);
+	return `organization/${organizationId}/teams/${teamId}/logos/${timestamp}-${random}.${extension}`;
+}
+
+/**
  * Gets extension from content type
  */
 export function getExtensionFromContentType(contentType: string): string {

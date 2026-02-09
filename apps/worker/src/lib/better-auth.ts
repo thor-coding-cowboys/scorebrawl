@@ -124,7 +124,6 @@ export function createAuth({
 					member,
 					viewer,
 				},
-				teams: { enabled: true },
 				schema: {
 					organization: {
 						modelName: "league",

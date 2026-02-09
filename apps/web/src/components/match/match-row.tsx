@@ -1,6 +1,41 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { UserMultipleIcon } from "@hugeicons/core-free-icons";
+
+const getAssetUrl = (key: string | null | undefined): string | null => {
+	if (!key) return null;
+	if (key.startsWith("http://") || key.startsWith("https://")) {
+		return key;
+	}
+	return `/api/user-assets/${key}`;
+};
+
+function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
+	const [hasError, setHasError] = useState(false);
+	const logoUrl = getAssetUrl(logo);
+
+	if (!logoUrl || hasError) {
+		return (
+			<div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
+				<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-blue-500" />
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden">
+			<img
+				src={logoUrl}
+				alt={name}
+				className="h-full w-full object-cover"
+				onError={() => setHasError(true)}
+			/>
+		</div>
+	);
+}
 
 interface MatchPlayer {
 	id: string;
@@ -12,6 +47,7 @@ interface MatchPlayer {
 	name: string;
 	image: string | null;
 	teamName: string | null;
+	teamLogo: string | null;
 }
 
 interface MatchRowProps {
@@ -24,12 +60,25 @@ interface MatchRowProps {
 	seasonSlug: string;
 }
 
+function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {
+	if (players.length <= 1) return null;
+	// Multiple players = always a team
+	// Use the teamName/teamLogo from the first player (backend sets same value for all players on a side)
+	const teamName = players[0]?.teamName;
+	const teamLogo = players[0]?.teamLogo ?? null;
+	if (teamName) {
+		return { name: teamName, logo: teamLogo };
+	}
+	// Fallback: use player first names as team name
+	const fallbackName = players.map((p) => p.name.split(" ")[0]).join(" & ");
+	return { name: fallbackName, logo: teamLogo };
+}
+
 function getSideLabel(players: MatchPlayer[]): string {
 	if (players.length === 0) return "Unknown";
-	const teamNames = players.map((p) => p.teamName).filter(Boolean);
-	const uniqueTeams = [...new Set(teamNames)];
-	if (uniqueTeams.length === 1 && teamNames.length === players.length) {
-		return uniqueTeams[0] ?? "Unknown";
+	const teamInfo = getTeamInfo(players);
+	if (teamInfo) {
+		return teamInfo.name;
 	}
 	return players.map((p) => p.name).join(", ");
 }
@@ -59,6 +108,25 @@ function formatDate(date: Date) {
 	});
 }
 
+function SideDisplay({ players }: { players: MatchPlayer[] }) {
+	const teamInfo = getTeamInfo(players);
+
+	return (
+		<div className="flex items-center gap-2 min-w-0">
+			<div className="flex gap-1 shrink-0">
+				{teamInfo ? (
+					<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />
+				) : (
+					players.map((player) => (
+						<AvatarWithFallback key={player.id} src={player.image} name={player.name} size="sm" />
+					))
+				)}
+			</div>
+			<span className="text-xs text-muted-foreground truncate">{getSideLabel(players)}</span>
+		</div>
+	);
+}
+
 export function MatchRow({ match, seasonSlug }: MatchRowProps) {
 	const { data: matchDetails } = useQuery<{ players: MatchPlayer[] } | null>({
 		queryKey: ["match", "details", match.id],
@@ -74,26 +142,8 @@ export function MatchRow({ match, seasonSlug }: MatchRowProps) {
 	return (
 		<div className="flex items-center justify-between gap-4 p-4">
 			<div className="flex flex-col gap-2 min-w-0 flex-1">
-				<div className="flex items-center gap-2 min-w-0">
-					<div className="flex gap-1 shrink-0">
-						{homePlayers.map((player) => (
-							<AvatarWithFallback key={player.id} src={player.image} name={player.name} size="sm" />
-						))}
-					</div>
-					<span className="text-xs text-muted-foreground truncate">
-						{getSideLabel(homePlayers)}
-					</span>
-				</div>
-				<div className="flex items-center gap-2 min-w-0">
-					<div className="flex gap-1 shrink-0">
-						{awayPlayers.map((player) => (
-							<AvatarWithFallback key={player.id} src={player.image} name={player.name} size="sm" />
-						))}
-					</div>
-					<span className="text-xs text-muted-foreground truncate">
-						{getSideLabel(awayPlayers)}
-					</span>
-				</div>
+				<SideDisplay players={homePlayers} />
+				<SideDisplay players={awayPlayers} />
 			</div>
 			<div className="flex items-center gap-4 flex-shrink-0">
 				<div className="text-center font-bold text-sm">
