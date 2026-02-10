@@ -122,7 +122,7 @@ function SeasonDashboardPage() {
 							)}
 							{!isEloSeason && season && (
 								<OverviewCard title="Fixtures">
-									<Fixtures slug={slug} seasonSlug={seasonSlug} />
+									<Fixtures seasonSlug={seasonSlug} />
 								</OverviewCard>
 							)}
 							{seasonId && (
@@ -145,7 +145,7 @@ function SeasonDashboardPage() {
 						)}
 						{!isEloSeason && season && (
 							<OverviewCard title="Fixtures">
-								<Fixtures slug={slug} seasonSlug={seasonSlug} />
+								<Fixtures seasonSlug={seasonSlug} />
 							</OverviewCard>
 						)}
 						{seasonId && (

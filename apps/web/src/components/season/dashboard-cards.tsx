@@ -6,13 +6,24 @@ import {
 	BarChartIcon,
 	Award01Icon,
 	UserMultipleIcon,
+	Calendar03Icon,
 } from "@hugeicons/core-free-icons";
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { trpcClient, useTRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { FormDots } from "@/components/ui/form-dots";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+	Add01Icon,
+	MinusSignIcon,
+	Tick01Icon,
+	Cancel01Icon,
+	PencilEdit01Icon,
+} from "hugeicons-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
@@ -222,18 +233,22 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 			{isLoading ? (
 				<Skeleton className="h-12 w-full" />
 			) : latestMatch ? (
-				<div className="flex flex-col gap-1.5 min-w-0">
-					<div className="flex items-center justify-between gap-2 min-w-0">
+				<div className="space-y-2 min-w-0">
+					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
 							<SideDisplay players={homePlayers} />
 						</div>
-						<span className="text-base font-medium shrink-0">{latestMatch.homeScore}</span>
+						<div className="flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 bg-primary/10">
+							{latestMatch.homeScore}
+						</div>
 					</div>
-					<div className="flex items-center justify-between gap-2 min-w-0">
+					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
 							<SideDisplay players={awayPlayers} />
 						</div>
-						<span className="text-base font-medium shrink-0">{latestMatch.awayScore}</span>
+						<div className="flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 bg-primary/10">
+							{latestMatch.awayScore}
+						</div>
 					</div>
 				</div>
 			) : (
@@ -243,24 +258,233 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	);
 }
 
+interface Fixture {
+	id: string;
+	seasonId: string;
+	round: number;
+	matchId: string | null;
+	homePlayerId: string;
+	awayPlayerId: string;
+}
+
+interface SeasonPlayer {
+	id: string;
+	name: string;
+	image: string | null;
+}
+
+function ScoreStepper({ score, setScore }: { score: number; setScore: (score: number) => void }) {
+	return (
+		<div className="flex items-center gap-1">
+			<Button
+				variant="ghost"
+				size="icon"
+				className="h-7 w-7 shrink-0 rounded-full transition-transform active:scale-75"
+				onClick={() => setScore(Math.max(score - 1, 0))}
+				type="button"
+			>
+				<MinusSignIcon className="h-3.5 w-3.5" />
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon"
+				className="h-7 w-7 shrink-0 rounded-full transition-transform active:scale-75"
+				onClick={() => setScore(score + 1)}
+				type="button"
+			>
+				<Add01Icon className="h-3.5 w-3.5" />
+			</Button>
+		</div>
+	);
+}
+
+function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const [isEditing, setIsEditing] = useState(false);
+	const [homeScore, setHomeScore] = useState(0);
+	const [awayScore, setAwayScore] = useState(0);
+
+	const { data: fixtures, isLoading: fixturesLoading } = useQuery(
+		trpc.season.getFixtures.queryOptions({ seasonSlug })
+	);
+
+	const { data: players } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
+
+	const { mutate: createFromFixture, isPending } = useMutation({
+		mutationFn: async (data: {
+			seasonSlug: string;
+			homeScore: number;
+			awayScore: number;
+			fixtureId: string;
+		}) => {
+			return await trpcClient.match.createFromFixture.mutate(data);
+		},
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: trpc.season.getFixtures.queryKey({ seasonSlug }),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
+			});
+			setIsEditing(false);
+			setHomeScore(0);
+			setAwayScore(0);
+			toast.success("Match logged");
+		},
+		onError: () => {
+			toast.error("Failed to log match");
+		},
+	});
+
+	const nextFixture = fixtures?.find((f: Fixture) => !f.matchId);
+	const homePlayer = players?.find((p: SeasonPlayer) => p.id === nextFixture?.homePlayerId);
+	const awayPlayer = players?.find((p: SeasonPlayer) => p.id === nextFixture?.awayPlayerId);
+
+	const getFirstName = (name: string) => name.split(" ")[0];
+
+	return (
+		<DashboardCard
+			title="Next Match"
+			icon={Calendar03Icon}
+			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]"
+			iconColor="text-emerald-600"
+		>
+			{fixturesLoading ? (
+				<Skeleton className="h-12 w-full" />
+			) : nextFixture && homePlayer && awayPlayer ? (
+				<div className="flex items-center gap-3 min-w-0">
+					<div className="flex-1 min-w-0">
+						<div className="space-y-2">
+							<div className="flex items-center gap-3">
+								<AvatarWithFallback src={homePlayer.image} name={homePlayer.name} size="sm" />
+								<span className="text-sm flex-1 truncate min-w-0">
+									{getFirstName(homePlayer.name)}
+								</span>
+								<div className="flex items-center gap-2 shrink-0">
+									<div
+										className={cn(
+											"flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 transition-all duration-200",
+											isEditing && "bg-primary/10 scale-110 ring-2 ring-primary/20"
+										)}
+									>
+										{isEditing ? homeScore : ""}
+									</div>
+									<div
+										className={cn(
+											"grid transition-all duration-200 ease-out",
+											isEditing ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
+										)}
+									>
+										<div className="overflow-hidden">
+											<ScoreStepper score={homeScore} setScore={setHomeScore} />
+										</div>
+									</div>
+								</div>
+							</div>
+							<div className="flex items-center gap-3">
+								<AvatarWithFallback src={awayPlayer.image} name={awayPlayer.name} size="sm" />
+								<span className="text-sm flex-1 truncate min-w-0">
+									{getFirstName(awayPlayer.name)}
+								</span>
+								<div className="flex items-center gap-2 shrink-0">
+									<div
+										className={cn(
+											"flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 transition-all duration-200",
+											isEditing && "bg-primary/10 scale-110 ring-2 ring-primary/20"
+										)}
+									>
+										{isEditing ? awayScore : ""}
+									</div>
+									<div
+										className={cn(
+											"grid transition-all duration-200 ease-out",
+											isEditing ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
+										)}
+									>
+										<div className="overflow-hidden">
+											<ScoreStepper score={awayScore} setScore={setAwayScore} />
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className="flex flex-col items-center justify-center gap-1 pl-2 border-l">
+						{isEditing ? (
+							<>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-7 w-7 p-0 transition-transform active:scale-75"
+									onClick={() =>
+										createFromFixture({
+											seasonSlug,
+											homeScore,
+											awayScore,
+											fixtureId: nextFixture.id,
+										})
+									}
+									disabled={isPending}
+								>
+									<Tick01Icon size={14} className="text-green-500" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-7 w-7 p-0 transition-transform active:scale-75"
+									onClick={() => {
+										setIsEditing(false);
+										setHomeScore(0);
+										setAwayScore(0);
+									}}
+									disabled={isPending}
+								>
+									<Cancel01Icon size={14} className="text-red-500" />
+								</Button>
+							</>
+						) : (
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8 w-8 p-0 transition-transform active:scale-75"
+								onClick={() => setIsEditing(true)}
+							>
+								<PencilEdit01Icon className="h-4 w-4" />
+							</Button>
+						)}
+					</div>
+				</div>
+			) : (
+				<div className="text-sm text-muted-foreground">All fixtures played</div>
+			)}
+		</DashboardCard>
+	);
+}
+
 export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
 	const trpc = useTRPC();
 	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
-	const { data: isInSeason } = useQuery(trpc.seasonPlayer.isInSeason.queryOptions({ seasonSlug }));
-
-	const isPointsSeason = season?.scoreType === "3-1-0";
+	const isFixtureSeason = season?.scoreType === "3-1-0" && (season?.rounds ?? 0) > 0;
 
 	return (
 		<div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
 			<OnFireCard seasonSlug={seasonSlug} />
 			<StrugglingCard seasonSlug={seasonSlug} />
-			{isInSeason && isPointsSeason ? (
-				<LatestMatchCard seasonSlug={seasonSlug} />
+			{isFixtureSeason ? (
+				<NextMatchCard seasonSlug={seasonSlug} />
 			) : (
 				<InfoCard seasonSlug={seasonSlug} />
 			)}
-			{!isInSeason || !isPointsSeason ? <LatestMatchCard seasonSlug={seasonSlug} /> : null}
+			<LatestMatchCard seasonSlug={seasonSlug} />
 		</div>
 	);
 }

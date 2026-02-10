@@ -331,7 +331,11 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 		}
 
 		if (fixturesList.length > 0) {
-			await db.insert(fixture).values(fixturesList);
+			const BATCH_SIZE = 10;
+			for (let i = 0; i < fixturesList.length; i += BATCH_SIZE) {
+				const batch = fixturesList.slice(i, i + BATCH_SIZE);
+				await db.insert(fixture).values(batch);
+			}
 		}
 	}
 
