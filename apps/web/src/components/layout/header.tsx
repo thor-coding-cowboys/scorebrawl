@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from "react";
 import { Logout02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "@tanstack/react-router";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +13,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useSignOut } from "@/hooks/useSignOut";
 
 export interface BreadcrumbItem {
 	name: string;
@@ -35,10 +35,7 @@ export function Header({
 	breadcrumbs,
 	includeSidebarTrigger = true,
 }: HeaderProps) {
-	const handleLogout = async () => {
-		await authClient.signOut();
-		window.location.href = "/";
-	};
+	const signOut = useSignOut();
 
 	return (
 		<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 mb-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-10">
@@ -85,7 +82,7 @@ export function Header({
 					<Button
 						size="icon"
 						variant="ghost"
-						onClick={handleLogout}
+						onClick={signOut}
 						className="h-8 w-8"
 						title="Sign out"
 					>

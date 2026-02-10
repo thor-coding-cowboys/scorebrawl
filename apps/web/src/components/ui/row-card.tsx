@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface RowCardProps {
 	icon: ReactNode;
-	title: string;
+	title: string | ReactNode;
 	subtitle: ReactNode;
 	children?: ReactNode;
 	className?: string;
