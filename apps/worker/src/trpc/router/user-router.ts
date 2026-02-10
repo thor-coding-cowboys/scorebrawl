@@ -1,8 +1,9 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 import { user } from "../../db/schema/auth-schema";
+import { matchPlayer, player, seasonPlayer } from "../../db/schema/league-schema";
 import {
 	generateUserAvatarKey,
 	getExtensionFromContentType,
@@ -148,5 +149,20 @@ export const userRouter = {
 		await ctx.db.update(user).set({ image: null }).where(eq(user.id, userId));
 
 		return { success: true };
+	}),
+
+	getTotalMatches: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.authentication.user.id;
+
+		// Count all matches the user has participated in
+		// Join matchPlayer -> seasonPlayer -> player to filter by userId
+		const result = await ctx.db
+			.select({ count: count() })
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.where(eq(player.userId, userId));
+
+		return result[0]?.count || 0;
 	}),
 } satisfies TRPCRouterRecord;

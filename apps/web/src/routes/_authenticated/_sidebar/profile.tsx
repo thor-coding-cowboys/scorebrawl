@@ -1,18 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	Camera01Icon,
 	Delete01Icon,
 	Edit01Icon,
-	EyeIcon,
 	Key01Icon,
-	Link01Icon,
 	Logout01Icon,
-	Mail01Icon,
-	ShieldKeyIcon,
 	UserIcon,
-} from "hugeicons-react";
-import { useRef, useState } from "react";
+	Award01Icon,
+	Target01Icon,
+	SecurityLockIcon,
+	Alert02Icon,
+} from "@hugeicons/core-free-icons";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -26,16 +26,17 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RowCard } from "@/components/ui/row-card";
 import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
+import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
+import { EditPasskeyDialog } from "@/components/profile/edit-passkey-dialog";
+import { useSession, fetchSessionForRoute } from "@/hooks/useSession";
+import { useSignOut } from "@/hooks/useSignOut";
 import { useTRPC } from "@/lib/trpc";
-import { useSession, useSessionInvalidate, fetchSessionForRoute } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/profile")({
 	component: ProfilePage,
@@ -56,29 +57,23 @@ export const Route = createFileRoute("/_authenticated/_sidebar/profile")({
 function ProfilePage() {
 	const { session: routeSession } = Route.useRouteContext();
 	const { data: session } = useSession();
-	const invalidateSession = useSessionInvalidate();
-	const navigate = useNavigate();
+	const signOut = useSignOut();
 	// Use reactive session if available, fallback to route session
 	const currentSession = session || routeSession;
 	const user = currentSession?.user;
 
-	const [isEditingName, setIsEditingName] = useState(false);
-	const [name, setName] = useState(user?.name || "");
-	const [currentPassword, setCurrentPassword] = useState("");
-	const [newPassword, setNewPassword] = useState("");
-	const [showPassword, setShowPassword] = useState(false);
-	const [isChangingPassword, setIsChangingPassword] = useState(false);
-	const [revokeOtherSessions, setRevokeOtherSessions] = useState(true);
-	const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-	const [optimisticAvatar, setOptimisticAvatar] = useState<string | null>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [editingPasskeyId, setEditingPasskeyId] = useState<string | null>(null);
-	const [editingPasskeyName, setEditingPasskeyName] = useState("");
+	const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+	const [editingPasskey, setEditingPasskey] = useState<{ id: string; name: string } | null>(null);
+	const [isRevokeOtherDialogOpen, setIsRevokeOtherDialogOpen] = useState(false);
+	const [isRevokeAllDialogOpen, setIsRevokeAllDialogOpen] = useState(false);
 	const queryClient = useQueryClient();
-
-	// tRPC
 	const trpc = useTRPC();
-	const uploadAvatarMutation = useMutation(trpc.user.uploadAvatar.mutationOptions());
+
+	// Get user stats
+	const { data: leaguesData } = useQuery(trpc.league.list.queryOptions());
+	const leagueCount = leaguesData?.leagues.length || 0;
+
+	const { data: totalMatches = 0 } = useQuery(trpc.user.getTotalMatches.queryOptions());
 
 	// Passkey queries and mutations
 	const passkeysQuery = useQuery({
@@ -87,6 +82,19 @@ function ProfilePage() {
 			const { data, error } = await authClient.passkey.listUserPasskeys({});
 			if (error) {
 				throw new Error(error.message || "Failed to load passkeys");
+			}
+			return data;
+		},
+	});
+
+	// Sessions query
+	const sessionsQuery = useQuery({
+		queryKey: ["sessions"],
+		queryFn: async () => {
+			const { data, error } = await authClient.listSessions();
+			console.log("Sessions data:", data);
+			if (error) {
+				throw new Error(error.message || "Failed to load sessions");
 			}
 			return data;
 		},
@@ -126,6 +134,10 @@ function ProfilePage() {
 			console.error("Add passkey error:", err);
 			toast.error(err instanceof Error ? err.message : "Failed to add passkey");
 		},
+		onSettled: () => {
+			// Reset mutation state after completion (success or error)
+			addPasskeyMutation.reset();
+		},
 	});
 
 	const deletePasskeyMutation = useMutation({
@@ -158,8 +170,7 @@ function ProfilePage() {
 		},
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
-			setEditingPasskeyId(null);
-			setEditingPasskeyName("");
+			setEditingPasskey(null);
 			toast.success("Passkey updated successfully");
 		},
 		onError: (err) => {
@@ -167,83 +178,42 @@ function ProfilePage() {
 		},
 	});
 
-	const handleUpdateName = async () => {
-		if (!user || !name.trim()) return;
-		try {
-			const { error } = await authClient.updateUser({
-				name: name.trim(),
-			});
+	const revokeOtherSessionsMutation = useMutation({
+		mutationFn: async () => {
+			const { data, error } = await authClient.revokeOtherSessions();
 			if (error) {
-				toast.error(error.message || "Failed to update name");
-				return;
+				throw new Error(error.message || "Failed to revoke sessions");
 			}
-			toast.success("Name updated successfully");
-			setIsEditingName(false);
-			invalidateSession();
-		} catch {
-			toast.error("Failed to update name");
-		}
-	};
+			return data;
+		},
+		onSuccess: async () => {
+			toast.success("All other sessions revoked successfully");
+			setIsRevokeOtherDialogOpen(false);
+			await queryClient.invalidateQueries({ queryKey: ["sessions"] });
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to revoke sessions");
+		},
+	});
 
-	const handleVerifyEmail = async () => {
-		try {
-			// TODO: Implement email verification when better-auth API is available
-			toast.error("Email verification not yet implemented");
-			return;
-			// const { error } = await authClient.email.sendVerificationEmail({
-			// 	email: user?.email || "",
-			// })
-			// if (error) {
-			// 	toast.error(error.message || "Failed to send verification email");
-			// 	return;
-			// }
-			// toast.success("Verification email sent. Please check your inbox");
-		} catch {
-			toast.error("Failed to send verification email");
-		}
-	};
-
-	const handleChangePassword = async () => {
-		if (!currentPassword || !newPassword) {
-			toast.error("Please fill in all fields");
-			return;
-		}
-		if (newPassword.length < 8) {
-			toast.error("Password must be at least 8 characters");
-			return;
-		}
-		try {
-			const { error } = await authClient.changePassword({
-				currentPassword,
-				newPassword,
-				revokeOtherSessions,
-			});
+	const revokeAllSessionsMutation = useMutation({
+		mutationFn: async () => {
+			const { data, error } = await authClient.revokeSessions();
 			if (error) {
-				toast.error(error.message || "Failed to change password");
-				return;
+				throw new Error(error.message || "Failed to revoke all sessions");
 			}
-			toast.success("Password changed successfully");
-			setCurrentPassword("");
-			setNewPassword("");
-			setIsChangingPassword(false);
-			setRevokeOtherSessions(true);
-			invalidateSession();
-		} catch {
-			toast.error("Failed to change password");
-		}
-	};
-
-	const handleLinkProvider = async (provider: "github" | "google") => {
-		try {
-			// Use signIn.social for linking accounts
-			await authClient.signIn.social({
-				provider,
-				callbackURL: "/profile",
-			});
-		} catch {
-			toast.error(`Failed to link ${provider}`);
-		}
-	};
+			return data;
+		},
+		onSuccess: async () => {
+			toast.success("All sessions revoked");
+			setIsRevokeAllDialogOpen(false);
+			// Sign out and clear cache
+			await signOut();
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to revoke all sessions");
+		},
+	});
 
 	const getInitials = (name?: string | null) => {
 		if (!name) return "U";
@@ -255,536 +225,112 @@ function ProfilePage() {
 			.slice(0, 2);
 	};
 
-	const handleAvatarClick = () => {
-		fileInputRef.current?.click();
+	const parseUserAgent = (userAgent: string | null | undefined) => {
+		if (!userAgent) return "Unknown Device";
+
+		const browser = userAgent.includes("Chrome")
+			? "Chrome"
+			: userAgent.includes("Firefox")
+				? "Firefox"
+				: userAgent.includes("Safari")
+					? "Safari"
+					: userAgent.includes("Edge")
+						? "Edge"
+						: "Unknown Browser";
+
+		const platform = userAgent.includes("Windows")
+			? "Windows"
+			: userAgent.includes("Mac")
+				? "macOS"
+				: userAgent.includes("Linux")
+					? "Linux"
+					: userAgent.includes("Android")
+						? "Android"
+						: userAgent.includes("iOS") ||
+							  userAgent.includes("iPhone") ||
+							  userAgent.includes("iPad")
+							? "iOS"
+							: "Unknown OS";
+
+		return `${platform}, ${browser}`;
 	};
 
-	const resizeImage = (
-		file: File,
-		maxWidth: number,
-		maxHeight: number,
-		quality = 0.8
-	): Promise<File> => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const img = new Image();
-				img.onload = () => {
-					const canvas = document.createElement("canvas");
-					let width = img.width;
-					let height = img.height;
-
-					// Calculate new dimensions
-					if (width > height) {
-						if (width > maxWidth) {
-							height = Math.round((height * maxWidth) / width);
-							width = maxWidth;
-						}
-					} else {
-						if (height > maxHeight) {
-							width = Math.round((width * maxHeight) / height);
-							height = maxHeight;
-						}
-					}
-
-					canvas.width = width;
-					canvas.height = height;
-
-					const ctx = canvas.getContext("2d");
-					if (!ctx) {
-						reject(new Error("Failed to get canvas context"));
-						return;
-					}
-
-					ctx.drawImage(img, 0, 0, width, height);
-
-					canvas.toBlob(
-						(blob) => {
-							if (!blob) {
-								reject(new Error("Failed to create blob"));
-								return;
-							}
-							const resizedFile = new File([blob], file.name, {
-								type: file.type,
-								lastModified: Date.now(),
-							});
-							resolve(resizedFile);
-						},
-						file.type,
-						quality
-					);
-				};
-				img.onerror = reject;
-				if (typeof e.target?.result === "string") {
-					img.src = e.target.result;
-				} else {
-					reject(new Error("Failed to read file"));
-				}
-			};
-			reader.onerror = reject;
-			reader.readAsDataURL(file);
-		});
+	const formatSessionDate = (date: Date | string | null | undefined) => {
+		if (!date) return "Unknown";
+		const d = typeof date === "string" ? new Date(date) : date;
+		return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 	};
 
-	const handleAvatarChange = async (file: File) => {
-		if (!user) return;
+	if (!user) {
+		return null;
+	}
 
-		// Validate file type
-		if (!file.type.startsWith("image/")) {
-			toast.error("Please select an image file");
-			return;
-		}
-
-		// Validate file size (max 5MB before compression)
-		if (file.size > 5 * 1024 * 1024) {
-			toast.error("Image size must be less than 5MB");
-			return;
-		}
-
-		setIsUploadingAvatar(true);
-
-		try {
-			// Resize image to max 512x512 with 0.8 quality to reduce size
-			const resizedFile = await resizeImage(file, 512, 512, 0.8);
-
-			// Validate resized file size (max 2MB after compression)
-			if (resizedFile.size > 2 * 1024 * 1024) {
-				toast.error("Image is too large after compression. Please try a smaller image.");
-				setIsUploadingAvatar(false);
-				return;
-			}
-
-			// Optimistic update - create a preview URL
-			const previewUrl = URL.createObjectURL(resizedFile);
-			setOptimisticAvatar(previewUrl);
-
-			// Convert file to base64 data URL
-			const imageData = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = () => {
-					if (typeof reader.result === "string") {
-						resolve(reader.result);
-					} else {
-						reject(new Error("Failed to read file as data URL"));
-					}
-				};
-				reader.onerror = () => reject(new Error("Failed to read file"));
-				reader.readAsDataURL(resizedFile);
-			});
-
-			// Upload avatar in single request
-			await uploadAvatarMutation.mutateAsync({ imageData });
-
-			// Invalidate session to get updated user data
-			invalidateSession();
-
-			// Clean up preview URL
-			if (optimisticAvatar) {
-				URL.revokeObjectURL(optimisticAvatar);
-			}
-			setOptimisticAvatar(null);
-
-			toast.success("Avatar uploaded successfully");
-		} catch (err) {
-			// Revert optimistic update on error
-			if (optimisticAvatar) {
-				URL.revokeObjectURL(optimisticAvatar);
-			}
-			setOptimisticAvatar(null);
-
-			toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
-		} finally {
-			setIsUploadingAvatar(false);
-		}
-	};
-
-	const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.item(0);
-		if (file) {
-			await handleAvatarChange(file);
-		}
-		// Reset input value (following better-auth-ui pattern)
-		event.target.value = "";
-	};
+	// Add timestamp to bust cache after avatar changes
+	const avatarUrl = user.image
+		? `/api/user-assets/${user.image}?t=${Date.now()}`
+		: `/api/user-assets/user-avatar?t=${Date.now()}`;
 
 	return (
 		<>
 			<Header breadcrumbs={[{ name: "Profile" }]} />
-			<div className="flex flex-1 flex-col gap-6 p-6 pt-0">
-				<div className="flex flex-col gap-2">
-					<h2 className="text-2xl font-semibold">Profile</h2>
-					<p className="text-sm text-muted-foreground">
-						Manage your account settings and preferences
-					</p>
+			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+				{/* Profile Header - Centered Avatar and Name */}
+				<div className="flex flex-col items-center gap-4 py-8">
+					<Avatar className="h-32 w-32 rounded-lg ring-4 ring-border">
+						<AvatarImage src={avatarUrl} alt={user.name || ""} className="rounded-lg" />
+						<AvatarFallback className="rounded-lg text-4xl">
+							{getInitials(user.name)}
+						</AvatarFallback>
+					</Avatar>
+					<div className="flex flex-col items-center gap-2">
+						<h2 className="text-2xl font-bold">{user.name}</h2>
+						<p className="text-sm text-muted-foreground">{user.email}</p>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setIsEditProfileOpen(true)}
+							className="mt-2 gap-1.5"
+						>
+							<HugeiconsIcon icon={Edit01Icon} className="size-4" />
+							Edit Profile
+						</Button>
+					</div>
 				</div>
 
-				{/* Top Section - Avatar, Name, Email */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Profile Information</CardTitle>
-						<CardDescription>Update your profile information and verify your email</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-6">
-						<div className="flex items-center gap-6">
-							<button
-								type="button"
-								className="relative group cursor-pointer border-0 bg-transparent p-0"
-								onClick={handleAvatarClick}
-							>
-								<Avatar className="h-20 w-20 rounded-lg ring-2 ring-transparent group-hover:ring-primary transition-all pointer-events-none">
-									<AvatarImage
-										src={optimisticAvatar ?? "/api/user-assets/user-avatar"}
-										alt={user?.name || ""}
-										className="rounded-lg"
-									/>
-									<AvatarFallback className="text-lg rounded-lg">
-										{getInitials(user?.name)}
-									</AvatarFallback>
-								</Avatar>
-								<div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-									<Camera01Icon className="h-6 w-6 text-white" />
-								</div>
-								<input
-									ref={fileInputRef}
-									type="file"
-									accept="image/*"
-									onChange={handleAvatarUpload}
-									className="hidden"
-									disabled={isUploadingAvatar}
-								/>
-							</button>
-							<div className="flex flex-1 flex-col gap-2">
-								<div className="flex items-center gap-2">
-									{isEditingName ? (
-										<div className="flex flex-1 items-center gap-2">
-											<Input
-												value={name}
-												onChange={(e) => setName(e.target.value)}
-												className="flex-1"
-												placeholder="Name"
-											/>
-											<Button size="sm" onClick={handleUpdateName}>
-												Save
-											</Button>
-											<Button
-												size="sm"
-												variant="ghost"
-												onClick={() => {
-													setName(user?.name || "");
-													setIsEditingName(false);
-												}}
-											>
-												Cancel
-											</Button>
-										</div>
-									) : (
-										<>
-											<h2 className="text-lg font-medium">{user?.name || "No name"}</h2>
-											<Button size="icon-sm" variant="ghost" onClick={() => setIsEditingName(true)}>
-												<Edit01Icon />
-											</Button>
-										</>
-									)}
-								</div>
-								<div className="flex items-center gap-2">
-									<span className="text-sm text-muted-foreground">{user?.email || "No email"}</span>
-									{!user?.emailVerified && (
-										<>
-											<Badge variant="outline" className="text-xs">
-												Unverified
-											</Badge>
-											<Button size="sm" variant="outline" onClick={handleVerifyEmail}>
-												<Mail01Icon className="mr-1" />
-												Verify Email
-											</Button>
-										</>
-									)}
-								</div>
-							</div>
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Accounts Section */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Accounts</CardTitle>
-						<CardDescription>
-							Manage your connected accounts and sign in to additional accounts
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
-						<div className="flex items-center justify-between rounded-lg border p-4">
-							<div className="flex items-center gap-3">
-								<Avatar className="h-10 w-10 rounded-lg">
-									<AvatarImage
-										src="/api/user-assets/user-avatar"
-										alt={user?.name || ""}
-										className="rounded-lg"
-									/>
-									<AvatarFallback className="rounded-lg">{getInitials(user?.name)}</AvatarFallback>
-								</Avatar>
-								<div className="flex flex-col">
-									<span className="text-sm font-medium">{user?.name || "No name"}</span>
-									<span className="text-xs text-muted-foreground">{user?.email || "No email"}</span>
-								</div>
-							</div>
-							<Badge variant="secondary">Current Account</Badge>
-						</div>
-						<Button variant="outline" className="w-full justify-start">
-							<Link01Icon className="mr-2" />
-							Sign in to an additional account
-						</Button>
-					</CardContent>
-				</Card>
-
-				{/* Security Section */}
-				<div className="flex flex-col gap-6">
-					<h2 className="text-xl font-semibold">Security</h2>
-
-					{/* Change Password */}
-					<Card>
-						<CardHeader>
-							<CardTitle>Change Password</CardTitle>
-							<CardDescription>Enter your current password and a new password</CardDescription>
+				{/* Stats Cards */}
+				<div className="grid gap-3 md:grid-cols-2">
+					<Card className="relative overflow-hidden">
+						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.1),transparent_60%)]" />
+						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
+							<CardTitle className="text-sm font-medium">Leagues</CardTitle>
+							<HugeiconsIcon icon={Award01Icon} className="size-4 text-purple-600" />
 						</CardHeader>
-						<CardContent className="flex flex-col gap-4">
-							{isChangingPassword ? (
-								<>
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="current-password">Current Password</Label>
-										<Input
-											id="current-password"
-											type="password"
-											value={currentPassword}
-											onChange={(e) => setCurrentPassword(e.target.value)}
-											placeholder="Current Password"
-										/>
-									</div>
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="new-password">New Password</Label>
-										<div className="relative">
-											<Input
-												id="new-password"
-												type={showPassword ? "text" : "password"}
-												value={newPassword}
-												onChange={(e) => setNewPassword(e.target.value)}
-												placeholder="New Password"
-											/>
-											<Button
-												type="button"
-												size="icon-sm"
-												variant="ghost"
-												className="absolute right-2 top-1/2 -translate-y-1/2"
-												onClick={() => setShowPassword(!showPassword)}
-											>
-												<EyeIcon />
-											</Button>
-										</div>
-										<p className="text-xs text-muted-foreground">
-											Please use 8 characters at minimum.
-										</p>
-									</div>
-									<div className="flex items-center gap-2">
-										<Checkbox
-											id="revoke-sessions"
-											checked={revokeOtherSessions}
-											onCheckedChange={(checked) => setRevokeOtherSessions(checked === true)}
-										/>
-										<Label htmlFor="revoke-sessions" className="text-sm font-normal cursor-pointer">
-											Revoke all other sessions
-										</Label>
-									</div>
-									<div className="flex gap-2">
-										<Button onClick={handleChangePassword}>Save</Button>
-										<Button
-											variant="ghost"
-											onClick={() => {
-												setIsChangingPassword(false);
-												setCurrentPassword("");
-												setNewPassword("");
-												setRevokeOtherSessions(true);
-											}}
-										>
-											Cancel
-										</Button>
-									</div>
-								</>
-							) : (
-								<Button
-									variant="outline"
-									onClick={() => setIsChangingPassword(true)}
-									className="w-fit"
-								>
-									<Key01Icon className="mr-2" />
-									Change Password
-								</Button>
-							)}
+						<CardContent className="relative">
+							<div className="text-2xl font-bold">{leagueCount}</div>
+							<p className="text-xs text-muted-foreground">Active leagues</p>
 						</CardContent>
 					</Card>
 
-					{/* Providers */}
-					<Card>
-						<CardHeader>
-							<CardTitle>Providers</CardTitle>
-							<CardDescription>Connect your account with a third-party service</CardDescription>
+					<Card className="relative overflow-hidden">
+						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
+							<CardTitle className="text-sm font-medium">Matches</CardTitle>
+							<HugeiconsIcon icon={Target01Icon} className="size-4 text-blue-600" />
 						</CardHeader>
-						<CardContent className="flex flex-col gap-3">
-							<div className="flex items-center justify-between rounded-lg border p-4">
-								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded bg-foreground text-background">
-										GH
-									</div>
-									<span className="text-sm font-medium">GitHub</span>
-								</div>
-								<Button size="sm" variant="outline" onClick={() => handleLinkProvider("github")}>
-									Link
-								</Button>
-							</div>
-							<div className="flex items-center justify-between rounded-lg border p-4">
-								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-red-500 text-white">
-										G
-									</div>
-									<span className="text-sm font-medium">Google</span>
-								</div>
-								<Button size="sm" variant="outline" onClick={() => handleLinkProvider("google")}>
-									Link
-								</Button>
-							</div>
+						<CardContent className="relative">
+							<div className="text-2xl font-bold">{totalMatches}</div>
+							<p className="text-xs text-muted-foreground">Total matches played</p>
 						</CardContent>
 					</Card>
+				</div>
 
-					{/* Two-Factor */}
-					<Card>
-						<CardHeader>
-							<CardTitle>Two-Factor</CardTitle>
-							<CardDescription>Add an extra layer of security to your account</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Button variant="outline" className="w-fit">
-								<ShieldKeyIcon className="mr-2" />
-								Enable Two-Factor Authentication
-							</Button>
-						</CardContent>
-					</Card>
-
-					{/* Passkeys */}
-					<Card>
-						<CardHeader>
-							<CardTitle>Passkeys</CardTitle>
-							<CardDescription>Manage your passkeys for secure access</CardDescription>
-						</CardHeader>
-						<CardContent className="flex flex-col gap-4">
-							{passkeysQuery.isLoading ? (
-								<p className="text-sm text-muted-foreground">Loading passkeys...</p>
-							) : passkeysQuery.error ? (
-								<p className="text-sm text-destructive">
-									{passkeysQuery.error instanceof Error
-										? passkeysQuery.error.message
-										: "Failed to load passkeys"}
-								</p>
-							) : passkeysQuery.data && passkeysQuery.data.length > 0 ? (
-								<div className="flex flex-col gap-3">
-									{passkeysQuery.data.map((passkey) => (
-										<div
-											key={passkey.id}
-											className="flex items-center justify-between rounded-lg border p-4"
-										>
-											<div className="flex flex-1 items-center gap-3">
-												<Key01Icon className="h-5 w-5 text-muted-foreground" />
-												{editingPasskeyId === passkey.id ? (
-													<div className="flex flex-1 items-center gap-2">
-														<Input
-															value={editingPasskeyName}
-															onChange={(e) => setEditingPasskeyName(e.target.value)}
-															placeholder="Passkey name"
-															className="flex-1"
-														/>
-														<Button
-															size="sm"
-															onClick={() => {
-																if (editingPasskeyName.trim()) {
-																	updatePasskeyMutation.mutate({
-																		id: passkey.id,
-																		name: editingPasskeyName.trim(),
-																	});
-																}
-															}}
-															disabled={updatePasskeyMutation.isPending}
-														>
-															Save
-														</Button>
-														<Button
-															size="sm"
-															variant="ghost"
-															onClick={() => {
-																setEditingPasskeyId(null);
-																setEditingPasskeyName("");
-															}}
-														>
-															Cancel
-														</Button>
-													</div>
-												) : (
-													<>
-														<div className="flex flex-col">
-															<span className="text-sm font-medium">
-																{passkey.name || "Unnamed Passkey"}
-															</span>
-															<span className="text-xs text-muted-foreground">
-																{passkey.deviceType}
-																{passkey.backedUp && " • Backed up"}
-															</span>
-														</div>
-														<div className="flex items-center gap-2">
-															<Button
-																size="icon-sm"
-																variant="ghost"
-																onClick={() => {
-																	setEditingPasskeyId(passkey.id);
-																	setEditingPasskeyName(passkey.name || "");
-																}}
-															>
-																<Edit01Icon />
-															</Button>
-															<AlertDialog>
-																<AlertDialogTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8">
-																	<Delete01Icon className="h-4 w-4" />
-																</AlertDialogTrigger>
-																<AlertDialogContent>
-																	<AlertDialogHeader>
-																		<AlertDialogTitle>Delete Passkey?</AlertDialogTitle>
-																		<AlertDialogDescription>
-																			Are you sure you want to delete this passkey? This action
-																			cannot be undone.
-																		</AlertDialogDescription>
-																	</AlertDialogHeader>
-																	<AlertDialogFooter>
-																		<AlertDialogCancel>Cancel</AlertDialogCancel>
-																		<AlertDialogAction
-																			onClick={() => {
-																				deletePasskeyMutation.mutate(passkey.id);
-																			}}
-																			className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-																		>
-																			Delete
-																		</AlertDialogAction>
-																	</AlertDialogFooter>
-																</AlertDialogContent>
-															</AlertDialog>
-														</div>
-													</>
-												)}
-											</div>
-										</div>
-									))}
-								</div>
-							) : (
-								<p className="text-sm text-muted-foreground">No passkeys registered yet</p>
-							)}
+				{/* Passkeys Section */}
+				<div className="bg-muted/50 p-6">
+					<div className="space-y-4">
+						<div className="flex items-center justify-between">
+							<h3 className="text-lg font-medium">Passkeys</h3>
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								onClick={async () => {
 									try {
@@ -794,54 +340,390 @@ function ProfilePage() {
 									}
 								}}
 								disabled={addPasskeyMutation.isPending}
-								className="w-fit"
+								className="text-muted-foreground hover:text-blue-500"
 							>
-								<Key01Icon className="mr-2" />
-								{addPasskeyMutation.isPending ? "Adding..." : "Add Passkey"}
+								<span className="hidden sm:inline">
+									{addPasskeyMutation.isPending ? "Adding..." : "Add Passkey"}
+								</span>
+								<HugeiconsIcon icon={Key01Icon} className="sm:hidden size-4" />
 							</Button>
-						</CardContent>
-					</Card>
-
-					{/* Sessions */}
-					<Card>
-						<CardHeader>
-							<CardTitle>Sessions</CardTitle>
-							<CardDescription>Manage your active sessions and revoke access</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center justify-between rounded-lg border p-4">
-								<div className="flex items-center gap-3">
-									<UserIcon className="h-5 w-5 text-muted-foreground" />
-									<div className="flex flex-col">
-										<span className="text-sm font-medium">Current Session</span>
-										<span className="text-xs text-muted-foreground">
-											{typeof navigator !== "undefined"
-												? `${navigator.platform}, ${navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Firefox") ? "Firefox" : navigator.userAgent.includes("Safari") ? "Safari" : "Unknown"}`
-												: "Unknown"}
-										</span>
-									</div>
+						</div>
+						{passkeysQuery.isLoading ? (
+							<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+								Loading passkeys...
+							</div>
+						) : passkeysQuery.error ? (
+							<div className="flex h-32 items-center justify-center text-sm text-destructive">
+								{passkeysQuery.error instanceof Error
+									? passkeysQuery.error.message
+									: "Failed to load passkeys"}
+							</div>
+						) : passkeysQuery.data && passkeysQuery.data.length > 0 ? (
+							<div className="divide-y divide-border border">
+								{passkeysQuery.data.map((passkey) => (
+									<RowCard
+										key={passkey.id}
+										icon={<HugeiconsIcon icon={Key01Icon} className="size-5 text-primary" />}
+										iconClassName="bg-primary/10"
+										title={passkey.name || "Unnamed Passkey"}
+										subtitle={
+											<>
+												<span>{passkey.deviceType}</span>
+												{passkey.backedUp && (
+													<>
+														<span>•</span>
+														<span>Backed up</span>
+													</>
+												)}
+											</>
+										}
+									>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => {
+												setEditingPasskey({ id: passkey.id, name: passkey.name || "" });
+											}}
+										>
+											<span className="hidden sm:inline">Edit</span>
+											<span className="sm:hidden">
+												<HugeiconsIcon icon={Edit01Icon} className="size-4" />
+											</span>
+										</Button>
+										<AlertDialog>
+											<AlertDialogTrigger>
+												<Button variant="ghost" size="sm" className="hover:text-red-500">
+													<span className="hidden sm:inline">Delete</span>
+													<span className="sm:hidden">
+														<HugeiconsIcon icon={Delete01Icon} className="size-4" />
+													</span>
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent>
+												<AlertDialogHeader>
+													<AlertDialogTitle>Delete Passkey?</AlertDialogTitle>
+													<AlertDialogDescription>
+														Are you sure you want to delete this passkey? This action cannot be
+														undone.
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel>Cancel</AlertDialogCancel>
+													<AlertDialogAction
+														onClick={() => {
+															deletePasskeyMutation.mutate(passkey.id);
+														}}
+														className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+													>
+														Delete
+													</AlertDialogAction>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									</RowCard>
+								))}
+							</div>
+						) : (
+							<div className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
+									<HugeiconsIcon icon={Key01Icon} className="size-5" />
 								</div>
+								<p>No passkeys registered yet</p>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Sessions Section */}
+				<div className="bg-muted/50 min-h-[100vh] flex-1 md:min-h-min p-6">
+					<div className="space-y-4">
+						<div className="flex items-center justify-between gap-2">
+							<h3 className="text-lg font-medium">Sessions</h3>
+							<div className="flex gap-2">
 								<Button
-									variant="outline"
+									variant="ghost"
 									size="sm"
-									onClick={async () => {
-										await authClient.signOut({
-											fetchOptions: {
-												onSuccess: () => {
-													navigate({ to: "/" });
-												},
-											},
-										});
-									}}
+									onClick={() => setIsRevokeOtherDialogOpen(true)}
+									className="text-muted-foreground hover:text-red-500"
 								>
-									<Logout01Icon className="mr-2" />
-									Sign Out
+									<span className="hidden sm:inline">Revoke Other</span>
+									<HugeiconsIcon icon={SecurityLockIcon} className="sm:hidden size-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setIsRevokeAllDialogOpen(true)}
+									className="text-muted-foreground hover:text-red-500"
+								>
+									<span className="hidden sm:inline">Revoke All</span>
+									<HugeiconsIcon icon={SecurityLockIcon} className="sm:hidden size-4" />
 								</Button>
 							</div>
-						</CardContent>
-					</Card>
+						</div>
+						{sessionsQuery.isLoading ? (
+							<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+								Loading sessions...
+							</div>
+						) : sessionsQuery.error ? (
+							<div className="flex h-32 items-center justify-center text-sm text-destructive">
+								{sessionsQuery.error instanceof Error
+									? sessionsQuery.error.message
+									: "Failed to load sessions"}
+							</div>
+						) : sessionsQuery.data && sessionsQuery.data.length > 0 ? (
+							<div className="divide-y divide-border border">
+								{sessionsQuery.data.map((session) => {
+									const isCurrentSession = session.id === currentSession?.session.id;
+									return (
+										<RowCard
+											key={session.id}
+											icon={<HugeiconsIcon icon={UserIcon} className="size-5 text-primary" />}
+											iconClassName={isCurrentSession ? "bg-green-500/10" : "bg-primary/10"}
+											title={
+												<div className="flex items-center gap-2">
+													<span>
+														{isCurrentSession
+															? "Current Session"
+															: parseUserAgent(session.userAgent)}
+													</span>
+													{isCurrentSession && (
+														<span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 ring-1 ring-inset ring-green-500/20">
+															Current
+														</span>
+													)}
+												</div>
+											}
+											subtitle={
+												<>
+													<span>{parseUserAgent(session.userAgent)}</span>
+													{session.createdAt && (
+														<>
+															<span>•</span>
+															<span>{formatSessionDate(session.createdAt)}</span>
+														</>
+													)}
+												</>
+											}
+										>
+											{isCurrentSession && (
+												<Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
+													<span className="hidden sm:inline">Sign Out</span>
+													<span className="sm:hidden">
+														<HugeiconsIcon icon={Logout01Icon} className="size-4" />
+													</span>
+												</Button>
+											)}
+										</RowCard>
+									);
+								})}
+							</div>
+						) : (
+							<div className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
+									<HugeiconsIcon icon={UserIcon} className="size-5" />
+								</div>
+								<p>No active sessions</p>
+							</div>
+						)}
+					</div>
 				</div>
 			</div>
+
+			{/* Edit Profile Dialog */}
+			<EditProfileDialog
+				isOpen={isEditProfileOpen}
+				onClose={() => setIsEditProfileOpen(false)}
+				user={{ id: user.id, name: user.name, email: user.email, image: user.image }}
+			/>
+
+			{/* Edit Passkey Dialog */}
+			{editingPasskey && (
+				<EditPasskeyDialog
+					isOpen={!!editingPasskey}
+					onClose={() => setEditingPasskey(null)}
+					onSave={(name) => {
+						if (editingPasskey) {
+							updatePasskeyMutation.mutate({ id: editingPasskey.id, name });
+						}
+					}}
+					currentName={editingPasskey.name}
+					isSaving={updatePasskeyMutation.isPending}
+				/>
+			)}
+
+			{/* Revoke Other Sessions Dialog */}
+			<Dialog open={isRevokeOtherDialogOpen} onOpenChange={setIsRevokeOtherDialogOpen}>
+				<DialogContent className="sm:max-w-md overflow-hidden">
+					{/* Technical Grid Background */}
+					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
+						<div
+							className="w-full h-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
+						/>
+					</div>
+
+					{/* Header */}
+					<DialogHeader className="relative z-10 pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 rounded-full shadow-lg bg-red-500 shadow-red-500/25" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Revoke Other Sessions
+							</DialogTitle>
+						</div>
+					</DialogHeader>
+
+					<div className="relative z-10 space-y-4 py-4">
+						{/* Icon */}
+						<div className="flex justify-center">
+							<div className="w-16 h-16 rounded-full flex items-center justify-center bg-red-500/10">
+								<HugeiconsIcon icon={SecurityLockIcon} className="w-8 h-8 text-red-500" />
+							</div>
+						</div>
+
+						{/* Content */}
+						<div className="text-center space-y-2">
+							<h3 className="font-mono font-semibold text-lg">Revoke All Other Sessions</h3>
+							<p className="text-muted-foreground text-sm">
+								Are you sure you want to revoke all other sessions?
+							</p>
+						</div>
+
+						{/* Warning Box */}
+						<div className="border p-4 space-y-2 bg-red-500/10 border-red-500/20">
+							<div className="flex items-start gap-2">
+								<HugeiconsIcon
+									icon={Alert02Icon}
+									className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500"
+								/>
+								<div className="space-y-1">
+									<p className="text-xs text-muted-foreground">
+										This will sign you out of all other devices and browsers. You will remain signed
+										in on this device.
+									</p>
+								</div>
+							</div>
+						</div>
+
+						{/* Action Buttons */}
+						<div className="flex gap-3 pt-2">
+							<Button
+								variant="outline"
+								onClick={() => setIsRevokeOtherDialogOpen(false)}
+								className="flex-1 font-mono h-9 text-sm"
+								disabled={revokeOtherSessionsMutation.isPending}
+							>
+								Cancel
+							</Button>
+							<Button
+								onClick={() => revokeOtherSessionsMutation.mutate()}
+								disabled={revokeOtherSessionsMutation.isPending}
+								variant="destructive"
+								className="flex-1 font-mono font-bold h-9 text-sm"
+							>
+								{revokeOtherSessionsMutation.isPending ? (
+									"Revoking..."
+								) : (
+									<>
+										<HugeiconsIcon icon={SecurityLockIcon} className="w-4 h-4 mr-2" />
+										Revoke Other
+									</>
+								)}
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Revoke All Sessions Dialog */}
+			<Dialog open={isRevokeAllDialogOpen} onOpenChange={setIsRevokeAllDialogOpen}>
+				<DialogContent className="sm:max-w-md overflow-hidden">
+					{/* Technical Grid Background */}
+					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
+						<div
+							className="w-full h-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
+						/>
+					</div>
+
+					{/* Header */}
+					<DialogHeader className="relative z-10 pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 rounded-full shadow-lg bg-red-500 shadow-red-500/25" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Revoke All Sessions
+							</DialogTitle>
+						</div>
+					</DialogHeader>
+
+					<div className="relative z-10 space-y-4 py-4">
+						{/* Icon */}
+						<div className="flex justify-center">
+							<div className="w-16 h-16 rounded-full flex items-center justify-center bg-red-500/10">
+								<HugeiconsIcon icon={SecurityLockIcon} className="w-8 h-8 text-red-500" />
+							</div>
+						</div>
+
+						{/* Content */}
+						<div className="text-center space-y-2">
+							<h3 className="font-mono font-semibold text-lg">Revoke All Sessions</h3>
+							<p className="text-muted-foreground text-sm">
+								Are you sure you want to revoke all sessions?
+							</p>
+						</div>
+
+						{/* Warning Box */}
+						<div className="border p-4 space-y-2 bg-red-500/10 border-red-500/20">
+							<div className="flex items-start gap-2">
+								<HugeiconsIcon
+									icon={Alert02Icon}
+									className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500"
+								/>
+								<div className="space-y-1">
+									<p className="text-xs text-muted-foreground">
+										This will sign you out of ALL devices including this one. You will be redirected
+										to the sign-in page.
+									</p>
+								</div>
+							</div>
+						</div>
+
+						{/* Action Buttons */}
+						<div className="flex gap-3 pt-2">
+							<Button
+								variant="outline"
+								onClick={() => setIsRevokeAllDialogOpen(false)}
+								className="flex-1 font-mono h-9 text-sm"
+								disabled={revokeAllSessionsMutation.isPending}
+							>
+								Cancel
+							</Button>
+							<Button
+								onClick={() => revokeAllSessionsMutation.mutate()}
+								disabled={revokeAllSessionsMutation.isPending}
+								variant="destructive"
+								className="flex-1 font-mono font-bold h-9 text-sm"
+							>
+								{revokeAllSessionsMutation.isPending ? (
+									"Revoking..."
+								) : (
+									<>
+										<HugeiconsIcon icon={SecurityLockIcon} className="w-4 h-4 mr-2" />
+										Revoke All
+									</>
+								)}
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

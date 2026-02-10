@@ -19,7 +19,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
+import { useSignOut } from "@/hooks/useSignOut";
 
 export function NavUser({
 	user,
@@ -32,6 +32,7 @@ export function NavUser({
 }) {
 	const { isMobile } = useSidebar();
 	const navigate = useNavigate();
+	const signOut = useSignOut();
 	const { theme, setTheme } = useTheme();
 
 	const cycleTheme = () => {
@@ -136,17 +137,7 @@ export function NavUser({
 							<span>{getThemeLabel()} mode</span>
 						</div>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={async () => {
-								await authClient.signOut({
-									fetchOptions: {
-										onSuccess: () => {
-											window.location.href = "/";
-										},
-									},
-								});
-							}}
-						>
+						<DropdownMenuItem onClick={signOut}>
 							<Logout01Icon />
 							Log out
 						</DropdownMenuItem>
