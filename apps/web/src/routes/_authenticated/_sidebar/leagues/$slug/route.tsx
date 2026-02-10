@@ -50,7 +50,7 @@ function LeaguesLayout() {
 			if (!org) {
 				const activeOrgId = session.session?.activeOrganizationId;
 				const targetOrg = activeOrgId
-					? organizations.find((o) => o.id === activeOrgId)
+					? (organizations.find((o) => o.id === activeOrgId) ?? organizations[0])
 					: organizations[0];
 
 				if (targetOrg) {

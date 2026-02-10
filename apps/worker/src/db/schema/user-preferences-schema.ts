@@ -8,5 +8,6 @@ export const userPreference = sqliteTable("user_preference", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	defaultOrganizationId: text("default_organization_id"),
+	lastActiveOrganizationId: text("last_active_organization_id"),
 	...timestampAuditFields,
 });

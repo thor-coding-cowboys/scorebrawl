@@ -64,7 +64,7 @@ function AuthenticatedRedirect({
 		} else if (organizations && organizations.length > 0) {
 			const activeOrgId = session?.session?.activeOrganizationId;
 			const targetOrg = activeOrgId
-				? organizations.find((org) => org.id === activeOrgId)
+				? (organizations.find((org) => org.id === activeOrgId) ?? organizations[0])
 				: organizations[0];
 
 			if (targetOrg) {
