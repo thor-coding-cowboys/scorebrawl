@@ -5,6 +5,8 @@ import { organization } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
+import { eq } from "drizzle-orm";
+import { userPreference } from "../db/schema/user-preferences-schema";
 
 import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
 
@@ -78,6 +80,51 @@ export function createAuth({
 			provider: "sqlite",
 		}),
 		secret: betterAuthSecret,
+		databaseHooks: {
+			session: {
+				create: {
+					before: async (session) => {
+						if (session.activeOrganizationId) {
+							return;
+						}
+						const [prefs] = await db
+							.select({ lastActiveOrganizationId: userPreference.lastActiveOrganizationId })
+							.from(userPreference)
+							.where(eq(userPreference.userId, session.userId))
+							.limit(1);
+						if (prefs?.lastActiveOrganizationId) {
+							return {
+								data: {
+									...session,
+									activeOrganizationId: prefs.lastActiveOrganizationId,
+								},
+							};
+						}
+					},
+				},
+				update: {
+					after: async (session) => {
+						if (session.activeOrganizationId) {
+							await db
+								.insert(userPreference)
+								.values({
+									userId: session.userId,
+									lastActiveOrganizationId: session.activeOrganizationId,
+									createdAt: new Date(),
+									updatedAt: new Date(),
+								})
+								.onConflictDoUpdate({
+									target: userPreference.userId,
+									set: {
+										lastActiveOrganizationId: session.activeOrganizationId,
+										updatedAt: new Date(),
+									},
+								});
+						}
+					},
+				},
+			},
+		},
 		emailAndPassword: {
 			enabled: process.env.DISABLE_EMAIL_PASSWORD?.toLowerCase() !== "true",
 			password: {
