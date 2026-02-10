@@ -143,7 +143,7 @@ function MatchesPage() {
 						</CardContent>
 					</Card>
 				</div>
-				<div className="bg-muted/50 min-h-[100vh] flex-1 md:min-h-min p-6">
+				<div className="bg-muted/50 flex-1 flex flex-col p-6">
 					{matches.length === 0 ? (
 						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
@@ -164,7 +164,7 @@ function MatchesPage() {
 							)}
 						</div>
 					) : (
-						<div className="space-y-4">
+						<div className="flex flex-col flex-1 gap-4">
 							<div className="flex items-center justify-between">
 								<h3 className="text-lg font-medium">Matches</h3>
 								{canDeleteMatches && !isSeasonLocked && latestMatch && (
@@ -179,10 +179,7 @@ function MatchesPage() {
 									</Button>
 								)}
 							</div>
-							<div
-								ref={parentRef}
-								className="h-[calc(100vh-400px)] overflow-auto rounded-lg bg-card mx-auto max-w-2xl"
-							>
+							<div ref={parentRef} className="flex-1 overflow-auto rounded-lg bg-card px-4">
 								<div
 									style={{
 										height: `${virtualizer.getTotalSize()}px`,
