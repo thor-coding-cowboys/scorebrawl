@@ -97,11 +97,11 @@ async function main() {
 		// 8. player_achievement (from league_player_achievement)
 		await migratePlayerAchievement(pgClient, sqlite);
 
-		// 9. org_team (from league_team)
-		await migrateOrgTeam(pgClient, sqlite);
+		// 9. league_team (from league_team)
+		await migrateLeagueTeam(pgClient, sqlite);
 
-		// 10. org_team_player (from league_team_player)
-		await migrateOrgTeamPlayer(pgClient, sqlite);
+		// 10. league_team_player (from league_team_player)
+		await migrateLeagueTeamPlayer(pgClient, sqlite);
 
 		// 11. season
 		await migrateSeason(pgClient, sqlite);
@@ -310,30 +310,30 @@ async function migratePlayerAchievement(pgClient: pg.Client, sqlite: Database) {
 	}
 }
 
-async function migrateOrgTeam(pgClient: pg.Client, sqlite: Database) {
+async function migrateLeagueTeam(pgClient: pg.Client, sqlite: Database) {
 	const { rows } = await pgClient.query(
 		"SELECT id, name, league_id, created_at, updated_at FROM league_team"
 	);
-	logEntity("org_team", rows.length);
+	logEntity("league_team", rows.length);
 	if (dryRun) return;
 
 	const stmt = sqlite.prepare(
-		"INSERT INTO org_team (id, name, league_id, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)"
+		"INSERT INTO league_team (id, name, league_id, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)"
 	);
 	for (const r of rows) {
 		stmt.run(r.id, r.name, r.league_id, tsToSec(r.created_at), tsToSec(r.updated_at), null);
 	}
 }
 
-async function migrateOrgTeamPlayer(pgClient: pg.Client, sqlite: Database) {
+async function migrateLeagueTeamPlayer(pgClient: pg.Client, sqlite: Database) {
 	const { rows } = await pgClient.query(
 		"SELECT id, league_player_id, team_id, created_at, updated_at FROM league_team_player"
 	);
-	logEntity("org_team_player", rows.length);
+	logEntity("league_team_player", rows.length);
 	if (dryRun) return;
 
 	const stmt = sqlite.prepare(
-		"INSERT INTO org_team_player (id, player_id, org_team_id, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)"
+		"INSERT INTO league_team_player (id, player_id, league_team_id, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)"
 	);
 	for (const r of rows) {
 		stmt.run(
@@ -412,7 +412,7 @@ async function migrateSeasonTeam(pgClient: pg.Client, sqlite: Database) {
 	if (dryRun) return;
 
 	const stmt = sqlite.prepare(
-		"INSERT INTO season_team (id, season_id, org_team_id, score, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+		"INSERT INTO season_team (id, season_id, league_team_id, score, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
 	);
 	for (const r of rows) {
 		stmt.run(

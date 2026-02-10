@@ -44,7 +44,7 @@ function MatchesPage() {
 		},
 	});
 
-	const seasonId = season?.id;
+	const seasonId = season?.id ?? "";
 	const isSeasonLocked = season?.closed || season?.archived;
 
 	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
@@ -52,7 +52,8 @@ function MatchesPage() {
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [totalMatches, setTotalMatches] = useState<number | null>(null);
 
-	const { matches } = useMatches(seasonId ?? "", seasonSlug);
+	// Always call useMatches with a stable seasonId value
+	const { matches } = useMatches(seasonId, seasonSlug);
 	const latestMatch = matches[0];
 
 	useEffect(() => {
@@ -73,22 +74,28 @@ function MatchesPage() {
 	});
 
 	useEffect(() => {
-		const virtualItems = virtualizer.getVirtualItems();
-		const [lastItem] = [...virtualItems].reverse();
+		const scrollElement = parentRef.current;
+		if (!scrollElement || !seasonId) return;
 
-		if (!lastItem || !seasonId || isLoadingMore) return;
+		const handleScroll = () => {
+			if (isLoadingMore) return;
 
-		if (
-			lastItem.index >= matches.length - 1 &&
-			totalMatches !== null &&
-			matches.length < totalMatches
-		) {
-			setIsLoadingMore(true);
-			loadMoreMatches(seasonId, seasonSlug, matches.length)
-				.then((total) => setTotalMatches(total))
-				.finally(() => setIsLoadingMore(false));
-		}
-	}, [virtualizer, matches.length, totalMatches, isLoadingMore, seasonId, seasonSlug]);
+			const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+			const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+			if (scrolledToBottom && totalMatches !== null && matches.length < totalMatches) {
+				setIsLoadingMore(true);
+				loadMoreMatches(seasonId, seasonSlug, matches.length)
+					.then((total) => setTotalMatches(total))
+					.finally(() => setIsLoadingMore(false));
+			}
+		};
+
+		scrollElement.addEventListener("scroll", handleScroll);
+		handleScroll();
+
+		return () => scrollElement.removeEventListener("scroll", handleScroll);
+	}, [isLoadingMore, matches.length, totalMatches, seasonId, seasonSlug]);
 
 	const stats = {
 		total: totalMatches ?? matches.length,
@@ -160,23 +167,17 @@ function MatchesPage() {
 						<div className="space-y-4">
 							<div className="flex items-center justify-between">
 								<h3 className="text-lg font-medium">Matches</h3>
-								<div className="flex items-center gap-2">
-									{canDeleteMatches && !isSeasonLocked && latestMatch && (
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => setIsRemoveDialogOpen(true)}
-											className="text-muted-foreground hover:text-destructive"
-										>
-											<span className="hidden sm:inline">Remove Latest</span>
-											<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
-										</Button>
-									)}
-									<span className="text-sm text-muted-foreground">
-										Showing {matches.length}
-										{totalMatches !== null && ` of ${totalMatches}`}
-									</span>
-								</div>
+								{canDeleteMatches && !isSeasonLocked && latestMatch && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setIsRemoveDialogOpen(true)}
+										className="text-muted-foreground hover:text-destructive"
+									>
+										<span className="hidden sm:inline">Remove Latest</span>
+										<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
+									</Button>
+								)}
 							</div>
 							<div
 								ref={parentRef}
