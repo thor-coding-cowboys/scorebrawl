@@ -65,7 +65,10 @@ export function TeamStanding({
 
 	if (teamStandings.length === 0) {
 		return (
-			<div className="flex items-center justify-center h-40 text-muted-foreground">
+			<div
+				className="flex items-center justify-center h-40 text-muted-foreground"
+				data-testid="team-standings-empty"
+			>
 				No team standings
 			</div>
 		);
@@ -87,7 +90,7 @@ export function TeamStanding({
 	const emptyRows = Array.from({ length: emptyRowsCount }, (_, i) => i);
 
 	return (
-		<div className="rounded-md">
+		<div className="rounded-md" data-testid="team-standings-table">
 			<Table>
 				<TableHeader className="text-xs">
 					<TableRow>
@@ -103,34 +106,40 @@ export function TeamStanding({
 				</TableHeader>
 				<TableBody className="text-sm">
 					{paginatedData.map((item) => (
-						<TableRow key={item.id} className="h-14">
+						<TableRow key={item.id} className="h-14" data-testid={`team-standing-row-${item.id}`}>
 							<TableCell className="py-2">
 								<div className="flex items-center gap-2">
 									<TeamIcon logo={item.logo} name={item.name} />
-									<span className="font-medium">{item.name}</span>
+									<span className="font-medium" data-testid={`team-standing-name-${item.id}`}>
+										{item.name}
+									</span>
 								</div>
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.matchCount === 0 && "text-muted-foreground")}
+								data-testid={`team-standing-mp-${item.id}`}
 							>
 								{item.matchCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.winCount === 0 && "text-muted-foreground")}
+								data-testid={`team-standing-wins-${item.id}`}
 							>
 								{item.winCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.drawCount === 0 && "text-muted-foreground")}
+								data-testid={`team-standing-draws-${item.id}`}
 							>
 								{item.drawCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.lossCount === 0 && "text-muted-foreground")}
+								data-testid={`team-standing-losses-${item.id}`}
 							>
 								{item.lossCount}
 							</TableCell>
-							<TableCell className="text-center">
+							<TableCell className="text-center" data-testid={`team-standing-diff-${item.id}`}>
 								<span
 									className={cn(
 										item.pointDiff > 0 && "text-green-600",
@@ -150,6 +159,7 @@ export function TeamStanding({
 									"text-center font-bold",
 									item.matchCount === 0 && "text-muted-foreground font-normal"
 								)}
+								data-testid={`team-standing-score-${item.id}`}
 							>
 								{item.score}
 							</TableCell>

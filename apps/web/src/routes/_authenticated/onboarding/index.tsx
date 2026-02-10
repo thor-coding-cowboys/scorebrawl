@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/onboarding/")({
 function OnboardingIndex() {
 	return (
 		<div className="flex min-h-screen flex-col">
-			<Header includeLogoutButton rightContent={<ThemeSwitcher />} />
+			<Header includeSidebarTrigger={false} includeLogoutButton rightContent={<ThemeSwitcher />} />
 			<div className="flex flex-1 items-center justify-center p-4">
 				<div className="w-full max-w-4xl">
 					<div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">

@@ -16,7 +16,7 @@ function CreateLeaguePage() {
 
 	return (
 		<div className="flex min-h-screen flex-col">
-			<Header includeLogoutButton rightContent={<ThemeSwitcher />} />
+			<Header includeSidebarTrigger={false} includeLogoutButton rightContent={<ThemeSwitcher />} />
 			<div className="flex flex-1 items-center justify-center p-4">
 				<div className="w-full max-w-2xl">
 					<CreateLeagueForm onCancel={handleCancel} />

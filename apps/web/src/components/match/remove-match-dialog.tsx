@@ -118,7 +118,7 @@ export function RemoveMatchDialog({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-			<DialogContent className="sm:max-w-md overflow-hidden">
+			<DialogContent className="sm:max-w-md overflow-hidden" data-testid="remove-match-dialog">
 				{/* Technical Grid Background */}
 				<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
 					<div
@@ -201,6 +201,7 @@ export function RemoveMatchDialog({
 							variant="outline"
 							onClick={handleCancel}
 							className="flex-1 font-mono h-9 text-sm"
+							data-testid="remove-match-cancel-button"
 						>
 							Cancel
 						</Button>
@@ -209,6 +210,7 @@ export function RemoveMatchDialog({
 							disabled={removeMutation.isPending}
 							variant="destructive"
 							className="flex-1 font-mono font-bold h-9 text-sm"
+							data-testid="remove-match-confirm-button"
 						>
 							{removeMutation.isPending ? (
 								"Removing..."
