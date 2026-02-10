@@ -1,0 +1,149 @@
+name: E2E Tests
+
+on:
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      checks: write
+    env:
+      VITE_GITHUB_CLIENT_ID: Ov23liEHPLUdBgTj5Cxu
+      VITE_GOOGLE_CLIENT_ID: 972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: ⚡ Setup Turbo cache
+        uses: rharkor/caching-for-turbo@cda201ff2b32699a2ae9f59704db029e3dde4fbd
+
+      - name: 🎭 Install Playwright
+        run: bunx playwright install chromium --with-deps
+        working-directory: apps/e2e
+
+      - name: 🎭 E2E Tests
+        id: tests
+        run: bun run test:e2e
+        working-directory: apps/e2e
+        continue-on-error: true
+
+      - name: 📊 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report/
+            apps/e2e/test-results/
+          retention-days: 1
+
+      - name: 📝 Annotate Test Results
+        if: always()
+        uses: mikepenz/action-junit-report@74626db7353a25a20a72816467ebf035f674c5f8 # v6.0.0
+        with:
+          report_paths: apps/e2e/playwright-report/results.xml
+          check_name: E2E Test Results
+          fail_on_failure: true
+          require_tests: true
+
+      - name: 💬 Post PR Comment
+        if: always()
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read JUnit results
+            const resultsPath = 'apps/e2e/playwright-report/results.xml';
+            let passed = 0, failed = 0, skipped = 0, time = 0;
+
+            if (fs.existsSync(resultsPath)) {
+              const content = fs.readFileSync(resultsPath, 'utf8');
+              const testsuites = content.match(/<testsuite[^>]*>/g) || [];
+              testsuites.forEach(suite => {
+                const tests = suite.match(/tests="(\d+)"/)?.[1] || 0;
+                const failures = suite.match(/failures="(\d+)"/)?.[1] || 0;
+                const skips = suite.match(/skipped="(\d+)"/)?.[1] || 0;
+                const t = suite.match(/time="([\d.]+)"/)?.[1] || 0;
+                passed += parseInt(tests) - parseInt(failures) - parseInt(skips);
+                failed += parseInt(failures);
+                skipped += parseInt(skips);
+                time += parseFloat(t);
+              });
+            }
+
+            const status = failed === 0 ? '✅' : '❌';
+            const runId = context.runId;
+            const repo = context.repo;
+
+            const body = `## 🎭 E2E Test Results
+
+            ${status} **${passed} passed** | ❌ **${failed} failed** | ⏱️ **${time.toFixed(1)}s**
+
+            | Metric | Value |
+            |--------|-------|
+            | Passed | ${passed} |
+            | Failed | ${failed} |
+            | Skipped | ${skipped} |
+            | Duration | ${time.toFixed(1)}s |
+
+            📊 [View HTML Report](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId})
+            🎥 [View Traces](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId}#artifacts)
+
+            <sub>Last updated: ${new Date().toISOString()}</sub>
+            `;
+
+            try {
+              // Find existing comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: repo.owner,
+                repo: repo.repo,
+                issue_number: context.issue.number
+              });
+              
+              const botComment = comments.find(c => 
+                c.user.type === 'Bot' && 
+                c.body.includes('🎭 E2E Test Results')
+              );
+              
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  comment_id: botComment.id,
+                  body
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  issue_number: context.issue.number,
+                  body
+                });
+              }
+            } catch (error) {
+              console.log('Failed to post PR comment:', error.message);
+              // Don't fail the workflow if comment posting fails
+            }
+
+      - name: ❌ Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1

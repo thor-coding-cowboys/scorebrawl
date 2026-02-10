@@ -168,6 +168,7 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 									type="text"
 									placeholder="Name"
 									disabled={isSubmitting}
+									data-testid="signup-name-input"
 									{...register("name")}
 									onChange={(e) => {
 										register("name").onChange(e);
@@ -184,6 +185,7 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 									placeholder="m@example.com"
 									autoComplete="email"
 									disabled={isSubmitting}
+									data-testid="signup-email-input"
 									{...register("email")}
 									onChange={(e) => {
 										register("email").onChange(e);
@@ -199,6 +201,7 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 									type="password"
 									placeholder="Password"
 									disabled={isSubmitting}
+									data-testid="signup-password-input"
 									{...register("password")}
 									onChange={(e) => {
 										register("password").onChange(e);
@@ -209,8 +212,17 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 									<p className="text-sm text-destructive">{errors.password.message}</p>
 								)}
 							</Field>
-							{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-							<Button type="submit" className="w-full" disabled={isSubmitting}>
+							{apiError && (
+								<p className="text-sm text-destructive" data-testid="signup-error">
+									{apiError}
+								</p>
+							)}
+							<Button
+								type="submit"
+								className="w-full"
+								disabled={isSubmitting}
+								data-testid="signup-submit-button"
+							>
 								{isSubmitting ? "Creating account..." : "Create an account"}
 							</Button>
 						</FieldGroup>

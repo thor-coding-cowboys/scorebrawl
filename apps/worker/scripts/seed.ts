@@ -720,7 +720,9 @@ async function seedDatabase(
 
 					// Create match
 					const matchId = createId();
-					const matchNow = new Date(now.getTime() + i * 60000); // Spread matches 1 minute apart
+					// Use past timestamps so new matches created via UI will appear first
+					// Earlier matches are older, later matches are more recent (but still in past)
+					const matchNow = new Date(now.getTime() - (matchCount - i) * 5 * 60000); // Spread matches 5 minutes apart, going backwards
 
 					await db.insert(match).values({
 						id: matchId,

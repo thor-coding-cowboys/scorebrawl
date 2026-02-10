@@ -209,3 +209,13 @@ wrangler.preview.jsonc
 .turbo
 apps/*/dist
 apps/*/.next
+
+# Playwright
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

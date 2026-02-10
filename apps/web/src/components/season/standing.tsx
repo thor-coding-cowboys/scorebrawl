@@ -21,7 +21,10 @@ export function Standing({ seasonId, seasonSlug }: StandingProps) {
 
 	if (standings.length === 0) {
 		return (
-			<div className="flex items-center justify-center h-40 text-muted-foreground">
+			<div
+				className="flex items-center justify-center h-40 text-muted-foreground"
+				data-testid="standings-empty"
+			>
 				No matches registered
 			</div>
 		);
@@ -34,7 +37,7 @@ export function Standing({ seasonId, seasonSlug }: StandingProps) {
 	});
 
 	return (
-		<div className="rounded-md">
+		<div className="rounded-md" data-testid="standings-table">
 			<Table>
 				<TableHeader className="text-xs">
 					<TableRow>
@@ -50,7 +53,7 @@ export function Standing({ seasonId, seasonSlug }: StandingProps) {
 				</TableHeader>
 				<TableBody className="text-sm">
 					{sortedData.map((item) => (
-						<TableRow key={item.id} className="h-14">
+						<TableRow key={item.id} className="h-14" data-testid={`standing-row-${item.id}`}>
 							<TableCell className="py-2 max-w-[120px]">
 								<div className="flex items-center gap-3 min-w-0">
 									<AvatarWithFallback
@@ -59,30 +62,36 @@ export function Standing({ seasonId, seasonSlug }: StandingProps) {
 										size="md"
 										className="shrink-0"
 									/>
-									<span className="font-medium truncate">{item.name}</span>
+									<span className="font-medium truncate" data-testid={`standing-name-${item.id}`}>
+										{item.name}
+									</span>
 								</div>
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.matchCount === 0 && "text-muted-foreground")}
+								data-testid={`standing-mp-${item.id}`}
 							>
 								{item.matchCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.winCount === 0 && "text-muted-foreground")}
+								data-testid={`standing-wins-${item.id}`}
 							>
 								{item.winCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.drawCount === 0 && "text-muted-foreground")}
+								data-testid={`standing-draws-${item.id}`}
 							>
 								{item.drawCount}
 							</TableCell>
 							<TableCell
 								className={cn("text-center", item.lossCount === 0 && "text-muted-foreground")}
+								data-testid={`standing-losses-${item.id}`}
 							>
 								{item.lossCount}
 							</TableCell>
-							<TableCell className="text-center">
+							<TableCell className="text-center" data-testid={`standing-diff-${item.id}`}>
 								<span
 									className={cn(
 										item.pointDiff > 0 && "text-green-600",
@@ -102,6 +111,7 @@ export function Standing({ seasonId, seasonSlug }: StandingProps) {
 									"text-center font-bold",
 									item.matchCount === 0 && "text-muted-foreground font-normal"
 								)}
+								data-testid={`standing-score-${item.id}`}
 							>
 								{item.score}
 							</TableCell>

@@ -210,6 +210,7 @@ export function CreateLeagueForm({
 						type="text"
 						placeholder="My Awesome League"
 						disabled={isSubmitting}
+						data-testid="league-name-input"
 						{...register("name")}
 					/>
 					{errors.name?.message && (
@@ -224,6 +225,7 @@ export function CreateLeagueForm({
 						type="text"
 						placeholder="my-awesome-league"
 						disabled={isSubmitting}
+						data-testid="league-slug-input"
 						{...register("slug")}
 						onChange={(e) => {
 							setSlugTouched(true);
@@ -238,7 +240,11 @@ export function CreateLeagueForm({
 					</div>
 				</Field>
 
-				{apiError && <p className="text-sm text-destructive">{apiError}</p>}
+				{apiError && (
+					<p className="text-sm text-destructive" data-testid="league-error">
+						{apiError}
+					</p>
+				)}
 
 				<div className="flex gap-4">
 					{onCancel && (
@@ -251,6 +257,7 @@ export function CreateLeagueForm({
 						type="submit"
 						disabled={!canSubmit}
 						className="flex-1"
+						data-testid="league-submit-button"
 					>
 						{isSubmitting ? "Creating..." : "Create League"}
 					</GlowButton>

@@ -102,6 +102,7 @@ function SeasonDashboardPage() {
 							className="gap-1.5"
 							onClick={() => setIsCreateMatchOpen(true)}
 							disabled={isSeasonLocked}
+							data-testid="create-match-button"
 						>
 							Match
 						</GlowButton>

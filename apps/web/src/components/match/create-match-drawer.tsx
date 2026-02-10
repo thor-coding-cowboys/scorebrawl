@@ -281,7 +281,10 @@ export function CreateMatchDialog({
 	return (
 		<>
 			<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-				<DialogContent className="sm:max-w-lg max-h-[95vh] overflow-hidden p-0">
+				<DialogContent
+					className="sm:max-w-lg max-h-[95vh] overflow-hidden p-0"
+					data-testid="create-match-dialog"
+				>
 					{/* Decorative grid background */}
 					<div className="absolute inset-0 opacity-[0.02]">
 						<div
@@ -332,6 +335,7 @@ export function CreateMatchDialog({
 								variant="outline"
 								className="gap-1.5"
 								onClick={() => setIsPlayerDrawerOpen(true)}
+								data-testid="match-select-players-button"
 							>
 								<HugeiconsIcon icon={UserMultiple02Icon} className="size-4" />
 								Select Players
@@ -366,7 +370,13 @@ export function CreateMatchDialog({
 
 							{/* Actions */}
 							<div className="flex gap-4 pt-2 border-t border-border">
-								<Button type="button" variant="outline" className="font-mono" onClick={handleClose}>
+								<Button
+									type="button"
+									variant="outline"
+									className="font-mono"
+									onClick={handleClose}
+									data-testid="match-cancel-button"
+								>
 									Cancel
 								</Button>
 								<GlowButton
@@ -374,6 +384,7 @@ export function CreateMatchDialog({
 									glowColor={glowColors.blue}
 									className="flex-1 font-mono"
 									disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
+									data-testid="match-submit-button"
 								>
 									{createMutation.isPending ? "Creating..." : "Create Match"}
 								</GlowButton>
@@ -410,6 +421,7 @@ function ScoreStepper({
 	onIncrement: () => void;
 	onDecrement: () => void;
 }) {
+	const testIdPrefix = `match-${label.toLowerCase()}`;
 	return (
 		<div className="flex flex-col items-center gap-1 border border-border p-4">
 			<div className="text-[0.65rem] uppercase tracking-wider text-muted-foreground font-mono">
@@ -422,13 +434,23 @@ function ScoreStepper({
 					size="icon-sm"
 					onClick={onDecrement}
 					disabled={score <= 0}
+					data-testid={`${testIdPrefix}-decrement`}
 				>
 					<HugeiconsIcon icon={Remove01Icon} className="size-4" />
 				</Button>
-				<span className="text-5xl font-bold tabular-nums tracking-tighter w-16 text-center font-mono">
+				<span
+					className="text-5xl font-bold tabular-nums tracking-tighter w-16 text-center font-mono"
+					data-testid={`${testIdPrefix}-score`}
+				>
 					{score}
 				</span>
-				<Button type="button" variant="outline" size="icon-sm" onClick={onIncrement}>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon-sm"
+					onClick={onIncrement}
+					data-testid={`${testIdPrefix}-increment`}
+				>
 					<HugeiconsIcon icon={Add01Icon} className="size-4" />
 				</Button>
 			</div>
@@ -447,8 +469,9 @@ function TeamRosterCard({
 	players: PlayerWithSelection[];
 	count: number;
 }) {
+	const testIdPrefix = `match-${label.toLowerCase()}`;
 	return (
-		<div className="border border-border">
+		<div className="border border-border" data-testid={`${testIdPrefix}-roster`}>
 			<div className="px-3 py-2 border-b border-border bg-muted/30">
 				<div className="flex items-center justify-between">
 					<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
@@ -508,7 +531,7 @@ function PlayerSelectionDrawer({
 				if (!open) onClose();
 			}}
 		>
-			<DrawerContent className="max-h-[85vh]">
+			<DrawerContent className="max-h-[85vh]" data-testid="player-selection-drawer">
 				<div className="mx-auto w-full max-w-xl">
 					<DrawerHeader className="border-b border-border pb-3">
 						<DrawerTitle className="text-sm font-bold font-mono text-center">
@@ -518,7 +541,7 @@ function PlayerSelectionDrawer({
 
 					<div className="grid grid-cols-2 gap-0 max-h-[55vh] overflow-y-auto">
 						{/* Home Column */}
-						<div className="border-r border-border">
+						<div className="border-r border-border" data-testid="player-selection-home-column">
 							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
 								<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
 									Home
@@ -528,7 +551,7 @@ function PlayerSelectionDrawer({
 						</div>
 
 						{/* Away Column */}
-						<div>
+						<div data-testid="player-selection-away-column">
 							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
 								<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
 									Away
@@ -549,6 +572,7 @@ function PlayerSelectionDrawer({
 								disabled={!canReorder}
 								onClick={onShuffle}
 								className="gap-1"
+								data-testid="match-shuffle-button"
 							>
 								<HugeiconsIcon icon={ArrowReloadHorizontalIcon} className="size-3.5" />
 								<span className="hidden sm:inline">Shuffle</span>
@@ -560,12 +584,19 @@ function PlayerSelectionDrawer({
 								disabled={!canReorder}
 								onClick={onEven}
 								className="gap-1"
+								data-testid="match-even-button"
 							>
 								<HugeiconsIcon icon={BalanceScaleIcon} className="size-3.5" />
 								<span className="hidden sm:inline">Even</span>
 							</Button>
 						</div>
-						<GlowButton glowColor={glowColors.blue} size="sm" onClick={onClose} icon={Tick01Icon}>
+						<GlowButton
+							glowColor={glowColors.blue}
+							size="sm"
+							onClick={onClose}
+							icon={Tick01Icon}
+							data-testid="match-done-button"
+						>
 							Done
 						</GlowButton>
 					</DrawerFooter>
@@ -600,6 +631,7 @@ function PlayerList({
 					key={p.id}
 					type="button"
 					onClick={() => handleClick(p)}
+					data-testid={`player-item-${p.id}`}
 					className={cn(
 						"flex items-center gap-2 px-3 py-2 text-left transition-colors border-b border-border/50 last:border-b-0",
 						p.team === team && "bg-primary/10 border-l-2 border-l-primary",

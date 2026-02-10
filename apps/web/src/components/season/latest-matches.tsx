@@ -48,6 +48,7 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 									size="sm"
 									onClick={() => setIsRemoveDialogOpen(true)}
 									className="text-muted-foreground hover:text-destructive"
+									data-testid="remove-latest-match-button"
 								>
 									<span className="hidden sm:inline">Remove Latest</span>
 									<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
@@ -58,6 +59,7 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 									variant="ghost"
 									size="sm"
 									className="text-muted-foreground hover:text-foreground"
+									data-testid="see-all-matches-link"
 								>
 									<span className="hidden sm:inline">See All</span>
 									<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
@@ -70,7 +72,10 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 				{showMatches ? (
 					<MatchTable matches={latestMatches} seasonSlug={seasonSlug} seasonId={seasonId} />
 				) : showEmptyState ? (
-					<div className="flex items-center justify-center h-40 text-muted-foreground">
+					<div
+						className="flex items-center justify-center h-40 text-muted-foreground"
+						data-testid="latest-matches-empty"
+					>
 						No registered matches
 					</div>
 				) : null}
@@ -99,10 +104,10 @@ function MatchTable({
 	seasonId: string;
 }) {
 	return (
-		<Table>
+		<Table data-testid="latest-matches-table">
 			<TableBody className="text-sm">
 				{matches.map((match) => (
-					<TableRow key={match.id}>
+					<TableRow key={match.id} data-testid={`latest-match-row-${match.id}`}>
 						<TableCell colSpan={3} className="p-0">
 							<MatchRow match={match} seasonSlug={seasonSlug} seasonId={seasonId} />
 						</TableCell>

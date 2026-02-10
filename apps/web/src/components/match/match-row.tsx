@@ -109,11 +109,11 @@ function formatDate(date: Date) {
 	});
 }
 
-function SideDisplay({ players }: { players: MatchPlayer[] }) {
+function SideDisplay({ players, side }: { players: MatchPlayer[]; side: "home" | "away" }) {
 	const teamInfo = getTeamInfo(players);
 
 	return (
-		<div className="flex items-center gap-2 min-w-0">
+		<div className="flex items-center gap-2 min-w-0" data-testid={`match-${side}-side`}>
 			<div className="flex gap-1 shrink-0">
 				{teamInfo ? (
 					<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />
@@ -141,16 +141,22 @@ export function MatchRow({ match, seasonSlug }: MatchRowProps) {
 	const awayPlayers = matchDetails?.players?.filter((p) => !p.homeTeam) ?? [];
 
 	return (
-		<div className="flex items-center justify-between gap-4 p-4">
+		<div
+			className="flex items-center justify-between gap-4 p-4"
+			data-testid={`match-row-${match.id}`}
+		>
 			<div className="flex flex-col gap-2 min-w-0 flex-1">
-				<SideDisplay players={homePlayers} />
-				<SideDisplay players={awayPlayers} />
+				<SideDisplay players={homePlayers} side="home" />
+				<SideDisplay players={awayPlayers} side="away" />
 			</div>
 			<div className="flex items-center gap-4 flex-shrink-0">
-				<div className="text-center font-bold text-sm">
+				<div className="text-center font-bold text-sm" data-testid={`match-score-${match.id}`}>
 					{match.homeScore} - {match.awayScore}
 				</div>
-				<div className="text-xs text-muted-foreground text-right min-w-[60px]">
+				<div
+					className="text-xs text-muted-foreground text-right min-w-[60px]"
+					data-testid={`match-date-${match.id}`}
+				>
 					{formatDate(match.createdAt)}
 				</div>
 			</div>

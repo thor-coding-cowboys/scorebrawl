@@ -247,6 +247,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 									placeholder="m@example.com"
 									autoComplete="username webauthn"
 									disabled={isSubmitting}
+									data-testid="signin-email-input"
 									{...register("email")}
 									onChange={(e) => {
 										register("email").onChange(e);
@@ -272,6 +273,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 									placeholder="Password"
 									autoComplete="current-password webauthn"
 									disabled={isSubmitting}
+									data-testid="signin-password-input"
 									{...register("password")}
 									onChange={(e) => {
 										register("password").onChange(e);
@@ -282,8 +284,17 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 									<p className="text-sm text-destructive">{errors.password.message}</p>
 								)}
 							</Field>
-							{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-							<Button type="submit" className="w-full" disabled={isSubmitting}>
+							{apiError && (
+								<p className="text-sm text-destructive" data-testid="signin-error">
+									{apiError}
+								</p>
+							)}
+							<Button
+								type="submit"
+								className="w-full"
+								disabled={isSubmitting}
+								data-testid="signin-submit-button"
+							>
 								{isSubmitting ? "Signing in..." : "Sign In"}
 							</Button>
 						</FieldGroup>

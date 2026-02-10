@@ -1,0 +1,16 @@
+{
+	"name": "@coding-cowboys/scorebrawl-e2e",
+	"private": true,
+	"scripts": {
+		"seed": "bun run --cwd ../worker scripts/seed.ts -r",
+		"pretest:e2e": "bun run seed",
+		"test:e2e": "playwright test",
+		"test:ui": "bun run seed && playwright test --ui",
+		"test:headed": "bun run seed && playwright test --headed",
+		"test:debug": "bun run seed && playwright test --debug"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.58.2",
+		"@types/node": "catalog:"
+	}
+}
