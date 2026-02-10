@@ -2,6 +2,7 @@ import {
 	Activity01Icon,
 	Award01Icon,
 	UserMultipleIcon,
+	UserIcon,
 	Mail01Icon,
 	ArrowRight01Icon,
 } from "@hugeicons/core-free-icons";
@@ -111,6 +112,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		fuzzy: false,
 	});
 	const isTeamsRoute = matchRoute({ to: "/leagues/$slug/teams", fuzzy: false });
+	const isPlayersRoute = matchRoute({ to: "/leagues/$slug/players", fuzzy: false });
 	const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: false });
 	const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: false });
 
@@ -208,6 +210,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 									>
 										<HugeiconsIcon icon={UserMultipleIcon} className="size-4" />
 										<span>Teams</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild isActive={!!isPlayersRoute}>
+									<Link
+										to="/leagues/$slug/players"
+										params={{ slug: leagueSlug }}
+										onClick={handleNavClick}
+									>
+										<HugeiconsIcon icon={UserIcon} className="size-4" />
+										<span>Players</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
