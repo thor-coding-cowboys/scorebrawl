@@ -17,6 +17,98 @@ import {
 const matchIdSchema = createOptionalIdSchema("match");
 
 export const matchRouter = {
+	createFromFixture: leagueMemberProcedure
+		.input(
+			z.object({
+				seasonSlug: z.string(),
+				homeScore: z.number().int().min(0),
+				awayScore: z.number().int().min(0),
+				fixtureId: z.string(),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const typedCtx = ctx as unknown as LeagueContext;
+
+			const season = await seasonRepository.getBySlug({
+				db: typedCtx.db,
+				seasonSlug: input.seasonSlug,
+				leagueId: typedCtx.organizationId,
+			});
+
+			if (season.closed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "This season is closed",
+				});
+			}
+
+			// Get the fixture
+			const fixture = await seasonRepository.findFixtureById({
+				db: typedCtx.db,
+				seasonId: season.id,
+				fixtureId: input.fixtureId,
+			});
+
+			if (!fixture) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fixture not found",
+				});
+			}
+
+			if (fixture.matchId) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "This fixture already has a match",
+				});
+			}
+
+			// Create the match
+			const createdMatch = await matchRepository.create({
+				db: typedCtx.db,
+				input: {
+					seasonId: season.id,
+					homeScore: input.homeScore,
+					awayScore: input.awayScore,
+					homeTeamPlayerIds: [fixture.homePlayerId],
+					awayTeamPlayerIds: [fixture.awayPlayerId],
+					userId: typedCtx.authentication.user.id,
+				},
+			});
+
+			// Assign match to fixture
+			await seasonRepository.assignMatchToFixture({
+				db: typedCtx.db,
+				seasonId: season.id,
+				fixtureId: fixture.id,
+				matchId: createdMatch.id,
+			});
+
+			// Fetch updated standings
+			const standings = await seasonPlayerRepository.getStanding({
+				db: typedCtx.db,
+				seasonId: season.id,
+			});
+
+			// Broadcast match insert and standings update
+			const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+			if (sseEnv.SEASON_SSE) {
+				await broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+					type: "match:insert",
+					data: {
+						match: createdMatch,
+						standings,
+					},
+					user: {
+						id: typedCtx.authentication.user.id,
+						name: typedCtx.authentication.user.name,
+					},
+				});
+			}
+
+			return createdMatch;
+		}),
+
 	create: leagueMemberProcedure
 		.input(
 			z.object({
