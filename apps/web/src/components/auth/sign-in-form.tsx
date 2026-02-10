@@ -168,7 +168,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 					errorMessage.toLowerCase().includes("abort")
 				) {
 					displayMessage =
-						"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in with email/password first, then add a passkey in your profile settings.";
+						"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
 				} else if (errorMessage.toLowerCase().includes("not allowed")) {
 					displayMessage =
 						"Passkey sign-in was not allowed. Please try again or use another sign-in method.";
@@ -178,7 +178,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 					errorMessage.toLowerCase().includes("no credential")
 				) {
 					displayMessage =
-						"No passkey found for this account. Please sign in with email/password first, then add a passkey in your profile settings.";
+						"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
 				}
 
 				setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");
@@ -203,7 +203,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 				(err instanceof DOMException && err.name === "AbortError")
 			) {
 				displayMessage =
-					"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in with email/password first, then add a passkey in your profile settings.";
+					"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
 			} else if (
 				errorMessage.toLowerCase().includes("not allowed") ||
 				(err instanceof DOMException && err.name === "NotAllowedError")
@@ -217,7 +217,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 				(err instanceof DOMException && err.name === "NotFoundError")
 			) {
 				displayMessage =
-					"No passkey found for this account. Please sign in with email/password first, then add a passkey in your profile settings.";
+					"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
 			}
 
 			setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");

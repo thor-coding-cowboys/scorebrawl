@@ -94,6 +94,18 @@ function createMatchCollectionInternal(seasonId: string, seasonSlug: string) {
 }
 
 export function createMatchCollection(seasonId: string, seasonSlug: string) {
+	// Handle empty seasonId gracefully
+	if (!seasonId) {
+		// Return a dummy collection for initial render
+		const dummyId = "__DUMMY__";
+		const existing = matchCollections.get(dummyId);
+		if (existing) return existing;
+
+		const dummyCollection = createMatchCollectionInternal(dummyId, seasonSlug);
+		matchCollections.set(dummyId, dummyCollection);
+		return dummyCollection;
+	}
+
 	const existing = matchCollections.get(seasonId);
 	if (existing) return existing;
 
@@ -129,17 +141,9 @@ export function loadMoreMatches(seasonId: string, seasonSlug: string, currentCou
 }
 
 export function useMatches(seasonId: string, seasonSlug: string) {
-	// Skip if no valid seasonId
-	if (!seasonId) {
-		return {
-			matches: [],
-			collection: null as ReturnType<typeof createMatchCollection> | null,
-		};
-	}
-
+	// Create collection - seasonId is guaranteed to be defined
 	const collection = createMatchCollection(seasonId, seasonSlug);
 
-	// eslint-disable-next-line react-hooks/rules-of-hooks
 	const { data: matches } = useLiveQuery(
 		(q) =>
 			q
@@ -158,7 +162,7 @@ export function useMatches(seasonId: string, seasonSlug: string) {
 	);
 
 	return {
-		matches: matches ?? [],
+		matches: (matches ?? []) as Match[],
 		collection,
 	};
 }

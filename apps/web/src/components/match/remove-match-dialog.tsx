@@ -70,6 +70,7 @@ export function RemoveMatchDialog({
 			// Invalidate match and standings collections
 			queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
 			queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
+			queryClient.invalidateQueries({ queryKey: ["team-standings", seasonId] });
 
 			// Invalidate tRPC queries
 			queryClient.invalidateQueries({
