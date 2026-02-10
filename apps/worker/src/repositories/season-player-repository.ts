@@ -25,6 +25,25 @@ export const findAll = async ({ db, seasonId }: { db: DrizzleDB; seasonId: strin
 };
 
 export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	// Pre-aggregate match stats in a single query to avoid correlated subqueries
+	const matchStats = db
+		.select({
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			matchCount: sql<number>`count(*)`.as("match_count"),
+			winCount: sql<number>`sum(case when ${matchPlayer.result} = 'W' then 1 else 0 end)`.as(
+				"win_count"
+			),
+			lossCount: sql<number>`sum(case when ${matchPlayer.result} = 'L' then 1 else 0 end)`.as(
+				"loss_count"
+			),
+			drawCount: sql<number>`sum(case when ${matchPlayer.result} = 'D' then 1 else 0 end)`.as(
+				"draw_count"
+			),
+		})
+		.from(matchPlayer)
+		.groupBy(matchPlayer.seasonPlayerId)
+		.as("match_stats");
+
 	const results = await db
 		.select({
 			id: seasonPlayer.id,
@@ -34,29 +53,15 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 			name: user.name,
 			image: user.image,
 			userId: player.userId,
-			matchCount: sql<number>`(
-				select count(*) from ${matchPlayer} 
-				where ${matchPlayer.seasonPlayerId} = ${seasonPlayer.id}
-			)`,
-			winCount: sql<number>`(
-				select count(*) from ${matchPlayer} 
-				where ${matchPlayer.seasonPlayerId} = ${seasonPlayer.id} 
-				and ${matchPlayer.result} = 'W'
-			)`,
-			lossCount: sql<number>`(
-				select count(*) from ${matchPlayer} 
-				where ${matchPlayer.seasonPlayerId} = ${seasonPlayer.id} 
-				and ${matchPlayer.result} = 'L'
-			)`,
-			drawCount: sql<number>`(
-				select count(*) from ${matchPlayer} 
-				where ${matchPlayer.seasonPlayerId} = ${seasonPlayer.id} 
-				and ${matchPlayer.result} = 'D'
-			)`,
+			matchCount: sql<number>`coalesce(${matchStats.matchCount}, 0)`,
+			winCount: sql<number>`coalesce(${matchStats.winCount}, 0)`,
+			lossCount: sql<number>`coalesce(${matchStats.lossCount}, 0)`,
+			drawCount: sql<number>`coalesce(${matchStats.drawCount}, 0)`,
 		})
 		.from(seasonPlayer)
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
 		.innerJoin(user, eq(player.userId, user.id))
+		.leftJoin(matchStats, eq(seasonPlayer.id, matchStats.seasonPlayerId))
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(desc(seasonPlayer.score));
 
@@ -99,27 +104,29 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		// Continue with empty pointDiff array if there's an error
 	}
 
-	// Get recent match form (last 5 results)
-	const recentForms = await db
-		.select({
-			seasonPlayerId: matchPlayer.seasonPlayerId,
-			result: matchPlayer.result,
-			createdAt: matchPlayer.createdAt,
-		})
-		.from(matchPlayer)
-		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.where(eq(seasonPlayer.seasonId, seasonId))
-		.orderBy(desc(matchPlayer.createdAt));
+	// Get recent match form (last 5 results per player) using window function
+	const recentForms = await db.all<{ seasonPlayerId: string; result: string }>(sql`
+		SELECT season_player_id as seasonPlayerId, result
+		FROM (
+			SELECT 
+				mp.season_player_id,
+				mp.result,
+				ROW_NUMBER() OVER (PARTITION BY mp.season_player_id ORDER BY mp.created_at DESC) as rn
+			FROM match_player mp
+			INNER JOIN season_player sp ON mp.season_player_id = sp.id
+			WHERE sp.season_id = ${seasonId}
+		)
+		WHERE rn <= 5
+		ORDER BY season_player_id, rn
+	`);
 
-	// Group form data by player and take last 5 matches
+	// Group form data by player
 	const formMap = recentForms.reduce(
 		(acc, match) => {
 			if (!acc[match.seasonPlayerId]) {
 				acc[match.seasonPlayerId] = [];
 			}
-			if (acc[match.seasonPlayerId].length < 5) {
-				acc[match.seasonPlayerId].push(match.result as "W" | "D" | "L");
-			}
+			acc[match.seasonPlayerId].push(match.result as "W" | "D" | "L");
 			return acc;
 		},
 		{} as Record<string, ("W" | "D" | "L")[]>
