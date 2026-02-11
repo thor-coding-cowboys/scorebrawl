@@ -195,7 +195,15 @@ function getSideLabel(players: MatchPlayer[]): string {
 	return players.map((p) => p.name).join(", ");
 }
 
-function SideDisplay({ players }: { players: MatchPlayer[] }) {
+function SideDisplay({
+	players,
+	isWinner,
+	isMuted,
+}: {
+	players: MatchPlayer[];
+	isWinner?: boolean;
+	isMuted?: boolean;
+}) {
 	const teamInfo = getTeamInfo(players);
 
 	return (
@@ -209,7 +217,16 @@ function SideDisplay({ players }: { players: MatchPlayer[] }) {
 					))
 				)}
 			</div>
-			<span className="text-xs text-muted-foreground truncate">{getSideLabel(players)}</span>
+			<span
+				className={cn(
+					"text-xs truncate",
+					isWinner && "font-semibold text-foreground",
+					isMuted && "text-muted-foreground",
+					!isWinner && !isMuted && "text-muted-foreground"
+				)}
+			>
+				{getSideLabel(players)}
+			</span>
 		</div>
 	);
 }
@@ -222,6 +239,8 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 
 	const homePlayers = latestMatch?.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [];
 	const awayPlayers = latestMatch?.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [];
+	const homeWins = (latestMatch?.homeScore ?? 0) > (latestMatch?.awayScore ?? 0);
+	const awayWins = (latestMatch?.awayScore ?? 0) > (latestMatch?.homeScore ?? 0);
 
 	return (
 		<DashboardCard
@@ -236,17 +255,31 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 				<div className="space-y-2 min-w-0">
 					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
-							<SideDisplay players={homePlayers} />
+							<SideDisplay players={homePlayers} isWinner={homeWins} isMuted={awayWins} />
 						</div>
-						<div className="flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 bg-primary/10">
+						<div
+							className={cn(
+								"flex h-7 w-7 items-center justify-center rounded-md border text-sm shrink-0 bg-primary/10",
+								homeWins && "font-bold text-foreground",
+								awayWins && "text-muted-foreground font-medium",
+								!homeWins && !awayWins && "font-medium text-foreground"
+							)}
+						>
 							{latestMatch.homeScore}
 						</div>
 					</div>
 					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
-							<SideDisplay players={awayPlayers} />
+							<SideDisplay players={awayPlayers} isWinner={awayWins} isMuted={homeWins} />
 						</div>
-						<div className="flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 bg-primary/10">
+						<div
+							className={cn(
+								"flex h-7 w-7 items-center justify-center rounded-md border text-sm shrink-0 bg-primary/10",
+								awayWins && "font-bold text-foreground",
+								homeWins && "text-muted-foreground font-medium",
+								!homeWins && !awayWins && "font-medium text-foreground"
+							)}
+						>
 							{latestMatch.awayScore}
 						</div>
 					</div>

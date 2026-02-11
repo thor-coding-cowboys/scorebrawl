@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,10 +15,16 @@ import { Fixtures } from "@/components/season/fixtures";
 import { OverviewCard } from "@/components/season/overview-card";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
+import { z } from "zod";
+
+const seasonDashboardSearchSchema = z.object({
+	addMatch: z.boolean().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/")(
 	{
 		component: SeasonDashboardPage,
+		validateSearch: seasonDashboardSearchSchema,
 		loader: async ({ params }) => {
 			return { slug: params.slug, seasonSlug: params.seasonSlug };
 		},
@@ -82,7 +88,14 @@ function SeasonDashboardPage() {
 	const isEloSeason = season?.scoreType === "elo";
 	const isSeasonLocked = season?.closed || season?.archived;
 
-	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
+	const { addMatch } = Route.useSearch();
+	const isCreateMatchOpen = addMatch === true;
+	const setIsCreateMatchOpen = (open: boolean) => {
+		navigate({
+			to: ".",
+			search: open ? { addMatch: true } : {},
+		});
+	};
 
 	return (
 		<>

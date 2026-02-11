@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
@@ -14,11 +14,17 @@ import { CreateMatchDialog } from "@/components/match/create-match-drawer";
 import { RemoveMatchDialog } from "@/components/match/remove-match-dialog";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
+import { z } from "zod";
+
+const matchesSearchSchema = z.object({
+	addMatch: z.boolean().optional(),
+});
 
 export const Route = createFileRoute(
 	"/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches"
 )({
 	component: MatchesPage,
+	validateSearch: matchesSearchSchema,
 	loader: async ({ params }) => {
 		return { slug: params.slug, seasonSlug: params.seasonSlug };
 	},
@@ -31,6 +37,8 @@ function truncateSlug(slug: string, maxLength = 10): string {
 
 function MatchesPage() {
 	const { slug, seasonSlug } = Route.useLoaderData();
+	const { addMatch } = Route.useSearch();
+	const navigate = useNavigate({ from: Route.fullPath });
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -47,7 +55,10 @@ function MatchesPage() {
 	const seasonId = season?.id ?? "";
 	const isSeasonLocked = season?.closed || season?.archived;
 
-	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
+	const isCreateMatchOpen = addMatch === true;
+	const setIsCreateMatchOpen = (open: boolean) => {
+		navigate({ search: open ? { addMatch: true } : {} });
+	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [totalMatches, setTotalMatches] = useState<number | null>(null);
