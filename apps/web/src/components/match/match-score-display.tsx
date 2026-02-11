@@ -116,17 +116,17 @@ function ScoreLine({
 					{getSideLabel(players)}
 				</span>
 			</div>
-			<span
+			<div
 				data-testid={dataTestId}
 				className={cn(
-					"text-base tabular-nums shrink-0",
+					"flex h-7 w-7 items-center justify-center rounded-md border text-sm tabular-nums shrink-0 bg-primary/10",
 					isWinner && "font-bold text-foreground",
 					isMuted && "text-muted-foreground font-medium",
 					!isWinner && !isMuted && "font-medium text-foreground"
 				)}
 			>
 				{score}
-			</span>
+			</div>
 		</div>
 	);
 }

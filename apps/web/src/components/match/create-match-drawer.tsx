@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Add01Icon,
@@ -91,6 +92,7 @@ export function CreateMatchDialog({
 
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);
+	const [keepOpen, setKeepOpen] = useState(false);
 
 	useEffect(() => {
 		if (seasonPlayers) {
@@ -118,11 +120,15 @@ export function CreateMatchDialog({
 	const homeScore = watch("homeScore");
 	const awayScore = watch("awayScore");
 
+	const resetForm = () => {
+		reset();
+		setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
+	};
+
 	const createMutation = useMutation(
 		trpc.match.create.mutationOptions({
 			onSuccess: () => {
 				toast.success("Match created successfully");
-				handleClose();
 
 				// Invalidate match and standings collections (used by custom collection hooks)
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
@@ -142,6 +148,12 @@ export function CreateMatchDialog({
 					queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
 				});
 				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
+
+				if (keepOpen) {
+					resetForm();
+				} else {
+					handleClose();
+				}
 			},
 			onError: (err) => {
 				toast.error(err instanceof Error ? err.message : "Failed to create match");
@@ -273,8 +285,7 @@ export function CreateMatchDialog({
 		selectedCount > 0 && selectedCount % 2 === 0 && homePlayers.length === awayPlayers.length;
 
 	const handleClose = () => {
-		reset();
-		setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
+		resetForm();
 		onClose();
 	};
 
@@ -371,25 +382,50 @@ export function CreateMatchDialog({
 							</div>
 
 							{/* Actions */}
-							<div className="flex gap-4 pt-2 border-t border-border">
-								<Button
+							<div className="flex flex-col gap-4 pt-4 border-t border-border">
+								<button
 									type="button"
-									variant="outline"
-									className="font-mono"
-									onClick={handleClose}
-									data-testid="match-cancel-button"
+									className="flex items-center gap-2.5 cursor-pointer group w-fit"
+									onClick={() => setKeepOpen(!keepOpen)}
 								>
-									Cancel
-								</Button>
-								<GlowButton
-									type="submit"
-									glowColor={glowColors.blue}
-									className="flex-1 font-mono"
-									disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
-									data-testid="match-submit-button"
-								>
-									{createMutation.isPending ? "Creating..." : "Create Match"}
-								</GlowButton>
+									<Checkbox
+										checked={keepOpen}
+										data-testid="match-keep-open-checkbox"
+										className={cn(
+											"size-5 rounded-sm transition-all",
+											keepOpen &&
+												"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+										)}
+									/>
+									<span
+										className={cn(
+											"text-sm transition-colors",
+											keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+										)}
+									>
+										Keep open after creating
+									</span>
+								</button>
+								<div className="flex gap-4">
+									<Button
+										type="button"
+										variant="outline"
+										className="font-mono"
+										onClick={handleClose}
+										data-testid="match-cancel-button"
+									>
+										Cancel
+									</Button>
+									<GlowButton
+										type="submit"
+										glowColor={glowColors.blue}
+										className="flex-1 font-mono"
+										disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
+										data-testid="match-submit-button"
+									>
+										{createMutation.isPending ? "Creating..." : "Create Match"}
+									</GlowButton>
+								</div>
 							</div>
 						</form>
 					</div>

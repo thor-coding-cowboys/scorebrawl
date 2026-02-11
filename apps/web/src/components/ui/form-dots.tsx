@@ -15,7 +15,7 @@ export function FormDots({ form }: FormDotsProps) {
 
 	return (
 		<div className="flex gap-1 justify-center">
-			{form.map((result, index) => {
+			{[...form].reverse().map((result, index) => {
 				const baseClasses = "w-2 h-2 rounded-full";
 				const colorClasses = {
 					W: "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]",
