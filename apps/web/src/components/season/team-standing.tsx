@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserMultipleIcon } from "@hugeicons/core-free-icons";
+import { useNavigate, useParams } from "@tanstack/react-router";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
@@ -58,6 +59,9 @@ export function TeamStanding({
 	currentPage: controlledPage,
 }: TeamStandingProps) {
 	const { teamStandings } = useTeamStandings(seasonSlug);
+	const navigate = useNavigate();
+	const params = useParams({ strict: false });
+	const leagueSlug = params.slug as string | undefined;
 	const [internalPage] = useState(0);
 	const currentPage = controlledPage ?? internalPage;
 
@@ -106,7 +110,18 @@ export function TeamStanding({
 				</TableHeader>
 				<TableBody className="text-sm">
 					{paginatedData.map((item) => (
-						<TableRow key={item.id} className="h-14" data-testid={`team-standing-row-${item.id}`}>
+						<TableRow
+							key={item.id}
+							className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+							data-testid={`team-standing-row-${item.id}`}
+							onClick={() =>
+								leagueSlug &&
+								navigate({
+									to: "/leagues/$slug/teams/$teamId",
+									params: { slug: leagueSlug, teamId: item.leagueTeamId },
+								})
+							}
+						>
 							<TableCell className="py-2 w-full max-w-0">
 								<div className="flex items-center gap-2 min-w-0">
 									<TeamIcon logo={item.logo} name={item.name} />
