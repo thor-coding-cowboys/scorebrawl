@@ -11,6 +11,8 @@ import {
 	Target01Icon,
 	SecurityLockIcon,
 	Alert02Icon,
+	Copy01Icon,
+	Add01Icon,
 } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +36,8 @@ import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { EditPasskeyDialog } from "@/components/profile/edit-passkey-dialog";
+import { CreateApiKeyDialog } from "@/components/devices/create-api-key-dialog";
+import { EditApiKeyDialog } from "@/components/devices/edit-api-key-dialog";
 import { useSession, fetchSessionForRoute } from "@/hooks/useSession";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTRPC } from "@/lib/trpc";
@@ -66,6 +70,9 @@ function ProfilePage() {
 	const [editingPasskey, setEditingPasskey] = useState<{ id: string; name: string } | null>(null);
 	const [isRevokeOtherDialogOpen, setIsRevokeOtherDialogOpen] = useState(false);
 	const [isRevokeAllDialogOpen, setIsRevokeAllDialogOpen] = useState(false);
+	const [isCreateApiKeyOpen, setIsCreateApiKeyOpen] = useState(false);
+	const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string } | null>(null);
+	const [newApiKeyValue, setNewApiKeyValue] = useState<string | null>(null);
 	const queryClient = useQueryClient();
 	const trpc = useTRPC();
 
@@ -95,6 +102,18 @@ function ProfilePage() {
 			console.log("Sessions data:", data);
 			if (error) {
 				throw new Error(error.message || "Failed to load sessions");
+			}
+			return data;
+		},
+	});
+
+	// API keys query - using Better Auth's built-in apiKey client
+	const apiKeysQuery = useQuery({
+		queryKey: ["api-keys"],
+		queryFn: async () => {
+			const { data, error } = await authClient.apiKey.list();
+			if (error) {
+				throw new Error(error.message || "Failed to load API keys");
 			}
 			return data;
 		},
@@ -214,6 +233,76 @@ function ProfilePage() {
 			toast.error(err instanceof Error ? err.message : "Failed to revoke all sessions");
 		},
 	});
+
+	// API key mutations - using Better Auth's built-in apiKey client
+	const createApiKeyMutation = useMutation({
+		mutationFn: async (name: string) => {
+			const { data, error } = await authClient.apiKey.create({ name });
+			if (error) {
+				throw new Error(error.message || "Failed to create API key");
+			}
+			return data;
+		},
+		onSuccess: (data) => {
+			toast.success("API key created");
+			setNewApiKeyValue(data.key);
+			setIsCreateApiKeyOpen(false);
+			void queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to create API key");
+		},
+	});
+
+	const updateApiKeyMutation = useMutation({
+		mutationFn: async ({ keyId, name }: { keyId: string; name: string }) => {
+			const { error } = await authClient.apiKey.update({ keyId, name });
+			if (error) {
+				throw new Error(error.message || "Failed to update API key");
+			}
+		},
+		onSuccess: () => {
+			toast.success("API key updated");
+			setEditingApiKey(null);
+			void queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to update API key");
+		},
+	});
+
+	const deleteApiKeyMutation = useMutation({
+		mutationFn: async (keyId: string) => {
+			const { error } = await authClient.apiKey.delete({ keyId });
+			if (error) {
+				throw new Error(error.message || "Failed to delete API key");
+			}
+		},
+		onSuccess: () => {
+			toast.success("API key deleted");
+			void queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to delete API key");
+		},
+	});
+
+	const handleCopyApiKey = async (key: string) => {
+		try {
+			await navigator.clipboard.writeText(key);
+			toast.success("API key copied to clipboard");
+		} catch {
+			toast.error("Failed to copy API key");
+		}
+	};
+
+	const formatApiKeyDate = (date: Date) => {
+		return new Date(date).toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	};
 
 	const getInitials = (name?: string | null) => {
 		if (!name) return "U";
@@ -429,6 +518,107 @@ function ProfilePage() {
 									<HugeiconsIcon icon={Key01Icon} className="size-5" />
 								</div>
 								<p>No passkeys registered yet</p>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* API Keys Section */}
+				<div className="bg-muted/50 p-6">
+					<div className="space-y-4">
+						<div className="flex items-center justify-between">
+							<h3 className="text-lg font-medium">API Keys</h3>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setIsCreateApiKeyOpen(true)}
+								className="text-muted-foreground hover:text-blue-500"
+							>
+								<span className="hidden sm:inline">Add API Key</span>
+								<HugeiconsIcon icon={Add01Icon} className="sm:hidden size-4" />
+							</Button>
+						</div>
+						<p className="text-xs text-muted-foreground">
+							API keys for companion devices like Tallyo to record matches hands-free
+						</p>
+						{apiKeysQuery.isLoading ? (
+							<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+								Loading API keys...
+							</div>
+						) : apiKeysQuery.error ? (
+							<div className="flex h-32 items-center justify-center text-sm text-destructive">
+								{apiKeysQuery.error instanceof Error
+									? apiKeysQuery.error.message
+									: "Failed to load API keys"}
+							</div>
+						) : apiKeysQuery.data && apiKeysQuery.data.length > 0 ? (
+							<div className="divide-y divide-border border">
+								{apiKeysQuery.data.map((apiKey) => (
+									<RowCard
+										key={apiKey.id}
+										icon={<HugeiconsIcon icon={Key01Icon} className="size-5 text-primary" />}
+										iconClassName="bg-primary/10"
+										title={apiKey.name || "Unnamed Key"}
+										subtitle={
+											<>
+												<span className="font-mono">{apiKey.start}...</span>
+												<span>•</span>
+												<span>Created {formatApiKeyDate(apiKey.createdAt)}</span>
+											</>
+										}
+									>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => {
+												setEditingApiKey({
+													id: apiKey.id,
+													name: apiKey.name || "",
+												});
+											}}
+										>
+											<span className="hidden sm:inline">Edit</span>
+											<span className="sm:hidden">
+												<HugeiconsIcon icon={Edit01Icon} className="size-4" />
+											</span>
+										</Button>
+										<AlertDialog>
+											<AlertDialogTrigger>
+												<Button variant="ghost" size="sm" className="hover:text-red-500">
+													<span className="hidden sm:inline">Delete</span>
+													<span className="sm:hidden">
+														<HugeiconsIcon icon={Delete01Icon} className="size-4" />
+													</span>
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent>
+												<AlertDialogHeader>
+													<AlertDialogTitle>Delete API Key?</AlertDialogTitle>
+													<AlertDialogDescription>
+														Are you sure you want to delete this API key? Any devices using this key
+														will no longer be able to access the API.
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel>Cancel</AlertDialogCancel>
+													<AlertDialogAction
+														onClick={() => deleteApiKeyMutation.mutate(apiKey.id)}
+														className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+													>
+														Delete
+													</AlertDialogAction>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									</RowCard>
+								))}
+							</div>
+						) : (
+							<div className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
+									<HugeiconsIcon icon={Key01Icon} className="size-5" />
+								</div>
+								<p>No API keys yet</p>
 							</div>
 						)}
 					</div>
@@ -724,6 +914,60 @@ function ProfilePage() {
 					</div>
 				</DialogContent>
 			</Dialog>
+
+			{/* Create API Key Dialog */}
+			<CreateApiKeyDialog
+				isOpen={isCreateApiKeyOpen}
+				onClose={() => setIsCreateApiKeyOpen(false)}
+				onCreate={(name) => createApiKeyMutation.mutate(name)}
+				isCreating={createApiKeyMutation.isPending}
+			/>
+
+			{/* Edit API Key Dialog */}
+			{editingApiKey && (
+				<EditApiKeyDialog
+					isOpen={!!editingApiKey}
+					onClose={() => setEditingApiKey(null)}
+					onSave={(name) => {
+						if (editingApiKey) {
+							updateApiKeyMutation.mutate({ keyId: editingApiKey.id, name });
+						}
+					}}
+					currentName={editingApiKey.name}
+					isSaving={updateApiKeyMutation.isPending}
+				/>
+			)}
+
+			{/* New API Key Display Dialog */}
+			{newApiKeyValue && (
+				<AlertDialog open={!!newApiKeyValue} onOpenChange={() => setNewApiKeyValue(null)}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>API Key Created</AlertDialogTitle>
+							<AlertDialogDescription className="space-y-4">
+								<p>
+									Copy your API key now. You won't be able to see it again after closing this
+									dialog.
+								</p>
+								<div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm break-all">
+									<code className="flex-1">{newApiKeyValue}</code>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => handleCopyApiKey(newApiKeyValue)}
+										className="flex-shrink-0"
+									>
+										<HugeiconsIcon icon={Copy01Icon} className="size-4" />
+									</Button>
+								</div>
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogAction onClick={() => setNewApiKeyValue(null)}>Done</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 		</>
 	);
 }
