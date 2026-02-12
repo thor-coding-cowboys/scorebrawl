@@ -2,11 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	// Passkey support disabled due to Cloudflare Workers CPU limits
-	// TODO: Re-enable when upgrading to Workers Paid plan
-	// Delete01Icon,
+	Delete01Icon,
 	Edit01Icon,
-	// Key01Icon,
+	Key01Icon,
 	Logout01Icon,
 	UserIcon,
 	Award01Icon,
@@ -16,19 +14,17 @@ import {
 } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { toast } from "sonner";
-// Passkey support disabled due to Cloudflare Workers CPU limits
-// TODO: Re-enable when upgrading to Workers Paid plan
-// import {
-// 	AlertDialog,
-// 	AlertDialogAction,
-// 	AlertDialogCancel,
-// 	AlertDialogContent,
-// 	AlertDialogDescription,
-// 	AlertDialogFooter,
-// 	AlertDialogHeader,
-// 	AlertDialogTitle,
-// 	AlertDialogTrigger,
-// } from "@/components/ui/alert-dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,9 +33,7 @@ import { RowCard } from "@/components/ui/row-card";
 import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
-// Passkey support disabled due to Cloudflare Workers CPU limits
-// TODO: Re-enable when upgrading to Workers Paid plan
-// import { EditPasskeyDialog } from "@/components/profile/edit-passkey-dialog";
+import { EditPasskeyDialog } from "@/components/profile/edit-passkey-dialog";
 import { useSession, fetchSessionForRoute } from "@/hooks/useSession";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTRPC } from "@/lib/trpc";
@@ -69,9 +63,7 @@ function ProfilePage() {
 	const user = currentSession?.user;
 
 	const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-	// Passkey support disabled due to Cloudflare Workers CPU limits
-	// TODO: Re-enable when upgrading to Workers Paid plan
-	// const [editingPasskey, setEditingPasskey] = useState<{ id: string; name: string } | null>(null);
+	const [editingPasskey, setEditingPasskey] = useState<{ id: string; name: string } | null>(null);
 	const [isRevokeOtherDialogOpen, setIsRevokeOtherDialogOpen] = useState(false);
 	const [isRevokeAllDialogOpen, setIsRevokeAllDialogOpen] = useState(false);
 	const queryClient = useQueryClient();
@@ -83,19 +75,17 @@ function ProfilePage() {
 
 	const { data: totalMatches = 0 } = useQuery(trpc.user.getTotalMatches.queryOptions());
 
-	// Passkey support disabled due to Cloudflare Workers CPU limits
-	// TODO: Re-enable when upgrading to Workers Paid plan
-	// // Passkey queries and mutations
-	// const passkeysQuery = useQuery({
-	// 	queryKey: ["passkeys"],
-	// 	queryFn: async () => {
-	// 		const { data, error } = await authClient.passkey.listUserPasskeys({});
-	// 		if (error) {
-	// 			throw new Error(error.message || "Failed to load passkeys");
-	// 		}
-	// 		return data;
-	// 	},
-	// });
+	// Passkey queries and mutations
+	const passkeysQuery = useQuery({
+		queryKey: ["passkeys"],
+		queryFn: async () => {
+			const { data, error } = await authClient.passkey.listUserPasskeys({});
+			if (error) {
+				throw new Error(error.message || "Failed to load passkeys");
+			}
+			return data;
+		},
+	});
 
 	// Sessions query
 	const sessionsQuery = useQuery({
@@ -110,85 +100,83 @@ function ProfilePage() {
 		},
 	});
 
-	// Passkey support disabled due to Cloudflare Workers CPU limits
-	// TODO: Re-enable when upgrading to Workers Paid plan
-	// const addPasskeyMutation = useMutation({
-	// 	mutationFn: async (name?: string) => {
-	// 		try {
-	// 			const result = await authClient.passkey.addPasskey({
-	// 				name,
-	// 			});
-	// 			const { data, error } = result;
-	//
-	// 			// Passkey responses always return data object, even on error
-	// 			if (error || (data && typeof data === "object" && "error" in data && data.error)) {
-	// 				const errorMessage =
-	// 					error?.message ||
-	// 					(data && typeof data === "object" && "error" in data && data.error
-	// 						? (data.error as { message?: string }).message
-	// 						: undefined) ||
-	// 					"Failed to add passkey";
-	// 				console.error("Passkey add error:", errorMessage);
-	// 				throw new Error(errorMessage);
-	// 			}
-	// 			return data;
-	// 		} catch (err) {
-	// 			console.error("Exception in addPasskey:", err);
-	// 			throw err;
-	// 		}
-	// 	},
-	// 	mutationKey: ["addPasskey"],
-	// 	onSuccess: () => {
-	// 		void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
-	// 		toast.success("Passkey added successfully");
-	// 	},
-	// 	onError: (err) => {
-	// 		console.error("Add passkey error:", err);
-	// 		toast.error(err instanceof Error ? err.message : "Failed to add passkey");
-	// 	},
-	// 	onSettled: () => {
-	// 		// Reset mutation state after completion (success or error)
-	// 		addPasskeyMutation.reset();
-	// 	},
-	// });
+	const addPasskeyMutation = useMutation({
+		mutationFn: async (name?: string) => {
+			try {
+				const result = await authClient.passkey.addPasskey({
+					name,
+				});
+				const { data, error } = result;
 
-	// const deletePasskeyMutation = useMutation({
-	// 	mutationFn: async (id: string) => {
-	// 		const { data, error } = await authClient.passkey.deletePasskey({ id });
-	// 		if (error) {
-	// 			throw new Error(error.message || "Failed to delete passkey");
-	// 		}
-	// 		return data;
-	// 	},
-	// 	onSuccess: () => {
-	// 		void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
-	// 		toast.success("Passkey deleted successfully");
-	// 	},
-	// 	onError: (err) => {
-	// 		toast.error(err instanceof Error ? err.message : "Failed to delete passkey");
-	// 	},
-	// });
+				// Passkey responses always return data object, even on error
+				if (error || (data && typeof data === "object" && "error" in data && data.error)) {
+					const errorMessage =
+						error?.message ||
+						(data && typeof data === "object" && "error" in data && data.error
+							? (data.error as { message?: string }).message
+							: undefined) ||
+						"Failed to add passkey";
+					console.error("Passkey add error:", errorMessage);
+					throw new Error(errorMessage);
+				}
+				return data;
+			} catch (err) {
+				console.error("Exception in addPasskey:", err);
+				throw err;
+			}
+		},
+		mutationKey: ["addPasskey"],
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+			toast.success("Passkey added successfully");
+		},
+		onError: (err) => {
+			console.error("Add passkey error:", err);
+			toast.error(err instanceof Error ? err.message : "Failed to add passkey");
+		},
+		onSettled: () => {
+			// Reset mutation state after completion (success or error)
+			addPasskeyMutation.reset();
+		},
+	});
 
-	// const updatePasskeyMutation = useMutation({
-	// 	mutationFn: async ({ id, name }: { id: string; name: string }) => {
-	// 		const { data, error } = await authClient.passkey.updatePasskey({
-	// 			id,
-	// 			name,
-	// 		});
-	// 		if (error) {
-	// 			throw new Error(error.message || "Failed to update passkey");
-	// 		}
-	// 		return data;
-	// 	},
-	// 	onSuccess: () => {
-	// 		void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
-	// 		setEditingPasskey(null);
-	// 		toast.success("Passkey updated successfully");
-	// 	},
-	// 	onError: (err) => {
-	// 		toast.error(err instanceof Error ? err.message : "Failed to update passkey");
-	// 	},
-	// });
+	const deletePasskeyMutation = useMutation({
+		mutationFn: async (id: string) => {
+			const { data, error } = await authClient.passkey.deletePasskey({ id });
+			if (error) {
+				throw new Error(error.message || "Failed to delete passkey");
+			}
+			return data;
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+			toast.success("Passkey deleted successfully");
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to delete passkey");
+		},
+	});
+
+	const updatePasskeyMutation = useMutation({
+		mutationFn: async ({ id, name }: { id: string; name: string }) => {
+			const { data, error } = await authClient.passkey.updatePasskey({
+				id,
+				name,
+			});
+			if (error) {
+				throw new Error(error.message || "Failed to update passkey");
+			}
+			return data;
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+			setEditingPasskey(null);
+			toast.success("Passkey updated successfully");
+		},
+		onError: (err) => {
+			toast.error(err instanceof Error ? err.message : "Failed to update passkey");
+		},
+	});
 
 	const revokeOtherSessionsMutation = useMutation({
 		mutationFn: async () => {
@@ -336,10 +324,8 @@ function ProfilePage() {
 					</Card>
 				</div>
 
-				{/* Passkey support disabled due to Cloudflare Workers CPU limits */}
-				{/* TODO: Re-enable when upgrading to Workers Paid plan */}
 				{/* Passkeys Section */}
-				{/* <div className="bg-muted/50 p-6">
+				<div className="bg-muted/50 p-6">
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h3 className="text-lg font-medium">Passkeys</h3>
@@ -446,7 +432,7 @@ function ProfilePage() {
 							</div>
 						)}
 					</div>
-				</div> */}
+				</div>
 
 				{/* Sessions Section */}
 				<div className="bg-muted/50 min-h-[100vh] flex-1 md:min-h-min p-6">
@@ -550,10 +536,8 @@ function ProfilePage() {
 				user={{ id: user.id, name: user.name, email: user.email, image: user.image }}
 			/>
 
-			{/* Passkey support disabled due to Cloudflare Workers CPU limits */}
-			{/* TODO: Re-enable when upgrading to Workers Paid plan */}
 			{/* Edit Passkey Dialog */}
-			{/* {editingPasskey && (
+			{editingPasskey && (
 				<EditPasskeyDialog
 					isOpen={!!editingPasskey}
 					onClose={() => setEditingPasskey(null)}
@@ -565,7 +549,7 @@ function ProfilePage() {
 					currentName={editingPasskey.name}
 					isSaving={updatePasskeyMutation.isPending}
 				/>
-			)} */}
+			)}
 
 			{/* Revoke Other Sessions Dialog */}
 			<Dialog open={isRevokeOtherDialogOpen} onOpenChange={setIsRevokeOtherDialogOpen}>

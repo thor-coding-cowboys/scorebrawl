@@ -1,6 +1,4 @@
-// Passkey support disabled due to Cloudflare Workers CPU limits
-// TODO: Re-enable when upgrading to Workers Paid plan
-// import { passkey } from "@better-auth/passkey";
+import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
@@ -59,32 +57,23 @@ export function createAuth({
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
 
-	// Passkey support disabled due to Cloudflare Workers CPU limits
-	// TODO: Re-enable when upgrading to Workers Paid plan
-	// const getPasskeyPlugin = () => {
-	// 	const getRpID = (originUrl?: string) => {
-	// 		if (originUrl) {
-	// 			try {
-	// 				return new URL(originUrl).hostname;
-	// 			} catch {
-	// 				return "localhost";
-	// 			}
-	// 		}
-	// 		return "localhost";
-	// 	};
-	//
-	// 	const passkeyOrigin = !(origin?.includes("127.0.0.1") || origin?.includes("localhost"))
-	// 		? origin
-	// 		: "http://localhost:5173";
-	//
-	// 	return passkey({
-	// 		rpID: getRpID(passkeyOrigin),
-	// 		rpName: "Scorebrawl",
-	// 		origin: passkeyOrigin,
-	// 	});
-	// };
-	//
-	// const passkeyPlugin = getPasskeyPlugin();
+	// Determine rpID and origin for passkey
+	const getRpID = (originUrl?: string) => {
+		if (originUrl) {
+			try {
+				const url = new URL(originUrl);
+				return url.hostname;
+			} catch {
+				return "localhost";
+			}
+		}
+		return "localhost";
+	};
+
+	const passkeyOrigin = !(origin?.includes("127.0.0.1") || origin?.includes("localhost"))
+		? origin
+		: "http://localhost:5173";
+	const rpID = getRpID(passkeyOrigin);
 
 	return betterAuth({
 		database: drizzleAdapter(db, {
@@ -221,9 +210,11 @@ export function createAuth({
 					console.log(`Invitation for organization ${organization.name} sent to ${email}`);
 				},
 			}),
-			// Passkey support disabled due to Cloudflare Workers CPU limits
-			// TODO: Re-enable when upgrading to Workers Paid plan
-			// ...(passkeyPlugin ? [passkeyPlugin] : []),
+			passkey({
+				rpID,
+				rpName: "Scorebrawl",
+				origin: passkeyOrigin,
+			}),
 		],
 	});
 }
