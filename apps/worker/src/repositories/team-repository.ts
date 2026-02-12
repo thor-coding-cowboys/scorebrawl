@@ -186,7 +186,25 @@ export const getRecentMatches = async ({
 	teamId: string;
 	limit: number;
 }) => {
-	const matches = await db
+	// First, get the match IDs for our team's recent matches
+	const ourMatchIds = await db
+		.select({
+			matchId: matchTeam.matchId,
+		})
+		.from(matchTeam)
+		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.where(eq(seasonTeam.leagueTeamId, teamId))
+		.orderBy(desc(matchTeam.createdAt))
+		.limit(limit);
+
+	if (ourMatchIds.length === 0) {
+		return [];
+	}
+
+	const matchIdList = ourMatchIds.map((m) => m.matchId);
+
+	// Single query to get all match data for these matches with team names
+	const matchData = await db
 		.select({
 			matchId: matchTeam.matchId,
 			result: matchTeam.result,
@@ -195,40 +213,68 @@ export const getRecentMatches = async ({
 			createdAt: matchTeam.createdAt,
 			homeScore: match.homeScore,
 			awayScore: match.awayScore,
+			isOurTeam: eq(seasonTeam.leagueTeamId, teamId),
+			teamName: leagueTeam.name,
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
 		.innerJoin(match, eq(matchTeam.matchId, match.id))
-		.where(eq(seasonTeam.leagueTeamId, teamId))
-		.orderBy(desc(matchTeam.createdAt))
-		.limit(limit);
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.where(sql`${matchTeam.matchId} IN ${matchIdList}`)
+		.orderBy(desc(matchTeam.createdAt));
 
-	const matchesWithOpponents = await Promise.all(
-		matches.map(async (m) => {
-			const teams = await db
-				.select({
-					teamName: leagueTeam.name,
-					result: matchTeam.result,
-				})
-				.from(matchTeam)
-				.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-				.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-				.where(eq(matchTeam.matchId, m.matchId));
+	// Group by matchId to get our team and opponent in one row
+	const matchMap = new Map<
+		string,
+		{
+			matchId: string;
+			result: string;
+			scoreBefore: number;
+			scoreAfter: number;
+			createdAt: Date;
+			homeScore: number | null;
+			awayScore: number | null;
+			myTeamName: string;
+			opponentName: string;
+		}
+	>();
 
-			const myTeam = teams.find((t) => t.result === m.result);
-			const opponentTeam = teams.find((t) => t.result !== m.result);
+	for (const row of matchData) {
+		const existing = matchMap.get(row.matchId);
+		if (existing) {
+			// Second team for this match
+			if (row.isOurTeam) {
+				existing.myTeamName = row.teamName;
+			} else {
+				existing.opponentName = row.teamName;
+			}
+		} else {
+			// First team for this match
+			matchMap.set(row.matchId, {
+				matchId: row.matchId,
+				result: row.result,
+				scoreBefore: row.scoreBefore,
+				scoreAfter: row.scoreAfter,
+				createdAt: row.createdAt,
+				homeScore: row.homeScore,
+				awayScore: row.awayScore,
+				myTeamName: row.isOurTeam ? row.teamName : "",
+				opponentName: row.isOurTeam ? "" : row.teamName,
+			});
+		}
+	}
 
-			return {
-				...m,
-				myTeamName: myTeam?.teamName ?? "Your Team",
-				opponentName: opponentTeam?.teamName ?? "Opponent",
-				myTeamScore: m.homeScore,
-				opponentScore: m.awayScore,
-			};
-		})
-	);
-
-	return matchesWithOpponents;
+	return Array.from(matchMap.values()).map((m) => ({
+		matchId: m.matchId,
+		result: m.result,
+		scoreBefore: m.scoreBefore,
+		scoreAfter: m.scoreAfter,
+		createdAt: m.createdAt,
+		myTeamName: m.myTeamName || "Your Team",
+		opponentName: m.opponentName || "Opponent",
+		myTeamScore: m.homeScore,
+		opponentScore: m.awayScore,
+	}));
 };
 
 export interface RivalTeam {
@@ -248,82 +294,52 @@ export const getRivalTeams = async ({
 	db: DrizzleDB;
 	teamId: string;
 }): Promise<{ bestRival: RivalTeam | null; worstRival: RivalTeam | null }> => {
-	// Get all matches where our team participated with match details
-	const ourMatchResults = await db
+	// Single query to get all match results with opponent details using self-join
+	const rivalMatchData = await db
 		.select({
-			matchId: matchTeam.matchId,
 			ourResult: matchTeam.result,
-			seasonTeamId: matchTeam.seasonTeamId,
+			opponentTeamId: seasonTeam.leagueTeamId,
+			opponentName: leagueTeam.name,
+			opponentLogo: leagueTeam.logo,
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.where(eq(seasonTeam.leagueTeamId, teamId));
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.innerJoin(
+			// Self-join to find our team's entries in the same matches
+			sql`${matchTeam} as our_team`,
+			sql`our_team.${matchTeam.matchId.name} = ${matchTeam.matchId} AND our_team.${matchTeam.seasonTeamId.name} != ${matchTeam.seasonTeamId}`
+		)
+		.innerJoin(
+			sql`${seasonTeam} as our_season_team`,
+			sql`our_season_team.${seasonTeam.id.name} = our_team.${matchTeam.seasonTeamId.name} AND our_season_team.${seasonTeam.leagueTeamId.name} = ${teamId}`
+		)
+		.where(ne(seasonTeam.leagueTeamId, teamId));
 
-	if (ourMatchResults.length === 0) {
-		return { bestRival: null, worstRival: null };
-	}
-
-	// For each match, get opponent details
-	const matchDetails = await Promise.all(
-		ourMatchResults.map(async (ourMatch) => {
-			// Get opponent in this match (different seasonTeamId, same match)
-			const [opponent] = await db
-				.select({
-					leagueTeamId: seasonTeam.leagueTeamId,
-					teamName: leagueTeam.name,
-					teamLogo: leagueTeam.logo,
-					opponentResult: matchTeam.result,
-				})
-				.from(matchTeam)
-				.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-				.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-				.where(
-					and(
-						eq(matchTeam.matchId, ourMatch.matchId),
-						ne(matchTeam.seasonTeamId, ourMatch.seasonTeamId)
-					)
-				)
-				.limit(1);
-
-			if (!opponent) return null;
-
-			return {
-				matchId: ourMatch.matchId,
-				opponentTeamId: opponent.leagueTeamId,
-				opponentName: opponent.teamName,
-				opponentLogo: opponent.teamLogo,
-				ourResult: ourMatch.ourResult,
-				opponentResult: opponent.opponentResult,
-				isWin: ourMatch.ourResult === "W",
-				isLoss: ourMatch.ourResult === "L",
-			};
-		})
-	);
-
-	// Filter out nulls and aggregate by opponent
-	const validMatches = matchDetails.filter((m): m is NonNullable<typeof m> => m !== null);
-
-	if (validMatches.length === 0) {
+	if (rivalMatchData.length === 0) {
 		return { bestRival: null, worstRival: null };
 	}
 
 	// Aggregate stats per opponent
 	const rivalMap = new Map<string, RivalTeam>();
 
-	for (const match of validMatches) {
+	for (const match of rivalMatchData) {
 		const existing = rivalMap.get(match.opponentTeamId);
+		const isWin = match.ourResult === "W";
+		const isLoss = match.ourResult === "L";
+
 		if (existing) {
 			existing.matchesPlayed++;
-			if (match.isWin) existing.wins++;
-			if (match.isLoss) existing.losses++;
+			if (isWin) existing.wins++;
+			if (isLoss) existing.losses++;
 		} else {
 			rivalMap.set(match.opponentTeamId, {
 				id: match.opponentTeamId,
 				name: match.opponentName,
 				logo: match.opponentLogo,
 				matchesPlayed: 1,
-				wins: match.isWin ? 1 : 0,
-				losses: match.isLoss ? 1 : 0,
+				wins: isWin ? 1 : 0,
+				losses: isLoss ? 1 : 0,
 				winRate: 0,
 			});
 		}
