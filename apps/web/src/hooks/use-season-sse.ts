@@ -2,9 +2,6 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
-import { createMatchCollection } from "@/lib/collections/match-collection";
-import { createStandingCollection } from "@/lib/collections/standing-collection";
-import { createTeamStandingCollection } from "@/lib/collections/team-standing-collection";
 
 export interface SeasonSSEEvent {
 	type: "connected" | "match:insert" | "match:delete" | "standings:update";
@@ -95,38 +92,29 @@ export function useSeasonSSE({
 
 					console.log("[SSE] Received event:", parsed.type);
 
-					const matchCollection = createMatchCollection(seasonId, seasonSlug);
-					const standingCollection = createStandingCollection(seasonId, seasonSlug);
-					const teamStandingCollection = createTeamStandingCollection(seasonId, seasonSlug);
+					const t = trpcRef.current;
+					const qc = queryClientRef.current;
 
-					// Use refetch to update the collections - this is safer than direct writes
-					// as it handles the case where the collection might not be fully initialized
+					// Invalidate matches query on any match mutation
 					if (parsed.type === "match:insert" || parsed.type === "match:delete") {
-						matchCollection.utils.refetch().catch((err) => {
-							console.error("[SSE] Failed to refetch matches:", err);
-						});
+						qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
 					}
 
-					// Always refetch standings on any match mutation
+					// Invalidate standings on any match mutation
 					if (
 						parsed.data?.standings ||
 						parsed.type === "match:insert" ||
 						parsed.type === "match:delete"
 					) {
-						standingCollection.utils.refetch().catch((err) => {
-							console.error("[SSE] Failed to refetch standings:", err);
-						});
+						// Invalidate player standings
+						qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }) });
 
-						teamStandingCollection.utils.refetch().catch((err) => {
-							console.error("[SSE] Failed to refetch team standings:", err);
-						});
+						// Invalidate team standings
+						qc.invalidateQueries({ queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }) });
 
 						// Invalidate tRPC queries for dashboard cards and player data
-						const t = trpcRef.current;
-						const qc = queryClientRef.current;
 						qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
 						qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
-						qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }) });
 						qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
 						qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
 					}

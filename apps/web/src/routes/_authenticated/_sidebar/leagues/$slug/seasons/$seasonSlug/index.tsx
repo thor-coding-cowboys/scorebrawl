@@ -130,9 +130,7 @@ function SeasonDashboardPage() {
 					/* Two-column layout when teams exist */
 					<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 						<div className="flex flex-col gap-4">
-							{seasonId && (
-								<StandingTabs seasonId={seasonId} seasonSlug={seasonSlug} leagueSlug={slug} />
-							)}
+							<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
 							{!isEloSeason && season && (
 								<OverviewCard title="Fixtures">
 									<Fixtures seasonSlug={seasonSlug} />
@@ -147,15 +145,13 @@ function SeasonDashboardPage() {
 							)}
 						</div>
 						<div className="flex flex-col gap-4">
-							{seasonId && <TeamStandingCard seasonId={seasonId} seasonSlug={seasonSlug} />}
+							<TeamStandingCard seasonSlug={seasonSlug} />
 						</div>
 					</div>
 				) : (
 					/* Single-column layout when no teams */
 					<div className="flex flex-col gap-4">
-						{seasonId && (
-							<StandingTabs seasonId={seasonId} seasonSlug={seasonSlug} leagueSlug={slug} />
-						)}
+						<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
 						{!isEloSeason && season && (
 							<OverviewCard title="Fixtures">
 								<Fixtures seasonSlug={seasonSlug} />

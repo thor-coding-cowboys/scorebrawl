@@ -13,13 +13,12 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 
 interface StandingProps {
-	seasonId: string;
 	seasonSlug: string;
 	leagueSlug?: string;
 }
 
-export function Standing({ seasonId, seasonSlug, leagueSlug }: StandingProps) {
-	const { standings } = useStandings(seasonId, seasonSlug);
+export function Standing({ seasonSlug, leagueSlug }: StandingProps) {
+	const { standings } = useStandings(seasonSlug);
 	const navigate = useNavigate();
 
 	if (standings.length === 0) {

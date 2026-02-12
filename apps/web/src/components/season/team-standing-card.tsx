@@ -7,13 +7,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 interface TeamStandingCardProps {
-	seasonId: string;
 	seasonSlug: string;
 }
 
-export function TeamStandingCard({ seasonId, seasonSlug }: TeamStandingCardProps) {
-	const { standings } = useStandings(seasonId, seasonSlug);
-	const { teamStandings } = useTeamStandings(seasonId, seasonSlug);
+export function TeamStandingCard({ seasonSlug }: TeamStandingCardProps) {
+	const { standings } = useStandings(seasonSlug);
+	const { teamStandings } = useTeamStandings(seasonSlug);
 	const maxRows = standings.length;
 
 	const [currentPage, setCurrentPage] = useState(0);
@@ -51,7 +50,6 @@ export function TeamStandingCard({ seasonId, seasonSlug }: TeamStandingCardProps
 			}
 		>
 			<TeamStanding
-				seasonId={seasonId}
 				seasonSlug={seasonSlug}
 				maxRows={maxRows}
 				currentPage={currentPage}

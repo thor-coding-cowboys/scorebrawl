@@ -2,13 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { Add01Icon, Award01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMatches, loadMoreMatches } from "@/lib/collections";
 import { MatchRow } from "@/components/match/match-row";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
 import { RemoveMatchDialog } from "@/components/match/remove-match-dialog";
@@ -41,11 +40,12 @@ function truncateSlug(slug: string, maxLength = 10): string {
 	return `${slug.slice(0, maxLength)}...`;
 }
 
+const PAGE_SIZE = 30;
+
 function MatchesPage() {
 	const { slug, seasonSlug } = Route.useLoaderData();
 	const { addMatch } = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });
-
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
@@ -66,20 +66,32 @@ function MatchesPage() {
 		navigate({ search: open ? { addMatch: true } : {} });
 	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
-	const [isLoadingMore, setIsLoadingMore] = useState(false);
-	const [totalMatches, setTotalMatches] = useState<number | null>(null);
 
-	// Always call useMatches with a stable seasonId value
-	const { matches } = useMatches(seasonId, seasonSlug);
+	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
+		queryKey: ["infinite-matches", seasonId],
+		queryFn: async ({ pageParam }) => {
+			return trpcClient.match.getAll.query({
+				seasonSlug,
+				limit: PAGE_SIZE,
+				offset: pageParam,
+			});
+		},
+		initialPageParam: 0,
+		getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+			if (!lastPage?.matches?.length) return undefined;
+			if (lastPage.matches.length < PAGE_SIZE) return undefined;
+			const nextOffset = lastPageParam + PAGE_SIZE;
+			if (nextOffset >= lastPage.total) return undefined;
+			return nextOffset;
+		},
+		enabled: !!seasonId && !!seasonSlug,
+		refetchOnWindowFocus: false,
+		staleTime: 30000,
+	});
+
+	const matches = data?.pages.flatMap((page) => page.matches) ?? [];
+	const total = data?.pages[0]?.total ?? 0;
 	const latestMatch = matches[0];
-
-	useEffect(() => {
-		if (seasonId && totalMatches === null) {
-			trpcClient.match.getAll
-				.query({ seasonSlug, limit: 1, offset: 0 })
-				.then((result) => setTotalMatches(result.total));
-		}
-	}, [seasonId, seasonSlug, totalMatches]);
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
@@ -90,33 +102,38 @@ function MatchesPage() {
 		overscan: 5,
 	});
 
+	// Use refs to avoid stale closures in scroll handler
+	const fetchNextPageRef = useRef(fetchNextPage);
+	const hasNextPageRef = useRef(hasNextPage);
+	const isFetchingNextPageRef = useRef(isFetchingNextPage);
+
 	useEffect(() => {
-		const scrollElement = parentRef.current;
-		if (!scrollElement || !seasonId) return;
+		fetchNextPageRef.current = fetchNextPage;
+		hasNextPageRef.current = hasNextPage;
+		isFetchingNextPageRef.current = isFetchingNextPage;
+	}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+	// Use window scroll for infinite loading since page scrolls at document level
+	useEffect(() => {
+		if (!seasonId) return;
 
 		const handleScroll = () => {
-			if (isLoadingMore) return;
+			if (isFetchingNextPageRef.current || !hasNextPageRef.current) return;
 
-			const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-			const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
+			const scrollTop = window.scrollY;
+			const windowHeight = window.innerHeight;
+			const documentHeight = document.documentElement.scrollHeight;
+			const scrolledToBottom = scrollTop + windowHeight >= documentHeight - 200;
 
-			if (scrolledToBottom && totalMatches !== null && matches.length < totalMatches) {
-				setIsLoadingMore(true);
-				loadMoreMatches(seasonId, seasonSlug, matches.length)
-					.then((total) => setTotalMatches(total))
-					.finally(() => setIsLoadingMore(false));
+			if (scrolledToBottom) {
+				fetchNextPageRef.current();
 			}
 		};
 
-		scrollElement.addEventListener("scroll", handleScroll);
-		handleScroll();
+		window.addEventListener("scroll", handleScroll);
 
-		return () => scrollElement.removeEventListener("scroll", handleScroll);
-	}, [isLoadingMore, matches.length, totalMatches, seasonId, seasonSlug]);
-
-	const stats = {
-		total: totalMatches ?? matches.length,
-	};
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, [seasonId]);
 
 	return (
 		<>
@@ -146,7 +163,7 @@ function MatchesPage() {
 					)
 				}
 			/>
-			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+			<div className="flex flex-1 flex-col gap-4 p-4 pt-0 min-h-0">
 				<div className="grid gap-3 md:grid-cols-1">
 					<Card className="relative overflow-hidden">
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
@@ -155,13 +172,13 @@ function MatchesPage() {
 							<HugeiconsIcon icon={Award01Icon} className="size-4 text-blue-600" />
 						</CardHeader>
 						<CardContent className="relative">
-							<div className="text-2xl font-bold">{stats.total}</div>
+							<div className="text-2xl font-bold">{total}</div>
 							<p className="text-xs text-muted-foreground">All matches in this season</p>
 						</CardContent>
 					</Card>
 				</div>
-				<div className="bg-muted/50 flex-1 flex flex-col p-6">
-					{matches.length === 0 ? (
+				<div className="bg-muted/50 flex-1 flex flex-col p-6 min-h-0">
+					{matches.length === 0 && !isLoading ? (
 						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
 								<HugeiconsIcon icon={Award01Icon} className="size-5" />
@@ -181,7 +198,7 @@ function MatchesPage() {
 							)}
 						</div>
 					) : (
-						<div className="flex flex-col flex-1 gap-4">
+						<div className="flex flex-col flex-1 gap-4 min-h-0">
 							<div className="flex items-center justify-between">
 								<h3 className="text-lg font-medium">Matches</h3>
 								{canDeleteMatches && !isSeasonLocked && latestMatch && (
@@ -196,7 +213,7 @@ function MatchesPage() {
 									</Button>
 								)}
 							</div>
-							<div ref={parentRef} className="flex-1 overflow-auto rounded-lg bg-card px-4">
+							<div ref={parentRef} className="flex-1 overflow-auto rounded-lg bg-card px-4 min-h-0">
 								<div
 									style={{
 										height: `${virtualizer.getTotalSize()}px`,
@@ -234,7 +251,7 @@ function MatchesPage() {
 										})}
 								</div>
 							</div>
-							{isLoadingMore && (
+							{isFetchingNextPage && (
 								<div className="flex justify-center py-4 text-sm text-muted-foreground">
 									Loading more matches...
 								</div>

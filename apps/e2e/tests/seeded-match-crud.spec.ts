@@ -191,4 +191,27 @@ test.describe("Seeded Match CRUD", () => {
 		expect(Number.parseInt(scores[0], 10)).toBeGreaterThanOrEqual(0);
 		expect(Number.parseInt(scores[1], 10)).toBeGreaterThanOrEqual(0);
 	});
+
+	test("should navigate from dashboard to all matches page", async ({ page }) => {
+		// Navigate to season dashboard
+		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/${SEED_SEASON.slug}`);
+
+		// Wait for latest matches to load
+		await expect(page.getByTestId("latest-matches-table")).toBeVisible({ timeout: 10000 });
+
+		// Click "See All" link to navigate to matches page
+		await page.getByTestId("see-all-matches-link").click();
+
+		// Verify we're on the matches page by checking URL
+		await expect(page).toHaveURL(
+			`/leagues/${SEED_LEAGUE.slug}/seasons/${SEED_SEASON.slug}/matches`
+		);
+
+		// Verify matches page loaded with match rows
+		await expect(async () => {
+			const matchRows = page.locator('[data-testid^="match-row-"]');
+			const count = await matchRows.count();
+			expect(count).toBeGreaterThan(0);
+		}).toPass({ timeout: 10000 });
+	});
 });
