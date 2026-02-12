@@ -9,4 +9,11 @@ export const seasonTeamRouter = {
 			seasonId: ctx.season.id,
 		});
 	}),
+
+	getWeeklyStats: seasonProcedure.query(async ({ ctx }) => {
+		return seasonTeamRepository.getWeeklyStats({
+			db: ctx.db,
+			seasonId: ctx.season.id,
+		});
+	}),
 } satisfies TRPCRouterRecord;

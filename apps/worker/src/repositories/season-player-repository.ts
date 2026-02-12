@@ -215,3 +215,39 @@ export const getPointProgression = async ({
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(matchPlayer.createdAt);
 };
+
+export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	// Get stats for the last 7 days excluding today
+	// date('now', '-1 day') = yesterday, date('now', '-7 days') = 7 days ago
+	const weeklyPlayerStats = await db.all<{
+		seasonPlayerId: string;
+		playerName: string;
+		playerImage: string | null;
+		matchCount: number;
+		winCount: number;
+		lossCount: number;
+		drawCount: number;
+		pointChange: number;
+	}>(sql`
+		SELECT 
+			mp.season_player_id as seasonPlayerId,
+			u.name as playerName,
+			u.image as playerImage,
+			COUNT(*) as matchCount,
+			SUM(CASE WHEN mp.result = 'W' THEN 1 ELSE 0 END) as winCount,
+			SUM(CASE WHEN mp.result = 'L' THEN 1 ELSE 0 END) as lossCount,
+			SUM(CASE WHEN mp.result = 'D' THEN 1 ELSE 0 END) as drawCount,
+			SUM(mp.score_after - mp.score_before) as pointChange
+		FROM match_player mp
+		INNER JOIN season_player sp ON mp.season_player_id = sp.id
+		INNER JOIN player p ON sp.player_id = p.id
+		INNER JOIN user u ON p.user_id = u.id
+		WHERE sp.season_id = ${seasonId}
+		AND date(datetime(mp.created_at, 'unixepoch')) >= date('now', '-7 days')
+		AND date(datetime(mp.created_at, 'unixepoch')) <= date('now', '-1 day')
+		GROUP BY mp.season_player_id, u.name, u.image
+		HAVING COUNT(*) > 0
+	`);
+
+	return weeklyPlayerStats;
+};
