@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GithubIcon, GoogleIcon, Key01Icon } from "@hugeicons/core-free-icons";
+import { GithubIcon, GoogleIcon /*, Key01Icon */ } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -32,9 +32,9 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 	const invalidateSession = useSessionInvalidate();
 	const [isGitHubLoading, setIsGitHubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+	// const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 	const [apiError, setApiError] = useState<string>("");
-	const [supportsPasskey, setSupportsPasskey] = useState(false);
+	// const [supportsPasskey, setSupportsPasskey] = useState(false);
 
 	// Set error from URL query param
 	useEffect(() => {
@@ -47,26 +47,28 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 		}
 	}, [error]);
 
-	// Preload passkeys for conditional UI
-	useEffect(() => {
-		if (
-			typeof PublicKeyCredential === "undefined" ||
-			!PublicKeyCredential.isConditionalMediationAvailable
-		) {
-			return;
-		}
-
-		void (async () => {
-			const isAvailable = await PublicKeyCredential.isConditionalMediationAvailable();
-			setSupportsPasskey(isAvailable);
-			if (isAvailable) {
-				// Silently handle errors for conditional UI (user might not have passkeys)
-				void authClient.signIn.passkey({ autoFill: true }).catch(() => {
-					// Ignore errors for conditional UI preload
-				});
-			}
-		})();
-	}, []);
+	// Passkey support disabled due to Cloudflare Workers CPU limits
+	// TODO: Re-enable when upgrading to Workers Paid plan
+	// // Preload passkeys for conditional UI
+	// useEffect(() => {
+	// 	if (
+	// 		typeof PublicKeyCredential === "undefined" ||
+	// 		!PublicKeyCredential.isConditionalMediationAvailable
+	// 	) {
+	// 		return;
+	// 	}
+	//
+	// 	void (async () => {
+	// 		const isAvailable = await PublicKeyCredential.isConditionalMediationAvailable();
+	// 		setSupportsPasskey(isAvailable);
+	// 		if (isAvailable) {
+	// 			// Silently handle errors for conditional UI (user might not have passkeys)
+	// 			void authClient.signIn.passkey({ autoFill: true }).catch(() => {
+	// 				// Ignore errors for conditional UI preload
+	// 			});
+	// 		}
+	// 	})();
+	// }, []);
 
 	const {
 		register,
@@ -151,79 +153,81 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 		}
 	};
 
-	const handlePasskeySignIn = async () => {
-		setIsPasskeyLoading(true);
-		setApiError("");
-		try {
-			const { data, error } = await authClient.signIn.passkey({
-				autoFill: false,
-			});
-
-			if (error) {
-				const errorMessage = error.message || "";
-				// Provide user-friendly messages for common errors
-				let displayMessage = errorMessage;
-				if (
-					errorMessage.toLowerCase().includes("cancelled") ||
-					errorMessage.toLowerCase().includes("abort")
-				) {
-					displayMessage =
-						"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
-				} else if (errorMessage.toLowerCase().includes("not allowed")) {
-					displayMessage =
-						"Passkey sign-in was not allowed. Please try again or use another sign-in method.";
-				} else if (
-					errorMessage.toLowerCase().includes("not found") ||
-					errorMessage.toLowerCase().includes("no passkey") ||
-					errorMessage.toLowerCase().includes("no credential")
-				) {
-					displayMessage =
-						"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
-				}
-
-				setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");
-				setIsPasskeyLoading(false);
-				return;
-			}
-
-			if (data) {
-				await invalidateSession();
-				navigate({ to: callbackURL || "/" });
-			} else {
-				setApiError("Failed to sign in with passkey. Please try again.");
-				setIsPasskeyLoading(false);
-			}
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : String(err);
-			// Provide user-friendly messages for common errors
-			let displayMessage = errorMessage;
-			if (
-				errorMessage.toLowerCase().includes("cancelled") ||
-				errorMessage.toLowerCase().includes("abort") ||
-				(err instanceof DOMException && err.name === "AbortError")
-			) {
-				displayMessage =
-					"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
-			} else if (
-				errorMessage.toLowerCase().includes("not allowed") ||
-				(err instanceof DOMException && err.name === "NotAllowedError")
-			) {
-				displayMessage =
-					"Passkey sign-in was not allowed. Please try again or use another sign-in method.";
-			} else if (
-				errorMessage.toLowerCase().includes("not found") ||
-				errorMessage.toLowerCase().includes("no passkey") ||
-				errorMessage.toLowerCase().includes("no credential") ||
-				(err instanceof DOMException && err.name === "NotFoundError")
-			) {
-				displayMessage =
-					"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
-			}
-
-			setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");
-			setIsPasskeyLoading(false);
-		}
-	};
+	// Passkey support disabled due to Cloudflare Workers CPU limits
+	// TODO: Re-enable when upgrading to Workers Paid plan
+	// const handlePasskeySignIn = async () => {
+	// 	setIsPasskeyLoading(true);
+	// 	setApiError("");
+	// 	try {
+	// 		const { data, error } = await authClient.signIn.passkey({
+	// 			autoFill: false,
+	// 		});
+	//
+	// 		if (error) {
+	// 			const errorMessage = error.message || "";
+	// 			// Provide user-friendly messages for common errors
+	// 			let displayMessage = errorMessage;
+	// 			if (
+	// 				errorMessage.toLowerCase().includes("cancelled") ||
+	// 				errorMessage.toLowerCase().includes("abort")
+	// 			) {
+	// 				displayMessage =
+	// 					"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
+	// 			} else if (errorMessage.toLowerCase().includes("not allowed")) {
+	// 				displayMessage =
+	// 					"Passkey sign-in was not allowed. Please try again or use another sign-in method.";
+	// 			} else if (
+	// 				errorMessage.toLowerCase().includes("not found") ||
+	// 				errorMessage.toLowerCase().includes("no passkey") ||
+	// 				errorMessage.toLowerCase().includes("no credential")
+	// 			) {
+	// 				displayMessage =
+	// 					"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
+	// 			}
+	//
+	// 			setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");
+	// 			setIsPasskeyLoading(false);
+	// 			return;
+	// 		}
+	//
+	// 		if (data) {
+	// 			await invalidateSession();
+	// 			navigate({ to: callbackURL || "/" });
+	// 		} else {
+	// 			setApiError("Failed to sign in with passkey. Please try again.");
+	// 			setIsPasskeyLoading(false);
+	// 		}
+	// 	} catch (err) {
+	// 		const errorMessage = err instanceof Error ? err.message : String(err);
+	// 		// Provide user-friendly messages for common errors
+	// 		let displayMessage = errorMessage;
+	// 		if (
+	// 			errorMessage.toLowerCase().includes("cancelled") ||
+	// 			errorMessage.toLowerCase().includes("abort") ||
+	// 			(err instanceof DOMException && err.name === "AbortError")
+	// 		) {
+	// 			displayMessage =
+	// 				"Passkey sign-in was cancelled. This can happen if you don't have a passkey registered for this account, or if you cancelled the browser prompt. Please sign in using another method, then add a passkey in your profile settings.";
+	// 		} else if (
+	// 			errorMessage.toLowerCase().includes("not allowed") ||
+	// 			(err instanceof DOMException && err.name === "NotAllowedError")
+	// 		) {
+	// 			displayMessage =
+	// 				"Passkey sign-in was not allowed. Please try again or use another sign-in method.";
+	// 		} else if (
+	// 			errorMessage.toLowerCase().includes("not found") ||
+	// 			errorMessage.toLowerCase().includes("no passkey") ||
+	// 			errorMessage.toLowerCase().includes("no credential") ||
+	// 			(err instanceof DOMException && err.name === "NotFoundError")
+	// 		) {
+	// 			displayMessage =
+	// 				"No passkey found for this account. Please sign in using another method, then add a passkey in your profile settings.";
+	// 		}
+	//
+	// 		setApiError(displayMessage || "Failed to sign in with passkey. Please try again.");
+	// 		setIsPasskeyLoading(false);
+	// 	}
+	// };
 
 	return (
 		<Card className="w-full max-w-md border-border">
@@ -301,9 +305,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 					</form>
 				)}
 
-				{(import.meta.env.VITE_GITHUB_CLIENT_ID ||
-					import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-					supportsPasskey) && (
+				{(import.meta.env.VITE_GITHUB_CLIENT_ID || import.meta.env.VITE_GOOGLE_CLIENT_ID) && (
 					<>
 						{isEmailPasswordEnabled && (
 							<div className="relative my-4">
@@ -321,7 +323,9 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 						)}
 
 						<div className="flex flex-col gap-2">
-							{supportsPasskey && (
+							{/* Passkey support disabled due to Cloudflare Workers CPU limits */}
+							{/* TODO: Re-enable when upgrading to Workers Paid plan */}
+							{/* {supportsPasskey && (
 								<Button
 									variant="outline"
 									className="w-full"
@@ -332,7 +336,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 									<HugeiconsIcon icon={Key01Icon} className="mr-2 h-4 w-4" />
 									{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
 								</Button>
-							)}
+							)} */}
 							{import.meta.env.VITE_GITHUB_CLIENT_ID && (
 								<Button
 									variant="outline"
