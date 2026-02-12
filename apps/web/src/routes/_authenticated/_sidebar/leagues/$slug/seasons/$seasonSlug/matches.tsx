@@ -15,6 +15,7 @@ import { RemoveMatchDialog } from "@/components/match/remove-match-dialog";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
+import { queryClient } from "@/lib/query-client";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
@@ -26,7 +27,12 @@ export const Route = createFileRoute(
 	component: MatchesPage,
 	validateSearch: matchesSearchSchema,
 	loader: async ({ params }) => {
-		return { slug: params.slug, seasonSlug: params.seasonSlug };
+		const { seasonSlug } = params;
+		await queryClient.ensureQueryData({
+			queryKey: ["season", seasonSlug],
+			queryFn: () => trpcClient.season.getBySlug.query({ seasonSlug }),
+		});
+		return { slug: params.slug, seasonSlug };
 	},
 });
 
