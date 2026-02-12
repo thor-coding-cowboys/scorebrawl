@@ -30,12 +30,20 @@ export type StandingTeam = z.infer<typeof standingTeamSchema>;
 export function useTeamStandings(seasonSlug: string) {
 	const trpc = useTRPC();
 
-	const { data: teamStandings = [], isLoading } = useQuery(
-		trpc.seasonTeam.getStanding.queryOptions({ seasonSlug })
-	);
+	const {
+		data: teamStandings = [],
+		isLoading,
+		error,
+	} = useQuery(trpc.seasonTeam.getStanding.queryOptions({ seasonSlug }));
+
+	// Log error for debugging
+	if (error) {
+		console.error("Team standings error:", error);
+	}
 
 	return {
 		teamStandings,
 		isLoading,
+		error,
 	};
 }

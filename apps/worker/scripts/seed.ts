@@ -46,8 +46,8 @@ const SEED_SEASON = {
 	kFactor: 32,
 };
 
-const DEFAULT_MEMBER_COUNT = 10;
-const DEFAULT_MATCH_COUNT = 20;
+const DEFAULT_MEMBER_COUNT = 20;
+const DEFAULT_MATCH_COUNT = 100;
 
 // CLI colors
 const green = (text: string) => `\x1b[32m${text}\x1b[0m`;
@@ -346,6 +346,230 @@ async function getOrCreateTeam({
 	teamScores.set(seasonTeamId, seasonData.initialScore);
 
 	return { seasonTeamId, score: seasonData.initialScore };
+}
+
+// Helper function to create a match with all required data
+async function createMatch({
+	db,
+	matchId,
+	seasonId,
+	homePlayerIds,
+	awayPlayerIds,
+	homeScore,
+	awayScore,
+	seasonData,
+	playerNameMap,
+	playerScores,
+	playerIdMap,
+	teamScores,
+	existingTeams,
+	leagueId,
+	ownerUserId,
+	now,
+	matchIndex,
+	matchCount,
+}: {
+	db: DrizzleDB;
+	matchId: string;
+	seasonId: string;
+	homePlayerIds: string[];
+	awayPlayerIds: string[];
+	homeScore: number;
+	awayScore: number;
+	seasonData: { initialScore: number; scoreType: string; kFactor: number; leagueId: string };
+	playerNameMap: Map<string, string>;
+	playerScores: Map<string, number>;
+	playerIdMap: Map<string, string>;
+	teamScores: Map<string, number>;
+	existingTeams: Array<{ players: string[]; seasonTeamId: string }>;
+	leagueId: string;
+	ownerUserId: string;
+	now: Date;
+	matchIndex: number;
+	matchCount: number;
+}) {
+	// Prepare player data for ELO calculation
+	const homePlayers = homePlayerIds.map((id) => ({
+		id,
+		score: playerScores.get(id) ?? seasonData.initialScore,
+		playerId: playerIdMap.get(id) ?? "",
+		name: playerNameMap.get(playerIdMap.get(id) ?? "") ?? "",
+	}));
+	const awayPlayers = awayPlayerIds.map((id) => ({
+		id,
+		score: playerScores.get(id) ?? seasonData.initialScore,
+		playerId: playerIdMap.get(id) ?? "",
+		name: playerNameMap.get(playerIdMap.get(id) ?? "") ?? "",
+	}));
+
+	// Calculate ELO
+	const eloResult = calculateEloMatch({
+		scoreType: seasonData.scoreType as "elo",
+		kFactor: seasonData.kFactor,
+		homeScore,
+		awayScore,
+		homePlayers: homePlayers.map((p) => ({ id: p.id, score: p.score })),
+		awayPlayers: awayPlayers.map((p) => ({ id: p.id, score: p.score })),
+	});
+
+	const { homeResult, awayResult } = determineMatchResult(homeScore, awayScore);
+
+	// Use past timestamps so new matches created via UI will appear first
+	// Earlier matches are older, later matches are more recent (but still in past)
+	const matchNow = new Date(now.getTime() - (matchCount - matchIndex) * 5 * 60000); // Spread matches 5 minutes apart, going backwards
+
+	await db.insert(match).values({
+		id: matchId,
+		seasonId: seasonId,
+		homeScore,
+		awayScore,
+		homeExpectedElo: eloResult.homeTeam.winningOdds,
+		awayExpectedElo: eloResult.awayTeam.winningOdds,
+		createdBy: ownerUserId,
+		updatedBy: ownerUserId,
+		createdAt: matchNow,
+		updatedAt: matchNow,
+	});
+
+	// Create match players
+	await db.insert(matchPlayer).values([
+		...homePlayerIds.map((id, idx) => {
+			const playerResult = eloResult.homeTeam.players.find((p) => p.id === id);
+			return {
+				id: createId(),
+				matchId,
+				seasonPlayerId: id,
+				homeTeam: true,
+				result: homeResult,
+				scoreBefore: homePlayers[idx].score,
+				scoreAfter: playerResult?.scoreAfter ?? homePlayers[idx].score,
+				createdAt: matchNow,
+				updatedAt: matchNow,
+			};
+		}),
+		...awayPlayerIds.map((id, idx) => {
+			const playerResult = eloResult.awayTeam.players.find((p) => p.id === id);
+			return {
+				id: createId(),
+				matchId,
+				seasonPlayerId: id,
+				homeTeam: false,
+				result: awayResult,
+				scoreBefore: awayPlayers[idx].score,
+				scoreAfter: playerResult?.scoreAfter ?? awayPlayers[idx].score,
+				createdAt: matchNow,
+				updatedAt: matchNow,
+			};
+		}),
+	]);
+
+	// Update tracked player scores
+	for (const playerResult of eloResult.homeTeam.players) {
+		playerScores.set(playerResult.id, playerResult.scoreAfter);
+	}
+	for (const playerResult of eloResult.awayTeam.players) {
+		playerScores.set(playerResult.id, playerResult.scoreAfter);
+	}
+
+	// Handle teams for 2v2 matches
+	// Find or create home team
+	const homeTeamPlayersData = homePlayers.map((p) => ({
+		playerId: p.playerId,
+		name: p.name,
+	}));
+	const homeTeamResult = await getOrCreateTeam({
+		db,
+		leagueId,
+		seasonId,
+		seasonData,
+		players: homeTeamPlayersData,
+		teamScores,
+		now: matchNow,
+	});
+
+	// Find or create away team
+	const awayTeamPlayersData = awayPlayers.map((p) => ({
+		playerId: p.playerId,
+		name: p.name,
+	}));
+	const awayTeamResult = await getOrCreateTeam({
+		db,
+		leagueId,
+		seasonId,
+		seasonData,
+		players: awayTeamPlayersData,
+		teamScores,
+		now: matchNow,
+	});
+
+	// Calculate team ELO
+	const teamEloResult = calculateEloMatch({
+		scoreType: seasonData.scoreType as "elo",
+		kFactor: seasonData.kFactor,
+		homeScore,
+		awayScore,
+		homePlayers: [{ id: homeTeamResult.seasonTeamId, score: homeTeamResult.score }],
+		awayPlayers: [{ id: awayTeamResult.seasonTeamId, score: awayTeamResult.score }],
+	});
+
+	const homeTeamScoreAfter =
+		teamEloResult.homeTeam.players.find((p) => p.id === homeTeamResult.seasonTeamId)?.scoreAfter ??
+		homeTeamResult.score;
+	const awayTeamScoreAfter =
+		teamEloResult.awayTeam.players.find((p) => p.id === awayTeamResult.seasonTeamId)?.scoreAfter ??
+		awayTeamResult.score;
+
+	// Create match teams
+	await db.insert(matchTeam).values([
+		{
+			id: createId(),
+			matchId,
+			seasonTeamId: homeTeamResult.seasonTeamId,
+			scoreBefore: homeTeamResult.score,
+			scoreAfter: homeTeamScoreAfter,
+			result: homeResult,
+			createdAt: matchNow,
+			updatedAt: matchNow,
+		},
+		{
+			id: createId(),
+			matchId,
+			seasonTeamId: awayTeamResult.seasonTeamId,
+			scoreBefore: awayTeamResult.score,
+			scoreAfter: awayTeamScoreAfter,
+			result: awayResult,
+			createdAt: matchNow,
+			updatedAt: matchNow,
+		},
+	]);
+
+	// Update tracked team scores
+	teamScores.set(homeTeamResult.seasonTeamId, homeTeamScoreAfter);
+	teamScores.set(awayTeamResult.seasonTeamId, awayTeamScoreAfter);
+
+	// Track teams for potential rivalries
+	const homeTeamExists = existingTeams.find(
+		(t) =>
+			t.players.length === homePlayerIds.length && t.players.every((p) => homePlayerIds.includes(p))
+	);
+	const awayTeamExists = existingTeams.find(
+		(t) =>
+			t.players.length === awayPlayerIds.length && t.players.every((p) => awayPlayerIds.includes(p))
+	);
+
+	if (!homeTeamExists) {
+		existingTeams.push({
+			players: homePlayerIds,
+			seasonTeamId: homeTeamResult.seasonTeamId,
+		});
+	}
+
+	if (!awayTeamExists) {
+		existingTeams.push({
+			players: awayPlayerIds,
+			seasonTeamId: awayTeamResult.seasonTeamId,
+		});
+	}
 }
 
 async function seedDatabase(
@@ -680,182 +904,106 @@ async function seedDatabase(
 
 				// Track team scores
 				const teamScores = new Map<string, number>();
+				// Track existing teams to create more rivalries
+				const existingTeams: Array<{ players: string[]; seasonTeamId: string }> = [];
 
 				for (let i = 0; i < matchCount; i++) {
-					// Shuffle and pick 4 random players
-					const shuffled = [...allSeasonPlayers].sort(() => Math.random() - 0.5);
-					const selectedPlayers = shuffled.slice(0, 4);
-					const homePlayerIds = [selectedPlayers[0].id, selectedPlayers[1].id];
-					const awayPlayerIds = [selectedPlayers[2].id, selectedPlayers[3].id];
+					let homePlayerIds: string[];
+					let awayPlayerIds: string[];
+
+					// Enhanced rivalry logic: 60% chance to create rivalries after some teams exist
+					if (i > 5 && Math.random() < 0.6 && existingTeams.length >= 2) {
+						// Pick two different existing teams
+						const shuffledTeams = [...existingTeams].sort(() => Math.random() - 0.5);
+						const homeTeam = shuffledTeams[0];
+						const awayTeam = shuffledTeams[1];
+						homePlayerIds = homeTeam.players;
+						awayPlayerIds = awayTeam.players;
+					} else {
+						// Create new random matchup
+						const shuffled = [...allSeasonPlayers].sort(() => Math.random() - 0.5);
+						const selectedPlayers = shuffled.slice(0, 4);
+						homePlayerIds = [selectedPlayers[0].id, selectedPlayers[1].id];
+						awayPlayerIds = [selectedPlayers[2].id, selectedPlayers[3].id];
+					}
 
 					// Generate random scores (0-10 each)
 					const homeScore = randNumber({ min: 0, max: 10 });
 					const awayScore = randNumber({ min: 0, max: 10 });
 
-					// Prepare player data for ELO calculation
-					const homePlayers = homePlayerIds.map((id) => ({
-						id,
-						score: playerScores.get(id) ?? seasonData.initialScore,
-						playerId: playerIdMap.get(id) ?? "",
-						name: playerNameMap.get(playerIdMap.get(id) ?? "") ?? "",
-					}));
-					const awayPlayers = awayPlayerIds.map((id) => ({
-						id,
-						score: playerScores.get(id) ?? seasonData.initialScore,
-						playerId: playerIdMap.get(id) ?? "",
-						name: playerNameMap.get(playerIdMap.get(id) ?? "") ?? "",
-					}));
-
-					// Calculate ELO
-					const eloResult = calculateEloMatch({
-						scoreType: seasonData.scoreType,
-						kFactor: seasonData.kFactor,
-						homeScore,
-						awayScore,
-						homePlayers: homePlayers.map((p) => ({ id: p.id, score: p.score })),
-						awayPlayers: awayPlayers.map((p) => ({ id: p.id, score: p.score })),
-					});
-
-					const { homeResult, awayResult } = determineMatchResult(homeScore, awayScore);
-
-					// Create match
-					const matchId = createId();
-					// Use past timestamps so new matches created via UI will appear first
-					// Earlier matches are older, later matches are more recent (but still in past)
-					const matchNow = new Date(now.getTime() - (matchCount - i) * 5 * 60000); // Spread matches 5 minutes apart, going backwards
-
-					await db.insert(match).values({
-						id: matchId,
-						seasonId: seasonId,
-						homeScore,
-						awayScore,
-						homeExpectedElo: eloResult.homeTeam.winningOdds,
-						awayExpectedElo: eloResult.awayTeam.winningOdds,
-						createdBy: ownerUserId,
-						updatedBy: ownerUserId,
-						createdAt: matchNow,
-						updatedAt: matchNow,
-					});
-
-					// Create match players
-					await db.insert(matchPlayer).values([
-						...homePlayerIds.map((id, idx) => {
-							const playerResult = eloResult.homeTeam.players.find((p) => p.id === id);
-							return {
-								id: createId(),
-								matchId,
-								seasonPlayerId: id,
-								homeTeam: true,
-								result: homeResult,
-								scoreBefore: homePlayers[idx].score,
-								scoreAfter: playerResult?.scoreAfter ?? homePlayers[idx].score,
-								createdAt: matchNow,
-								updatedAt: matchNow,
-							};
-						}),
-						...awayPlayerIds.map((id, idx) => {
-							const playerResult = eloResult.awayTeam.players.find((p) => p.id === id);
-							return {
-								id: createId(),
-								matchId,
-								seasonPlayerId: id,
-								homeTeam: false,
-								result: awayResult,
-								scoreBefore: awayPlayers[idx].score,
-								scoreAfter: playerResult?.scoreAfter ?? awayPlayers[idx].score,
-								createdAt: matchNow,
-								updatedAt: matchNow,
-							};
-						}),
-					]);
-
-					// Update tracked player scores
-					for (const playerResult of eloResult.homeTeam.players) {
-						playerScores.set(playerResult.id, playerResult.scoreAfter);
-					}
-					for (const playerResult of eloResult.awayTeam.players) {
-						playerScores.set(playerResult.id, playerResult.scoreAfter);
-					}
-
-					// Handle teams for 2v2 matches
-					// Find or create home team
-					const homeTeamPlayersData = homePlayers.map((p) => ({
-						playerId: p.playerId,
-						name: p.name,
-					}));
-					const homeTeamResult = await getOrCreateTeam({
+					await createMatch({
 						db,
-						leagueId,
+						matchId: createId(),
 						seasonId,
-						seasonData,
-						players: homeTeamPlayersData,
-						teamScores,
-						now: matchNow,
-					});
-
-					// Find or create away team
-					const awayTeamPlayersData = awayPlayers.map((p) => ({
-						playerId: p.playerId,
-						name: p.name,
-					}));
-					const awayTeamResult = await getOrCreateTeam({
-						db,
-						leagueId,
-						seasonId,
-						seasonData,
-						players: awayTeamPlayersData,
-						teamScores,
-						now: matchNow,
-					});
-
-					// Calculate team ELO
-					const teamEloResult = calculateEloMatch({
-						scoreType: seasonData.scoreType,
-						kFactor: seasonData.kFactor,
+						homePlayerIds,
+						awayPlayerIds,
 						homeScore,
 						awayScore,
-						homePlayers: [{ id: homeTeamResult.seasonTeamId, score: homeTeamResult.score }],
-						awayPlayers: [{ id: awayTeamResult.seasonTeamId, score: awayTeamResult.score }],
+						seasonData,
+						playerNameMap,
+						playerScores,
+						playerIdMap,
+						teamScores,
+						existingTeams,
+						leagueId,
+						ownerUserId,
+						now,
+						matchIndex: i,
+						matchCount,
 					});
-
-					const homeTeamScoreAfter =
-						teamEloResult.homeTeam.players.find((p) => p.id === homeTeamResult.seasonTeamId)
-							?.scoreAfter ?? homeTeamResult.score;
-					const awayTeamScoreAfter =
-						teamEloResult.awayTeam.players.find((p) => p.id === awayTeamResult.seasonTeamId)
-							?.scoreAfter ?? awayTeamResult.score;
-
-					// Create match teams
-					await db.insert(matchTeam).values([
-						{
-							id: createId(),
-							matchId,
-							seasonTeamId: homeTeamResult.seasonTeamId,
-							scoreBefore: homeTeamResult.score,
-							scoreAfter: homeTeamScoreAfter,
-							result: homeResult,
-							createdAt: matchNow,
-							updatedAt: matchNow,
-						},
-						{
-							id: createId(),
-							matchId,
-							seasonTeamId: awayTeamResult.seasonTeamId,
-							scoreBefore: awayTeamResult.score,
-							scoreAfter: awayTeamScoreAfter,
-							result: awayResult,
-							createdAt: matchNow,
-							updatedAt: matchNow,
-						},
-					]);
-
-					// Update tracked team scores
-					teamScores.set(homeTeamResult.seasonTeamId, homeTeamScoreAfter);
-					teamScores.set(awayTeamResult.seasonTeamId, awayTeamScoreAfter);
 
 					matchesCreated++;
 					if ((i + 1) % 10 === 0 || i + 1 === matchCount) {
 						console.log(green(`  ✓ Matches created: ${i + 1}/${matchCount}`));
+					}
+				}
+
+				// Create additional rivalry matches to ensure multiple matchups between teams
+				if (existingTeams.length >= 4) {
+					console.log(cyan("\nCreating additional rivalry matches..."));
+					const rivalryMatchCount = Math.min(20, Math.floor(existingTeams.length / 2));
+
+					for (let i = 0; i < rivalryMatchCount; i++) {
+						// Pick two different teams that haven't played much
+						const shuffledTeams = [...existingTeams].sort(() => Math.random() - 0.5);
+						const homeTeam = shuffledTeams[i % shuffledTeams.length];
+						const awayTeam = shuffledTeams[(i + 1) % shuffledTeams.length];
+
+						// Skip if it's the same team
+						if (homeTeam.seasonTeamId === awayTeam.seasonTeamId) continue;
+
+						const homePlayerIds = homeTeam.players;
+						const awayPlayerIds = awayTeam.players;
+
+						// Generate random scores (0-10 each)
+						const homeScore = randNumber({ min: 0, max: 10 });
+						const awayScore = randNumber({ min: 0, max: 10 });
+
+						await createMatch({
+							db,
+							matchId: createId(),
+							seasonId,
+							homePlayerIds,
+							awayPlayerIds,
+							homeScore,
+							awayScore,
+							seasonData,
+							playerNameMap,
+							playerScores,
+							playerIdMap,
+							teamScores,
+							existingTeams,
+							leagueId,
+							ownerUserId,
+							now,
+							matchIndex: matchCount + i,
+							matchCount: matchCount + rivalryMatchCount,
+						});
+
+						matchesCreated++;
+						if ((i + 1) % 5 === 0 || i + 1 === rivalryMatchCount) {
+							console.log(green(`  ✓ Rivalry matches created: ${i + 1}/${rivalryMatchCount}`));
+						}
 					}
 				}
 

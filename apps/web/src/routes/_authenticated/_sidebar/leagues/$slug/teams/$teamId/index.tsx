@@ -104,9 +104,19 @@ function TeamProfilePage() {
 		trpc.leagueTeam.getRecentMatches.queryOptions({ teamId, limit: 10 })
 	);
 
-	const { data: rivalTeams, isLoading: rivalsLoading } = useQuery(
-		trpc.leagueTeam.getRivalTeams.queryOptions({ teamId })
-	);
+	const {
+		data: rivalTeams,
+		isLoading: rivalsLoading,
+		error: rivalsError,
+	} = useQuery({
+		...trpc.leagueTeam.getRivalTeams.queryOptions({
+			teamId,
+		}),
+		enabled: !!teamId && !!team,
+		retry: 2,
+		retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
+		staleTime: 5 * 60 * 1000, // 5 minutes
+	});
 
 	if (teamError) {
 		return (
@@ -198,7 +208,7 @@ function TeamProfilePage() {
 										<div className="flex -space-x-2">
 											{Array.from({ length: 3 }).map((_, i) => (
 												<Skeleton
-													key={i}
+													key={`avatar-skeleton-${i}`}
 													className="h-10 w-10 rounded-full border-2 border-background"
 												/>
 											))}
@@ -464,6 +474,13 @@ function TeamProfilePage() {
 										<Skeleton className="h-3 w-28" />
 									</div>
 								</div>
+							) : rivalsError ? (
+								<div className="text-center text-red-500 py-8">
+									<p className="font-medium">Error loading rival data</p>
+									<p className="text-sm text-muted-foreground mt-1">
+										{rivalsError.message || "Please try refreshing the page"}
+									</p>
+								</div>
 							) : rivalTeams?.bestRival ? (
 								<>
 									<div className="flex items-center gap-3">
@@ -528,6 +545,13 @@ function TeamProfilePage() {
 										<Skeleton className="h-3 w-28" />
 									</div>
 								</div>
+							) : rivalsError ? (
+								<div className="text-center text-red-500 py-8">
+									<p className="font-medium">Error loading rival data</p>
+									<p className="text-sm text-muted-foreground mt-1">
+										{rivalsError.message || "Please try refreshing the page"}
+									</p>
+								</div>
 							) : rivalTeams?.worstRival ? (
 								<>
 									<div className="flex items-center gap-3">
@@ -585,7 +609,10 @@ function TeamProfilePage() {
 						{playersLoading ? (
 							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
 								{Array.from({ length: 4 }).map((_, i) => (
-									<div key={i} className="flex flex-col items-center space-y-2">
+									<div
+										key={`player-skeleton-${i}`}
+										className="flex flex-col items-center space-y-2"
+									>
 										<Skeleton className="w-16 h-16 rounded-full" />
 										<Skeleton className="h-4 w-20" />
 									</div>

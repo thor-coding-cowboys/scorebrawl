@@ -58,12 +58,34 @@ export function TeamStanding({
 	maxRows,
 	currentPage: controlledPage,
 }: TeamStandingProps) {
-	const { teamStandings } = useTeamStandings(seasonSlug);
+	const { teamStandings, isLoading, error } = useTeamStandings(seasonSlug);
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
 	const leagueSlug = params.slug as string | undefined;
 	const [internalPage] = useState(0);
 	const currentPage = controlledPage ?? internalPage;
+
+	if (error) {
+		return (
+			<div
+				className="flex items-center justify-center h-40 text-destructive"
+				data-testid="team-standings-error"
+			>
+				Error loading team standings: {error.message}
+			</div>
+		);
+	}
+
+	if (isLoading) {
+		return (
+			<div
+				className="flex items-center justify-center h-40 text-muted-foreground"
+				data-testid="team-standings-loading"
+			>
+				Loading team standings...
+			</div>
+		);
+	}
 
 	if (teamStandings.length === 0) {
 		return (

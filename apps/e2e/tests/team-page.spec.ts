@@ -53,9 +53,12 @@ test.describe("Team Page", () => {
 		// Verify the team detail page rendered with the team name in header
 		await expect(page.getByRole("heading", { name: teamName || "" })).toBeVisible();
 
-		// Verify team stats cards are visible
+		// Verify team stats cards are visible using more specific selectors
 		await expect(page.getByText("Current Score")).toBeVisible();
-		await expect(page.getByText("Win Rate", { exact: true })).toBeVisible();
+		// Target the Win Rate card specifically by looking for CardTitle within the stats grid
+		await expect(
+			page.locator(".grid").getByText("Win Rate", { exact: true }).first()
+		).toBeVisible();
 		await expect(page.getByText("Total Matches")).toBeVisible();
 		await expect(page.getByText("Best Season")).toBeVisible();
 
@@ -74,8 +77,10 @@ test.describe("Team Page", () => {
 		// Navigate to the season dashboard where team standings are shown
 		await page.goto(`/leagues/${SEED_LEAGUE.slug}`);
 
-		// Wait for the page to load
-		await expect(page.getByText("Team Standings")).toBeVisible();
+		// Wait for the page to load - use more specific selector for the card title
+		await expect(
+			page.locator('div[data-slot="card-title"]', { hasText: "Team Standings" }).first()
+		).toBeVisible();
 
 		// Wait for team standings table to be visible
 		await expect(page.getByTestId("team-standings-table")).toBeVisible();
@@ -99,9 +104,12 @@ test.describe("Team Page", () => {
 		// Verify the team detail page rendered with the team name in header
 		await expect(page.getByRole("heading", { name: teamName || "" })).toBeVisible();
 
-		// Verify team stats cards are visible
+		// Verify team stats cards are visible using more specific selectors
 		await expect(page.getByText("Current Score")).toBeVisible();
-		await expect(page.getByText("Win Rate", { exact: true })).toBeVisible();
+		// Target the Win Rate card specifically by looking for CardTitle within the stats grid
+		await expect(
+			page.locator(".grid").getByText("Win Rate", { exact: true }).first()
+		).toBeVisible();
 		await expect(page.getByText("Total Matches")).toBeVisible();
 		await expect(page.getByText("Best Season")).toBeVisible();
 	});

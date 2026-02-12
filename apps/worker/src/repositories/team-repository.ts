@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
@@ -294,69 +294,59 @@ export const getRivalTeams = async ({
 	db: DrizzleDB;
 	teamId: string;
 }): Promise<{ bestRival: RivalTeam | null; worstRival: RivalTeam | null }> => {
-	// Single query to get all match results with opponent details using self-join
-	const rivalMatchData = await db
+	// Use a single, optimized query to get rival statistics
+	// This counts matches grouped by opponent team
+	const rivalStats = await db
 		.select({
-			ourResult: matchTeam.result,
-			opponentTeamId: seasonTeam.leagueTeamId,
-			opponentName: leagueTeam.name,
-			opponentLogo: leagueTeam.logo,
+			opponentTeamId: sql<string>`opponent_league_team.id`,
+			opponentName: sql<string>`opponent_league_team.name`,
+			opponentLogo: sql<string>`opponent_league_team.logo`,
+			totalMatches: sql<number>`COUNT(*)`,
+			wins: sql<number>`SUM(CASE WHEN our_match.result = 'W' THEN 1 ELSE 0 END)`,
+			losses: sql<number>`SUM(CASE WHEN our_match.result = 'L' THEN 1 ELSE 0 END)`,
 		})
-		.from(matchTeam)
-		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.from(sql`match_team our_match`)
+		.innerJoin(sql`season_team our_season_team`, sql`our_match.season_team_id = our_season_team.id`)
 		.innerJoin(
-			// Self-join to find our team's entries in the same matches
-			sql`${matchTeam} as our_team`,
-			sql`our_team.${matchTeam.matchId.name} = ${matchTeam.matchId} AND our_team.${matchTeam.seasonTeamId.name} != ${matchTeam.seasonTeamId}`
+			sql`match_team opponent_match`,
+			sql`our_match.match_id = opponent_match.match_id AND our_match.season_team_id != opponent_match.season_team_id`
 		)
 		.innerJoin(
-			sql`${seasonTeam} as our_season_team`,
-			sql`our_season_team.${seasonTeam.id.name} = our_team.${matchTeam.seasonTeamId.name} AND our_season_team.${seasonTeam.leagueTeamId.name} = ${teamId}`
+			sql`season_team opponent_season_team`,
+			sql`opponent_match.season_team_id = opponent_season_team.id`
 		)
-		.where(ne(seasonTeam.leagueTeamId, teamId));
+		.innerJoin(
+			sql`league_team opponent_league_team`,
+			sql`opponent_season_team.league_team_id = opponent_league_team.id`
+		)
+		.where(sql`our_season_team.league_team_id = ${teamId}`)
+		.groupBy(sql`opponent_league_team.id, opponent_league_team.name, opponent_league_team.logo`)
+		.having(sql`COUNT(*) >= 2`) // Only teams with 2+ matches
+		.orderBy(sql`COUNT(*) DESC`) // Order by most matches first
+		.limit(20); // Limit to top 20 to prevent excessive processing
 
-	if (rivalMatchData.length === 0) {
+	if (rivalStats.length === 0) {
 		return { bestRival: null, worstRival: null };
 	}
 
-	// Aggregate stats per opponent
-	const rivalMap = new Map<string, RivalTeam>();
+	// Convert to RivalTeam objects and calculate win rates
+	const rivals: RivalTeam[] = rivalStats.map((stat) => {
+		const wins = Number(stat.wins) || 0;
+		const losses = Number(stat.losses) || 0;
+		const totalMatches = Number(stat.totalMatches) || 0;
 
-	for (const match of rivalMatchData) {
-		const existing = rivalMap.get(match.opponentTeamId);
-		const isWin = match.ourResult === "W";
-		const isLoss = match.ourResult === "L";
+		return {
+			id: stat.opponentTeamId,
+			name: stat.opponentName,
+			logo: stat.opponentLogo,
+			matchesPlayed: totalMatches,
+			wins,
+			losses,
+			winRate: totalMatches > 0 ? Math.round((wins / totalMatches) * 1000) / 10 : 0,
+		};
+	});
 
-		if (existing) {
-			existing.matchesPlayed++;
-			if (isWin) existing.wins++;
-			if (isLoss) existing.losses++;
-		} else {
-			rivalMap.set(match.opponentTeamId, {
-				id: match.opponentTeamId,
-				name: match.opponentName,
-				logo: match.opponentLogo,
-				matchesPlayed: 1,
-				wins: isWin ? 1 : 0,
-				losses: isLoss ? 1 : 0,
-				winRate: 0,
-			});
-		}
-	}
-
-	// Calculate win rates and filter to rivals with at least 10 matches
-	const rivals: RivalTeam[] = Array.from(rivalMap.values())
-		.filter((r) => r.matchesPlayed >= 10)
-		.map((r) => ({
-			...r,
-			winRate: Math.round((r.wins / r.matchesPlayed) * 1000) / 10,
-		}));
-
-	if (rivals.length === 0) {
-		return { bestRival: null, worstRival: null };
-	}
-
+	// Find best and worst rivals
 	const bestRival = rivals.reduce((best, current) =>
 		current.winRate > best.winRate ? current : best
 	);

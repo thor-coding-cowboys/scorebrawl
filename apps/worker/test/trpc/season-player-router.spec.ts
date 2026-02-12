@@ -1,15 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
 
 describe("season-player router", () => {
-	// Tests use individual auth contexts for better isolation
+	let ctx: Awaited<ReturnType<typeof createAuthContext>>;
+	let client: ReturnType<typeof createTRPCTestClient>;
+
+	// Create fresh context for each test to ensure proper isolation
+	beforeEach(async () => {
+		ctx = await createAuthContext();
+		client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+	});
 
 	it("calculates correct +/- values for today's matches", async () => {
-		const ctx = await createAuthContext();
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
 		// Create players and season
 		await createPlayers(ctx, 4);
 		const season = await client.season.create.mutate({
@@ -88,9 +92,6 @@ describe("season-player router", () => {
 	});
 
 	it("shows cumulative +/- values for multiple matches on same day", async () => {
-		const ctx = await createAuthContext();
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
 		// Create players and season
 		await createPlayers(ctx, 4);
 		const season = await client.season.create.mutate({
@@ -106,7 +107,7 @@ describe("season-player router", () => {
 		});
 
 		// Create first match - Player 0 & 1 win against Player 2 & 3
-		await client.match.create.mutate({
+		const match1 = await client.match.create.mutate({
 			seasonSlug: season.slug,
 			homeScore: 3,
 			awayScore: 0,
@@ -114,14 +115,19 @@ describe("season-player router", () => {
 			awayTeamPlayerIds: [initialStandings[2].id, initialStandings[3].id],
 		});
 
+		// Ensure first match is fully processed
+		expect(match1.id).toBeDefined();
+
 		// Create second match - Player 0 & 2 win against Player 1 & 3
-		await client.match.create.mutate({
+		const match2 = await client.match.create.mutate({
 			seasonSlug: season.slug,
 			homeScore: 2,
 			awayScore: 1,
 			homeTeamPlayerIds: [initialStandings[0].id, initialStandings[2].id],
 			awayTeamPlayerIds: [initialStandings[1].id, initialStandings[3].id],
 		});
+
+		expect(match2.id).toBeDefined();
 
 		const finalStandings = await client.seasonPlayer.getStanding.query({
 			seasonSlug: season.slug,
@@ -144,9 +150,6 @@ describe("season-player router", () => {
 	});
 
 	it("shows zero +/- values when no matches played today", async () => {
-		const ctx = await createAuthContext();
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
 		// Create players and season
 		await createPlayers(ctx, 2);
 		const season = await client.season.create.mutate({
@@ -169,9 +172,6 @@ describe("season-player router", () => {
 	});
 
 	it("returns form data showing recent match results", async () => {
-		const ctx = await createAuthContext();
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
 		// Create players and season
 		await createPlayers(ctx, 4);
 		const season = await client.season.create.mutate({
@@ -217,9 +217,6 @@ describe("season-player router", () => {
 	});
 
 	it("gets all season players", async () => {
-		const ctx = await createAuthContext();
-		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
-
 		// Create players and season
 		await createPlayers(ctx, 3);
 		const season = await client.season.create.mutate({

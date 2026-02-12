@@ -102,7 +102,7 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		{} as Record<string, ("W" | "D" | "L")[]>
 	);
 
-	// Get players for each team
+	// Get players for each team using JOIN instead of IN clause to avoid parameter limits
 	const teamPlayers = await db
 		.select({
 			leagueTeamId: leagueTeamPlayer.leagueTeamId,
@@ -113,12 +113,9 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		.from(leagueTeamPlayer)
 		.innerJoin(player, eq(leagueTeamPlayer.playerId, player.id))
 		.innerJoin(user, eq(player.userId, user.id))
-		.where(
-			sql`${leagueTeamPlayer.leagueTeamId} in (${sql.join(
-				results.map((r) => sql`${r.leagueTeamId}`),
-				sql`, `
-			)})`
-		);
+		.innerJoin(leagueTeam, eq(leagueTeamPlayer.leagueTeamId, leagueTeam.id))
+		.innerJoin(seasonTeam, eq(leagueTeam.id, seasonTeam.leagueTeamId))
+		.where(eq(seasonTeam.seasonId, seasonId));
 
 	const playersMap = teamPlayers.reduce(
 		(acc, tp) => {
