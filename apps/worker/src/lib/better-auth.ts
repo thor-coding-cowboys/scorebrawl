@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { organization, apiKey } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
@@ -44,6 +44,7 @@ export function createAuth({
 	googleClientSecret,
 	origin,
 	resendApiKey,
+	isProduction,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -53,6 +54,7 @@ export function createAuth({
 	googleClientSecret?: string;
 	origin?: string;
 	resendApiKey?: string;
+	isProduction?: boolean;
 }) {
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
@@ -214,6 +216,10 @@ export function createAuth({
 				rpID,
 				rpName: "Scorebrawl",
 				origin: passkeyOrigin,
+			}),
+			apiKey({
+				defaultPrefix: isProduction ? "sb_live" : "sb_dev",
+				enableMetadata: true,
 			}),
 		],
 	});
