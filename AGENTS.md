@@ -29,6 +29,21 @@ Always use **catalog** for workspace dependencies. Define versions in root `pack
 const userId = ctx.authentication.user.id;
 ```
 
+### Query Performance
+
+**Never N+1 queries** - Cloudflare Workers have strict CPU limits. Querying inside loops causes `Worker exceeded CPU time limit` errors.
+
+```typescript
+// BAD - N queries
+const items = await db.select().from(x).where(...);
+await Promise.all(items.map(i => db.select().from(y).where(...)));
+
+// GOOD - 1 query with join
+const data = await db.select({...}).from(x).leftJoin(y, ...);
+```
+
+Always use joins/subqueries. Fetch related data in single round-trip.
+
 ## Hono Route Validation
 
 Always validate headers, payload (body), and search params in Hono routes using **@hono/zod-validator**:
