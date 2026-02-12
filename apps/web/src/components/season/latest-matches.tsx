@@ -93,12 +93,33 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 	);
 }
 
+interface MatchTeam {
+	name: string | null;
+	logo: string | null;
+	players: {
+		id: string;
+		seasonPlayerId: string;
+		result: "W" | "D" | "L";
+		scoreBefore: number;
+		scoreAfter: number;
+		name: string;
+		image: string | null;
+	}[];
+}
+
 function MatchTable({
 	matches,
 	seasonSlug,
 	seasonId,
 }: {
-	matches: { id: string; homeScore: number; awayScore: number; createdAt: Date }[];
+	matches: {
+		id: string;
+		homeScore: number;
+		awayScore: number;
+		createdAt: Date;
+		homeTeam: MatchTeam;
+		awayTeam: MatchTeam;
+	}[];
 	seasonSlug: string;
 	seasonId: string;
 }) {

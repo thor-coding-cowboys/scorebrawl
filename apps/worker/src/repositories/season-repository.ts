@@ -344,8 +344,20 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 
 export const findFixtures = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	return db
-		.select()
+		.select({
+			id: fixture.id,
+			round: fixture.round,
+			seasonId: fixture.seasonId,
+			matchId: fixture.matchId,
+			homePlayerId: fixture.homePlayerId,
+			awayPlayerId: fixture.awayPlayerId,
+			createdAt: fixture.createdAt,
+			updatedAt: fixture.updatedAt,
+			homeScore: match.homeScore,
+			awayScore: match.awayScore,
+		})
 		.from(fixture)
+		.leftJoin(match, eq(fixture.matchId, match.id))
 		.where(eq(fixture.seasonId, seasonId))
 		.orderBy(asc(fixture.round), asc(fixture.createdAt), asc(fixture.homePlayerId));
 };

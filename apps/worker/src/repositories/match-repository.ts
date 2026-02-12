@@ -510,13 +510,131 @@ export const getBySeasonId = async ({
 	limit: number;
 	offset: number;
 }) => {
-	const matches = await db
-		.select()
+	// Get matches with pagination
+	const matchRows = await db
+		.select({
+			id: match.id,
+			seasonId: match.seasonId,
+			homeScore: match.homeScore,
+			awayScore: match.awayScore,
+			createdAt: match.createdAt,
+		})
 		.from(match)
 		.where(eq(match.seasonId, seasonId))
 		.orderBy(desc(match.createdAt))
 		.limit(limit)
 		.offset(offset);
+
+	if (matchRows.length === 0) {
+		const [countResult] = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(match)
+			.where(eq(match.seasonId, seasonId));
+		return { matches: [], total: countResult?.count || 0 };
+	}
+
+	const matchIds = matchRows.map((m) => m.id);
+
+	// Get all players for these matches in one query
+	const playerRows = await db
+		.select({
+			matchId: matchPlayer.matchId,
+			playerId: matchPlayer.id,
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			homeTeam: matchPlayer.homeTeam,
+			result: matchPlayer.result,
+			scoreBefore: matchPlayer.scoreBefore,
+			scoreAfter: matchPlayer.scoreAfter,
+			playerName: user.name,
+			playerImage: user.image,
+		})
+		.from(matchPlayer)
+		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+		.innerJoin(user, eq(player.userId, user.id))
+		.where(inArray(matchPlayer.matchId, matchIds));
+
+	// Get all teams for these matches in one query
+	const teamRows = await db
+		.select({
+			matchId: matchTeam.matchId,
+			seasonTeamId: matchTeam.seasonTeamId,
+			result: matchTeam.result,
+			teamName: leagueTeam.name,
+			teamLogo: leagueTeam.logo,
+		})
+		.from(matchTeam)
+		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.where(inArray(matchTeam.matchId, matchIds));
+
+	// Group players by match
+	const playersByMatch = new Map<string, typeof playerRows>();
+	for (const row of playerRows) {
+		const existing = playersByMatch.get(row.matchId) || [];
+		existing.push(row);
+		playersByMatch.set(row.matchId, existing);
+	}
+
+	// Group teams by match
+	const teamsByMatch = new Map<string, typeof teamRows>();
+	for (const row of teamRows) {
+		const existing = teamsByMatch.get(row.matchId) || [];
+		existing.push(row);
+		teamsByMatch.set(row.matchId, existing);
+	}
+
+	// Build final response
+	const matches = matchRows.map((m) => {
+		const players = playersByMatch.get(m.id) || [];
+		const teams = teamsByMatch.get(m.id) || [];
+
+		const homePlayers = players.filter((p) => p.homeTeam);
+		const awayPlayers = players.filter((p) => !p.homeTeam);
+
+		// Determine home/away teams based on result and score
+		const homeTeamData =
+			m.homeScore > m.awayScore
+				? teams.find((t) => t.result === "W")
+				: m.homeScore < m.awayScore
+					? teams.find((t) => t.result === "L")
+					: teams[0];
+		const awayTeamData = teams.find((t) => t.seasonTeamId !== homeTeamData?.seasonTeamId);
+
+		return {
+			id: m.id,
+			seasonId: m.seasonId,
+			homeScore: m.homeScore,
+			awayScore: m.awayScore,
+			createdAt: m.createdAt,
+			homeTeam: {
+				name: homeTeamData?.teamName ?? null,
+				logo: homeTeamData?.teamLogo ?? null,
+				players: homePlayers.map((p) => ({
+					id: p.playerId,
+					seasonPlayerId: p.seasonPlayerId,
+					result: p.result as "W" | "L" | "D",
+					scoreBefore: p.scoreBefore,
+					scoreAfter: p.scoreAfter,
+					name: p.playerName,
+					image: p.playerImage,
+				})),
+			},
+			awayTeam: {
+				name: awayTeamData?.teamName ?? null,
+				logo: awayTeamData?.teamLogo ?? null,
+				players: awayPlayers.map((p) => ({
+					id: p.playerId,
+					seasonPlayerId: p.seasonPlayerId,
+					result: p.result as "W" | "L" | "D",
+					scoreBefore: p.scoreBefore,
+					scoreAfter: p.scoreAfter,
+					name: p.playerName,
+					image: p.playerImage,
+				})),
+			},
+		};
+	});
 
 	const [countResult] = await db
 		.select({ count: sql<number>`count(*)` })

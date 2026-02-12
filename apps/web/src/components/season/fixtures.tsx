@@ -73,19 +73,6 @@ const FixtureRow = ({ fixture, seasonSlug }: { fixture: Fixture; seasonSlug: str
 	const [homeScore, setHomeScore] = useState<number | null>(null);
 	const [awayScore, setAwayScore] = useState<number | null>(null);
 
-	const { data: matchData } = useQuery({
-		queryKey: ["match", "byId", fixture.matchId, seasonSlug],
-		queryFn: async () => {
-			if (!fixture.matchId) return null;
-			return await trpcClient.match.getById.query({
-				seasonSlug,
-				matchId: fixture.matchId,
-			});
-		},
-		enabled: !!fixture.matchId,
-		staleTime: 0,
-	});
-
 	const { mutate: createFromFixture } = useMutation({
 		mutationFn: async (data: {
 			seasonSlug: string;
@@ -95,7 +82,7 @@ const FixtureRow = ({ fixture, seasonSlug }: { fixture: Fixture; seasonSlug: str
 		}) => {
 			return await trpcClient.match.createFromFixture.mutate(data);
 		},
-		onSuccess: async (result) => {
+		onSuccess: async () => {
 			await queryClient.invalidateQueries({
 				queryKey: trpc.season.getFixtures.queryKey({ seasonSlug }),
 			});
@@ -108,9 +95,6 @@ const FixtureRow = ({ fixture, seasonSlug }: { fixture: Fixture; seasonSlug: str
 			await queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
 			});
-			if (result?.id) {
-				await queryClient.invalidateQueries({ queryKey: ["match", "byId", result.id] });
-			}
 			setIsSubmitting(false);
 			setAwayScore(null);
 			setHomeScore(null);
@@ -135,8 +119,8 @@ const FixtureRow = ({ fixture, seasonSlug }: { fixture: Fixture; seasonSlug: str
 		image: fixture.awayPlayerImage ?? null,
 	};
 
-	const displayHomeScore = matchData?.homeScore ?? homeScore;
-	const displayAwayScore = matchData?.awayScore ?? awayScore;
+	const displayHomeScore = fixture.homeScore ?? homeScore;
+	const displayAwayScore = fixture.awayScore ?? awayScore;
 	const hasScores = displayHomeScore !== null && displayAwayScore !== null;
 	const homeWinner = hasScores && (displayHomeScore ?? 0) > (displayAwayScore ?? 0);
 	const awayWinner = hasScores && (displayAwayScore ?? 0) > (displayHomeScore ?? 0);

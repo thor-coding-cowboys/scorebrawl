@@ -46,7 +46,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
 }
 
 interface TeamStandingProps {
-	seasonId: string;
 	seasonSlug: string;
 	maxRows?: number;
 	currentPage?: number;
@@ -54,12 +53,11 @@ interface TeamStandingProps {
 }
 
 export function TeamStanding({
-	seasonId,
 	seasonSlug,
 	maxRows,
 	currentPage: controlledPage,
 }: TeamStandingProps) {
-	const { teamStandings } = useTeamStandings(seasonId, seasonSlug);
+	const { teamStandings } = useTeamStandings(seasonSlug);
 	const [internalPage] = useState(0);
 	const currentPage = controlledPage ?? internalPage;
 
