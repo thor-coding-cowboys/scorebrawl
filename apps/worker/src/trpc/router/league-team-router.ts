@@ -11,6 +11,7 @@ import {
 	MAX_AVATAR_SIZE,
 } from "../../lib/asset-util";
 import { activeOrgProcedure, leagueProcedure, type LeagueContext } from "../trpc";
+import * as teamRepository from "../../repositories/team-repository";
 
 /**
  * Base64 regex pattern - validates base64 data URL format
@@ -414,5 +415,157 @@ export const leagueTeamRouter = {
 				.where(and(eq(leagueTeam.id, teamId), eq(leagueTeam.leagueId, organizationId)));
 
 			return { success: true };
+		}),
+
+	// Team profile endpoints
+	getById: leagueProcedure.input(z.object({ teamId: z.string() })).query(async ({ input, ctx }) => {
+		const team = await teamRepository.getById({
+			db: ctx.db,
+			teamId: input.teamId,
+			organizationId: ctx.organizationId,
+		});
+
+		if (!team) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Team not found",
+			});
+		}
+
+		return team;
+	}),
+
+	getPlayers: leagueProcedure
+		.input(z.object({ teamId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			// First verify team belongs to this organization
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getTeamPlayersWithDetails({
+				db: ctx.db,
+				teamId: input.teamId,
+			});
+		}),
+
+	getAllTimeStats: leagueProcedure
+		.input(z.object({ teamId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getAllTimeStats({
+				db: ctx.db,
+				teamId: input.teamId,
+			});
+		}),
+
+	getBestSeason: leagueProcedure
+		.input(z.object({ teamId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getBestSeason({
+				db: ctx.db,
+				teamId: input.teamId,
+			});
+		}),
+
+	getSeasonHistory: leagueProcedure
+		.input(z.object({ teamId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getSeasonHistory({
+				db: ctx.db,
+				teamId: input.teamId,
+			});
+		}),
+
+	getRecentMatches: leagueProcedure
+		.input(z.object({ teamId: z.string(), limit: z.number().default(10) }))
+		.query(async ({ input, ctx }) => {
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getRecentMatches({
+				db: ctx.db,
+				teamId: input.teamId,
+				limit: input.limit,
+			});
+		}),
+
+	getRivalTeams: leagueProcedure
+		.input(z.object({ teamId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const team = await teamRepository.getById({
+				db: ctx.db,
+				teamId: input.teamId,
+				organizationId: ctx.organizationId,
+			});
+
+			if (!team) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found",
+				});
+			}
+
+			return teamRepository.getRivalTeams({
+				db: ctx.db,
+				teamId: input.teamId,
+			});
 		}),
 } satisfies TRPCRouterRecord;
