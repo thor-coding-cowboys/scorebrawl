@@ -147,3 +147,37 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		players: playersMap[r.leagueTeamId] || [],
 	}));
 };
+
+export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	// Get stats for the last 7 days excluding today
+	const weeklyTeamStats = await db.all<{
+		seasonTeamId: string;
+		teamName: string;
+		teamLogo: string | null;
+		matchCount: number;
+		winCount: number;
+		lossCount: number;
+		drawCount: number;
+		pointChange: number;
+	}>(sql`
+		SELECT 
+			mt.season_team_id as seasonTeamId,
+			lt.name as teamName,
+			lt.logo as teamLogo,
+			COUNT(*) as matchCount,
+			SUM(CASE WHEN mt.result = 'W' THEN 1 ELSE 0 END) as winCount,
+			SUM(CASE WHEN mt.result = 'L' THEN 1 ELSE 0 END) as lossCount,
+			SUM(CASE WHEN mt.result = 'D' THEN 1 ELSE 0 END) as drawCount,
+			SUM(mt.score_after - mt.score_before) as pointChange
+		FROM match_team mt
+		INNER JOIN season_team st ON mt.season_team_id = st.id
+		INNER JOIN league_team lt ON st.league_team_id = lt.id
+		WHERE st.season_id = ${seasonId}
+		AND date(datetime(mt.created_at, 'unixepoch')) >= date('now', '-7 days')
+		AND date(datetime(mt.created_at, 'unixepoch')) <= date('now', '-1 day')
+		GROUP BY mt.season_team_id, lt.name, lt.logo
+		HAVING COUNT(*) > 0
+	`);
+
+	return weeklyTeamStats;
+};

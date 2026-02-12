@@ -14,6 +14,7 @@ import { LatestMatches } from "@/components/season/latest-matches";
 import { Fixtures } from "@/components/season/fixtures";
 import { OverviewCard } from "@/components/season/overview-card";
 import { CreateMatchDialog } from "@/components/match/create-match-drawer";
+import { WeeklyPerformers } from "@/components/season/weekly-performers";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
 import { z } from "zod";
 
@@ -146,6 +147,7 @@ function SeasonDashboardPage() {
 						</div>
 						<div className="flex flex-col gap-4">
 							<TeamStandingCard seasonSlug={seasonSlug} />
+							<WeeklyPerformers seasonSlug={seasonSlug} />
 						</div>
 					</div>
 				) : (
