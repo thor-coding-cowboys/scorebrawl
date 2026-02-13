@@ -5,7 +5,7 @@
 		"@typescript/native-preview": "catalog:",
 		"oxfmt": "^0.17.0",
 		"oxlint": "^0.17.0",
-		"turbo": "^2.8.3",
+		"turbo": "^2.8.7",
 		"typescript": "catalog:"
 	},
 	"catalog": {
