@@ -140,10 +140,3 @@ Cloudflare D1 binding in `wrangler.jsonc`.
 ## Communication
 
 Extreme concision. Sacrifice grammar for brevity.
-
-## Git Workflow
-
-- No merge commits (rebase instead)
-- Rebase remote main before local rebase
-- Never commit directly to main
-- Single commit per branch (create or amend)
