@@ -8,7 +8,12 @@ import * as playerRepository from "../../repositories/player-repository";
 import { user } from "../../db/schema/auth-schema";
 import { guest, player, season, seasonPlayer } from "../../db/schema/league-schema";
 import { createId } from "../../utils/id-util";
-import { seasonProcedure, leagueProcedure, leagueEditorProcedure } from "../trpc";
+import {
+	seasonProcedure,
+	leagueProcedure,
+	leagueEditorProcedure,
+	activeOrgProcedure,
+} from "../trpc";
 
 const checkSeasonSupportsPlayerProfiles = async ({
 	db,
@@ -40,6 +45,15 @@ const checkSeasonSupportsPlayerProfiles = async ({
 };
 
 export const playerRouter = {
+	getMyPlayer: activeOrgProcedure.query(async ({ ctx }) => {
+		const userId = ctx.authentication.user.id;
+		return playerRepository.getByUserId({
+			db: ctx.db,
+			userId,
+			leagueId: ctx.organizationId,
+		});
+	}),
+
 	getAll: leagueProcedure.query(async ({ ctx }) => {
 		return playerRepository.getAll({
 			db: ctx.db,

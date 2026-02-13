@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogoUpload } from "@/components/ui/logo-upload";
+import { GlowToggle } from "@/components/ui/glow-toggle";
 import { authClient } from "@/lib/auth-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -81,6 +82,7 @@ function TeamsPage() {
 	const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [isLogoRemoved, setIsLogoRemoved] = useState(false);
+	const [showMyTeams, setShowMyTeams] = useState(false);
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -89,6 +91,15 @@ function TeamsPage() {
 
 	const { data: userSession } = authClient.useSession();
 	const currentUserId = userSession?.user?.id;
+
+	// Get current user's player ID for filtering
+	const { data: myPlayer } = useQuery({
+		queryKey: ["myPlayer", slug],
+		queryFn: async () => {
+			return await trpcClient.player.getMyPlayer.query();
+		},
+		enabled: canAccess,
+	});
 
 	useEffect(() => {
 		if (role && !canAccess) {
@@ -102,18 +113,18 @@ function TeamsPage() {
 	}, [role, canAccess, navigate, slug]);
 
 	const { data: teamsData, isLoading } = useQuery({
-		queryKey: ["teams", slug],
+		queryKey: ["teams", slug, showMyTeams ? myPlayer?.id : null],
 		queryFn: async () => {
-			return await trpcClient.leagueTeam.list.query({});
+			return await trpcClient.leagueTeam.list.query({
+				playerId: showMyTeams && myPlayer?.id ? myPlayer.id : undefined,
+			});
 		},
-		enabled: canAccess,
+		enabled: canAccess && (!showMyTeams || !!myPlayer),
 	});
 
 	const teams = useMemo(() => {
 		return teamsData?.teams || [];
 	}, [teamsData]);
-
-	const totalTeams = teamsData?.totalCount || 0;
 
 	const stats = useMemo(() => {
 		if (!teams.length) return { total: 0, withPlayers: 0, avgPlayers: 0 };
@@ -384,9 +395,13 @@ function TeamsPage() {
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h3 className="text-lg font-medium">Teams</h3>
-							<span className="text-sm text-muted-foreground">
-								Showing {teams.length} of {totalTeams}
-							</span>
+							{myPlayer && (
+								<GlowToggle
+									checked={showMyTeams}
+									onCheckedChange={setShowMyTeams}
+									label="My teams"
+								/>
+							)}
 						</div>
 
 						{isLoading ? (
