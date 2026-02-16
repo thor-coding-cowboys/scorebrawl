@@ -400,11 +400,6 @@ export const assignMatchToFixture = async ({
 export const slugifySeasonName = async ({ db, name }: { db: DrizzleDB; name: string }) => {
 	const rootSlug = slugifyWithCustomReplacement(name);
 
-	const checkSlugExists = async (slug: string) => {
-		const [exists] = await db.select().from(season).where(eq(season.slug, slug)).limit(1);
-		return !!exists;
-	};
-
 	const findAvailableSlug = async (counter = 0): Promise<string> => {
 		const checkBatchSize = 10;
 		const slugsToCheck = Array.from({ length: checkBatchSize }, (_, i) => {
@@ -412,16 +407,17 @@ export const slugifySeasonName = async ({ db, name }: { db: DrizzleDB; name: str
 			return index === 0 ? rootSlug : `${rootSlug}-${index}`;
 		});
 
-		const checkPromises = slugsToCheck.map(async (slug) => ({
-			slug,
-			exists: await checkSlugExists(slug),
-		}));
+		// Single query to check all slugs at once
+		const existingSlugs = await db
+			.select({ slug: season.slug })
+			.from(season)
+			.where(sql`${season.slug} IN ${slugsToCheck}`);
 
-		const results = await Promise.all(checkPromises);
-		const availableSlug = results.find((result) => !result.exists);
+		const existingSet = new Set(existingSlugs.map((r) => r.slug));
+		const availableSlug = slugsToCheck.find((slug) => !existingSet.has(slug));
 
 		if (availableSlug) {
-			return availableSlug.slug;
+			return availableSlug;
 		}
 
 		return findAvailableSlug(counter + checkBatchSize);

@@ -13,23 +13,14 @@ export const getAchievements = async ({
 	playerId: string;
 	leagueId: string;
 }): Promise<{ type: AchievementType }[]> => {
-	// First verify the player belongs to this league
-	const [playerRecord] = await db
-		.select({ id: player.id })
-		.from(player)
-		.where(and(eq(player.id, playerId), eq(player.leagueId, leagueId)))
-		.limit(1);
-
-	if (!playerRecord) {
-		return [];
-	}
-
+	// Single query with join to verify player belongs to league
 	const achievements = await db
 		.select({
 			type: playerAchievement.type,
 		})
 		.from(playerAchievement)
-		.where(eq(playerAchievement.playerId, playerId));
+		.innerJoin(player, eq(playerAchievement.playerId, player.id))
+		.where(and(eq(playerAchievement.playerId, playerId), eq(player.leagueId, leagueId)));
 
 	return achievements as { type: AchievementType }[];
 };
