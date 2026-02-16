@@ -68,7 +68,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🌱 Seed Database
-        run: bun run db:seed:remote -m 10 -M 50
+        run: bun run db:seed:remote -m 10 -M 30
         working-directory: apps/worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -468,63 +468,64 @@ export const getBySeasonId = async ({
 	limit: number;
 	offset: number;
 }) => {
-	// Get matches with pagination
-	const matchRows = await db
-		.select({
-			id: match.id,
-			seasonId: match.seasonId,
-			homeScore: match.homeScore,
-			awayScore: match.awayScore,
-			createdAt: match.createdAt,
-		})
-		.from(match)
-		.where(eq(match.seasonId, seasonId))
-		.orderBy(desc(match.createdAt))
-		.limit(limit)
-		.offset(offset);
+	// Get matches and count in parallel
+	const [matchRows, [countResult]] = await Promise.all([
+		db
+			.select({
+				id: match.id,
+				seasonId: match.seasonId,
+				homeScore: match.homeScore,
+				awayScore: match.awayScore,
+				createdAt: match.createdAt,
+			})
+			.from(match)
+			.where(eq(match.seasonId, seasonId))
+			.orderBy(desc(match.createdAt))
+			.limit(limit)
+			.offset(offset),
+		db.select({ count: sql<number>`count(*)` }).from(match).where(eq(match.seasonId, seasonId)),
+	]);
+
+	const total = countResult?.count || 0;
 
 	if (matchRows.length === 0) {
-		const [countResult] = await db
-			.select({ count: sql<number>`count(*)` })
-			.from(match)
-			.where(eq(match.seasonId, seasonId));
-		return { matches: [], total: countResult?.count || 0 };
+		return { matches: [], total };
 	}
 
 	const matchIds = matchRows.map((m) => m.id);
 
-	// Get all players for these matches in one query
-	const playerRows = await db
-		.select({
-			matchId: matchPlayer.matchId,
-			playerId: matchPlayer.id,
-			seasonPlayerId: matchPlayer.seasonPlayerId,
-			homeTeam: matchPlayer.homeTeam,
-			result: matchPlayer.result,
-			scoreBefore: matchPlayer.scoreBefore,
-			scoreAfter: matchPlayer.scoreAfter,
-			playerName: user.name,
-			playerImage: user.image,
-		})
-		.from(matchPlayer)
-		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.innerJoin(user, eq(player.userId, user.id))
-		.where(inArray(matchPlayer.matchId, matchIds));
-
-	// Get all teams for these matches in one query
-	const teamRows = await db
-		.select({
-			matchId: matchTeam.matchId,
-			seasonTeamId: matchTeam.seasonTeamId,
-			result: matchTeam.result,
-			teamName: leagueTeam.name,
-			teamLogo: leagueTeam.logo,
-		})
-		.from(matchTeam)
-		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-		.where(inArray(matchTeam.matchId, matchIds));
+	// Get players, teams in parallel
+	const [playerRows, teamRows] = await Promise.all([
+		db
+			.select({
+				matchId: matchPlayer.matchId,
+				playerId: matchPlayer.id,
+				seasonPlayerId: matchPlayer.seasonPlayerId,
+				homeTeam: matchPlayer.homeTeam,
+				result: matchPlayer.result,
+				scoreBefore: matchPlayer.scoreBefore,
+				scoreAfter: matchPlayer.scoreAfter,
+				playerName: user.name,
+				playerImage: user.image,
+			})
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.innerJoin(user, eq(player.userId, user.id))
+			.where(inArray(matchPlayer.matchId, matchIds)),
+		db
+			.select({
+				matchId: matchTeam.matchId,
+				seasonTeamId: matchTeam.seasonTeamId,
+				result: matchTeam.result,
+				teamName: leagueTeam.name,
+				teamLogo: leagueTeam.logo,
+			})
+			.from(matchTeam)
+			.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+			.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+			.where(inArray(matchTeam.matchId, matchIds)),
+	]);
 
 	// Group players by match
 	const playersByMatch = new Map<string, typeof playerRows>();
@@ -594,14 +595,9 @@ export const getBySeasonId = async ({
 		};
 	});
 
-	const [countResult] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(match)
-		.where(eq(match.seasonId, seasonId));
-
 	return {
 		matches,
-		total: countResult?.count || 0,
+		total,
 	};
 };
 

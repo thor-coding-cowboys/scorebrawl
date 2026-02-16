@@ -297,32 +297,43 @@ export const getRecentMatchesWithTeams = async ({
 		.orderBy(desc(matchPlayer.createdAt))
 		.limit(limit);
 
-	// For each match, get the team names
-	const matchesWithTeams = await Promise.all(
-		matches.map(async (m) => {
-			const teams = await db
-				.select({
-					teamName: leagueTeam.name,
-					result: matchTeam.result,
-				})
-				.from(matchTeam)
-				.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-				.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-				.where(eq(matchTeam.matchId, m.matchId));
+	if (matches.length === 0) {
+		return [];
+	}
 
-			// Determine which team won and lost
-			const winningTeam = teams.find((t) => t.result === "W");
-			const losingTeam = teams.find((t) => t.result === "L");
-
-			return {
-				...m,
-				homeTeamName: winningTeam?.teamName ?? teams[0]?.teamName ?? "Team A",
-				awayTeamName: losingTeam?.teamName ?? teams[1]?.teamName ?? "Team B",
-				homeScore: m.homeScore,
-				awayScore: m.awayScore,
-			};
+	// Batch fetch all teams for these matches in one query
+	const matchIds = matches.map((m) => m.matchId);
+	const teamRows = await db
+		.select({
+			matchId: matchTeam.matchId,
+			teamName: leagueTeam.name,
+			result: matchTeam.result,
 		})
-	);
+		.from(matchTeam)
+		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.where(sql`${matchTeam.matchId} IN ${matchIds}`);
 
-	return matchesWithTeams;
+	// Group teams by match
+	const teamsByMatch = new Map<string, typeof teamRows>();
+	for (const row of teamRows) {
+		const existing = teamsByMatch.get(row.matchId) || [];
+		existing.push(row);
+		teamsByMatch.set(row.matchId, existing);
+	}
+
+	// Build result without N+1
+	return matches.map((m) => {
+		const teams = teamsByMatch.get(m.matchId) || [];
+		const winningTeam = teams.find((t) => t.result === "W");
+		const losingTeam = teams.find((t) => t.result === "L");
+
+		return {
+			...m,
+			homeTeamName: winningTeam?.teamName ?? teams[0]?.teamName ?? "Team A",
+			awayTeamName: losingTeam?.teamName ?? teams[1]?.teamName ?? "Team B",
+			homeScore: m.homeScore,
+			awayScore: m.awayScore,
+		};
+	});
 };
