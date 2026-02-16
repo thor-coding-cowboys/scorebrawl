@@ -119,15 +119,21 @@ export function TeamStanding({
 				<TableHeader className="text-xs">
 					<TableRow>
 						<TableHead>Team</TableHead>
-						<TableHead className="text-center text-muted-foreground">MP</TableHead>
-						<TableHead className="text-center text-muted-foreground">W</TableHead>
-						<TableHead className="text-center text-muted-foreground">D</TableHead>
-						<TableHead className="text-center text-muted-foreground">L</TableHead>
+						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
+							MP
+						</TableHead>
+						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
+							W
+						</TableHead>
+						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
+							D
+						</TableHead>
+						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
+							L
+						</TableHead>
 						<TableHead className="text-center">+/-</TableHead>
 						<TableHead className="font-bold text-center">Pts</TableHead>
-						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
-							Last 5
-						</TableHead>
+						<TableHead className="text-center text-muted-foreground">Last 5</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody className="text-sm">
@@ -156,25 +162,25 @@ export function TeamStanding({
 								</div>
 							</TableCell>
 							<TableCell
-								className="text-center text-muted-foreground"
+								className="hidden md:table-cell text-center text-muted-foreground"
 								data-testid={`team-standing-mp-${item.id}`}
 							>
 								{item.matchCount}
 							</TableCell>
 							<TableCell
-								className="text-center text-muted-foreground"
+								className="hidden md:table-cell text-center text-muted-foreground"
 								data-testid={`team-standing-wins-${item.id}`}
 							>
 								{item.winCount}
 							</TableCell>
 							<TableCell
-								className="text-center text-muted-foreground"
+								className="hidden md:table-cell text-center text-muted-foreground"
 								data-testid={`team-standing-draws-${item.id}`}
 							>
 								{item.drawCount}
 							</TableCell>
 							<TableCell
-								className="text-center text-muted-foreground"
+								className="hidden md:table-cell text-center text-muted-foreground"
 								data-testid={`team-standing-losses-${item.id}`}
 							>
 								{item.lossCount}
@@ -200,7 +206,7 @@ export function TeamStanding({
 							>
 								{item.score}
 							</TableCell>
-							<TableCell className="hidden md:table-cell">
+							<TableCell>
 								<FormDots form={item.form} />
 							</TableCell>
 						</TableRow>
