@@ -648,61 +648,62 @@ export const getBySeasonId = async ({
 };
 
 export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matchId: string }) => {
-	const matchData = await db
-		.select({
-			id: match.id,
-			seasonId: match.seasonId,
-			homeScore: match.homeScore,
-			awayScore: match.awayScore,
-			createdAt: match.createdAt,
-		})
-		.from(match)
-		.where(eq(match.id, matchId))
-		.limit(1);
+	// Get match data and all related players/teams in parallel
+	const [matchRows, players, teams] = await Promise.all([
+		db
+			.select({
+				id: match.id,
+				seasonId: match.seasonId,
+				homeScore: match.homeScore,
+				awayScore: match.awayScore,
+				createdAt: match.createdAt,
+			})
+			.from(match)
+			.where(eq(match.id, matchId))
+			.limit(1),
+		db
+			.select({
+				id: matchPlayer.id,
+				seasonPlayerId: matchPlayer.seasonPlayerId,
+				homeTeam: matchPlayer.homeTeam,
+				result: matchPlayer.result,
+				scoreBefore: matchPlayer.scoreBefore,
+				scoreAfter: matchPlayer.scoreAfter,
+				name: user.name,
+				image: user.image,
+			})
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.innerJoin(user, eq(player.userId, user.id))
+			.where(eq(matchPlayer.matchId, matchId)),
+		db
+			.select({
+				id: matchTeam.id,
+				seasonTeamId: matchTeam.seasonTeamId,
+				result: matchTeam.result,
+				teamName: leagueTeam.name,
+				teamLogo: leagueTeam.logo,
+			})
+			.from(matchTeam)
+			.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+			.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+			.where(eq(matchTeam.matchId, matchId))
+			.orderBy(matchTeam.createdAt),
+	]);
 
-	if (!matchData[0]) return null;
-
-	// Get teams for this match (ordered by creation - home first, away second)
-	const teams = await db
-		.select({
-			id: matchTeam.id,
-			seasonTeamId: matchTeam.seasonTeamId,
-			result: matchTeam.result,
-			teamName: leagueTeam.name,
-			teamLogo: leagueTeam.logo,
-		})
-		.from(matchTeam)
-		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-		.where(eq(matchTeam.matchId, matchId))
-		.orderBy(matchTeam.createdAt);
+	if (!matchRows[0]) return null;
+	const matchData = matchRows[0];
 
 	// Determine which team is home vs away based on result and score
 	const homeTeamData =
-		matchData[0].homeScore > matchData[0].awayScore
+		matchData.homeScore > matchData.awayScore
 			? teams.find((t) => t.result === "W")
-			: matchData[0].homeScore < matchData[0].awayScore
+			: matchData.homeScore < matchData.awayScore
 				? teams.find((t) => t.result === "L")
 				: teams[0]; // Draw - use first (home was inserted first)
 
 	const awayTeamData = teams.find((t) => t.id !== homeTeamData?.id);
-
-	const players = await db
-		.select({
-			id: matchPlayer.id,
-			seasonPlayerId: matchPlayer.seasonPlayerId,
-			homeTeam: matchPlayer.homeTeam,
-			result: matchPlayer.result,
-			scoreBefore: matchPlayer.scoreBefore,
-			scoreAfter: matchPlayer.scoreAfter,
-			name: user.name,
-			image: user.image,
-		})
-		.from(matchPlayer)
-		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.innerJoin(user, eq(player.userId, user.id))
-		.where(eq(matchPlayer.matchId, matchId));
 
 	// Add team info to players based on homeTeam flag
 	const playersWithTeam = players.map((p) => ({
@@ -712,7 +713,7 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 	}));
 
 	return {
-		...matchData[0],
+		...matchData,
 		players: playersWithTeam,
 	};
 };
