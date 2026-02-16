@@ -1,108 +1,82 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
-import {
-	seasonTeam,
-	matchTeam,
-	leagueTeam,
-	leagueTeamPlayer,
-	player,
-} from "../db/schema/league-schema";
+import { seasonTeam, leagueTeam, leagueTeamPlayer, player } from "../db/schema/league-schema";
 import { user } from "../db/schema/auth-schema";
 
 export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
-	const results = await db
-		.select({
-			id: seasonTeam.id,
-			seasonId: seasonTeam.seasonId,
-			leagueTeamId: seasonTeam.leagueTeamId,
-			score: seasonTeam.score,
-			name: leagueTeam.name,
-			logo: leagueTeam.logo,
-			matchCount: sql<number>`(
-				select count(*) from ${matchTeam}
-				where ${matchTeam.seasonTeamId} = ${seasonTeam.id}
-			)`,
-			winCount: sql<number>`(
-				select count(*) from ${matchTeam} 
-				where ${matchTeam.seasonTeamId} = ${seasonTeam.id} 
-				and ${matchTeam.result} = 'W'
-			)`,
-			lossCount: sql<number>`(
-				select count(*) from ${matchTeam} 
-				where ${matchTeam.seasonTeamId} = ${seasonTeam.id} 
-				and ${matchTeam.result} = 'L'
-			)`,
-			drawCount: sql<number>`(
-				select count(*) from ${matchTeam} 
-				where ${matchTeam.seasonTeamId} = ${seasonTeam.id} 
-				and ${matchTeam.result} = 'D'
-			)`,
-		})
-		.from(seasonTeam)
-		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-		.where(eq(seasonTeam.seasonId, seasonId))
-		.orderBy(desc(seasonTeam.score));
+	// Single query for standings with stats, today's point diff, and recent form
+	const rows = await db.all<{
+		id: string;
+		seasonId: string;
+		leagueTeamId: string;
+		score: number;
+		name: string;
+		logo: string | null;
+		matchCount: number;
+		winCount: number;
+		lossCount: number;
+		drawCount: number;
+		todayPointDiff: number;
+		recentResults: string | null;
+	}>(sql`
+		SELECT
+			st.id,
+			st.season_id as seasonId,
+			st.league_team_id as leagueTeamId,
+			st.score,
+			lt.name,
+			lt.logo,
+			COALESCE(stats.match_count, 0) as matchCount,
+			COALESCE(stats.win_count, 0) as winCount,
+			COALESCE(stats.loss_count, 0) as lossCount,
+			COALESCE(stats.draw_count, 0) as drawCount,
+			COALESCE(today.point_diff, 0) as todayPointDiff,
+			form.recent_results as recentResults
+		FROM season_team st
+		INNER JOIN league_team lt ON st.league_team_id = lt.id
+		LEFT JOIN (
+			SELECT
+				mt.season_team_id,
+				COUNT(*) as match_count,
+				SUM(CASE WHEN mt.result = 'W' THEN 1 ELSE 0 END) as win_count,
+				SUM(CASE WHEN mt.result = 'L' THEN 1 ELSE 0 END) as loss_count,
+				SUM(CASE WHEN mt.result = 'D' THEN 1 ELSE 0 END) as draw_count
+			FROM match_team mt
+			INNER JOIN season_team st2 ON mt.season_team_id = st2.id
+			WHERE st2.season_id = ${seasonId}
+			GROUP BY mt.season_team_id
+		) stats ON st.id = stats.season_team_id
+		LEFT JOIN (
+			SELECT
+				mt.season_team_id,
+				SUM(mt.score_after - mt.score_before) as point_diff
+			FROM match_team mt
+			INNER JOIN season_team st2 ON mt.season_team_id = st2.id
+			WHERE st2.season_id = ${seasonId}
+			AND strftime('%Y-%m-%d', datetime(mt.created_at, 'unixepoch')) = strftime('%Y-%m-%d', 'now', 'localtime')
+			GROUP BY mt.season_team_id
+		) today ON st.id = today.season_team_id
+		LEFT JOIN (
+			SELECT
+				season_team_id,
+				GROUP_CONCAT(result, '') as recent_results
+			FROM (
+				SELECT
+					mt.season_team_id,
+					mt.result,
+					ROW_NUMBER() OVER (PARTITION BY mt.season_team_id ORDER BY mt.created_at DESC) as rn
+				FROM match_team mt
+				INNER JOIN season_team st2 ON mt.season_team_id = st2.id
+				WHERE st2.season_id = ${seasonId}
+			)
+			WHERE rn <= 5
+			GROUP BY season_team_id
+		) form ON st.id = form.season_team_id
+		WHERE st.season_id = ${seasonId}
+		ORDER BY st.score DESC
+	`);
 
-	// Calculate point differences for today's matches
-	const pointDiff: { seasonTeamId: string; pointDiff: number }[] = [];
-
-	try {
-		const todayMatches = await db
-			.select({
-				seasonTeamId: matchTeam.seasonTeamId,
-				scoreAfter: matchTeam.scoreAfter,
-				scoreBefore: matchTeam.scoreBefore,
-				createdAt: matchTeam.createdAt,
-			})
-			.from(matchTeam)
-			.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-			.where(
-				and(
-					eq(seasonTeam.seasonId, seasonId),
-					sql`strftime('%Y-%m-%d', datetime(${matchTeam.createdAt}, 'unixepoch')) = strftime('%Y-%m-%d', 'now', 'localtime')`
-				)
-			);
-
-		const pointDiffMap = new Map<string, number>();
-		for (const match of todayMatches) {
-			const currentDiff = pointDiffMap.get(match.seasonTeamId) || 0;
-			const matchDiff = match.scoreAfter - match.scoreBefore;
-			pointDiffMap.set(match.seasonTeamId, currentDiff + matchDiff);
-		}
-
-		for (const [seasonTeamId, diff] of pointDiffMap) {
-			pointDiff.push({ seasonTeamId, pointDiff: diff });
-		}
-	} catch (error) {
-		console.error("Error calculating team point diff:", error);
-	}
-
-	// Get recent match form (last 5 results)
-	const recentForms = await db
-		.select({
-			seasonTeamId: matchTeam.seasonTeamId,
-			result: matchTeam.result,
-			createdAt: matchTeam.createdAt,
-		})
-		.from(matchTeam)
-		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.where(eq(seasonTeam.seasonId, seasonId))
-		.orderBy(desc(matchTeam.createdAt));
-
-	const formMap = recentForms.reduce(
-		(acc, match) => {
-			if (!acc[match.seasonTeamId]) {
-				acc[match.seasonTeamId] = [];
-			}
-			if (acc[match.seasonTeamId].length < 5) {
-				acc[match.seasonTeamId].push(match.result as "W" | "D" | "L");
-			}
-			return acc;
-		},
-		{} as Record<string, ("W" | "D" | "L")[]>
-	);
-
-	// Get players for each team using JOIN instead of IN clause to avoid parameter limits
+	// Single query for team players
 	const teamPlayers = await db
 		.select({
 			leagueTeamId: leagueTeamPlayer.leagueTeamId,
@@ -139,11 +113,20 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		>
 	);
 
-	return results.map((r, index) => ({
-		...r,
+	return rows.map((r, index) => ({
+		id: r.id,
+		seasonId: r.seasonId,
+		leagueTeamId: r.leagueTeamId,
+		score: r.score,
+		name: r.name,
+		logo: r.logo,
+		matchCount: r.matchCount,
+		winCount: r.winCount,
+		lossCount: r.lossCount,
+		drawCount: r.drawCount,
 		rank: index + 1,
-		pointDiff: pointDiff.find((pd) => pd.seasonTeamId === r.id)?.pointDiff ?? 0,
-		form: formMap[r.id] || [],
+		pointDiff: r.todayPointDiff,
+		form: r.recentResults ? (r.recentResults.split("") as ("W" | "D" | "L")[]) : [],
 		players: playersMap[r.leagueTeamId] || [],
 	}));
 };

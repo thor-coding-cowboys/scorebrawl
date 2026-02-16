@@ -39,53 +39,54 @@ export interface SeasonEditInput {
 }
 
 export const getCountInfo = async ({ db, seasonSlug }: { db: DrizzleDB; seasonSlug: string }) => {
-	const [matchCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(match)
-		.innerJoin(season, eq(match.seasonId, season.id))
-		.where(eq(season.slug, seasonSlug));
-
-	const [teamCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(leagueTeam)
-		.innerJoin(organization, eq(leagueTeam.leagueId, organization.id))
-		.innerJoin(season, eq(season.leagueId, organization.id))
-		.where(eq(season.slug, seasonSlug));
-
-	const [playerCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(seasonPlayer)
-		.innerJoin(season, eq(seasonPlayer.seasonId, season.id))
-		.where(eq(season.slug, seasonSlug));
+	const [counts] = await db
+		.select({
+			matchCount: sql<number>`(
+				SELECT count(*) FROM ${match}
+				INNER JOIN ${season} s ON ${match.seasonId} = s.id
+				WHERE s.slug = ${seasonSlug}
+			)`,
+			teamCount: sql<number>`(
+				SELECT count(*) FROM ${leagueTeam}
+				WHERE ${leagueTeam.leagueId} = (SELECT s.league_id FROM ${season} s WHERE s.slug = ${seasonSlug})
+			)`,
+			playerCount: sql<number>`(
+				SELECT count(*) FROM ${seasonPlayer}
+				INNER JOIN ${season} s ON ${seasonPlayer.seasonId} = s.id
+				WHERE s.slug = ${seasonSlug}
+			)`,
+		})
+		.from(sql`(SELECT 1)`);
 
 	return {
-		matchCount: matchCount?.count || 0,
-		teamCount: teamCount?.count || 0,
-		playerCount: playerCount?.count || 0,
+		matchCount: counts?.matchCount || 0,
+		teamCount: counts?.teamCount || 0,
+		playerCount: counts?.playerCount || 0,
 	};
 };
 
 export const getCountInfoById = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
-	const [matchCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(match)
-		.where(eq(match.seasonId, seasonId));
-
-	const [teamCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(leagueTeam)
-		.innerJoin(season, eq(season.leagueId, leagueTeam.leagueId))
-		.where(eq(season.id, seasonId));
-
-	const [playerCount] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(seasonPlayer)
-		.where(eq(seasonPlayer.seasonId, seasonId));
+	const [counts] = await db
+		.select({
+			matchCount: sql<number>`(
+				SELECT count(*) FROM ${match}
+				WHERE ${match.seasonId} = ${seasonId}
+			)`,
+			teamCount: sql<number>`(
+				SELECT count(*) FROM ${leagueTeam}
+				WHERE ${leagueTeam.leagueId} = (SELECT s.league_id FROM ${season} s WHERE s.id = ${seasonId})
+			)`,
+			playerCount: sql<number>`(
+				SELECT count(*) FROM ${seasonPlayer}
+				WHERE ${seasonPlayer.seasonId} = ${seasonId}
+			)`,
+		})
+		.from(sql`(SELECT 1)`);
 
 	return {
-		matchCount: matchCount?.count || 0,
-		teamCount: teamCount?.count || 0,
-		playerCount: playerCount?.count || 0,
+		matchCount: counts?.matchCount || 0,
+		teamCount: counts?.teamCount || 0,
+		playerCount: counts?.playerCount || 0,
 	};
 };
 

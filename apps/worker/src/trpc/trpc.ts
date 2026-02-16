@@ -90,7 +90,6 @@ const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "No active league" });
 	}
 
-	// Verify league exists and user is a member
 	const org = await ctx.db
 		.select({
 			id: organization.id,
@@ -127,7 +126,6 @@ const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
 	const seasonSlug = typedInput.seasonSlug;
 	const organizationId = typedCtx.organizationId;
 
-	// Get season with organization verification
 	const comp = await ctx.db
 		.select({
 			id: season.id,

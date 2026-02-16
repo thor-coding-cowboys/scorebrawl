@@ -38,10 +38,10 @@ export const seasonRouter = {
 		archived: ctx.season.archived,
 	})),
 
-	getCountInfo: seasonProcedure.query(async ({ ctx, input }) => {
-		return seasonRepository.getCountInfo({
+	getCountInfo: seasonProcedure.query(async ({ ctx }) => {
+		return seasonRepository.getCountInfoById({
 			db: ctx.db,
-			seasonSlug: input.seasonSlug,
+			seasonId: ctx.season.id,
 		});
 	}),
 
