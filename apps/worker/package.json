@@ -23,6 +23,7 @@
 		"db:clean": "rm -rf ../../.db/local",
 		"db:reset": "bun run db:clean && bun run db:migrate",
 		"db:seed": "bun run ./scripts/seed.ts",
+		"db:seed:remote": "bun run ./scripts/seed.ts --remote",
 		"db:migrate:prod": "wrangler d1 migrations apply scorebrawl --remote",
 		"db:studio": "DATABASE_URL=file:$(ls ../../.db/local/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1) bun run --bun drizzle-kit studio"
 	},
