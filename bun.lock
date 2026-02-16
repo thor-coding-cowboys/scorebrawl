@@ -133,7 +133,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@hugeicons/core-free-icons": "^2.0.0",
     "@hugeicons/react": "^1.1.1",
-    "@ihs7/ts-elo": "^1.0.0",
+    "@ihs7/ts-elo": "^2.0.0",
     "@ngneat/falso": "^8.0.2",
     "@sindresorhus/slugify": "^2.2.1",
     "@tailwindcss/vite": "^4.1.18",
@@ -416,7 +416,7 @@
 
     "@hugeicons/react": ["@hugeicons/react@1.1.1", "", { "peerDependencies": { "react": ">=16.0.0" } }, "sha512-BAbFVtx0XZ/yF2poPLFn0N9Ji6ebV/MpI5+WRqooFp3smQDwpL+72m+BBs4KAM5djgWUpg12weyc5SJtTsOwsw=="],
 
-    "@ihs7/ts-elo": ["@ihs7/ts-elo@1.0.0", "", {}, "sha512-OdAqGdc7KUz1f6CV2nYsQ0MJkQcUM1BLEqAG2hGt4UoWwHjslpEEYHcoHBPsp2Y3XBYu+DACIayDRNs5xdoB/w=="],
+    "@ihs7/ts-elo": ["@ihs7/ts-elo@2.0.0", "", {}, "sha512-x+nogiAuhh/jlai6wd3vl0yOr6UkaIO0StVkaheqKAbUGqDwoiouZ7kf5CQHa7KcwmvrSx1Y/gE8oPa6UNhXjA=="],
 
     "@img/colour": ["@img/colour@1.0.0", "", {}, "sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw=="],
 

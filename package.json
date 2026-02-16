@@ -12,7 +12,7 @@
 		"@base-ui/react": "^1.0.0",
 		"@better-auth/passkey": "^1.4.8",
 		"@hono/zod-validator": "^0.4.3",
-		"@ihs7/ts-elo": "^1.0.0",
+		"@ihs7/ts-elo": "^2.0.0",
 		"@sindresorhus/slugify": "^2.2.1",
 		"@cloudflare/vite-plugin": "1.15.3",
 		"@cloudflare/vitest-pool-workers": "^0.11.1",

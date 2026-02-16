@@ -1,4 +1,9 @@
-import * as EloLib from "@ihs7/ts-elo";
+import {
+	calculateTeamMatch,
+	calculateExpectedScore,
+	CalculationStrategy,
+	type TeamWithScore,
+} from "@ihs7/ts-elo";
 
 export type ScoreType = "elo" | "3-1-0" | "elo-individual-vs-team";
 
@@ -33,10 +38,7 @@ export const calculateEloMatch = (input: EloMatchInput): EloMatchResult => {
 	if (scoreType === "elo" || scoreType === "elo-individual-vs-team") {
 		return calculateElo({
 			kFactor,
-			strategy:
-				scoreType === "elo"
-					? EloLib.CalculationStrategy.TEAM_VS_TEAM
-					: EloLib.CalculationStrategy.INDIVIDUAL_VS_TEAM,
+			scoreType,
 			homeScore,
 			awayScore,
 			homePlayers,
@@ -51,53 +53,49 @@ export const calculateEloMatch = (input: EloMatchInput): EloMatchResult => {
 	throw new Error(`Invalid score type: ${scoreType}`);
 };
 
-interface EloCalculationInput {
+const toTeamWithScore = (players: EloPlayer[], score: number): TeamWithScore => ({
+	players: players.map((p) => ({ id: p.id, rating: p.score })),
+	score,
+});
+
+const calculateAvgRating = (players: EloPlayer[]): number =>
+	players.reduce((sum, p) => sum + p.score, 0) / players.length;
+
+export interface CalculateEloInput {
 	kFactor: number;
-	strategy: EloLib.CalculationStrategy;
+	scoreType: "elo" | "elo-individual-vs-team";
 	homeScore: number;
 	awayScore: number;
 	homePlayers: EloPlayer[];
 	awayPlayers: EloPlayer[];
 }
 
-const calculateElo = (input: EloCalculationInput): EloMatchResult => {
-	const { kFactor, strategy, homeScore, awayScore, homePlayers, awayPlayers } = input;
+export const calculateElo = (input: CalculateEloInput): EloMatchResult => {
+	const { kFactor, scoreType, homeScore, awayScore, homePlayers, awayPlayers } = input;
 
-	const eloMatch = new EloLib.TeamMatch({
-		kFactor,
-		calculationStrategy: strategy,
-	});
+	const strategy =
+		scoreType === "elo" ? CalculationStrategy.AVERAGE_TEAMS : CalculationStrategy.WEIGHTED_TEAMS;
 
-	const eloHomeTeam = eloMatch.addTeam("home", homeScore);
-	for (const p of homePlayers) {
-		eloHomeTeam.addPlayer(new EloLib.Player(p.id, p.score));
-	}
+	const homeTeam = toTeamWithScore(homePlayers, homeScore);
+	const awayTeam = toTeamWithScore(awayPlayers, awayScore);
 
-	const eloAwayTeam = eloMatch.addTeam("away", awayScore);
-	for (const p of awayPlayers) {
-		eloAwayTeam.addPlayer(new EloLib.Player(p.id, p.score));
-	}
+	const homeTeamAvgRating = calculateAvgRating(homePlayers);
+	const awayTeamAvgRating = calculateAvgRating(awayPlayers);
 
-	const eloMatchResult = eloMatch.calculate();
+	const results = calculateTeamMatch(homeTeam, awayTeam, { kFactor, strategy });
 
 	return {
 		homeTeam: {
-			winningOdds: eloHomeTeam.expectedScoreAgainst(eloAwayTeam),
-			players: eloHomeTeam.players.map((p: { identifier: string }) => ({
-				id: p.identifier,
-				scoreAfter: eloMatchResult.results.find(
-					(r: { identifier: string; rating: number }) => r.identifier === p.identifier
-				)?.rating as number,
-			})),
+			winningOdds: calculateExpectedScore(homeTeamAvgRating, awayTeamAvgRating),
+			players: results
+				.filter((r) => homePlayers.some((p) => p.id === r.id))
+				.map((r) => ({ id: r.id, scoreAfter: r.newRating })),
 		},
 		awayTeam: {
-			winningOdds: eloAwayTeam.expectedScoreAgainst(eloHomeTeam),
-			players: eloAwayTeam.players.map((p: { identifier: string }) => ({
-				id: p.identifier,
-				scoreAfter: eloMatchResult.results.find(
-					(r: { identifier: string; rating: number }) => r.identifier === p.identifier
-				)?.rating as number,
-			})),
+			winningOdds: calculateExpectedScore(awayTeamAvgRating, homeTeamAvgRating),
+			players: results
+				.filter((r) => awayPlayers.some((p) => p.id === r.id))
+				.map((r) => ({ id: r.id, scoreAfter: r.newRating })),
 		},
 	};
 };
