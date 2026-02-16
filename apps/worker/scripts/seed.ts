@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 import { spawn } from "bun";
 import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { drizzle as drizzleSqlite } from "drizzle-orm/bun-sqlite";
+import { drizzle as drizzleProxy } from "drizzle-orm/sqlite-proxy";
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import * as readline from "node:readline";
@@ -62,6 +63,7 @@ function parseArgs(): {
 	interactive: boolean;
 	reset: boolean;
 	help: boolean;
+	remote: boolean;
 	members: number;
 	matches: number;
 } {
@@ -106,6 +108,7 @@ function parseArgs(): {
 	return {
 		interactive: args.includes("-i") || args.includes("--interactive"),
 		reset: args.includes("-r") || args.includes("--reset"),
+		remote: args.includes("--remote"),
 		help: args.includes("-h") || args.includes("--help"),
 		members,
 		matches,
@@ -120,7 +123,9 @@ ${bold("Usage:")} bun run scripts/seed.ts [options]
 
 ${bold("Options:")}
   -i, --interactive    Run in interactive mode with menu
-  -r, --reset          Reset database before seeding (runs db:reset)
+  -r, --reset          Reset database before seeding (runs db:reset, local only)
+  --remote             Seed remote D1 database via HTTP API
+                       Requires: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_DATABASE_ID, CLOUDFLARE_D1_TOKEN
   -m, --members <n>    Number of additional members to create (default: ${DEFAULT_MEMBER_COUNT})
   -M, --matches <n>    Number of matches to create (default: ${DEFAULT_MATCH_COUNT}, requires 4+ players)
   -h, --help           Show this help message
@@ -137,6 +142,7 @@ ${bold("Examples:")}
   bun run scripts/seed.ts -m 20 -M 100 # 20 members and 100 matches
   bun run scripts/seed.ts -r           # Reset and seed
   bun run scripts/seed.ts -i           # Interactive mode
+  bun run scripts/seed.ts --remote     # Seed remote/preview D1 database
 `);
 }
 
@@ -261,8 +267,59 @@ function getLocalDbPath(workerDir: string): string | null {
 	return resolve(d1Dir, sqliteFile);
 }
 
+// Create D1 HTTP client for remote database access
+function createRemoteDbClient(): DrizzleDB {
+	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+	const databaseId = process.env.CLOUDFLARE_DATABASE_ID;
+	const token = process.env.CLOUDFLARE_D1_TOKEN;
+
+	if (!accountId || !databaseId || !token) {
+		throw new Error(
+			"Missing required environment variables for remote D1 access:\n" +
+				"  CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_DATABASE_ID, CLOUDFLARE_D1_TOKEN"
+		);
+	}
+
+	const remoteCallback = async (
+		sql: string,
+		params: unknown[],
+		_method: "run" | "all" | "values" | "get"
+	): Promise<{ rows: unknown[] }> => {
+		// Always use "raw" endpoint to get array-based results that drizzle expects
+		const res = await fetch(
+			`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/raw`,
+			{
+				method: "POST",
+				body: JSON.stringify({ sql, params }),
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+			}
+		);
+
+		const data = (await res.json()) as {
+			success: boolean;
+			errors?: { code: number; message: string }[];
+			result?: { results?: { columns?: string[]; rows?: unknown[][] } }[];
+		};
+
+		if (!data.success) {
+			const errorMsg =
+				data.errors?.map((e) => `${e.code}: ${e.message}`).join("\n") ?? "Unknown error";
+			throw new Error(`D1 HTTP Error: ${errorMsg}\nSQL: ${sql}`);
+		}
+
+		// Raw endpoint returns { columns: [...], rows: [[...], [...]] }
+		const rows = data.result?.[0]?.results?.rows ?? [];
+		return { rows };
+	};
+
+	return drizzleProxy(remoteCallback) as unknown as DrizzleDB;
+}
+
 // Helper to find or create a team (leagueTeam + leagueTeamPlayer + seasonTeam)
-type DrizzleDB = ReturnType<typeof drizzle>;
+type DrizzleDB = ReturnType<typeof drizzleSqlite>;
 async function getOrCreateTeam({
 	db,
 	leagueId,
@@ -575,31 +632,46 @@ async function createMatch({
 async function seedDatabase(
 	memberCount: number,
 	matchCount: number,
-	isInteractive: boolean
+	isInteractive: boolean,
+	isRemote = false
 ): Promise<boolean> {
 	const workerDir = resolve(import.meta.dir, "..");
-	const dbPath = resolve(workerDir, "../../.db/local");
 
-	// Check if local DB exists
-	if (!existsSync(dbPath)) {
-		console.log(yellow("Local database not found. Running migrations first..."));
-		const migrated = await runCommand("bun", ["run", "db:migrate"], workerDir);
-		if (!migrated) {
-			console.log(red("Failed to run migrations."));
+	let db: DrizzleDB;
+	let sqlite: Database | null = null;
+
+	if (isRemote) {
+		console.log(cyan("\nSeeding remote D1 database via HTTP API..."));
+		try {
+			db = createRemoteDbClient();
+		} catch (error) {
+			console.log(red((error as Error).message));
 			return false;
 		}
+	} else {
+		const dbPath = resolve(workerDir, "../../.db/local");
+
+		// Check if local DB exists
+		if (!existsSync(dbPath)) {
+			console.log(yellow("Local database not found. Running migrations first..."));
+			const migrated = await runCommand("bun", ["run", "db:migrate"], workerDir);
+			if (!migrated) {
+				console.log(red("Failed to run migrations."));
+				return false;
+			}
+		}
+
+		const sqlitePath = getLocalDbPath(workerDir);
+		if (!sqlitePath) {
+			console.log(red("Could not find SQLite database file."));
+			return false;
+		}
+
+		console.log(cyan("\nSeeding database directly..."));
+
+		sqlite = new Database(sqlitePath);
+		db = drizzleSqlite({ client: sqlite });
 	}
-
-	const sqlitePath = getLocalDbPath(workerDir);
-	if (!sqlitePath) {
-		console.log(red("Could not find SQLite database file."));
-		return false;
-	}
-
-	console.log(cyan("\nSeeding database directly..."));
-
-	const sqlite = new Database(sqlitePath);
-	const db = drizzle({ client: sqlite });
 
 	try {
 		const now = new Date();
@@ -1057,7 +1129,7 @@ ${"─".repeat(40)}
 
 		return true;
 	} finally {
-		sqlite.close();
+		sqlite?.close();
 	}
 }
 
@@ -1069,6 +1141,21 @@ async function main() {
 		process.exit(0);
 	}
 
+	// Remote mode doesn't support interactive or reset
+	if (args.remote) {
+		if (args.interactive) {
+			console.log(red("Interactive mode is not supported with --remote"));
+			process.exit(1);
+		}
+		if (args.reset) {
+			console.log(red("Reset is not supported with --remote (use wrangler d1 execute instead)"));
+			process.exit(1);
+		}
+
+		const success = await seedDatabase(args.members, args.matches, false, true);
+		process.exit(success ? 0 : 1);
+	}
+
 	const workerDir = resolve(import.meta.dir, "..");
 
 	if (args.interactive) {
@@ -1076,11 +1163,11 @@ async function main() {
 
 		switch (action) {
 			case "seed":
-				await seedDatabase(members, matches, true);
+				await seedDatabase(members, matches, true, false);
 				break;
 			case "reset-seed":
 				if (await resetDatabase(workerDir)) {
-					await seedDatabase(members, matches, true);
+					await seedDatabase(members, matches, true, false);
 				}
 				break;
 			case "exit":
@@ -1094,7 +1181,7 @@ async function main() {
 			}
 		}
 
-		const success = await seedDatabase(args.members, args.matches, false);
+		const success = await seedDatabase(args.members, args.matches, false, false);
 		process.exit(success ? 0 : 1);
 	}
 }
