@@ -90,9 +90,12 @@ export function CreateMatchDialog({
 		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug })
 	);
 
+	const { data: latestMatch } = useQuery(trpc.match.getLatest.queryOptions({ seasonSlug }));
+
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);
 	const [keepOpen, setKeepOpen] = useState(false);
+	const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
 
 	useEffect(() => {
 		if (seasonPlayers) {
@@ -122,6 +125,7 @@ export function CreateMatchDialog({
 
 	const resetForm = () => {
 		reset();
+		setShowDuplicateWarning(false);
 		setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
 	};
 
@@ -153,7 +157,48 @@ export function CreateMatchDialog({
 		})
 	);
 
+	const isDuplicateMatch = (values: CreateMatchFormValues): boolean => {
+		if (!latestMatch?.players) return false;
+
+		const toKey = (ids: string[]) => [...ids].sort().join(",");
+		const matchesTeamsAndScore = (
+			homeIds: string[],
+			awayIds: string[],
+			homeScore: number,
+			awayScore: number
+		) =>
+			toKey(values.homePlayers.map((p) => p.id)) === toKey(homeIds) &&
+			toKey(values.awayPlayers.map((p) => p.id)) === toKey(awayIds) &&
+			values.homeScore === homeScore &&
+			values.awayScore === awayScore;
+
+		const playerIds = (home: boolean) =>
+			latestMatch.players
+				.filter((p: { homeTeam: boolean }) => p.homeTeam === home)
+				.map((p: { seasonPlayerId: string }) => p.seasonPlayerId);
+
+		return (
+			matchesTeamsAndScore(
+				playerIds(true),
+				playerIds(false),
+				latestMatch.homeScore,
+				latestMatch.awayScore
+			) ||
+			matchesTeamsAndScore(
+				playerIds(false),
+				playerIds(true),
+				latestMatch.awayScore,
+				latestMatch.homeScore
+			)
+		);
+	};
+
 	const onSubmit = (values: CreateMatchFormValues) => {
+		if (!showDuplicateWarning && isDuplicateMatch(values)) {
+			setShowDuplicateWarning(true);
+			return;
+		}
+		setShowDuplicateWarning(false);
 		createMutation.mutate({
 			seasonSlug,
 			homeScore: values.homeScore,
@@ -164,6 +209,7 @@ export function CreateMatchDialog({
 	};
 
 	const handlePlayerSelection = (player: PlayerWithSelection) => {
+		setShowDuplicateWarning(false);
 		const updated = teamSelection.map((p) =>
 			p.id === player.id ? { ...p, team: player.team } : p
 		);
@@ -316,14 +362,26 @@ export function CreateMatchDialog({
 									<ScoreStepper
 										label="Home"
 										score={homeScore}
-										onIncrement={() => setValue("homeScore", homeScore + 1)}
-										onDecrement={() => setValue("homeScore", Math.max(0, homeScore - 1))}
+										onIncrement={() => {
+											setShowDuplicateWarning(false);
+											setValue("homeScore", homeScore + 1);
+										}}
+										onDecrement={() => {
+											setShowDuplicateWarning(false);
+											setValue("homeScore", Math.max(0, homeScore - 1));
+										}}
 									/>
 									<ScoreStepper
 										label="Away"
 										score={awayScore}
-										onIncrement={() => setValue("awayScore", awayScore + 1)}
-										onDecrement={() => setValue("awayScore", Math.max(0, awayScore - 1))}
+										onIncrement={() => {
+											setShowDuplicateWarning(false);
+											setValue("awayScore", awayScore + 1);
+										}}
+										onDecrement={() => {
+											setShowDuplicateWarning(false);
+											setValue("awayScore", Math.max(0, awayScore - 1));
+										}}
 									/>
 								</div>
 							</div>
@@ -371,6 +429,13 @@ export function CreateMatchDialog({
 										Season is not currently active
 									</div>
 								)}
+								{showDuplicateWarning && (
+									<div className="flex items-center gap-1.5 text-xs text-amber-600">
+										<HugeiconsIcon icon={Alert01Icon} className="size-3.5 shrink-0" />
+										Possible duplicate — same players and score as the latest match. Press again to
+										confirm.
+									</div>
+								)}
 							</div>
 
 							{/* Actions */}
@@ -410,12 +475,16 @@ export function CreateMatchDialog({
 									</Button>
 									<GlowButton
 										type="submit"
-										glowColor={glowColors.blue}
+										glowColor={showDuplicateWarning ? glowColors.red : glowColors.blue}
 										className="flex-1 font-mono"
 										disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
 										data-testid="match-submit-button"
 									>
-										{createMutation.isPending ? "Creating..." : "Create Match"}
+										{createMutation.isPending
+											? "Creating..."
+											: showDuplicateWarning
+												? "Create Anyway"
+												: "Create Match"}
 									</GlowButton>
 								</div>
 							</div>
