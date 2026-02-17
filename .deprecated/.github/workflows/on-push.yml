@@ -14,8 +14,7 @@ jobs:
   turborepo:
     name: ⚡️ on-push
 
-    runs-on:
-      labels: ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
 
