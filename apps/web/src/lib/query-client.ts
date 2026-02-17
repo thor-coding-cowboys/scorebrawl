@@ -4,6 +4,8 @@ import { TRPCClientError } from "@trpc/client";
 export const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
+			staleTime: 60 * 1000,
+			refetchOnWindowFocus: false,
 			retry: (failureCount, error) => {
 				if (error instanceof TRPCClientError) {
 					const httpStatus = error.data?.httpStatus;

@@ -94,29 +94,35 @@ export function useSeasonSSE({
 
 					const t = trpcRef.current;
 					const qc = queryClientRef.current;
+					const isOwnEvent = parsed.user?.id === currentUserId;
 
-					// Invalidate matches query on any match mutation
-					if (parsed.type === "match:insert" || parsed.type === "match:delete") {
-						qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
-					}
+					// Skip invalidation for own events — the mutation onSuccess already handles it.
+					// Only invalidate for events from other users.
+					if (!isOwnEvent) {
+						if (parsed.type === "match:insert" || parsed.type === "match:delete") {
+							qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
+							qc.invalidateQueries({ queryKey: ["matches", seasonId] });
+						}
 
-					// Invalidate standings on any match mutation
-					if (
-						parsed.data?.standings ||
-						parsed.type === "match:insert" ||
-						parsed.type === "match:delete"
-					) {
-						// Invalidate player standings
-						qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }) });
-
-						// Invalidate team standings
-						qc.invalidateQueries({ queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }) });
-
-						// Invalidate tRPC queries for dashboard cards and player data
-						qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
-						qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
-						qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
-						qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
+						if (
+							parsed.data?.standings ||
+							parsed.type === "match:insert" ||
+							parsed.type === "match:delete"
+						) {
+							qc.invalidateQueries({
+								queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+							});
+							qc.invalidateQueries({
+								queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
+							});
+							qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
+							qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
+							qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
+							qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
+							qc.invalidateQueries({
+								queryKey: t.season.getFixtures.queryKey({ seasonSlug }),
+							});
+						}
 					}
 
 					// Show toast for match events from other users

@@ -25,7 +25,8 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 		queryFn: async () => {
 			return await trpcClient.match.getAll.query({ seasonSlug, limit: 50, offset: 0 });
 		},
-		refetchInterval: 5000,
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
 	});
 	const matches = matchesData?.matches ?? [];
 
