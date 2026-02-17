@@ -1,0 +1,9 @@
+api_url: http://localhost:5173
+api_key: sb_devYitnRwmEPTafrRrQCOSpBKAVsxJDIuTVZLjtkGgNpaistFiXoAsvtIpuwFRHxPxK
+default_league: scorebrawl  # League slug
+
+whisper_model: base.en
+ollama_model: llama3.2:3b
+
+silence_threshold: 0.01
+silence_duration: 1.5

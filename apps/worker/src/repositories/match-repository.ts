@@ -201,7 +201,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
 		.innerJoin(user, eq(player.userId, user.id))
 		.where(
-			and(eq(seasonPlayer.seasonId, input.seasonId), sql`${seasonPlayer.id} IN ${allPlayerIds}`)
+			and(eq(seasonPlayer.seasonId, input.seasonId), inArray(seasonPlayer.id, allPlayerIds))
 		);
 
 	const playerDataMap = new Map(seasonPlayerData.map((p) => [p.id, p]));
