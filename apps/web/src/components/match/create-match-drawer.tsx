@@ -130,24 +130,16 @@ export function CreateMatchDialog({
 			onSuccess: () => {
 				toast.success("Match created successfully");
 
-				// Invalidate match and standings collections (used by custom collection hooks)
+				// Minimal invalidation for immediate UI feedback.
+				// SSE broadcasts handle the full invalidation for all connected users.
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
-				queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
-
-				// Invalidate tRPC queries for dashboard cards and player data
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonPlayer.getAll.queryKey({ seasonSlug }),
-				});
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});
+				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
 				queryClient.invalidateQueries({
 					queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
 				});
-				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
 
 				if (keepOpen) {
 					resetForm();

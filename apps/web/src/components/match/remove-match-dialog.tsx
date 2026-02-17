@@ -55,24 +55,16 @@ export function RemoveMatchDialog({
 	const removeMutation = useMutation({
 		...trpc.match.remove.mutationOptions(),
 		onSuccess: () => {
+			// Minimal invalidation for immediate UI feedback.
+			// SSE broadcasts handle the full invalidation for all connected users.
 			queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
-			queryClient.invalidateQueries({ queryKey: ["standings", seasonId] });
-			queryClient.invalidateQueries({ queryKey: ["team-standings", seasonId] });
-
-			// Invalidate tRPC queries
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonPlayer.getAll.queryKey({ seasonSlug }),
-			});
 			queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 			});
+			queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
 			queryClient.invalidateQueries({
 				queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
 			});
-			queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
 		},
 	});
 

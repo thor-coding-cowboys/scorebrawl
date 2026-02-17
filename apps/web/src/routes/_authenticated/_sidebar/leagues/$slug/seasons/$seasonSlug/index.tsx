@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/hooks/useSession";
@@ -41,7 +41,6 @@ function SeasonDashboardPage() {
 	const { slug, seasonSlug } = Route.useLoaderData();
 	const navigate = useNavigate();
 	const trpc = useTRPC();
-	const queryClient = useQueryClient();
 
 	const { data: session } = useSession();
 	const { data: activeMember } = authClient.useActiveMember();
@@ -56,13 +55,6 @@ function SeasonDashboardPage() {
 	});
 
 	const seasonId = season?.id;
-
-	// Invalidate season-specific queries when seasonSlug changes
-	useEffect(() => {
-		queryClient.invalidateQueries({ queryKey: ["standings"] });
-		queryClient.invalidateQueries({ queryKey: ["team-standings"] });
-		queryClient.invalidateQueries({ queryKey: ["matches"] });
-	}, [seasonSlug, queryClient]);
 
 	// Fetch team count to determine layout
 	const { data: countInfo } = useQuery(trpc.season.getCountInfo.queryOptions({ seasonSlug }));

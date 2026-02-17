@@ -354,17 +354,16 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 			return await trpcClient.match.createFromFixture.mutate(data);
 		},
 		onSuccess: async () => {
+			// Fixtures must be invalidated immediately (not covered by SSE)
 			await queryClient.invalidateQueries({
 				queryKey: trpc.season.getFixtures.queryKey({ seasonSlug }),
 			});
-			await queryClient.invalidateQueries({
-				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
-			});
+			// Standings for immediate feedback; SSE handles the rest for other users
 			await queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 			});
 			await queryClient.invalidateQueries({
-				queryKey: trpc.seasonPlayer.getTop.queryKey({ seasonSlug }),
+				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
 			});
 			setIsEditing(false);
 			setHomeScore(0);
