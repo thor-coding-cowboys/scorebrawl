@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/hooks/useSession";
 import { Add01Icon } from "@hugeicons/core-free-icons";
@@ -47,12 +47,7 @@ function SeasonDashboardPage() {
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 
-	const { data: season, error } = useQuery({
-		queryKey: ["season", seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.season.getBySlug.query({ seasonSlug });
-		},
-	});
+	const { data: season, error } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
 	const seasonId = season?.id;
 

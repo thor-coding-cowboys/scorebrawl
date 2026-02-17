@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { trpcClient } from "@/lib/trpc";
+import { trpcClient, useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { Add01Icon, Award01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,12 +25,10 @@ export const Route = createFileRoute(
 )({
 	component: MatchesPage,
 	validateSearch: matchesSearchSchema,
-	loader: async ({ params }) => {
+	loader: async ({ params, context }) => {
 		const { seasonSlug } = params;
-		await queryClient.ensureQueryData({
-			queryKey: ["season", seasonSlug],
-			queryFn: () => trpcClient.season.getBySlug.query({ seasonSlug }),
-		});
+		const trpc = context.trpc;
+		await queryClient.ensureQueryData(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 		return { slug: params.slug, seasonSlug };
 	},
 });
@@ -50,13 +48,9 @@ function MatchesPage() {
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 	const canDeleteMatches = role === "owner" || role === "editor";
+	const trpc = useTRPC();
 
-	const { data: season } = useQuery({
-		queryKey: ["season", seasonSlug],
-		queryFn: async () => {
-			return await trpcClient.season.getBySlug.query({ seasonSlug });
-		},
-	});
+	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
 	const seasonId = season?.id ?? "";
 	const isSeasonLocked = season?.closed || season?.archived;
