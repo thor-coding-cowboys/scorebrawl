@@ -148,6 +148,48 @@ describe("match router", () => {
 		expect(result.total).toBe(1);
 	});
 
+	it("respects limit parameter when fetching matches", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		// Create players and season
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Test Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		// Get season players
+		const seasonPlayers = await client.seasonPlayer.getAll.query({
+			seasonSlug: season.slug,
+		});
+
+		// Create 10 matches
+		for (let i = 0; i < 10; i++) {
+			await client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: i,
+				awayScore: i + 1,
+				homeTeamPlayerIds: [seasonPlayers[0].id],
+				awayTeamPlayerIds: [seasonPlayers[1].id],
+			});
+		}
+
+		// Fetch with limit of 5
+		const result = await client.match.getAll.query({
+			seasonSlug: season.slug,
+			limit: 5,
+			offset: 0,
+		});
+
+		expect(result.matches).toBeInstanceOf(Array);
+		expect(result.matches.length).toBe(5);
+		expect(result.total).toBe(10);
+	});
+
 	it("removes a match", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });

@@ -23,14 +23,14 @@ export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatches
 	const { data: matchesData } = useQuery({
 		queryKey: ["matches", seasonId],
 		queryFn: async () => {
-			return await trpcClient.match.getAll.query({ seasonSlug, limit: 50, offset: 0 });
+			return await trpcClient.match.getAll.query({ seasonSlug, limit: 5, offset: 0 });
 		},
 		staleTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,
 	});
 	const matches = matchesData?.matches ?? [];
 
-	const latestMatches = matches.slice(0, 5);
+	const latestMatches = matches;
 	const latestMatch = latestMatches[0];
 	const showEmptyState = latestMatches.length < 1;
 	const showMatches = latestMatches.length > 0;
