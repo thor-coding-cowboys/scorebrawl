@@ -1,4 +1,3 @@
-import type { betterAuth } from "better-auth";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
@@ -8,7 +7,9 @@ export type HonoEnv = {
 	Bindings: Env;
 	Variables: {
 		db: ReturnType<typeof getDb>;
-		betterAuth: ReturnType<typeof betterAuth>;
+		// Uses createAuth (not betterAuth directly) for proper TypeScript inference
+		// of plugin methods like betterAuth.api.verifyApiKey, createApiKey, etc.
+		betterAuth: ReturnType<typeof createAuth>;
 		authentication?: AuthType;
 		userAssets: R2BucketRef;
 	};
@@ -33,6 +34,9 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		c.req.header("origin") ||
 		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
 
+	// Determine if production based on origin (localhost/127.0.0.1 = dev)
+	const isProduction = !(origin.includes("localhost") || origin.includes("127.0.0.1"));
+
 	const auth = createAuth({
 		db,
 		betterAuthSecret,
@@ -42,6 +46,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		googleClientSecret,
 		origin,
 		resendApiKey,
+		isProduction,
 	});
 	c.set("db", db);
 	c.set("betterAuth", auth);
