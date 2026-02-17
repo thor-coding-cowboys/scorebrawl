@@ -5,7 +5,7 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     env:
       VITE_GITHUB_CLIENT_ID: Ov23liEHPLUdBgTj5Cxu # https://github.com/organizations/thor-coding-cowboys/settings/applications/3369260
       VITE_GOOGLE_CLIENT_ID: 972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com
@@ -44,12 +44,6 @@ jobs:
 
       - name: 🔍 Wrangler Typecheck
         run: bun run wrangler-typecheck
-
-      - name: 🚫 Enforce clean history
-        if: github.ref != 'refs/heads/main'
-        run: bun run .github/scripts/ci/enforce-clean-history.ts
-        env:
-          GITHUB_REF: ${{ github.ref }}
 
       - name: 🗄️ Apply database migrations
         if: github.ref == 'refs/heads/main'

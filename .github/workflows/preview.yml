@@ -7,7 +7,7 @@ on:
 jobs:
   deploy-preview:
     if: github.event.action != 'closed'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
@@ -68,7 +68,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🌱 Seed Database
-        run: bun run db:seed:remote -m 10 -M 30
+        run: bun run db:seed:remote -m 4 -M 15
         working-directory: apps/worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
