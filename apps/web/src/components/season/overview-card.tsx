@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface OverviewCardProps {
-	title: string;
+	title: ReactNode;
 	description?: string;
 	children: ReactNode;
 	action?: ReactNode;
@@ -21,7 +21,7 @@ export function OverviewCard({
 		<Card className={cn(className)}>
 			<CardHeader>
 				<div className="flex items-center justify-between min-h-7">
-					<div>
+					<div className={cn(!action && "w-full")}>
 						<CardTitle>{title}</CardTitle>
 						{description && <CardDescription>{description}</CardDescription>}
 					</div>

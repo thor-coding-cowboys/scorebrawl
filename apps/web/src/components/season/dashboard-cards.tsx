@@ -14,6 +14,7 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { FormDots } from "@/components/ui/form-dots";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
+import { useCarousel } from "@/hooks/use-carousel";
 import { Button } from "@/components/ui/button";
 import {
 	Add01Icon,
@@ -27,9 +28,7 @@ import { cn } from "@/lib/utils";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
-	if (key.startsWith("http://") || key.startsWith("https://")) {
-		return key;
-	}
+	if (key.startsWith("http://") || key.startsWith("https://")) return key;
 	return `/api/user-assets/${key}`;
 };
 
@@ -61,69 +60,78 @@ interface DashboardCardsProps {
 	seasonSlug: string;
 }
 
+function PlayerStatCard({
+	title,
+	icon,
+	glowColor,
+	iconColor,
+	isLoading,
+	player,
+	emptyMessage,
+}: {
+	title: string;
+	icon: typeof FireIcon;
+	glowColor: string;
+	iconColor: string;
+	isLoading: boolean;
+	player:
+		| { name: string; image: string | null; score: number; form?: ("W" | "D" | "L")[] }
+		| null
+		| undefined;
+	emptyMessage: string;
+}) {
+	return (
+		<DashboardCard title={title} icon={icon} glowColor={glowColor} iconColor={iconColor}>
+			{isLoading ? (
+				<Skeleton className="h-12 w-full" />
+			) : player ? (
+				<div className="flex items-center gap-3 min-w-0">
+					<AvatarWithFallback src={player.image} name={player.name} size="md" />
+					<div className="flex flex-col min-w-0 flex-1">
+						<span className="text-sm font-medium truncate">{player.name}</span>
+						<span className="text-xs text-muted-foreground">{player.score} points</span>
+					</div>
+					{player.form && player.form.length > 0 && <FormDots form={player.form} />}
+				</div>
+			) : (
+				<div className="text-sm text-muted-foreground">{emptyMessage}</div>
+			)}
+		</DashboardCard>
+	);
+}
+
 function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const { data, isLoading } = useQuery(trpc.seasonPlayer.getTop.queryOptions({ seasonSlug }));
-
 	return (
-		<DashboardCard
+		<PlayerStatCard
 			title="On Fire"
 			icon={FireIcon}
 			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(239,68,68,0.1),transparent_60%)]"
 			iconColor="text-red-600"
-		>
-			{isLoading ? (
-				<Skeleton className="h-12 w-full" />
-			) : data ? (
-				<div className="flex items-center gap-3 min-w-0">
-					<AvatarWithFallback src={data.image} name={data.name} size="md" />
-					<div className="flex flex-col min-w-0 flex-1">
-						<span className="text-sm font-medium truncate">{data.name}</span>
-						<span className="text-xs text-muted-foreground">{data.score} points</span>
-					</div>
-					{data.form && data.form.length > 0 && <FormDots form={data.form} />}
-				</div>
-			) : (
-				<div className="text-sm text-muted-foreground">No matches yet</div>
-			)}
-		</DashboardCard>
+			isLoading={isLoading}
+			player={data}
+			emptyMessage="No matches yet"
+		/>
 	);
 }
 
 function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const { data: standings } = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-
-	// Get lowest scoring player with at least 3 matches
-	const strugglingPlayer = standings?.length
-		? standings.filter((player) => player.matchCount >= 3).sort((a, b) => a.score - b.score)[0] ||
-			null
+	const player = standings?.length
+		? (standings.filter((p) => p.matchCount >= 3).sort((a, b) => a.score - b.score)[0] ?? null)
 		: null;
-
 	return (
-		<DashboardCard
+		<PlayerStatCard
 			title="Struggling"
 			icon={SnowIcon}
 			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
 			iconColor="text-blue-600"
-		>
-			{!standings ? (
-				<Skeleton className="h-12 w-full" />
-			) : strugglingPlayer ? (
-				<div className="flex items-center gap-3 min-w-0">
-					<AvatarWithFallback src={strugglingPlayer.image} name={strugglingPlayer.name} size="md" />
-					<div className="flex flex-col min-w-0 flex-1">
-						<span className="text-sm font-medium truncate">{strugglingPlayer.name}</span>
-						<span className="text-xs text-muted-foreground">{strugglingPlayer.score} points</span>
-					</div>
-					{strugglingPlayer.form && strugglingPlayer.form.length > 0 && (
-						<FormDots form={strugglingPlayer.form} />
-					)}
-				</div>
-			) : (
-				<div className="text-sm text-muted-foreground">No players with 3+ matches</div>
-			)}
-		</DashboardCard>
+			isLoading={!standings}
+			player={player}
+			emptyMessage="No players with 3+ matches"
+		/>
 	);
 }
 
@@ -142,18 +150,16 @@ function InfoCard({ seasonSlug }: { seasonSlug: string }) {
 				<Skeleton className="h-12 w-full" />
 			) : data ? (
 				<div className="grid grid-cols-3 gap-2 text-center">
-					<div>
-						<div className="text-lg font-bold">{data.matchCount}</div>
-						<div className="text-xs text-muted-foreground">Matches</div>
-					</div>
-					<div>
-						<div className="text-lg font-bold">{data.playerCount}</div>
-						<div className="text-xs text-muted-foreground">Players</div>
-					</div>
-					<div>
-						<div className="text-lg font-bold">{data.teamCount}</div>
-						<div className="text-xs text-muted-foreground">Teams</div>
-					</div>
+					{[
+						{ value: data.matchCount, label: "Matches" },
+						{ value: data.playerCount, label: "Players" },
+						{ value: data.teamCount, label: "Teams" },
+					].map(({ value, label }) => (
+						<div key={label}>
+							<div className="text-lg font-bold">{value}</div>
+							<div className="text-xs text-muted-foreground">{label}</div>
+						</div>
+					))}
 				</div>
 			) : (
 				<div className="text-sm text-muted-foreground">No data</div>
@@ -179,33 +185,18 @@ function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | nul
 	if (players.length <= 1) return null;
 	const teamName = players[0]?.teamName;
 	const teamLogo = players[0]?.teamLogo ?? null;
-	if (teamName) {
-		return { name: teamName, logo: teamLogo };
-	}
-	const fallbackName = players.map((p) => p.name.split(" ")[0]).join(" & ");
-	return { name: fallbackName, logo: teamLogo };
+	if (teamName) return { name: teamName, logo: teamLogo };
+	return { name: players.map((p) => p.name.split(" ")[0]).join(" & "), logo: teamLogo };
 }
 
 function getSideLabel(players: MatchPlayer[]): string {
 	if (players.length === 0) return "Unknown";
 	const teamInfo = getTeamInfo(players);
-	if (teamInfo) {
-		return teamInfo.name;
-	}
-	return players.map((p) => p.name).join(", ");
+	return teamInfo ? teamInfo.name : players.map((p) => p.name).join(", ");
 }
 
-function SideDisplay({
-	players,
-	isWinner,
-	isMuted,
-}: {
-	players: MatchPlayer[];
-	isWinner?: boolean;
-	isMuted?: boolean;
-}) {
+function SideDisplay({ players, isWinner }: { players: MatchPlayer[]; isWinner?: boolean }) {
 	const teamInfo = getTeamInfo(players);
-
 	return (
 		<div className="flex items-center gap-2 min-w-0">
 			<div className="flex gap-1 shrink-0">
@@ -220,9 +211,7 @@ function SideDisplay({
 			<span
 				className={cn(
 					"text-xs truncate",
-					isWinner && "font-semibold text-foreground",
-					isMuted && "text-muted-foreground",
-					!isWinner && !isMuted && "text-muted-foreground"
+					isWinner ? "font-semibold text-foreground" : "text-muted-foreground"
 				)}
 			>
 				{getSideLabel(players)}
@@ -242,6 +231,14 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	const homeWins = (latestMatch?.homeScore ?? 0) > (latestMatch?.awayScore ?? 0);
 	const awayWins = (latestMatch?.awayScore ?? 0) > (latestMatch?.homeScore ?? 0);
 
+	const scoreClass = (wins: boolean, loses: boolean) =>
+		cn(
+			"flex h-7 w-7 items-center justify-center rounded-md border text-sm shrink-0 bg-primary/10",
+			wins && "font-bold text-foreground",
+			loses && "text-muted-foreground font-medium",
+			!wins && !loses && "font-medium text-foreground"
+		);
+
 	return (
 		<DashboardCard
 			title="Latest Match"
@@ -255,33 +252,15 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 				<div className="space-y-2 min-w-0">
 					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
-							<SideDisplay players={homePlayers} isWinner={homeWins} isMuted={awayWins} />
+							<SideDisplay players={homePlayers} isWinner={homeWins} />
 						</div>
-						<div
-							className={cn(
-								"flex h-7 w-7 items-center justify-center rounded-md border text-sm shrink-0 bg-primary/10",
-								homeWins && "font-bold text-foreground",
-								awayWins && "text-muted-foreground font-medium",
-								!homeWins && !awayWins && "font-medium text-foreground"
-							)}
-						>
-							{latestMatch.homeScore}
-						</div>
+						<div className={scoreClass(homeWins, awayWins)}>{latestMatch.homeScore}</div>
 					</div>
 					<div className="flex items-center gap-3 min-w-0">
 						<div className="min-w-0 flex-1">
-							<SideDisplay players={awayPlayers} isWinner={awayWins} isMuted={homeWins} />
+							<SideDisplay players={awayPlayers} isWinner={awayWins} />
 						</div>
-						<div
-							className={cn(
-								"flex h-7 w-7 items-center justify-center rounded-md border text-sm shrink-0 bg-primary/10",
-								awayWins && "font-bold text-foreground",
-								homeWins && "text-muted-foreground font-medium",
-								!homeWins && !awayWins && "font-medium text-foreground"
-							)}
-						>
-							{latestMatch.awayScore}
-						</div>
+						<div className={scoreClass(awayWins, homeWins)}>{latestMatch.awayScore}</div>
 					</div>
 				</div>
 			) : (
@@ -341,24 +320,19 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	const { data: fixtures, isLoading: fixturesLoading } = useQuery(
 		trpc.season.getFixtures.queryOptions({ seasonSlug })
 	);
-
 	const { data: players } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
 
 	const { mutate: createFromFixture, isPending } = useMutation({
-		mutationFn: async (data: {
+		mutationFn: (data: {
 			seasonSlug: string;
 			homeScore: number;
 			awayScore: number;
 			fixtureId: string;
-		}) => {
-			return await trpcClient.match.createFromFixture.mutate(data);
-		},
+		}) => trpcClient.match.createFromFixture.mutate(data),
 		onSuccess: async () => {
-			// Fixtures must be invalidated immediately (not covered by SSE)
 			await queryClient.invalidateQueries({
 				queryKey: trpc.season.getFixtures.queryKey({ seasonSlug }),
 			});
-			// Standings for immediate feedback; SSE handles the rest for other users
 			await queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 			});
@@ -370,15 +344,12 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 			setAwayScore(0);
 			toast.success("Match logged");
 		},
-		onError: () => {
-			toast.error("Failed to log match");
-		},
+		onError: () => toast.error("Failed to log match"),
 	});
 
 	const nextFixture = fixtures?.find((f: Fixture) => !f.matchId);
 	const homePlayer = players?.find((p: SeasonPlayer) => p.id === nextFixture?.homePlayerId);
 	const awayPlayer = players?.find((p: SeasonPlayer) => p.id === nextFixture?.awayPlayerId);
-
 	const getFirstName = (name: string) => name.split(" ")[0];
 
 	return (
@@ -392,13 +363,14 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 				<Skeleton className="h-12 w-full" />
 			) : nextFixture && homePlayer && awayPlayer ? (
 				<div className="flex items-center gap-3 min-w-0">
-					<div className="flex-1 min-w-0">
-						<div className="space-y-2">
-							<div className="flex items-center gap-3">
-								<AvatarWithFallback src={homePlayer.image} name={homePlayer.name} size="sm" />
-								<span className="text-sm flex-1 truncate min-w-0">
-									{getFirstName(homePlayer.name)}
-								</span>
+					<div className="flex-1 min-w-0 space-y-2">
+						{[
+							{ player: homePlayer, score: homeScore, setScore: setHomeScore },
+							{ player: awayPlayer, score: awayScore, setScore: setAwayScore },
+						].map(({ player, score, setScore }) => (
+							<div key={player.id} className="flex items-center gap-3">
+								<AvatarWithFallback src={player.image} name={player.name} size="sm" />
+								<span className="text-sm flex-1 truncate min-w-0">{getFirstName(player.name)}</span>
 								<div className="flex items-center gap-2 shrink-0">
 									<div
 										className={cn(
@@ -406,7 +378,7 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 											isEditing && "bg-primary/10 scale-110 ring-2 ring-primary/20"
 										)}
 									>
-										{isEditing ? homeScore : ""}
+										{isEditing ? score : ""}
 									</div>
 									<div
 										className={cn(
@@ -415,40 +387,13 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 										)}
 									>
 										<div className="overflow-hidden">
-											<ScoreStepper score={homeScore} setScore={setHomeScore} />
+											<ScoreStepper score={score} setScore={setScore} />
 										</div>
 									</div>
 								</div>
 							</div>
-							<div className="flex items-center gap-3">
-								<AvatarWithFallback src={awayPlayer.image} name={awayPlayer.name} size="sm" />
-								<span className="text-sm flex-1 truncate min-w-0">
-									{getFirstName(awayPlayer.name)}
-								</span>
-								<div className="flex items-center gap-2 shrink-0">
-									<div
-										className={cn(
-											"flex h-7 w-7 items-center justify-center rounded-md border text-sm font-medium shrink-0 transition-all duration-200",
-											isEditing && "bg-primary/10 scale-110 ring-2 ring-primary/20"
-										)}
-									>
-										{isEditing ? awayScore : ""}
-									</div>
-									<div
-										className={cn(
-											"grid transition-all duration-200 ease-out",
-											isEditing ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
-										)}
-									>
-										<div className="overflow-hidden">
-											<ScoreStepper score={awayScore} setScore={setAwayScore} />
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
+						))}
 					</div>
-
 					<div className="flex flex-col items-center justify-center gap-1 pl-2 border-l">
 						{isEditing ? (
 							<>
@@ -504,19 +449,61 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
 	const trpc = useTRPC();
 	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+	const { scrollRef, activeIndex, onScroll, onTouchStart, onTouchEnd, containerStyle } =
+		useCarousel(4);
 
 	const isFixtureSeason = season?.scoreType === "3-1-0" && (season?.rounds ?? 0) > 0;
 
 	return (
-		<div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
-			<OnFireCard seasonSlug={seasonSlug} />
-			<StrugglingCard seasonSlug={seasonSlug} />
-			{isFixtureSeason ? (
-				<NextMatchCard seasonSlug={seasonSlug} />
-			) : (
-				<InfoCard seasonSlug={seasonSlug} />
-			)}
-			<LatestMatchCard seasonSlug={seasonSlug} />
-		</div>
+		<>
+			<div className="md:hidden overflow-hidden">
+				<div
+					ref={scrollRef}
+					className="flex items-stretch snap-x snap-mandatory overflow-x-auto"
+					style={containerStyle}
+					onTouchStart={onTouchStart}
+					onTouchEnd={onTouchEnd}
+					onScroll={onScroll}
+				>
+					<div className="snap-start shrink-0 w-full">
+						<LatestMatchCard seasonSlug={seasonSlug} />
+					</div>
+					<div className="snap-start shrink-0 w-full">
+						<OnFireCard seasonSlug={seasonSlug} />
+					</div>
+					<div className="snap-start shrink-0 w-full">
+						<StrugglingCard seasonSlug={seasonSlug} />
+					</div>
+					<div className="snap-start shrink-0 w-full">
+						{isFixtureSeason ? (
+							<NextMatchCard seasonSlug={seasonSlug} />
+						) : (
+							<InfoCard seasonSlug={seasonSlug} />
+						)}
+					</div>
+				</div>
+				<div className="flex justify-center gap-1.5 mt-2">
+					{[0, 1, 2, 3].map((i) => (
+						<div
+							key={i}
+							className={cn(
+								"h-1.5 rounded-full transition-all duration-200",
+								i === activeIndex ? "w-4 bg-foreground" : "w-1.5 bg-muted-foreground/30"
+							)}
+						/>
+					))}
+				</div>
+			</div>
+			<div className="hidden md:grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+				<OnFireCard seasonSlug={seasonSlug} />
+				<StrugglingCard seasonSlug={seasonSlug} />
+				{isFixtureSeason ? (
+					<NextMatchCard seasonSlug={seasonSlug} />
+				) : (
+					<InfoCard seasonSlug={seasonSlug} />
+				)}
+				<LatestMatchCard seasonSlug={seasonSlug} />
+			</div>
+		</>
 	);
 }
