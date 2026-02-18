@@ -12,7 +12,7 @@ interface DashboardCardProps {
 
 export function DashboardCard({ title, icon, children, glowColor, iconColor }: DashboardCardProps) {
 	return (
-		<Card className="relative overflow-hidden">
+		<Card className="relative overflow-hidden h-full" data-size="sm">
 			{glowColor && <div className={`absolute inset-0 ${glowColor}`} />}
 			<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle className="text-sm font-medium">{title}</CardTitle>

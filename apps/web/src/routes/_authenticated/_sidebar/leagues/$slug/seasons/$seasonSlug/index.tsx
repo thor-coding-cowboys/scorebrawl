@@ -113,9 +113,7 @@ function SeasonDashboardPage() {
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<DashboardCards seasonSlug={seasonSlug} />
 
-				{/* Conditional Layout Based on Teams */}
 				{hasTeams ? (
-					/* Two-column layout when teams exist */
 					<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 						<div className="flex flex-col gap-4">
 							<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
@@ -132,13 +130,12 @@ function SeasonDashboardPage() {
 								/>
 							)}
 						</div>
-						<div className="flex flex-col gap-4">
+						<div className="hidden lg:flex flex-col gap-4">
 							<TeamStandingCard seasonSlug={seasonSlug} />
 							<WeeklyPerformers seasonSlug={seasonSlug} />
 						</div>
 					</div>
 				) : (
-					/* Single-column layout when no teams */
 					<div className="flex flex-col gap-4">
 						<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
 						{!isEloSeason && season && (

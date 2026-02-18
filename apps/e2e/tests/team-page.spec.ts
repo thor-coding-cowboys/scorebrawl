@@ -77,13 +77,8 @@ test.describe("Team Page", () => {
 		// Navigate to the season dashboard where team standings are shown
 		await page.goto(`/leagues/${SEED_LEAGUE.slug}`);
 
-		// Wait for the page to load - use more specific selector for the card title
-		await expect(
-			page.locator('div[data-slot="card-title"]', { hasText: "Team Standings" }).first()
-		).toBeVisible();
-
-		// Wait for team standings table to be visible
-		await expect(page.getByTestId("team-standings-table")).toBeVisible();
+		// Wait for team standings table to be visible (use :visible since mobile/desktop render separately)
+		await expect(page.locator('[data-testid="team-standings-table"]:visible')).toBeVisible();
 
 		// Click on the first team row in standings
 		const firstTeamRow = page.getByTestId(/^team-standing-row-/).first();
