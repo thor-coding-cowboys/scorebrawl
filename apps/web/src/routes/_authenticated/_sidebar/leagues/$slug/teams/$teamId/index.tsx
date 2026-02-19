@@ -146,15 +146,17 @@ function TeamProfilePage() {
 			: 0;
 
 	const seasonChartData =
-		seasonHistory?.map((h) => ({
-			season: h.season,
-			score: h.score,
-			winRate: h.winRate,
-			matches: h.matches,
-			wins: h.wins,
-			losses: h.losses,
-			draws: h.draws,
-		})) ?? [];
+		seasonHistory
+			?.map((h) => ({
+				season: h.season,
+				score: h.score,
+				winRate: h.winRate,
+				matches: h.matches,
+				wins: h.wins,
+				losses: h.losses,
+				draws: h.draws,
+			}))
+			.reverse() ?? [];
 
 	return (
 		<>

@@ -28,14 +28,14 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
 
 	if (!logoUrl || hasError) {
 		return (
-			<div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
-				<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-blue-500" />
+			<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+				<HugeiconsIcon icon={UserMultipleIcon} className="size-5 text-blue-500" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden">
+		<div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
 			<img
 				src={logoUrl}
 				alt={name}
@@ -51,6 +51,123 @@ interface TeamStandingProps {
 	maxRows?: number;
 	currentPage?: number;
 	onPageChange?: (page: number) => void;
+}
+
+interface FormBarProps {
+	form: ("W" | "D" | "L")[] | undefined;
+	delta: number;
+}
+
+function FormBar({ form, delta }: FormBarProps) {
+	if (!form || form.length === 0) {
+		return (
+			<div className="flex items-center gap-2">
+				<span className="text-muted-foreground text-xs">-</span>
+				{delta !== 0 && (
+					<span
+						className={cn("text-xs font-medium", delta > 0 ? "text-green-600" : "text-red-600")}
+					>
+						{delta > 0 ? "+" : ""}
+						{delta}
+					</span>
+				)}
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex items-center gap-2">
+			<div className="flex items-center gap-1">
+				{form.map((result, i) => {
+					const colorClasses = {
+						W: "bg-green-500",
+						D: "bg-amber-500",
+						L: "bg-red-500",
+					}[result];
+					return (
+						<span key={`${result}-${i}`} className={cn("size-1.5 rounded-full", colorClasses)} />
+					);
+				})}
+			</div>
+			{delta !== 0 && (
+				<span
+					className={cn(
+						"text-xs font-medium tabular-nums",
+						delta > 0 ? "text-green-600" : "text-red-600"
+					)}
+				>
+					{delta > 0 ? "+" : ""}
+					{delta}
+				</span>
+			)}
+		</div>
+	);
+}
+
+function MobileTeamStandingRow({
+	item,
+	leagueSlug,
+	onClick,
+}: {
+	item: {
+		id: string;
+		name: string;
+		logo: string | null;
+		leagueTeamId: string;
+		score: number;
+		matchCount: number;
+		winCount: number;
+		pointDiff: number;
+		form: ("W" | "D" | "L")[] | undefined;
+	};
+	leagueSlug?: string;
+	onClick?: () => void;
+}) {
+	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
+
+	return (
+		<div
+			className={cn(
+				"flex items-center gap-2 bg-card px-1 py-3",
+				leagueSlug && "cursor-pointer hover:bg-muted/50"
+			)}
+			onClick={onClick}
+			data-testid={`team-standing-row-${item.id}`}
+		>
+			<div className="shrink-0 self-center">
+				<TeamIcon logo={item.logo} name={item.name} />
+			</div>
+
+			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+				<span
+					className="truncate text-sm font-medium"
+					data-testid={`team-standing-name-${item.id}`}
+				>
+					{item.name}
+				</span>
+				<div className="flex items-center gap-2">
+					<span
+						className="text-xs text-muted-foreground tabular-nums"
+						data-testid={`team-standing-mp-${item.id}`}
+					>
+						{item.matchCount}
+					</span>
+					<span className="text-xs text-muted-foreground tabular-nums">{winPct}% W</span>
+					<FormBar form={item.form} delta={item.pointDiff} />
+				</div>
+			</div>
+
+			<span
+				className={cn(
+					"shrink-0 text-base font-bold tabular-nums",
+					item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
+				)}
+				data-testid={`team-standing-score-${item.id}`}
+			>
+				{item.score}
+			</span>
+		</div>
+	);
 }
 
 export function TeamStanding({
@@ -115,109 +232,133 @@ export function TeamStanding({
 
 	return (
 		<div className="rounded-md" data-testid="team-standings-table">
-			<Table>
-				<TableHeader className="text-xs">
-					<TableRow>
-						<TableHead>Team</TableHead>
-						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
-							MP
-						</TableHead>
-						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
-							W
-						</TableHead>
-						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
-							D
-						</TableHead>
-						<TableHead className="hidden md:table-cell text-center text-muted-foreground">
-							L
-						</TableHead>
-						<TableHead className="text-center">+/-</TableHead>
-						<TableHead className="font-bold text-center">Pts</TableHead>
-						<TableHead className="text-center text-muted-foreground">Last 5</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody className="text-sm">
-					{paginatedData.map((item) => (
-						<TableRow
-							key={item.id}
-							className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
-							data-testid={`team-standing-row-${item.id}`}
-							onClick={() =>
-								leagueSlug &&
-								navigate({
-									to: "/leagues/$slug/teams/$teamId",
-									params: { slug: leagueSlug, teamId: item.leagueTeamId },
-								})
-							}
-						>
-							<TableCell className="py-2 w-full max-w-0">
-								<div className="flex items-center gap-2 min-w-0">
-									<TeamIcon logo={item.logo} name={item.name} />
-									<span
-										className="font-medium truncate"
-										data-testid={`team-standing-name-${item.id}`}
-									>
-										{item.name}
-									</span>
-								</div>
-							</TableCell>
-							<TableCell
-								className="hidden md:table-cell text-center text-muted-foreground"
-								data-testid={`team-standing-mp-${item.id}`}
+			{/* Mobile View - Card List */}
+			<div className="md:hidden flex flex-col divide-y divide-border">
+				{paginatedData.map((item) => (
+					<MobileTeamStandingRow
+						key={item.id}
+						item={item}
+						leagueSlug={leagueSlug}
+						onClick={
+							leagueSlug
+								? () =>
+										navigate({
+											to: "/leagues/$slug/teams/$teamId",
+											params: { slug: leagueSlug, teamId: item.leagueTeamId },
+										})
+								: undefined
+						}
+					/>
+				))}
+			</div>
+
+			{/* Desktop View - Table */}
+			<div className="hidden md:block">
+				<Table>
+					<TableHeader className="text-xs">
+						<TableRow>
+							<TableHead>Team</TableHead>
+							<TableHead className="text-center text-muted-foreground">MP</TableHead>
+							<TableHead className="text-center text-muted-foreground">W</TableHead>
+							<TableHead className="text-center text-muted-foreground">D</TableHead>
+							<TableHead className="text-center text-muted-foreground">L</TableHead>
+							<TableHead className="text-center text-muted-foreground">Win%</TableHead>
+							<TableHead className="text-center">+/-</TableHead>
+							<TableHead className="font-bold text-center">Pts</TableHead>
+							<TableHead className="text-center text-muted-foreground">Last 5</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody className="text-sm">
+						{paginatedData.map((item) => (
+							<TableRow
+								key={item.id}
+								className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+								data-testid={`team-standing-row-${item.id}`}
+								onClick={() =>
+									leagueSlug &&
+									navigate({
+										to: "/leagues/$slug/teams/$teamId",
+										params: { slug: leagueSlug, teamId: item.leagueTeamId },
+									})
+								}
 							>
-								{item.matchCount}
-							</TableCell>
-							<TableCell
-								className="hidden md:table-cell text-center text-muted-foreground"
-								data-testid={`team-standing-wins-${item.id}`}
-							>
-								{item.winCount}
-							</TableCell>
-							<TableCell
-								className="hidden md:table-cell text-center text-muted-foreground"
-								data-testid={`team-standing-draws-${item.id}`}
-							>
-								{item.drawCount}
-							</TableCell>
-							<TableCell
-								className="hidden md:table-cell text-center text-muted-foreground"
-								data-testid={`team-standing-losses-${item.id}`}
-							>
-								{item.lossCount}
-							</TableCell>
-							<TableCell className="text-center" data-testid={`team-standing-diff-${item.id}`}>
-								<span
-									className={cn(
-										"font-medium",
-										item.pointDiff > 0 && "text-green-600",
-										item.pointDiff < 0 && "text-red-600",
-										item.pointDiff === 0 && "text-muted-foreground"
-									)}
+								<TableCell className="py-2 w-full max-w-0">
+									<div className="flex items-center gap-2 min-w-0">
+										<TeamIcon logo={item.logo} name={item.name} />
+										<span
+											className="font-medium truncate"
+											data-testid={`team-standing-name-${item.id}`}
+										>
+											{item.name}
+										</span>
+									</div>
+								</TableCell>
+								<TableCell
+									className="text-center text-muted-foreground"
+									data-testid={`team-standing-mp-${item.id}`}
 								>
-									{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
-								</span>
-							</TableCell>
-							<TableCell
-								className={cn(
-									"text-center text-base font-bold",
-									item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
-								)}
-								data-testid={`team-standing-score-${item.id}`}
-							>
-								{item.score}
-							</TableCell>
-							<TableCell>
-								<FormDots form={item.form} />
-							</TableCell>
-						</TableRow>
-					))}
-					{emptyRows.map((i) => (
-						<TableRow key={`empty-${i}`} className="h-14">
-							<TableCell colSpan={8} />
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
+									{item.matchCount}
+								</TableCell>
+								<TableCell
+									className="text-center text-muted-foreground"
+									data-testid={`team-standing-wins-${item.id}`}
+								>
+									{item.winCount}
+								</TableCell>
+								<TableCell
+									className="text-center text-muted-foreground"
+									data-testid={`team-standing-draws-${item.id}`}
+								>
+									{item.drawCount}
+								</TableCell>
+								<TableCell
+									className="text-center text-muted-foreground"
+									data-testid={`team-standing-losses-${item.id}`}
+								>
+									{item.lossCount}
+								</TableCell>
+								<TableCell
+									className="text-center text-muted-foreground"
+									data-testid={`team-standing-wr-${item.id}`}
+								>
+									{item.matchCount > 0
+										? `${Math.round((item.winCount / item.matchCount) * 100)}%`
+										: "-"}
+								</TableCell>
+								<TableCell className="text-center" data-testid={`team-standing-diff-${item.id}`}>
+									<span
+										className={cn(
+											"font-medium",
+											item.pointDiff > 0 && "text-green-600",
+											item.pointDiff < 0 && "text-red-600",
+											item.pointDiff === 0 && "text-muted-foreground"
+										)}
+									>
+										{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
+									</span>
+								</TableCell>
+								<TableCell
+									className={cn(
+										"text-center text-base font-bold",
+										item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
+									)}
+									data-testid={`team-standing-score-${item.id}`}
+								>
+									{item.score}
+								</TableCell>
+								<TableCell>
+									<FormDots form={item.form} />
+								</TableCell>
+							</TableRow>
+						))}
+						{emptyRows.map((i) => (
+							<TableRow key={`empty-${i}`} className="h-14">
+								<TableCell colSpan={9} />
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</div>
 		</div>
 	);
 }

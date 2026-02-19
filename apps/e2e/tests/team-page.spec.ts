@@ -80,8 +80,8 @@ test.describe("Team Page", () => {
 		// Wait for team standings table to be visible (use :visible since mobile/desktop render separately)
 		await expect(page.locator('[data-testid="team-standings-table"]:visible')).toBeVisible();
 
-		// Click on the first team row in standings
-		const firstTeamRow = page.getByTestId(/^team-standing-row-/).first();
+		// Click on the first team row in standings (filter to visible for responsive layout)
+		const firstTeamRow = page.locator('[data-testid^="team-standing-row-"]:visible').first();
 		await expect(firstTeamRow).toBeVisible();
 
 		// Get the team name before clicking
