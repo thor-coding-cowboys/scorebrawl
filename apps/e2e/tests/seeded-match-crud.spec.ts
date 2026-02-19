@@ -19,7 +19,8 @@ test.describe("Seeded Match CRUD", () => {
 
 		// Store initial standings scores for comparison (scope to first standings table)
 		const standingsTable = page.locator('[data-testid="standings-table"]:visible');
-		const standingRows = standingsTable.locator('[data-testid^="standing-row-"]');
+		// Filter to only visible rows to handle mobile/desktop responsive layout
+		const standingRows = standingsTable.locator('[data-testid^="standing-row-"]:visible');
 		await expect(standingRows.first()).toBeVisible();
 
 		// Get initial player scores (first 4 players for 2v2 match)
@@ -29,7 +30,7 @@ test.describe("Seeded Match CRUD", () => {
 			const testId = await row.getAttribute("data-testid");
 			if (testId) {
 				const playerId = testId.replace("standing-row-", "");
-				const scoreEl = row.locator(`[data-testid="standing-score-${playerId}"]`);
+				const scoreEl = row.locator(`[data-testid="standing-score-${playerId}"]:visible`);
 				const scoreText = await scoreEl.textContent();
 				initialScores[playerId] = Number.parseInt(scoreText || "0", 10);
 			}
@@ -103,7 +104,7 @@ test.describe("Seeded Match CRUD", () => {
 		// Verify standings updated (scope to first standings table)
 		let scoresChanged = false;
 		for (const [playerId, initialScore] of Object.entries(initialScores)) {
-			const scoreEl = standingsTable.locator(`[data-testid="standing-score-${playerId}"]`);
+			const scoreEl = standingsTable.locator(`[data-testid="standing-score-${playerId}"]:visible`);
 			const newScoreText = await scoreEl.textContent();
 			const newScore = Number.parseInt(newScoreText || "0", 10);
 			if (newScore !== initialScore) {
@@ -133,7 +134,9 @@ test.describe("Seeded Match CRUD", () => {
 		// Step 8: Verify scores went back to original (with retry for timing)
 		await expect(async () => {
 			for (const [playerId, initialScore] of Object.entries(initialScores)) {
-				const scoreEl = standingsTable.locator(`[data-testid="standing-score-${playerId}"]`);
+				const scoreEl = standingsTable.locator(
+					`[data-testid="standing-score-${playerId}"]:visible`
+				);
 				const revertedScoreText = await scoreEl.textContent();
 				const revertedScore = Number.parseInt(revertedScoreText || "0", 10);
 				expect(revertedScore).toBe(initialScore);
@@ -148,16 +151,16 @@ test.describe("Seeded Match CRUD", () => {
 		const standingsTable = page.locator('[data-testid="standings-table"]:visible');
 		await expect(standingsTable).toBeVisible({ timeout: 10000 });
 
-		// Verify there are standings rows
-		const standingRows = standingsTable.locator('[data-testid^="standing-row-"]');
+		// Verify there are standings rows (filter to visible only for responsive layout)
+		const standingRows = standingsTable.locator('[data-testid^="standing-row-"]:visible');
 		const count = await standingRows.count();
 		expect(count).toBeGreaterThan(0);
 
 		// Verify standings have expected columns (name, MP, score)
 		const firstRow = standingRows.first();
-		await expect(firstRow.locator('[data-testid^="standing-name-"]')).toBeVisible();
-		await expect(firstRow.locator('[data-testid^="standing-mp-"]')).toBeVisible();
-		await expect(firstRow.locator('[data-testid^="standing-score-"]')).toBeVisible();
+		await expect(firstRow.locator('[data-testid^="standing-name-"]:visible')).toBeVisible();
+		await expect(firstRow.locator('[data-testid^="standing-mp-"]:visible')).toBeVisible();
+		await expect(firstRow.locator('[data-testid^="standing-score-"]:visible')).toBeVisible();
 	});
 
 	test("should display latest matches for seeded data", async ({ page }) => {
