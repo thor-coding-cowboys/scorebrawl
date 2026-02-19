@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
 
 export interface SeasonSSEEvent {
-	type: "connected" | "match:insert" | "match:delete" | "standings:update";
+	type: "connected" | "match:insert" | "match:delete" | "standings:update" | "streak";
 	sessionId?: string;
 	user?: {
 		id: string;
@@ -35,6 +35,12 @@ export interface SeasonSSEEvent {
 			pointDiff: number;
 			form: Array<"W" | "D" | "L">;
 		}>;
+		playerId?: string;
+		playerName?: string;
+		playerImage?: string | null;
+		streak?: number;
+		timestamp?: number;
+		isTeam?: boolean;
 	};
 }
 
@@ -95,6 +101,22 @@ export function useSeasonSSE({
 					const t = trpcRef.current;
 					const qc = queryClientRef.current;
 					const isOwnEvent = parsed.user?.id === currentUserId;
+
+					if (parsed.type === "streak" && parsed.data) {
+						window.dispatchEvent(
+							new CustomEvent("streak-event", {
+								detail: {
+									playerId: parsed.data.playerId,
+									playerName: parsed.data.playerName,
+									playerImage: parsed.data.playerImage,
+									streak: parsed.data.streak,
+									timestamp: parsed.data.timestamp,
+									isTeam: parsed.data.isTeam,
+								},
+							})
+						);
+						return;
+					}
 
 					// Skip invalidation for own events — the mutation onSuccess already handles it.
 					// Only invalidate for events from other users.

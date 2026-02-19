@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
 export interface SeasonSSEEvent {
-	type: "match:insert" | "match:delete" | "standings:update";
+	type: "match:insert" | "match:delete" | "standings:update" | "streak";
 	data: unknown;
 	user?: {
 		id: string;

@@ -379,6 +379,200 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 	};
 };
 
+export const checkStreakThresholds = async ({
+	db,
+	seasonPlayerIds,
+}: {
+	db: DrizzleDB;
+	seasonPlayerIds: string[];
+}): Promise<
+	Array<{
+		seasonPlayerId: string;
+		playerId: string;
+		playerName: string;
+		playerImage: string | null;
+		streak: number;
+	}>
+> => {
+	if (seasonPlayerIds.length === 0) return [];
+
+	const allMatches = await db
+		.select({
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			result: matchPlayer.result,
+			createdAt: matchPlayer.createdAt,
+			playerId: player.id,
+			playerName: user.name,
+			playerImage: user.image,
+		})
+		.from(matchPlayer)
+		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+		.innerJoin(user, eq(player.userId, user.id))
+		.where(inArray(matchPlayer.seasonPlayerId, seasonPlayerIds))
+		.orderBy(desc(matchPlayer.createdAt));
+
+	const matchesByPlayer = new Map<string, typeof allMatches>();
+	for (const match of allMatches) {
+		const existing = matchesByPlayer.get(match.seasonPlayerId) || [];
+		if (existing.length < 16) {
+			existing.push(match);
+			matchesByPlayer.set(match.seasonPlayerId, existing);
+		}
+	}
+
+	const results: Array<{
+		seasonPlayerId: string;
+		playerId: string;
+		playerName: string;
+		playerImage: string | null;
+		streak: number;
+	}> = [];
+
+	for (const [seasonPlayerId, recentMatches] of matchesByPlayer) {
+		const thresholdResult = checkThresholds(recentMatches);
+		if (thresholdResult) {
+			results.push({
+				seasonPlayerId,
+				playerId: thresholdResult.playerId,
+				playerName: thresholdResult.playerName,
+				playerImage: thresholdResult.playerImage,
+				streak: thresholdResult.streak,
+			});
+		}
+	}
+
+	return results;
+};
+
+function detectStreak(results: string[]): number {
+	for (const threshold of [15, 10, 5]) {
+		if (results.length < threshold) continue;
+
+		const firstN = results.slice(0, threshold);
+		const nextOne = results[threshold];
+
+		const allWins = firstN.every((r) => r === "W");
+		const allLosses = firstN.every((r) => r === "L");
+
+		if (allWins && (!nextOne || nextOne !== "W")) {
+			return threshold;
+		}
+		if (allLosses && (!nextOne || nextOne !== "L")) {
+			return -threshold;
+		}
+	}
+	return 0;
+}
+
+function checkThresholds(
+	recentMatches: Array<{
+		result: string;
+		playerId: string;
+		playerName: string | null;
+		playerImage: string | null;
+	}>
+): { playerId: string; playerName: string; playerImage: string | null; streak: number } | null {
+	const results = recentMatches.map((m) => m.result);
+	const streak = detectStreak(results);
+	if (streak === 0) return null;
+
+	const firstMatch = recentMatches[0];
+	return {
+		playerId: firstMatch.playerId,
+		playerName: firstMatch.playerName || "Unknown",
+		playerImage: firstMatch.playerImage,
+		streak,
+	};
+}
+
+export const checkTeamStreakThresholds = async ({
+	db,
+	matchId,
+}: {
+	db: DrizzleDB;
+	matchId: string;
+}): Promise<
+	Array<{
+		seasonTeamId: string;
+		teamName: string;
+		teamLogo: string | null;
+		streak: number;
+	}>
+> => {
+	const teams = await db
+		.select({ seasonTeamId: matchTeam.seasonTeamId })
+		.from(matchTeam)
+		.where(eq(matchTeam.matchId, matchId));
+
+	if (teams.length === 0) return [];
+
+	const seasonTeamIds = teams.map((t) => t.seasonTeamId);
+
+	const allMatches = await db
+		.select({
+			seasonTeamId: matchTeam.seasonTeamId,
+			result: matchTeam.result,
+			createdAt: matchTeam.createdAt,
+			teamName: leagueTeam.name,
+			teamLogo: leagueTeam.logo,
+		})
+		.from(matchTeam)
+		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
+		.where(inArray(matchTeam.seasonTeamId, seasonTeamIds))
+		.orderBy(desc(matchTeam.createdAt));
+
+	const matchesByTeam = new Map<string, typeof allMatches>();
+	for (const match of allMatches) {
+		const existing = matchesByTeam.get(match.seasonTeamId) || [];
+		if (existing.length < 16) {
+			existing.push(match);
+			matchesByTeam.set(match.seasonTeamId, existing);
+		}
+	}
+
+	const results: Array<{
+		seasonTeamId: string;
+		teamName: string;
+		teamLogo: string | null;
+		streak: number;
+	}> = [];
+
+	for (const [seasonTeamId, recentMatches] of matchesByTeam) {
+		const thresholdResult = checkTeamThresholds(recentMatches);
+		if (thresholdResult) {
+			results.push({
+				seasonTeamId,
+				teamName: thresholdResult.teamName,
+				teamLogo: thresholdResult.teamLogo,
+				streak: thresholdResult.streak,
+			});
+		}
+	}
+
+	return results;
+};
+
+function checkTeamThresholds(
+	recentMatches: Array<{
+		result: string;
+		teamName: string;
+		teamLogo: string | null;
+	}>
+): { teamName: string; teamLogo: string | null; streak: number } | null {
+	const results = recentMatches.map((m) => m.result);
+	const streak = detectStreak(results);
+	if (streak === 0) return null;
+
+	const firstMatch = recentMatches[0];
+	return {
+		teamName: firstMatch.teamName,
+		teamLogo: firstMatch.teamLogo,
+		streak,
+	};
+}
+
 export const remove = async ({
 	db,
 	matchId,

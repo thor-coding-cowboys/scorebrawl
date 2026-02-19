@@ -135,9 +135,16 @@ export function CreateMatchDialog({
 	const awayScore = watch("awayScore");
 
 	const resetForm = () => {
-		reset();
 		setShowDuplicateWarning(false);
-		if (!keepPlayers) {
+		if (keepPlayers) {
+			reset({
+				homeScore: 0,
+				awayScore: 0,
+				homePlayers: teamSelection.filter((p) => p.team === "home").map((p) => ({ id: p.id })),
+				awayPlayers: teamSelection.filter((p) => p.team === "away").map((p) => ({ id: p.id })),
+			});
+		} else {
+			reset();
 			setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
 		}
 	};

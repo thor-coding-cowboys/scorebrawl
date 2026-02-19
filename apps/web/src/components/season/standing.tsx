@@ -7,65 +7,16 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { StreakAvatar } from "./streak-avatar";
 import { FormDots } from "@/components/ui/form-dots";
+import { calculateStreak } from "@/lib/streak";
+import { FormBar } from "./form-bar";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 
 interface StandingProps {
 	seasonSlug: string;
 	leagueSlug?: string;
-}
-
-interface FormBarProps {
-	form: ("W" | "D" | "L")[] | undefined;
-	delta: number;
-}
-
-function FormBar({ form, delta }: FormBarProps) {
-	if (!form || form.length === 0) {
-		return (
-			<div className="flex items-center gap-2">
-				<span className="text-muted-foreground text-xs">-</span>
-				{delta !== 0 && (
-					<span
-						className={cn("text-xs font-medium", delta > 0 ? "text-green-600" : "text-red-600")}
-					>
-						{delta > 0 ? "+" : ""}
-						{delta}
-					</span>
-				)}
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex items-center gap-2">
-			<div className="flex items-center gap-1">
-				{form.map((result, i) => {
-					const colorClasses = {
-						W: "bg-green-500",
-						D: "bg-amber-500",
-						L: "bg-red-500",
-					}[result];
-					return (
-						<span key={`${result}-${i}`} className={cn("size-1.5 rounded-full", colorClasses)} />
-					);
-				})}
-			</div>
-			{delta !== 0 && (
-				<span
-					className={cn(
-						"text-xs font-medium tabular-nums",
-						delta > 0 ? "text-green-600" : "text-red-600"
-					)}
-				>
-					{delta > 0 ? "+" : ""}
-					{delta}
-				</span>
-			)}
-		</div>
-	);
 }
 
 function MobileStandingRow({
@@ -88,6 +39,7 @@ function MobileStandingRow({
 	onClick?: () => void;
 }) {
 	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
+	const streak = calculateStreak(item.form);
 
 	return (
 		<div
@@ -98,10 +50,11 @@ function MobileStandingRow({
 			onClick={onClick}
 			data-testid={`standing-row-${item.id}`}
 		>
-			<AvatarWithFallback
+			<StreakAvatar
 				src={item.image}
 				name={item.name}
-				size="md"
+				streak={streak}
+				size={32}
 				className="shrink-0 self-center"
 			/>
 
@@ -194,92 +147,99 @@ export function Standing({ seasonSlug, leagueSlug }: StandingProps) {
 						</TableRow>
 					</TableHeader>
 					<TableBody className="text-sm">
-						{sortedData.map((item) => (
-							<TableRow
-								key={item.id}
-								className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
-								data-testid={`standing-row-${item.id}`}
-								onClick={
-									leagueSlug
-										? () =>
-												navigate({
-													to: "/leagues/$slug/players/$leaguePlayerId",
-													params: { slug: leagueSlug, leaguePlayerId: item.playerId },
-												})
-										: undefined
-								}
-							>
-								<TableCell className="py-2 w-full max-w-0">
-									<div className="flex items-center gap-3 min-w-0">
-										<AvatarWithFallback
-											src={item.image}
-											name={item.name}
-											size="md"
-											className="shrink-0"
-										/>
-										<span className="font-medium truncate" data-testid={`standing-name-${item.id}`}>
-											{item.name}
-										</span>
-									</div>
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`standing-mp-${item.id}`}
+						{sortedData.map((item) => {
+							const streak = calculateStreak(item.form);
+							return (
+								<TableRow
+									key={item.id}
+									className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+									data-testid={`standing-row-${item.id}`}
+									onClick={
+										leagueSlug
+											? () =>
+													navigate({
+														to: "/leagues/$slug/players/$leaguePlayerId",
+														params: { slug: leagueSlug, leaguePlayerId: item.playerId },
+													})
+											: undefined
+									}
 								>
-									{item.matchCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`standing-wins-${item.id}`}
-								>
-									{item.winCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`standing-draws-${item.id}`}
-								>
-									{item.drawCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`standing-losses-${item.id}`}
-								>
-									{item.lossCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`standing-wr-${item.id}`}
-								>
-									{item.matchCount > 0
-										? `${Math.round((item.winCount / item.matchCount) * 100)}%`
-										: "-"}
-								</TableCell>
-								<TableCell className="text-center" data-testid={`standing-diff-${item.id}`}>
-									<span
-										className={cn(
-											"font-medium",
-											item.pointDiff > 0 && "text-green-600",
-											item.pointDiff < 0 && "text-red-600",
-											item.pointDiff === 0 && "text-muted-foreground"
-										)}
+									<TableCell className="py-2 w-full max-w-0">
+										<div className="flex items-center gap-3 min-w-0">
+											<StreakAvatar
+												src={item.image}
+												name={item.name}
+												streak={streak}
+												size={32}
+												className="shrink-0"
+											/>
+											<span
+												className="font-medium truncate"
+												data-testid={`standing-name-${item.id}`}
+											>
+												{item.name}
+											</span>
+										</div>
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`standing-mp-${item.id}`}
 									>
-										{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
-									</span>
-								</TableCell>
-								<TableCell
-									className={cn(
-										"text-center text-base font-bold",
-										item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
-									)}
-									data-testid={`standing-score-${item.id}`}
-								>
-									{item.score}
-								</TableCell>
-								<TableCell>
-									<FormDots form={item.form} />
-								</TableCell>
-							</TableRow>
-						))}
+										{item.matchCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`standing-wins-${item.id}`}
+									>
+										{item.winCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`standing-draws-${item.id}`}
+									>
+										{item.drawCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`standing-losses-${item.id}`}
+									>
+										{item.lossCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`standing-wr-${item.id}`}
+									>
+										{item.matchCount > 0
+											? `${Math.round((item.winCount / item.matchCount) * 100)}%`
+											: "-"}
+									</TableCell>
+									<TableCell className="text-center" data-testid={`standing-diff-${item.id}`}>
+										<span
+											className={cn(
+												"font-medium",
+												item.pointDiff > 0 && "text-green-600",
+												item.pointDiff < 0 && "text-red-600",
+												item.pointDiff === 0 && "text-muted-foreground"
+											)}
+										>
+											{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
+										</span>
+									</TableCell>
+									<TableCell
+										className={cn(
+											"text-center text-base font-bold",
+											item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
+										)}
+										data-testid={`standing-score-${item.id}`}
+									>
+										{item.score}
+									</TableCell>
+									<TableCell>
+										<FormDots form={item.form} />
+									</TableCell>
+								</TableRow>
+							);
+						})}
 					</TableBody>
 				</Table>
 			</div>

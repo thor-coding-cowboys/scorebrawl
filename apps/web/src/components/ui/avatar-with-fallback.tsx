@@ -69,28 +69,12 @@ function getNameColor(name?: string | null): string {
 }
 
 interface AvatarWithFallbackProps {
-	/**
-	 * Asset key or URL for the image
-	 */
 	src?: string | null
-	/**
-	 * Name for generating fallback initials
-	 */
 	name?: string | null
-	/**
-	 * Alt text for the image
-	 */
 	alt?: string
-	/**
-	 * Size of the avatar
-	 * @default "md"
-	 */
 	size?: "sm" | "md" | "lg" | "xl"
-	/**
-	 * Additional CSS classes
-	 */
 	className?: string
-
+	style?: React.CSSProperties
 }
 
 const sizeMap = {
@@ -118,6 +102,7 @@ export function AvatarWithFallback({
 	alt,
 	size = "md",
 	className,
+	style,
 }: AvatarWithFallbackProps) {
 	const imageUrl = getAssetUrl(src)
 	const initials = getInitials(name)
@@ -129,10 +114,10 @@ export function AvatarWithFallback({
 			className={cn(
 				"relative flex shrink-0 select-none items-center justify-center rounded-lg overflow-hidden border",
 				sizeMap[size],
-				// Use name-based colors when no image, fallback to muted when image exists
 				!imageUrl ? nameColorClasses : "bg-muted border-border",
 				className
 			)}
+			style={style}
 		>
 			{imageUrl ? (
 				<img

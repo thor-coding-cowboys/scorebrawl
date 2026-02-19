@@ -91,10 +91,18 @@ export async function createPlayer(
 /**
  * Create multiple players for a league using the authenticated user's ID
  */
-export async function createPlayers(authContext: AuthContext, count: number) {
-	const userPromises = Array.from({ length: count }, async (_, i) =>
-		i === 0 ? authContext.user.id : (await createUser()).user.id
-	);
+export async function createPlayers(
+	authContext: AuthContext,
+	count: number,
+	options: { names?: string[] } = {}
+) {
+	const userPromises = Array.from({ length: count }, async (_, i) => {
+		if (i === 0) {
+			return authContext.user.id;
+		}
+		const name = options.names?.[i - 1];
+		return (await createUser(name ? { name } : {})).user.id;
+	});
 	const userIds = await Promise.all(userPromises);
 
 	const playerPromises = userIds.map((userId) => createPlayer(authContext, userId));
