@@ -232,7 +232,7 @@ describe("player router", () => {
 			await createPlayers(ctx, 2);
 
 			// Create a season first
-			await client.season.create.mutate({
+			const createdSeason = await client.season.create.mutate({
 				name: "Ongoing Season",
 				initialScore: 1000,
 				scoreType: "elo",
@@ -247,6 +247,26 @@ describe("player router", () => {
 			});
 
 			expect(result.playerId).toBeDefined();
+
+			// Verify the guest was actually enrolled in the season
+			const { env } = await import("cloudflare:test");
+			const { getDb } = await import("../../src/db/index");
+			const { seasonPlayer } = await import("../../src/db/schema/league-schema");
+			const { and, eq } = await import("drizzle-orm");
+			const db = getDb(env.DB);
+
+			const enrollments = await db
+				.select()
+				.from(seasonPlayer)
+				.where(
+					and(
+						eq(seasonPlayer.playerId, result.playerId),
+						eq(seasonPlayer.seasonId, createdSeason.id)
+					)
+				);
+
+			expect(enrollments).toHaveLength(1);
+			expect(enrollments[0].score).toBe(1000);
 		});
 	});
 });

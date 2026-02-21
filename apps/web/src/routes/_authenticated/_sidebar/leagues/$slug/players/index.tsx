@@ -91,6 +91,9 @@ function PlayersPage() {
 		onSuccess: () => {
 			toast.success("Guest player added");
 			void queryClient.invalidateQueries({ queryKey: trpc.player.getAll.queryKey() });
+			void queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey(),
+			});
 			setGuestDialogOpen(false);
 			setGuestEmail("");
 			setGuestDisplayName("");
