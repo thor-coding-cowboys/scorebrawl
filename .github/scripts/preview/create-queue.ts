@@ -11,20 +11,22 @@ if (!prNumber) {
 const queueName = `achievement-calculations-pr-${prNumber}`;
 
 try {
-	console.log(`Creating queue: ${queueName}`);
-	await $`bun wrangler queues create ${queueName}`.quiet();
-	console.log(`Queue created: ${queueName}`);
-} catch (error) {
-	const stderr =
-		error instanceof Error && "stderr" in error
-			? String((error as { stderr: unknown }).stderr)
-			: "";
-	if (stderr.includes("already exists")) {
+	const listResult = await $`bun wrangler queues list --json`.quiet();
+	const queues = JSON.parse(listResult.stdout.toString());
+	const queueExists = queues.some(
+		(q: { queue_name: string }) => q.queue_name === queueName,
+	);
+
+	if (queueExists) {
 		console.log(`Queue already exists: ${queueName}`);
 	} else {
-		console.error("Failed to create queue:", error);
-		process.exit(1);
+		console.log(`Creating queue: ${queueName}`);
+		await $`bun wrangler queues create ${queueName}`.quiet();
+		console.log(`Queue created: ${queueName}`);
 	}
+} catch (error) {
+	console.error("Failed to list/create queue:", error);
+	process.exit(1);
 }
 
 // Output for GitHub Actions
