@@ -4,12 +4,7 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
-import {
-	seasonProcedure,
-	leagueEditorProcedure,
-	leagueProcedure,
-	type LeagueContext,
-} from "../trpc";
+import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
 	if (endDate && startDate && startDate > endDate) {
@@ -110,13 +105,11 @@ export const seasonRouter = {
 		.mutation(async ({ ctx, input }) => {
 			validateStartBeforeEnd(input);
 
-			const typedCtx = ctx as unknown as LeagueContext;
-
 			// If an ID is provided, verify it doesn't already exist
 			if (input.id) {
 				try {
 					await seasonRepository.getById({
-						db: typedCtx.db,
+						db: ctx.db,
 						seasonId: input.id,
 					});
 					// If we get here, the season exists
@@ -133,8 +126,8 @@ export const seasonRouter = {
 
 			// Check if at least 2 players exist
 			const players = await playerRepository.getAll({
-				db: typedCtx.db,
-				leagueId: typedCtx.organizationId,
+				db: ctx.db,
+				leagueId: ctx.organizationId,
 			});
 
 			if (players.length < 2) {
@@ -145,11 +138,11 @@ export const seasonRouter = {
 			}
 
 			return seasonRepository.create({
-				db: typedCtx.db,
+				db: ctx.db,
 				id: input.id,
 				...input,
-				leagueId: typedCtx.organizationId,
-				userId: typedCtx.authentication.user.id,
+				leagueId: ctx.organizationId,
+				userId: ctx.authentication.user.id,
 			});
 		}),
 
@@ -173,18 +166,16 @@ export const seasonRouter = {
 		.mutation(async ({ ctx, input }) => {
 			validateStartBeforeEnd(input);
 
-			const typedCtx = ctx as unknown as LeagueContext;
-
 			// Get season to verify it exists
 			const comp = await seasonRepository.getBySlug({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonSlug: input.seasonSlug,
-				leagueId: typedCtx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			// Check if season has matches registered
 			const countInfo = await seasonRepository.getCountInfoById({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonId: comp.id,
 			});
 
@@ -205,8 +196,8 @@ export const seasonRouter = {
 			}
 
 			return seasonRepository.update({
-				db: typedCtx.db,
-				userId: typedCtx.authentication.user.id,
+				db: ctx.db,
+				userId: ctx.authentication.user.id,
 				seasonId: comp.id,
 				...input,
 			});
@@ -220,18 +211,16 @@ export const seasonRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-
 			const comp = await seasonRepository.getBySlug({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonSlug: input.seasonSlug,
-				leagueId: typedCtx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			return seasonRepository.updateClosedStatus({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonId: comp.id,
-				userId: typedCtx.authentication.user.id,
+				userId: ctx.authentication.user.id,
 				closed: input.closed,
 			});
 		}),

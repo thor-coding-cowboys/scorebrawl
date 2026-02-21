@@ -17,11 +17,6 @@ import { leagueEditorProcedure } from "../trpc";
  */
 const BASE64_IMAGE_REGEX = /^data:image\/(jpeg|png|webp);base64,/;
 
-// Context type for procedures that use leagueEditorProcedure or leagueProcedure
-interface LeagueContext {
-	organizationId: string;
-}
-
 export const organizationRouter = {
 	uploadLogo: leagueEditorProcedure
 		.input(
@@ -35,7 +30,7 @@ export const organizationRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = (ctx as unknown as LeagueContext).organizationId;
+			const organizationId = ctx.organizationId;
 
 			// Extract content type from base64 data URL
 			const contentTypeMatch = input.imageData.match(/^data:(image\/\w+);base64,/);
@@ -127,7 +122,7 @@ export const organizationRouter = {
 		}),
 
 	deleteLogo: leagueEditorProcedure.mutation(async ({ ctx }) => {
-		const organizationId = (ctx as unknown as LeagueContext).organizationId;
+		const organizationId = ctx.organizationId;
 
 		// Get current logo key
 		const orgData = await ctx.db
