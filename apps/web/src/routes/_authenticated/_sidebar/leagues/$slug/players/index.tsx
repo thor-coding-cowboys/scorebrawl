@@ -12,11 +12,22 @@ import {
 	UserMultipleIcon,
 	Alert02Icon,
 	InformationCircleIcon,
+	UserAdd01Icon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
@@ -37,6 +48,7 @@ type Player = {
 	name: string | null;
 	image: string | null;
 	disabled: boolean;
+	isGuest: boolean;
 };
 
 function PlayersPage() {
@@ -47,6 +59,9 @@ function PlayersPage() {
 
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 	const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+	const [guestDialogOpen, setGuestDialogOpen] = useState(false);
+	const [guestEmail, setGuestEmail] = useState("");
+	const [guestDisplayName, setGuestDisplayName] = useState("");
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -66,6 +81,22 @@ function PlayersPage() {
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : "Failed to update player");
+		},
+	});
+
+	const createGuestMutation = useMutation({
+		mutationFn: async ({ email, displayName }: { email: string; displayName: string }) => {
+			return trpcClient.player.createGuestPlayer.mutate({ email, displayName });
+		},
+		onSuccess: () => {
+			toast.success("Guest player added");
+			void queryClient.invalidateQueries({ queryKey: trpc.player.getAll.queryKey() });
+			setGuestDialogOpen(false);
+			setGuestEmail("");
+			setGuestDisplayName("");
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to add guest player");
 		},
 	});
 
@@ -91,10 +122,16 @@ function PlayersPage() {
 		});
 	};
 
+	const handleGuestSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		createGuestMutation.mutate({ email: guestEmail, displayName: guestDisplayName });
+	};
+
 	const isEnabling = selectedPlayer?.disabled ?? false;
 
 	return (
 		<>
+			{/* Disable/Enable confirm dialog */}
 			<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 				<DialogContent className="sm:max-w-md overflow-hidden">
 					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
@@ -197,12 +234,82 @@ function PlayersPage() {
 				</DialogContent>
 			</Dialog>
 
+			{/* Add Guest Player dialog */}
+			<Dialog
+				open={guestDialogOpen}
+				onOpenChange={(open) => {
+					setGuestDialogOpen(open);
+					if (!open) {
+						setGuestEmail("");
+						setGuestDisplayName("");
+					}
+				}}
+			>
+				<DialogContent className="sm:max-w-[425px]">
+					<DialogHeader>
+						<DialogTitle>Add Guest Player</DialogTitle>
+						<DialogDescription>
+							Add a player without requiring them to sign up. If they join later, their stats will
+							be preserved.
+						</DialogDescription>
+					</DialogHeader>
+					<form onSubmit={handleGuestSubmit}>
+						<div className="grid gap-4 py-4">
+							<div className="grid gap-2">
+								<Label htmlFor="guest-email">Email Address</Label>
+								<Input
+									id="guest-email"
+									type="email"
+									placeholder="player@example.com"
+									value={guestEmail}
+									onChange={(e) => setGuestEmail(e.target.value)}
+									required
+								/>
+								<p className="text-xs text-muted-foreground">
+									Required for claiming their profile when they sign up
+								</p>
+							</div>
+							<div className="grid gap-2">
+								<Label htmlFor="guest-name">Display Name</Label>
+								<Input
+									id="guest-name"
+									placeholder="John Doe"
+									value={guestDisplayName}
+									onChange={(e) => setGuestDisplayName(e.target.value)}
+									required
+								/>
+								<p className="text-xs text-muted-foreground">
+									How they'll appear in matches and leaderboards
+								</p>
+							</div>
+						</div>
+						<DialogFooter>
+							<Button type="button" variant="outline" onClick={() => setGuestDialogOpen(false)}>
+								Cancel
+							</Button>
+							<Button type="submit" disabled={createGuestMutation.isPending}>
+								{createGuestMutation.isPending ? "Adding..." : "Add Player"}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
+
 			<Header
 				breadcrumbs={[
 					{ name: "League", href: "/leagues" },
 					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Players" },
 				]}
+				rightContent={
+					canManagePlayers ? (
+						<Button size="sm" className="gap-1.5" onClick={() => setGuestDialogOpen(true)}>
+							<HugeiconsIcon icon={UserAdd01Icon} className="size-4" />
+							<span className="hidden sm:inline">Add Guest Player</span>
+							<span className="sm:hidden">Guest</span>
+						</Button>
+					) : undefined
+				}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-3">
@@ -265,7 +372,16 @@ function PlayersPage() {
 											icon={
 												<AvatarWithFallback src={player.image} name={name} alt={name} size="lg" />
 											}
-											title={name}
+											title={
+												<span className="flex items-center gap-2">
+													{name}
+													{player.isGuest && (
+														<Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+															Guest
+														</Badge>
+													)}
+												</span>
+											}
 											subtitle={
 												player.disabled ? (
 													<span className="text-red-500">Disabled</span>
