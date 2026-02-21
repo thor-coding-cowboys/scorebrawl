@@ -6,12 +6,8 @@ import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonPlayerRepository from "../../repositories/season-player-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
-import {
-	seasonProcedure,
-	leagueMemberProcedure,
-	type LeagueContext,
-	type SeasonContext,
-} from "../trpc";
+import type { AchievementQueueMessage } from "../../services/achievement-calculation";
+import { seasonProcedure, leagueMemberProcedure } from "../trpc";
 
 // Schema for optional match ID validation
 const matchIdSchema = createOptionalIdSchema("match");
@@ -27,12 +23,10 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-
 			const season = await seasonRepository.getBySlug({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonSlug: input.seasonSlug,
-				leagueId: typedCtx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			if (season.closed) {
@@ -44,7 +38,7 @@ export const matchRouter = {
 
 			// Get the fixture
 			const fixture = await seasonRepository.findFixtureById({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonId: season.id,
 				fixtureId: input.fixtureId,
 			});
@@ -65,20 +59,20 @@ export const matchRouter = {
 
 			// Create the match
 			const createdMatch = await matchRepository.create({
-				db: typedCtx.db,
+				db: ctx.db,
 				input: {
 					seasonId: season.id,
 					homeScore: input.homeScore,
 					awayScore: input.awayScore,
 					homeTeamPlayerIds: [fixture.homePlayerId],
 					awayTeamPlayerIds: [fixture.awayPlayerId],
-					userId: typedCtx.authentication.user.id,
+					userId: ctx.authentication.user.id,
 				},
 			});
 
 			// Assign match to fixture
 			await seasonRepository.assignMatchToFixture({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonId: season.id,
 				fixtureId: fixture.id,
 				matchId: createdMatch.id,
@@ -86,25 +80,31 @@ export const matchRouter = {
 
 			// Fetch updated standings
 			const standings = await seasonPlayerRepository.getStanding({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonId: season.id,
 			});
 
 			// Broadcast match insert and standings update
-			const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
 			if (sseEnv.SEASON_SSE) {
-				await broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+				await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
 					type: "match:insert",
 					data: {
 						match: createdMatch,
 						standings,
 					},
 					user: {
-						id: typedCtx.authentication.user.id,
-						name: typedCtx.authentication.user.name,
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
 					},
 				});
 			}
+
+			// Dispatch achievement calculation
+			const seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];
+			await ctx.env.ACHIEVEMENT_QUEUE.send({
+				seasonPlayerIds,
+			} satisfies AchievementQueueMessage);
 
 			return createdMatch;
 		}),
@@ -121,8 +121,6 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-
 			// Validate teams have at least one player each
 			if (input.homeTeamPlayerIds.length === 0 || input.awayTeamPlayerIds.length === 0) {
 				throw new TRPCError({
@@ -140,9 +138,9 @@ export const matchRouter = {
 			}
 
 			const comp = await seasonRepository.getBySlug({
-				db: typedCtx.db,
+				db: ctx.db,
 				seasonSlug: input.seasonSlug,
-				leagueId: typedCtx.organizationId,
+				leagueId: ctx.organizationId,
 			});
 
 			if (comp.closed) {
@@ -156,7 +154,7 @@ export const matchRouter = {
 			if (input.id) {
 				try {
 					await matchRepository.findById({
-						db: typedCtx.db,
+						db: ctx.db,
 						matchId: input.id,
 						seasonId: comp.id,
 					});
@@ -174,7 +172,7 @@ export const matchRouter = {
 
 			return matchRepository
 				.create({
-					db: typedCtx.db,
+					db: ctx.db,
 					input: {
 						id: input.id,
 						seasonId: comp.id,
@@ -182,37 +180,43 @@ export const matchRouter = {
 						awayScore: input.awayScore,
 						homeTeamPlayerIds: input.homeTeamPlayerIds,
 						awayTeamPlayerIds: input.awayTeamPlayerIds,
-						userId: typedCtx.authentication.user.id,
+						userId: ctx.authentication.user.id,
 					},
 				})
 				.then(async (createdMatch) => {
 					// Fetch updated standings
 					const standings = await seasonPlayerRepository.getStanding({
-						db: typedCtx.db,
+						db: ctx.db,
 						seasonId: comp.id,
 					});
 
 					// Broadcast match insert and standings update
-					const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+					const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
 					console.log("[SSE] Broadcasting match:insert", {
 						hasSseEnv: !!sseEnv.SEASON_SSE,
-						leagueSlug: typedCtx.organization.slug,
+						leagueSlug: ctx.organization.slug,
 						seasonSlug: input.seasonSlug,
 					});
 					if (sseEnv.SEASON_SSE) {
-						await broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+						await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
 							type: "match:insert",
 							data: {
 								match: createdMatch,
 								standings,
 							},
 							user: {
-								id: typedCtx.authentication.user.id,
-								name: typedCtx.authentication.user.name,
+								id: ctx.authentication.user.id,
+								name: ctx.authentication.user.name,
 							},
 						});
 						console.log("[SSE] Broadcast complete");
 					}
+
+					// Dispatch achievement calculation
+					const seasonPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
+					await ctx.env.ACHIEVEMENT_QUEUE.send({
+						seasonPlayerIds,
+					} satisfies AchievementQueueMessage);
 
 					return createdMatch;
 				});
@@ -226,8 +230,6 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as SeasonContext;
-
 			await matchRepository.remove({
 				db: ctx.db,
 				matchId: input.matchId,
@@ -241,17 +243,17 @@ export const matchRouter = {
 			});
 
 			// Broadcast match delete and standings update
-			const sseEnv = typedCtx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
+			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
 			if (sseEnv.SEASON_SSE) {
-				broadcastSeasonEvent(sseEnv, typedCtx.organization.slug, input.seasonSlug, {
+				broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
 					type: "match:delete",
 					data: {
 						matchId: input.matchId,
 						standings,
 					},
 					user: {
-						id: typedCtx.authentication.user.id,
-						name: typedCtx.authentication.user.name,
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
 					},
 				});
 			}

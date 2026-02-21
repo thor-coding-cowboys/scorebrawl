@@ -10,7 +10,7 @@ import {
 	isValidImageType,
 	MAX_AVATAR_SIZE,
 } from "../../lib/asset-util";
-import { activeOrgProcedure, leagueProcedure, type LeagueContext } from "../trpc";
+import { activeOrgProcedure, leagueProcedure } from "../trpc";
 import * as teamRepository from "../../repositories/team-repository";
 
 /**
@@ -95,10 +95,9 @@ export const leagueTeamRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-			const { db, organizationId, role } = typedCtx;
+			const { db, organizationId, role } = ctx;
 			const { teamId, name } = input;
-			const userId = typedCtx.authentication.user.id;
+			const userId = ctx.authentication.user.id;
 
 			// Verify team exists in this league
 			const [existingTeam] = await db
@@ -187,10 +186,9 @@ export const leagueTeamRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-			const { db, organizationId, role, userAssets } = typedCtx;
+			const { db, organizationId, role, userAssets } = ctx;
 			const { teamId, imageData } = input;
-			const userId = typedCtx.authentication.user.id;
+			const userId = ctx.authentication.user.id;
 
 			// Verify team exists in this league
 			const [existingTeam] = await db
@@ -334,10 +332,9 @@ export const leagueTeamRouter = {
 	deleteLogo: leagueProcedure
 		.input(z.object({ teamId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const typedCtx = ctx as unknown as LeagueContext;
-			const { db, organizationId, role, userAssets } = typedCtx;
+			const { db, organizationId, role, userAssets } = ctx;
 			const { teamId } = input;
-			const userId = typedCtx.authentication.user.id;
+			const userId = ctx.authentication.user.id;
 
 			// Verify team exists in this league
 			const [existingTeam] = await db

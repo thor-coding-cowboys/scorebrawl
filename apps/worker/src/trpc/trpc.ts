@@ -32,32 +32,19 @@ interface LeagueContext extends BaseContext {
 	role: string;
 }
 
-interface SeasonContext extends LeagueContext {
-	season: {
-		id: string;
-		slug: string;
-		name: string;
-		initialScore: number;
-		scoreType: "elo" | "3-1-0" | "elo-individual-vs-team";
-		kFactor: number;
-		startDate: Date;
-		endDate: Date | null;
-		rounds: number | null;
-		closed: boolean;
-		archived: boolean;
-		organizationId: string;
-	};
-}
-
 const t = initTRPC.context<BaseContext>().create({
 	transformer: superjson,
 });
 
 const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-	if (!ctx.authentication?.user) {
+	if (!ctx.authentication) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
-	return next({ ctx: { ...ctx, authentication: ctx.authentication } });
+	return next({
+		ctx: {
+			authentication: ctx.authentication,
+		},
+	});
 });
 
 const enforceActiveOrg = t.middleware(({ ctx, next }) => {
@@ -69,8 +56,6 @@ const enforceActiveOrg = t.middleware(({ ctx, next }) => {
 	}
 	return next({
 		ctx: {
-			...ctx,
-			authentication: ctx.authentication,
 			organizationId: ctx.authentication.session.activeOrganizationId,
 		},
 	});
@@ -82,11 +67,8 @@ export const memberRoles = ["owner", "editor", "member"];
 
 // League access middleware - verifies user is member of organization
 const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
-	const typedCtx = ctx as {
-		authentication: { session: { activeOrganizationId: string }; user: { id: string } };
-	};
-	const organizationId = typedCtx.authentication.session.activeOrganizationId;
-	if (!organizationId) {
+	const organizationId = ctx.authentication?.session.activeOrganizationId;
+	if (!organizationId || !ctx.authentication) {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "No active league" });
 	}
 
@@ -100,9 +82,7 @@ const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 		})
 		.from(organization)
 		.innerJoin(member, eq(member.organizationId, organization.id))
-		.where(
-			and(eq(organization.id, organizationId), eq(member.userId, typedCtx.authentication.user.id))
-		)
+		.where(and(eq(organization.id, organizationId), eq(member.userId, ctx.authentication.user.id)))
 		.limit(1);
 
 	if (org.length === 0) {
@@ -111,7 +91,6 @@ const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 
 	return next({
 		ctx: {
-			...ctx,
 			organization: org[0],
 			role: org[0].role,
 			organizationId,
@@ -151,7 +130,6 @@ const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
 
 	return next({
 		ctx: {
-			...ctx,
 			season: comp[0],
 		},
 	});
@@ -163,7 +141,7 @@ const editorCheckMiddleware = t.middleware(({ ctx, next }) => {
 	if (!editorRoles.includes(typedCtx.role)) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions" });
 	}
-	return next({ ctx });
+	return next();
 });
 
 // Member check middleware - allows members to create content
@@ -172,7 +150,7 @@ const memberCheckMiddleware = t.middleware(({ ctx, next }) => {
 	if (!memberRoles.includes(typedCtx.role)) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions" });
 	}
-	return next({ ctx });
+	return next();
 });
 
 export const createTRPCRouter = t.router;
@@ -199,6 +177,3 @@ export const leagueMemberProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
-
-// Export types for use in routers
-export type { LeagueContext, SeasonContext };
