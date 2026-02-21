@@ -263,6 +263,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 										to="/auth/forgot-password"
 										search={{ redirect: callbackURL }}
 										className="text-sm text-primary hover:underline"
+										tabIndex={-1}
 									>
 										Forgot your password?
 									</Link>
