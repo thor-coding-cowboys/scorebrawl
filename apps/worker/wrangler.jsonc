@@ -32,12 +32,12 @@
 		"producers": [
 			{
 				"binding": "ACHIEVEMENT_QUEUE",
-				"queue": "achievement-calculations"
+				"queue": "scorebrawl-achievement-calculations"
 			}
 		],
 		"consumers": [
 			{
-				"queue": "achievement-calculations",
+				"queue": "scorebrawl-achievement-calculations",
 				"max_batch_size": 10,
 				"max_retries": 3
 			}
