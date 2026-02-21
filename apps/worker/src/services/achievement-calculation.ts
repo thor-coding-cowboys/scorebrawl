@@ -65,7 +65,10 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 				CASE WHEN mp.home_team = 1 THEN m.away_score ELSE m.home_score END as goalsConceded
 			FROM match_player mp
 			INNER JOIN match m ON mp.match_id = m.id
-			WHERE mp.season_player_id IN ${seasonPlayerIds}
+			WHERE mp.season_player_id IN (${sql.join(
+				seasonPlayerIds.map((id) => sql`${id}`),
+				sql`, `
+			)})
 		`);
 
 		for (const row of goalsConceded) {
@@ -94,7 +97,10 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 					ROW_NUMBER() OVER (PARTITION BY mp.season_player_id ORDER BY mp.created_at DESC) as rn
 				FROM match_player mp
 				INNER JOIN match m ON mp.match_id = m.id
-				WHERE mp.season_player_id IN ${seasonPlayerIds}
+				WHERE mp.season_player_id IN (${sql.join(
+					seasonPlayerIds.map((id) => sql`${id}`),
+					sql`, `
+				)})
 			)
 			WHERE rn <= 5
 			ORDER BY seasonPlayerId, rn
