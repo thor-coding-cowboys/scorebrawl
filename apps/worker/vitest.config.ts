@@ -14,7 +14,14 @@ const wranglerConfig = JSON.parse(
 );
 
 // Remove assets to avoid requiring frontend build
-delete wranglerConfig.assets;
+wranglerConfig.assets = undefined;
+
+// Remove queue consumers to avoid isolated storage conflicts in tests.
+// The queue producer binding is still available via the wrangler config,
+// but the consumer (which uses internal SQLite) interferes with D1 isolated storage.
+if (wranglerConfig.queues) {
+	wranglerConfig.queues.consumers = undefined;
+}
 
 // Write temporary test config
 const testConfigPath = path.join(__dirname, ".wrangler.test.json");
