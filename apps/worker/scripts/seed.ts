@@ -29,7 +29,7 @@ import { calculateEloMatch, determineMatchResult } from "@coding-cowboys/scorebr
 
 // Seed configuration
 const SEED_USER = {
-	email: "seeded@scorebrawl.com",
+	email: "seed@scorebrawl.com",
 	password: "Test.1234",
 	name: randFullName(),
 };
@@ -471,9 +471,11 @@ async function createMatch({
 
 	const { homeResult, awayResult } = determineMatchResult(homeScore, awayScore);
 
-	// Use past timestamps so new matches created via UI will appear first
-	// Earlier matches are older, later matches are more recent (but still in past)
-	const matchNow = new Date(now.getTime() - (matchCount - matchIndex) * 5 * 60000); // Spread matches 5 minutes apart, going backwards
+	// Spread matches over the last 10 days so weekly stats have data
+	// Earlier matches are older, later matches are more recent (but at least 10 min in the past)
+	const totalSpanMs = 10 * 24 * 60 * 60000; // 10 days in ms
+	const intervalMs = Math.floor(totalSpanMs / matchCount);
+	const matchNow = new Date(now.getTime() - (matchCount - matchIndex) * intervalMs - 10 * 60000);
 
 	await db.insert(match).values({
 		id: matchId,

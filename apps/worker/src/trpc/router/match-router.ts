@@ -6,6 +6,7 @@ import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonPlayerRepository from "../../repositories/season-player-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
+import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 import {
 	seasonProcedure,
 	leagueMemberProcedure,
@@ -105,6 +106,12 @@ export const matchRouter = {
 					},
 				});
 			}
+
+			// Dispatch achievement calculation
+			const seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];
+			await typedCtx.env.ACHIEVEMENT_QUEUE.send({
+				seasonPlayerIds,
+			} satisfies AchievementQueueMessage);
 
 			return createdMatch;
 		}),
@@ -213,6 +220,12 @@ export const matchRouter = {
 						});
 						console.log("[SSE] Broadcast complete");
 					}
+
+					// Dispatch achievement calculation
+					const seasonPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
+					await typedCtx.env.ACHIEVEMENT_QUEUE.send({
+						seasonPlayerIds,
+					} satisfies AchievementQueueMessage);
 
 					return createdMatch;
 				});

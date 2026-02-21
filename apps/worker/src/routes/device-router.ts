@@ -6,6 +6,7 @@ import { z } from "zod";
 import { league, member, player, season, seasonPlayer, user } from "../db/schema";
 import type { EnforcedAuthHonoEnv } from "../middleware/auth";
 import { create as createMatch } from "../repositories/match-repository";
+import type { AchievementQueueMessage } from "../services/achievement-calculation";
 import type { AuthType } from "../middleware/context";
 
 /**
@@ -288,6 +289,12 @@ deviceRouter.post(
 				userId,
 			},
 		});
+
+		// Dispatch achievement calculation
+		const seasonPlayerIds = [...homeTeamPlayerIds, ...awayTeamPlayerIds];
+		await c.env.ACHIEVEMENT_QUEUE.send({
+			seasonPlayerIds,
+		} satisfies AchievementQueueMessage);
 
 		return c.json({
 			success: true,

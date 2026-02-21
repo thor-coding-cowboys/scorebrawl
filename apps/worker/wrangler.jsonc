@@ -28,6 +28,21 @@
 			"new_sqlite_classes": ["SeasonSSE"]
 		}
 	],
+	"queues": {
+		"producers": [
+			{
+				"binding": "ACHIEVEMENT_QUEUE",
+				"queue": "achievement-calculations"
+			}
+		],
+		"consumers": [
+			{
+				"queue": "achievement-calculations",
+				"max_batch_size": 10,
+				"max_retries": 3
+			}
+		]
+	},
 	"r2_buckets": [
 		{
 			"binding": "USER_ASSETS_BUCKET",

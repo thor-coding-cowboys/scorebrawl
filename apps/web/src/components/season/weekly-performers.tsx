@@ -82,12 +82,12 @@ function PerformerCard({
 			: "bg-[radial-gradient(circle_at_top,_rgba(239,68,68,0.1),transparent_70%)]";
 
 	return (
-		<div className="relative overflow-hidden rounded-lg border bg-card p-4">
+		<div className="relative overflow-hidden rounded-lg border bg-card p-3">
 			<div className={`absolute inset-0 ${glowColor}`} />
 			<div className="relative flex flex-col items-center text-center">
 				<span
 					className={cn(
-						"text-[10px] font-semibold uppercase tracking-wider mb-3",
+						"text-[10px] font-semibold uppercase tracking-wider mb-1.5",
 						variant === "top" ? "text-green-500" : "text-red-500"
 					)}
 				>
@@ -95,27 +95,27 @@ function PerformerCard({
 				</span>
 
 				{isTeam ? (
-					<TeamLogo logo={image} name={name} size="lg" />
+					<TeamLogo logo={image} name={name} size="md" />
 				) : (
-					<AvatarWithFallback src={image} name={name} size="xl" />
+					<AvatarWithFallback src={image} name={name} size="lg" />
 				)}
 
-				<p className="mt-2 text-sm font-semibold truncate max-w-full">{name}</p>
+				<p className="mt-1.5 text-sm font-semibold truncate max-w-full">{name}</p>
 
 				<div
 					className={cn(
-						"flex items-center gap-1 mt-1 text-lg font-bold",
+						"flex items-center gap-1 mt-0.5 text-base font-bold",
 						isPositive ? "text-green-500" : "text-red-500"
 					)}
 				>
-					<HugeiconsIcon icon={isPositive ? ArrowUp01Icon : ArrowDown01Icon} className="size-4" />
+					<HugeiconsIcon icon={isPositive ? ArrowUp01Icon : ArrowDown01Icon} className="size-3.5" />
 					<span>
 						{isPositive ? "+" : ""}
 						{pointChange}
 					</span>
 				</div>
 
-				<div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+				<div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
 					<span>{Math.round(winRate * 100)}% WR</span>
 					<span className="text-border">|</span>
 					<span>
@@ -197,7 +197,7 @@ export function WeeklyPerformers({ seasonSlug }: WeeklyPerformersProps) {
 
 	return (
 		<Card>
-			<CardHeader className="pb-3">
+			<CardHeader className="pb-2">
 				<div className="flex items-center justify-between">
 					<CardTitle className="text-base font-semibold">Last 7 Days</CardTitle>
 					<span className="text-xs text-muted-foreground">
@@ -205,21 +205,21 @@ export function WeeklyPerformers({ seasonSlug }: WeeklyPerformersProps) {
 					</span>
 				</div>
 			</CardHeader>
-			<CardContent className="space-y-4">
+			<CardContent className="space-y-3">
 				{isLoading ? (
-					<div className="grid grid-cols-2 gap-3">
-						<Skeleton className="h-40 w-full" />
-						<Skeleton className="h-40 w-full" />
+					<div className="grid grid-cols-2 gap-2">
+						<Skeleton className="h-32 w-full" />
+						<Skeleton className="h-32 w-full" />
 					</div>
 				) : (
 					<>
 						{/* Players Section */}
-						<div className="space-y-2">
+						<div className="space-y-1.5">
 							<h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
 								Players
 							</h4>
 							{topPlayer ? (
-								<div className="grid grid-cols-2 gap-3">
+								<div className="grid grid-cols-2 gap-2">
 									<PerformerCard
 										title="Top Performer"
 										name={topPlayer.playerName}
@@ -254,12 +254,12 @@ export function WeeklyPerformers({ seasonSlug }: WeeklyPerformersProps) {
 
 						{/* Teams Section */}
 						{(teamStats?.length ?? 0) > 0 && (
-							<div className="space-y-2">
+							<div className="space-y-1.5">
 								<h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
 									Teams
 								</h4>
 								{topTeam ? (
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-2 gap-2">
 										<PerformerCard
 											title="Top Team"
 											name={topTeam.teamName}

@@ -4,12 +4,17 @@ export { contextStorage } from "hono/context-storage";
 export { SeasonSSE } from "./durable-objects/season-sse";
 
 import { contextStorage } from "hono/context-storage";
+import { getDb } from "./db";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
 import { deviceRouter } from "./routes/device-router";
 import { sseRouter } from "./routes/sse-router";
 import userAssetsRouter from "./routes/user-assets-router";
+import {
+	calculateAchievements,
+	type AchievementQueueMessage,
+} from "./services/achievement-calculation";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
@@ -29,4 +34,18 @@ const app = new Hono<HonoEnv>()
 		return enforceAuthMiddleware(c, next);
 	});
 
-export default app;
+export default {
+	fetch: app.fetch,
+	async queue(batch: MessageBatch<AchievementQueueMessage>, env: Env) {
+		const db = getDb(env.DB);
+		for (const msg of batch.messages) {
+			try {
+				await calculateAchievements(db, msg.body.seasonPlayerIds);
+				msg.ack();
+			} catch (error) {
+				console.error("[Achievement Queue] Failed to process message:", error);
+				msg.retry();
+			}
+		}
+	},
+};
