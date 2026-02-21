@@ -302,7 +302,7 @@ export const playerRouter = {
 	createGuestPlayer: leagueEditorProcedure
 		.input(
 			z.object({
-				email: z.string().email(),
+				email: z.string().email().toLowerCase(),
 				displayName: z.string().min(1).max(100),
 			})
 		)
@@ -401,5 +401,109 @@ export const playerRouter = {
 			}
 
 			return { playerId, guestId };
+		}),
+
+	editGuestPlayer: leagueEditorProcedure
+		.input(
+			z.object({
+				playerId: z.string(),
+				email: z.string().email().toLowerCase(),
+				displayName: z.string().min(1).max(100),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const leagueId = ctx.organizationId;
+			const now = new Date();
+
+			// Get the player and verify it's a guest player in this league
+			const [existingPlayer] = await ctx.db
+				.select({
+					playerId: player.id,
+					guestId: player.guestId,
+					userId: player.userId,
+					currentEmail: guest.email,
+					currentDisplayName: guest.displayName,
+				})
+				.from(player)
+				.leftJoin(guest, eq(player.guestId, guest.id))
+				.where(and(eq(player.id, input.playerId), eq(player.leagueId, leagueId)))
+				.limit(1);
+
+			if (!existingPlayer) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Player not found in this league",
+				});
+			}
+
+			if (!existingPlayer.guestId || existingPlayer.userId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Only guest players can be edited",
+				});
+			}
+
+			// Check if email changed and if so, verify no conflicts
+			const emailChanged = existingPlayer.currentEmail !== input.email;
+			if (emailChanged) {
+				// Check if a registered user with new email exists
+				const [existingUser] = await ctx.db
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.email, input.email))
+					.limit(1);
+
+				if (existingUser) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "User with this email already exists. Invite them to the league instead.",
+					});
+				}
+
+				// Check if another guest player with new email exists in this league
+				const existingGuestPlayer = await ctx.db
+					.select({ id: player.id })
+					.from(player)
+					.innerJoin(guest, eq(player.guestId, guest.id))
+					.where(and(eq(player.leagueId, leagueId), eq(guest.email, input.email)))
+					.limit(1);
+
+				if (existingGuestPlayer.length > 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Guest player with this email already exists in this league",
+					});
+				}
+			}
+
+			// Create new guest with new data
+			const newGuestId = createId();
+			await ctx.db.insert(guest).values({
+				id: newGuestId,
+				email: input.email,
+				displayName: input.displayName,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Update player to reference new guest
+			await ctx.db
+				.update(player)
+				.set({ guestId: newGuestId, updatedAt: now })
+				.where(eq(player.id, input.playerId));
+
+			// Check if old guest is referenced by any other players
+			const otherPlayersWithOldGuest = await ctx.db
+				.select({ id: player.id })
+				.from(player)
+				.where(eq(player.guestId, existingPlayer.guestId))
+				.limit(1);
+
+			// If no other players reference the old guest, delete it
+			if (otherPlayersWithOldGuest.length === 0) {
+				await ctx.db.delete(guest).where(eq(guest.id, existingPlayer.guestId));
+			}
+
+			return { playerId: input.playerId, guestId: newGuestId };
 		}),
 } satisfies TRPCRouterRecord;

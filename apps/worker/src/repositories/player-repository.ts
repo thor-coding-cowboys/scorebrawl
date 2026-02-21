@@ -26,6 +26,7 @@ export const getAll = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string
 			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
 			image: user.image,
 			isGuest: sql<boolean>`${player.guestId} IS NOT NULL`.as("is_guest"),
+			email: sql<string | null>`COALESCE(${user.email}, ${guest.email})`.as("email"),
 		})
 		.from(player)
 		.leftJoin(user, eq(player.userId, user.id))
