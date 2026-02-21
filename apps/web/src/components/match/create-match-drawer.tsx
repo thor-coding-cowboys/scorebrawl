@@ -95,13 +95,24 @@ export function CreateMatchDialog({
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);
 	const [keepOpen, setKeepOpen] = useState(false);
+	const [keepPlayers, setKeepPlayers] = useState(false);
 	const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+	const [initialized, setInitialized] = useState(false);
 
 	useEffect(() => {
-		if (seasonPlayers) {
+		if (isOpen && seasonPlayers && !initialized) {
 			setTeamSelection(seasonPlayers.map((p) => ({ ...p })));
+			setInitialized(true);
 		}
-	}, [seasonPlayers]);
+	}, [isOpen, seasonPlayers, initialized]);
+
+	useEffect(() => {
+		if (!isOpen) {
+			setInitialized(false);
+			setKeepOpen(false);
+			setKeepPlayers(false);
+		}
+	}, [isOpen]);
 
 	const {
 		watch,
@@ -126,7 +137,9 @@ export function CreateMatchDialog({
 	const resetForm = () => {
 		reset();
 		setShowDuplicateWarning(false);
-		setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
+		if (!keepPlayers) {
+			setTeamSelection(seasonPlayers ? seasonPlayers.map((p) => ({ ...p })) : []);
+		}
 	};
 
 	const createMutation = useMutation(
@@ -440,29 +453,54 @@ export function CreateMatchDialog({
 
 							{/* Actions */}
 							<div className="flex flex-col gap-4 pt-4 border-t border-border">
-								<button
-									type="button"
-									className="flex items-center gap-2.5 cursor-pointer group w-fit"
-									onClick={() => setKeepOpen(!keepOpen)}
-								>
-									<Checkbox
-										checked={keepOpen}
-										data-testid="match-keep-open-checkbox"
-										className={cn(
-											"size-5 rounded-sm transition-all",
-											keepOpen &&
-												"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-										)}
-									/>
-									<span
-										className={cn(
-											"text-sm transition-colors",
-											keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
-										)}
+								<div className="flex items-center gap-4">
+									<button
+										type="button"
+										className="flex items-center gap-2.5 cursor-pointer group"
+										onClick={() => setKeepOpen(!keepOpen)}
 									>
-										Keep open after creating
-									</span>
-								</button>
+										<Checkbox
+											checked={keepOpen}
+											data-testid="match-keep-open-checkbox"
+											className={cn(
+												"size-5 rounded-sm transition-all",
+												keepOpen &&
+													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+											)}
+										/>
+										<span
+											className={cn(
+												"text-sm transition-colors",
+												keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+											)}
+										>
+											Keep open
+										</span>
+									</button>
+									<button
+										type="button"
+										className="flex items-center gap-2.5 cursor-pointer group"
+										onClick={() => setKeepPlayers(!keepPlayers)}
+									>
+										<Checkbox
+											checked={keepPlayers}
+											data-testid="match-keep-players-checkbox"
+											className={cn(
+												"size-5 rounded-sm transition-all",
+												keepPlayers &&
+													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+											)}
+										/>
+										<span
+											className={cn(
+												"text-sm transition-colors",
+												keepPlayers ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+											)}
+										>
+											Keep players
+										</span>
+									</button>
+								</div>
 								<div className="flex gap-4">
 									<Button
 										type="button"
