@@ -17,7 +17,7 @@ if (!apiToken || !accountId) {
 	process.exit(1);
 }
 
-const queueName = `achievement-calculations-pr-${prNumber}`;
+const queueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
 
 try {
 	const cloudflare = new Cloudflare({ apiToken });
