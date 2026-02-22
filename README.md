@@ -4,7 +4,7 @@
 
 Scorebrawl is the ultimate battleground for tracking and amplifying your competitive edge! Whether you're conquering video games or dominating office games like pool and darts, Scorebrawl is your go-to arena for registering and settling scores with friends, colleagues, or in real competitions. Fuel the fun, ignite the rivalry, and show off your victories! Bragging rights are just a score away with Scorebrawl!
 
-🌐 **Live App**: [https://app.scorebrawl.com](https://app.scorebrawl.com)
+🌐 **Live App**: [https://scorebrawl.com](https://scorebrawl.com)
 
 ![Scorebrawl](public/scorebrawl.jpg)
 
@@ -64,6 +64,7 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
    ```bash
    bun run dev
    ```
+   The app uses [portless](https://github.com/vercel-labs/portless) for stable local URLs. Once running, access the app at `http://scorebrawl.localhost:1355`.
 
 ### 📝 Available Scripts
 
