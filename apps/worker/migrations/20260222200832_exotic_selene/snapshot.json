@@ -1,8 +1,8 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "aee6cfb3-8e99-4e03-ba71-ed381dea03f9",
-	"prevIds": ["17a4fa92-685b-4018-ba77-69cdbbe61b5e"],
+	"id": "70824bd4-c86d-471c-91f7-e530bb8671e7",
+	"prevIds": ["7c17493e-7480-476f-adca-96fdf949c5bb"],
 	"ddl": [
 		{
 			"name": "account",
@@ -46,6 +46,10 @@
 		},
 		{
 			"name": "fixture",
+			"entityType": "tables"
+		},
+		{
+			"name": "guest",
 			"entityType": "tables"
 		},
 		{
@@ -1106,6 +1110,66 @@
 			"generated": null,
 			"name": "id",
 			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "email",
+			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "display_name",
+			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unixepoch())",
+			"generated": null,
+			"name": "updated_at",
+			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "deleted_at",
+			"entityType": "columns",
+			"table": "guest"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
 			"table": "league_team"
 		},
 		{
@@ -1540,11 +1604,21 @@
 		},
 		{
 			"type": "text",
-			"notNull": true,
+			"notNull": false,
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
 			"name": "user_id",
+			"entityType": "columns",
+			"table": "player"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "guest_id",
 			"entityType": "columns",
 			"table": "player"
 		},
@@ -2221,6 +2295,17 @@
 			"table": "player"
 		},
 		{
+			"columns": ["guest_id"],
+			"tableTo": "guest",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_player_guest_id_guest_id_fk",
+			"entityType": "fks",
+			"table": "player"
+		},
+		{
 			"columns": ["league_id"],
 			"tableTo": "league",
 			"columnsTo": ["id"],
@@ -2372,6 +2457,13 @@
 			"nameExplicit": false,
 			"name": "fixture_pk",
 			"table": "fixture",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "guest_pk",
+			"table": "guest",
 			"entityType": "pks"
 		},
 		{
@@ -2633,6 +2725,20 @@
 		{
 			"columns": [
 				{
+					"value": "email",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "guest_email_idx",
+			"entityType": "indexes",
+			"table": "guest"
+		},
+		{
+			"columns": [
+				{
 					"value": "league_id",
 					"isExpression": false
 				}
@@ -2798,9 +2904,27 @@
 				}
 			],
 			"isUnique": true,
-			"where": null,
+			"where": "\"player\".\"user_id\" IS NOT NULL",
 			"origin": "manual",
 			"name": "player_organization_user_uidx",
+			"entityType": "indexes",
+			"table": "player"
+		},
+		{
+			"columns": [
+				{
+					"value": "league_id",
+					"isExpression": false
+				},
+				{
+					"value": "guest_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": "\"player\".\"guest_id\" IS NOT NULL",
+			"origin": "manual",
+			"name": "player_organization_guest_uidx",
 			"entityType": "indexes",
 			"table": "player"
 		},
@@ -2815,6 +2939,20 @@
 			"where": null,
 			"origin": "manual",
 			"name": "player_user_id_idx",
+			"entityType": "indexes",
+			"table": "player"
+		},
+		{
+			"columns": [
+				{
+					"value": "guest_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "player_guest_id_idx",
 			"entityType": "indexes",
 			"table": "player"
 		},
@@ -2931,6 +3069,12 @@
 			"name": "user_email_unique",
 			"entityType": "uniques",
 			"table": "user"
+		},
+		{
+			"value": "(user_id IS NOT NULL OR guest_id IS NOT NULL)",
+			"name": "player_user_or_guest_check",
+			"entityType": "checks",
+			"table": "player"
 		}
 	],
 	"renames": []

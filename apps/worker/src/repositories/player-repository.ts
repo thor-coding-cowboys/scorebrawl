@@ -2,6 +2,7 @@ import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
+	guest,
 	match,
 	matchPlayer,
 	matchTeam,
@@ -17,15 +18,19 @@ export const getAll = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string
 		.select({
 			id: player.id,
 			userId: player.userId,
+			guestId: player.guestId,
 			leagueId: player.leagueId,
 			disabled: player.disabled,
 			createdAt: player.createdAt,
 			updatedAt: player.updatedAt,
-			name: user.name,
+			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
 			image: user.image,
+			isGuest: sql<boolean>`${player.guestId} IS NOT NULL`.as("is_guest"),
+			email: sql<string | null>`COALESCE(${user.email}, ${guest.email})`.as("email"),
 		})
 		.from(player)
-		.innerJoin(user, eq(player.userId, user.id))
+		.leftJoin(user, eq(player.userId, user.id))
+		.leftJoin(guest, eq(player.guestId, guest.id))
 		.where(eq(player.leagueId, leagueId));
 };
 
@@ -42,15 +47,18 @@ export const getById = async ({
 		.select({
 			id: player.id,
 			userId: player.userId,
+			guestId: player.guestId,
 			leagueId: player.leagueId,
 			disabled: player.disabled,
 			createdAt: player.createdAt,
 			updatedAt: player.updatedAt,
-			name: user.name,
+			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
 			image: user.image,
+			isGuest: sql<boolean>`${player.guestId} IS NOT NULL`.as("is_guest"),
 		})
 		.from(player)
-		.innerJoin(user, eq(player.userId, user.id))
+		.leftJoin(user, eq(player.userId, user.id))
+		.leftJoin(guest, eq(player.guestId, guest.id))
 		.where(and(eq(player.id, playerId), eq(player.leagueId, leagueId)))
 		.limit(1);
 	return p;
@@ -193,8 +201,8 @@ export const getTeammateAnalysis = async ({
 	// Get matches where this player played with teammates
 	const teammateStats = await db
 		.select({
-			teammateUserId: sql<string>`teammate_user.id`,
-			teammateName: sql<string>`teammate_user.name`,
+			teammatePlayerId: sql<string>`teammate_p.id`,
+			teammateName: sql<string>`COALESCE(teammate_user.name, teammate_guest.display_name)`,
 			teammateImage: sql<string | null>`teammate_user.image`,
 			matchesPlayed: count(sql`DISTINCT ${match.id}`),
 			wins: sql<number>`sum(case when ${matchPlayer.result} = 'W' then 1 else 0 end)`,
@@ -212,9 +220,14 @@ export const getTeammateAnalysis = async ({
 		)
 		.innerJoin(sql`season_player teammate_sp`, sql`teammate_mp.season_player_id = teammate_sp.id`)
 		.innerJoin(sql`player teammate_p`, sql`teammate_sp.player_id = teammate_p.id`)
-		.innerJoin(sql`user teammate_user`, sql`teammate_p.user_id = teammate_user.id`)
+		.leftJoin(sql`user teammate_user`, sql`teammate_p.user_id = teammate_user.id`)
+		.leftJoin(sql`guest teammate_guest`, sql`teammate_p.guest_id = teammate_guest.id`)
 		.where(eq(seasonPlayer.playerId, playerId))
-		.groupBy(sql`teammate_user.id`, sql`teammate_user.name`, sql`teammate_user.image`)
+		.groupBy(
+			sql`teammate_p.id`,
+			sql`COALESCE(teammate_user.name, teammate_guest.display_name)`,
+			sql`teammate_user.image`
+		)
 		.having(sql`COUNT(DISTINCT ${match.id}) >= 3`)
 		.orderBy(desc(sql`COUNT(DISTINCT ${match.id})`));
 
