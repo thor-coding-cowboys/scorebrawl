@@ -51,6 +51,7 @@ jobs:
         working-directory: apps/worker
         env:
           WRANGLER_LOG: debug
+          WRANGLER_LOG_SANITIZE: "false"
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
