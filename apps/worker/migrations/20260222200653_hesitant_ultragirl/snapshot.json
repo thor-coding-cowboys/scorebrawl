@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "2a56a55f-01ef-450b-9497-aa84ef5e718a",
+	"id": "7c17493e-7480-476f-adca-96fdf949c5bb",
 	"prevIds": ["aee6cfb3-8e99-4e03-ba71-ed381dea03f9"],
 	"ddl": [
 		{
@@ -1604,7 +1604,7 @@
 		},
 		{
 			"type": "text",
-			"notNull": false,
+			"notNull": true,
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
@@ -3069,12 +3069,6 @@
 			"name": "user_email_unique",
 			"entityType": "uniques",
 			"table": "user"
-		},
-		{
-			"value": "(\"user_id\" IS NOT NULL AND \"guest_id\" IS NULL) OR (\"user_id\" IS NULL AND \"guest_id\" IS NOT NULL)",
-			"name": "player_user_or_guest_check",
-			"entityType": "checks",
-			"table": "player"
 		}
 	],
 	"renames": []

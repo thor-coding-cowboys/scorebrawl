@@ -55,6 +55,7 @@ export const player = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
+		check("player_user_or_guest_check", sql`(user_id IS NOT NULL OR guest_id IS NOT NULL)`),
 		uniqueIndex("player_organization_user_uidx")
 			.on(table.leagueId, table.userId)
 			.where(sql`${table.userId} IS NOT NULL`),
@@ -63,10 +64,6 @@ export const player = sqliteTable(
 			.where(sql`${table.guestId} IS NOT NULL`),
 		index("player_user_id_idx").on(table.userId),
 		index("player_guest_id_idx").on(table.guestId),
-		check(
-			"player_user_or_guest_check",
-			sql`(${table.userId} IS NOT NULL AND ${table.guestId} IS NULL) OR (${table.userId} IS NULL AND ${table.guestId} IS NOT NULL)`
-		),
 	]
 );
 

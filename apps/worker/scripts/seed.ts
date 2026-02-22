@@ -39,11 +39,6 @@ const SEED_LEAGUE = {
 	slug: "scorebrawl",
 };
 
-const SEED_LEAGUE_2 = {
-	name: "Rocket League",
-	slug: "rocket-league",
-};
-
 const SEED_SEASON = {
 	name: "Season 1",
 	slug: "season-1",
@@ -476,11 +471,9 @@ async function createMatch({
 
 	const { homeResult, awayResult } = determineMatchResult(homeScore, awayScore);
 
-	// Spread matches over the last 10 days so weekly stats have data
-	// Earlier matches are older, later matches are more recent (but at least 10 min in the past)
-	const totalSpanMs = 10 * 24 * 60 * 60000; // 10 days in ms
-	const intervalMs = Math.floor(totalSpanMs / matchCount);
-	const matchNow = new Date(now.getTime() - (matchCount - matchIndex) * intervalMs - 10 * 60000);
+	// Use past timestamps so new matches created via UI will appear first
+	// Earlier matches are older, later matches are more recent (but still in past)
+	const matchNow = new Date(now.getTime() - (matchCount - matchIndex) * 5 * 60000); // Spread matches 5 minutes apart, going backwards
 
 	await db.insert(match).values({
 		id: matchId,
@@ -848,50 +841,6 @@ async function seedDatabase(
 			createdCount++;
 		}
 
-		// Create second league (Rocket League) for E2E testing
-		const [existingLeague2] = await db
-			.select()
-			.from(league)
-			.where(eq(league.slug, SEED_LEAGUE_2.slug));
-
-		if (existingLeague2) {
-			console.log(dim(`  ○ League 2 already exists: ${SEED_LEAGUE_2.name}`));
-		} else {
-			const league2Id = createId();
-
-			await db.insert(league).values({
-				id: league2Id,
-				name: SEED_LEAGUE_2.name,
-				slug: SEED_LEAGUE_2.slug,
-				createdAt: now,
-			});
-			console.log(
-				green(`  ✓ League 2 created: ${SEED_LEAGUE_2.name} (slug: ${SEED_LEAGUE_2.slug})`)
-			);
-
-			// Add seed user as owner of second league
-			await db.insert(member).values({
-				id: createId(),
-				organizationId: league2Id,
-				userId: ownerUserId,
-				role: "owner",
-				createdAt: now,
-			});
-			console.log(green("  ✓ Member created with owner role in League 2"));
-
-			// Create player for owner in second league
-			await db.insert(player).values({
-				id: createId(),
-				userId: ownerUserId,
-				leagueId: league2Id,
-				disabled: false,
-				createdAt: now,
-				updatedAt: now,
-			});
-			console.log(green("  ✓ Player created for owner in League 2"));
-			createdCount++;
-		}
-
 		// Create additional members
 		if (effectiveMemberCount > 0) {
 			console.log(cyan(`\nCreating ${effectiveMemberCount} additional members...`));
@@ -1164,8 +1113,7 @@ ${bold("Seed Data:")}
 ${"─".repeat(40)}
   ${bold("Email:")}          ${SEED_USER.email}
   ${bold("Password:")}       ${SEED_USER.password}
-  ${bold("League 1:")}       ${SEED_LEAGUE.name} (${SEED_LEAGUE.slug})
-  ${bold("League 2:")}       ${SEED_LEAGUE_2.name} (${SEED_LEAGUE_2.slug})
+  ${bold("League:")}         ${SEED_LEAGUE.name} (${SEED_LEAGUE.slug})
   ${bold("Season:")}         ${SEED_SEASON.name} (${SEED_SEASON.slug})
 
 ${bold("Totals:")}
