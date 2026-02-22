@@ -258,31 +258,33 @@ export function TeamStanding({
 **DELETE THIS ENTIRE BLOCK:**
 
 ```tsx
-			{showPagination && (
-				<div className="flex items-center justify-between">
-					<div className="text-sm text-muted-foreground">
-						Showing {startIndex + 1}-{Math.min(endIndex, sortedData.length)} of {sortedData.length}
-					</div>
-					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-							disabled={currentPage === 0}
-						>
-							<HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-							disabled={currentPage === totalPages - 1}
-						>
-							<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
-						</Button>
-					</div>
-				</div>
-			)}
+{
+	showPagination && (
+		<div className="flex items-center justify-between">
+			<div className="text-sm text-muted-foreground">
+				Showing {startIndex + 1}-{Math.min(endIndex, sortedData.length)} of {sortedData.length}
+			</div>
+			<div className="flex gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+					disabled={currentPage === 0}
+				>
+					<HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+					disabled={currentPage === totalPages - 1}
+				>
+					<HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	);
+}
 ```
 
 **FINAL RETURN SHOULD LOOK LIKE:**
@@ -360,9 +362,8 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 
 	// Filter players with minimum 5 matches, then get lowest score
 	const strugglingPlayer = standings?.length
-		? standings
-			.filter(player => player.matchCount >= 5)
-			.sort((a, b) => a.score - b.score)[0] || null
+		? standings.filter((player) => player.matchCount >= 5).sort((a, b) => a.score - b.score)[0] ||
+			null
 		: null;
 
 	return (
@@ -406,15 +407,17 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 **FIND:**
 
 ```tsx
-					{data.form && <FormDots form={data.form} />}
+{
+	data.form && <FormDots form={data.form} />;
+}
 ```
 
 **REPLACE WITH:**
 
 ```tsx
-					{data.form && data.form.length > 0 && (
-						<FormDots form={data.form} />
-					)}
+{
+	data.form && data.form.length > 0 && <FormDots form={data.form} />;
+}
 ```
 
 **Key Change:** Added double-check for `form.length > 0` to prevent rendering empty dots.
@@ -678,10 +681,27 @@ The `getAll` query returns basic player data without form:
 
 ```typescript
 // getAll returns:
-{ id, seasonId, playerId, score, disabled, createdAt, updatedAt, name, image, userId }
+{
+	(id, seasonId, playerId, score, disabled, createdAt, updatedAt, name, image, userId);
+}
 
 // getStanding returns:
-{ id, seasonId, playerId, score, name, image, userId, matchCount, winCount, lossCount, drawCount, rank, pointDiff, form }
+{
+	(id,
+		seasonId,
+		playerId,
+		score,
+		name,
+		image,
+		userId,
+		matchCount,
+		winCount,
+		lossCount,
+		drawCount,
+		rank,
+		pointDiff,
+		form);
+}
 ```
 
 Using `getStanding` gives us access to:
@@ -745,17 +765,14 @@ Implementation is considered successful when:
 ### Controlled/Uncontrolled Component Pattern
 
 ```tsx
-function Component({
-  externalValue = defaultValue,
-  onChange
-}: Props) {
-  const [internalValue, setInternalValue] = useState(defaultValue);
+function Component({ externalValue = defaultValue, onChange }: Props) {
+	const [internalValue, setInternalValue] = useState(defaultValue);
 
-  // Use external if controlled, otherwise internal
-  const value = onChange ? externalValue : internalValue;
-  const setValue = onChange || setInternalValue;
+	// Use external if controlled, otherwise internal
+	const value = onChange ? externalValue : internalValue;
+	const setValue = onChange || setInternalValue;
 
-  // Use 'value' and 'setValue' throughout component
+	// Use 'value' and 'setValue' throughout component
 }
 ```
 
@@ -763,23 +780,21 @@ function Component({
 
 ```tsx
 <OverviewCard
-  title="Title"
-  action={
-    condition ? (
-      <ActionComponent />
-    ) : undefined  // undefined = empty header
-  }
+	title="Title"
+	action={
+		condition ? <ActionComponent /> : undefined // undefined = empty header
+	}
 >
-  {children}
+	{children}
 </OverviewCard>
 ```
 
 ### Safe Form Dots Rendering
 
 ```tsx
-{data.form && data.form.length > 0 && (
-  <FormDots form={data.form} />
-)}
+{
+	data.form && data.form.length > 0 && <FormDots form={data.form} />;
+}
 ```
 
 ---

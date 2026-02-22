@@ -24,8 +24,8 @@
 		"types": ["@cloudflare/workers-types"],
 		"paths": {
 			"@/*": ["./src/react-app/*"],
-			"@worker/*": ["./src/worker/*"],
-		},
+			"@worker/*": ["./src/worker/*"]
+		}
 	},
-	"include": ["src/react-app", "worker-configuration.d.ts"],
+	"include": ["src/react-app", "worker-configuration.d.ts"]
 }

@@ -53,13 +53,13 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
 const schema = z.object({
-  name: z.string(),
-  age: z.number(),
+	name: z.string(),
+	age: z.number(),
 });
 
 app.post("/author", zValidator("json", schema), async (c) => {
-  const data = c.req.valid("json"); // Type-safe validated data
-  // ...
+	const data = c.req.valid("json"); // Type-safe validated data
+	// ...
 });
 ```
 
