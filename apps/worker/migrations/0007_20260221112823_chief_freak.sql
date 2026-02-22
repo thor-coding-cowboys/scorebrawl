@@ -8,7 +8,7 @@ CREATE TABLE `guest` (
 );
 --> statement-breakpoint
 ALTER TABLE `player` ADD `guest_id` text REFERENCES guest(id);--> statement-breakpoint
-PRAGMA foreign_keys=OFF;--> statement-breakpoint
+PRAGMA defer_foreign_keys = ON;--> statement-breakpoint
 CREATE TABLE `__new_player` (
 	`id` text PRIMARY KEY,
 	`user_id` text,
@@ -27,7 +27,6 @@ CREATE TABLE `__new_player` (
 INSERT INTO `__new_player`(`id`, `user_id`, `league_id`, `disabled`, `created_at`, `updated_at`, `deleted_at`) SELECT `id`, `user_id`, `league_id`, `disabled`, `created_at`, `updated_at`, `deleted_at` FROM `player`;--> statement-breakpoint
 DROP TABLE `player`;--> statement-breakpoint
 ALTER TABLE `__new_player` RENAME TO `player`;--> statement-breakpoint
-PRAGMA foreign_keys=ON;--> statement-breakpoint
 DROP INDEX IF EXISTS `device_api_key_league_id_idx`;--> statement-breakpoint
 DROP INDEX IF EXISTS `device_api_key_created_by_idx`;--> statement-breakpoint
 DROP INDEX IF EXISTS `device_api_key_key_hash_idx`;--> statement-breakpoint
