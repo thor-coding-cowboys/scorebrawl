@@ -1,6 +1,6 @@
-import { eq, and, or, gt, isNull } from "drizzle-orm";
+import { eq, and, or, gt, isNull, ne } from "drizzle-orm";
 import type { DB } from "better-auth/adapters/drizzle";
-import { player, season, seasonPlayer } from "../db/schema";
+import { guest, player, season, seasonPlayer } from "../db/schema";
 import { createId } from "../utils/id-util";
 
 /**
@@ -62,15 +62,60 @@ export const afterAcceptInvitation = async ({
 	user,
 	db,
 }: {
-	invitation: { role: string; organizationId: string };
+	invitation: { role: string; organizationId: string; email: string };
 	member: unknown;
-	user: { id: string };
+	user: { id: string; email: string };
 	db: DB;
 }) => {
 	// Skip for viewer role
 	if (invitation.role === "viewer") {
 		return;
 	}
+
+	// Check for guest player to claim in this league
+	const [guestPlayer] = await db
+		.select({
+			id: player.id,
+			guestId: player.guestId,
+			guestEmail: guest.email,
+		})
+		.from(player)
+		.innerJoin(guest, eq(player.guestId, guest.id))
+		.where(and(eq(player.leagueId, invitation.organizationId), eq(guest.email, user.email)))
+		.limit(1);
+
+	if (guestPlayer) {
+		const guestId = guestPlayer.guestId as string;
+
+		// Claim: convert guest player to user player
+		await db
+			.update(player)
+			.set({ userId: user.id, guestId: null, updatedAt: new Date() })
+			.where(eq(player.id, guestPlayer.id));
+
+		// Check if guest has other players in other leagues
+		const [otherPlayer] = await db
+			.select({ id: player.id })
+			.from(player)
+			.where(and(eq(player.guestId, guestId), ne(player.id, guestPlayer.id)))
+			.limit(1);
+
+		// Only delete guest if no other players reference it
+		if (!otherPlayer) {
+			await db.delete(guest).where(eq(guest.id, guestId));
+		}
+
+		return;
+	}
+
+	// Check for existing user player
+	const [existingPlayer] = await db
+		.select({ id: player.id })
+		.from(player)
+		.where(and(eq(player.leagueId, invitation.organizationId), eq(player.userId, user.id)))
+		.limit(1);
+
+	if (existingPlayer) return;
 
 	await createPlayerForUser({
 		db,
@@ -89,9 +134,41 @@ export const afterCreateOrganization = async ({
 	db,
 }: {
 	organization: { id: string };
-	user: { id: string };
+	user: { id: string; email: string };
 	db: DB;
 }) => {
+	// Check for guest player to claim
+	const [guestPlayer] = await db
+		.select({
+			id: player.id,
+			guestId: player.guestId,
+		})
+		.from(player)
+		.innerJoin(guest, eq(player.guestId, guest.id))
+		.where(and(eq(player.leagueId, organization.id), eq(guest.email, user.email)))
+		.limit(1);
+
+	if (guestPlayer) {
+		const guestId = guestPlayer.guestId as string;
+
+		await db
+			.update(player)
+			.set({ userId: user.id, guestId: null, updatedAt: new Date() })
+			.where(eq(player.id, guestPlayer.id));
+
+		const [otherPlayer] = await db
+			.select({ id: player.id })
+			.from(player)
+			.where(and(eq(player.guestId, guestId), ne(player.id, guestPlayer.id)))
+			.limit(1);
+
+		if (!otherPlayer) {
+			await db.delete(guest).where(eq(guest.id, guestId));
+		}
+
+		return;
+	}
+
 	await createPlayerForUser({
 		db,
 		userId: user.id,

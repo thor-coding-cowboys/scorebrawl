@@ -39,7 +39,7 @@ interface StandingPlayer {
 	score: number;
 	name: string;
 	image: string | null;
-	userId: string;
+	userId: string | null;
 	matchCount: number;
 	winCount: number;
 	lossCount: number;

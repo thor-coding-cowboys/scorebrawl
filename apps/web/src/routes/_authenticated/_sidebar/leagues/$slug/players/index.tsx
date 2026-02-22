@@ -12,13 +12,25 @@ import {
 	UserMultipleIcon,
 	Alert02Icon,
 	InformationCircleIcon,
+	UserAdd01Icon,
+	PencilEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/players/")({
 	component: PlayersPage,
@@ -37,6 +49,8 @@ type Player = {
 	name: string | null;
 	image: string | null;
 	disabled: boolean;
+	isGuest: boolean;
+	email: string | null;
 };
 
 function PlayersPage() {
@@ -47,6 +61,13 @@ function PlayersPage() {
 
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 	const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+	const [guestDialogOpen, setGuestDialogOpen] = useState(false);
+	const [guestEmail, setGuestEmail] = useState("");
+	const [guestDisplayName, setGuestDisplayName] = useState("");
+	const [editGuestDialogOpen, setEditGuestDialogOpen] = useState(false);
+	const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+	const [editGuestEmail, setEditGuestEmail] = useState("");
+	const [editGuestDisplayName, setEditGuestDisplayName] = useState("");
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -66,6 +87,53 @@ function PlayersPage() {
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : "Failed to update player");
+		},
+	});
+
+	const createGuestMutation = useMutation({
+		mutationFn: async ({ email, displayName }: { email: string; displayName: string }) => {
+			return trpcClient.player.createGuestPlayer.mutate({ email, displayName });
+		},
+		onSuccess: () => {
+			toast.success("Guest player added");
+			void queryClient.invalidateQueries({ queryKey: trpc.player.getAll.queryKey() });
+			void queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey(),
+			});
+			setGuestDialogOpen(false);
+			setGuestEmail("");
+			setGuestDisplayName("");
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to add guest player");
+		},
+	});
+
+	const editGuestMutation = useMutation({
+		mutationFn: async ({
+			playerId,
+			email,
+			displayName,
+		}: {
+			playerId: string;
+			email: string;
+			displayName: string;
+		}) => {
+			return trpcClient.player.editGuestPlayer.mutate({ playerId, email, displayName });
+		},
+		onSuccess: () => {
+			toast.success("Guest player updated");
+			void queryClient.invalidateQueries({ queryKey: trpc.player.getAll.queryKey() });
+			void queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey(),
+			});
+			setEditGuestDialogOpen(false);
+			setEditingPlayer(null);
+			setEditGuestEmail("");
+			setEditGuestDisplayName("");
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to update guest player");
 		},
 	});
 
@@ -91,10 +159,32 @@ function PlayersPage() {
 		});
 	};
 
+	const handleGuestSubmit = () => {
+		createGuestMutation.mutate({ email: guestEmail, displayName: guestDisplayName });
+	};
+
+	const openEditGuestDialog = (player: Player, e: React.MouseEvent) => {
+		e.stopPropagation();
+		setEditingPlayer(player);
+		setEditGuestEmail(player.email ?? "");
+		setEditGuestDisplayName(player.name ?? "");
+		setEditGuestDialogOpen(true);
+	};
+
+	const handleEditGuestSubmit = () => {
+		if (!editingPlayer) return;
+		editGuestMutation.mutate({
+			playerId: editingPlayer.id,
+			email: editGuestEmail,
+			displayName: editGuestDisplayName,
+		});
+	};
+
 	const isEnabling = selectedPlayer?.disabled ?? false;
 
 	return (
 		<>
+			{/* Disable/Enable confirm dialog */}
 			<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 				<DialogContent className="sm:max-w-md overflow-hidden">
 					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
@@ -197,12 +287,217 @@ function PlayersPage() {
 				</DialogContent>
 			</Dialog>
 
+			{/* Add Guest Player dialog */}
+			<Dialog
+				open={guestDialogOpen}
+				onOpenChange={(open) => {
+					setGuestDialogOpen(open);
+					if (!open) {
+						setGuestEmail("");
+						setGuestDisplayName("");
+					}
+				}}
+			>
+				<DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden">
+					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
+						<div
+							className="w-full h-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
+						/>
+					</div>
+
+					<DialogHeader className="relative z-10 pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/25" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Add Guest Player
+							</DialogTitle>
+						</div>
+						<DialogDescription className="font-mono text-sm text-muted-foreground">
+							Add a player without requiring them to sign up. If they join later, their stats will
+							be preserved.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-140px)]">
+						<div className="space-y-2 p-1">
+							<FieldGroup className="space-y-2">
+								<Field>
+									<FieldLabel className="font-mono text-xs font-medium tracking-wide mb-0.5">
+										Email Address
+									</FieldLabel>
+									<Input
+										id="guest-email"
+										type="email"
+										placeholder="player@example.com"
+										value={guestEmail}
+										onChange={(e) => setGuestEmail(e.target.value)}
+										className="h-8 font-mono focus:border-emerald-500 focus:ring-emerald-500/20 text-sm"
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										Required for claiming their profile when they sign up
+									</p>
+								</Field>
+
+								<Field>
+									<FieldLabel className="font-mono text-xs font-medium tracking-wide mb-0.5">
+										Display Name
+									</FieldLabel>
+									<Input
+										id="guest-name"
+										placeholder="John Doe"
+										value={guestDisplayName}
+										onChange={(e) => setGuestDisplayName(e.target.value)}
+										className="h-8 font-mono focus:border-emerald-500 focus:ring-emerald-500/20 text-sm"
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										How they'll appear in matches and leaderboards
+									</p>
+								</Field>
+							</FieldGroup>
+
+							<div className="flex gap-4 pt-2">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setGuestDialogOpen(false)}
+									className="font-mono h-8 text-sm"
+								>
+									Cancel
+								</Button>
+								<GlowButton
+									glowColor={glowColors.emerald}
+									onClick={handleGuestSubmit}
+									disabled={createGuestMutation.isPending || !guestEmail || !guestDisplayName}
+									className="flex-1 font-mono h-8 text-sm"
+								>
+									{createGuestMutation.isPending ? "Adding..." : "Add Guest Player"}
+								</GlowButton>
+							</div>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{/* Edit Guest Player dialog */}
+			<Dialog
+				open={editGuestDialogOpen}
+				onOpenChange={(open) => {
+					setEditGuestDialogOpen(open);
+					if (!open) {
+						setEditingPlayer(null);
+						setEditGuestEmail("");
+						setEditGuestDisplayName("");
+					}
+				}}
+			>
+				<DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden">
+					<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.02] opacity-[0.05]">
+						<div
+							className="w-full h-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
+						/>
+					</div>
+
+					<DialogHeader className="relative z-10 pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 bg-blue-500 rounded-full shadow-lg shadow-blue-500/25" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Edit Guest Player
+							</DialogTitle>
+						</div>
+						<DialogDescription className="font-mono text-sm text-muted-foreground">
+							Update guest player information. Changes only apply to this league.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-140px)]">
+						<div className="space-y-2 p-1">
+							<FieldGroup className="space-y-2">
+								<Field>
+									<FieldLabel className="font-mono text-xs font-medium tracking-wide mb-0.5">
+										Email Address
+									</FieldLabel>
+									<Input
+										id="edit-guest-email"
+										type="email"
+										placeholder="player@example.com"
+										value={editGuestEmail}
+										onChange={(e) => setEditGuestEmail(e.target.value)}
+										className="h-8 font-mono focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										Required for claiming their profile when they sign up
+									</p>
+								</Field>
+
+								<Field>
+									<FieldLabel className="font-mono text-xs font-medium tracking-wide mb-0.5">
+										Display Name
+									</FieldLabel>
+									<Input
+										id="edit-guest-name"
+										placeholder="John Doe"
+										value={editGuestDisplayName}
+										onChange={(e) => setEditGuestDisplayName(e.target.value)}
+										className="h-8 font-mono focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										How they'll appear in matches and leaderboards
+									</p>
+								</Field>
+							</FieldGroup>
+
+							<div className="flex gap-4 pt-2">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setEditGuestDialogOpen(false)}
+									className="font-mono h-8 text-sm"
+								>
+									Cancel
+								</Button>
+								<GlowButton
+									glowColor={glowColors.blue}
+									onClick={handleEditGuestSubmit}
+									disabled={editGuestMutation.isPending || !editGuestEmail || !editGuestDisplayName}
+									className="flex-1 font-mono h-8 text-sm"
+								>
+									{editGuestMutation.isPending ? "Updating..." : "Update Guest Player"}
+								</GlowButton>
+							</div>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
 			<Header
 				breadcrumbs={[
 					{ name: "League", href: "/leagues" },
 					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Players" },
 				]}
+				rightContent={
+					canManagePlayers ? (
+						<Button size="sm" className="gap-1.5" onClick={() => setGuestDialogOpen(true)}>
+							<HugeiconsIcon icon={UserAdd01Icon} className="size-4" />
+							<span className="hidden sm:inline">Add Guest Player</span>
+							<span className="sm:hidden">Guest</span>
+						</Button>
+					) : undefined
+				}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-3">
@@ -265,7 +560,16 @@ function PlayersPage() {
 											icon={
 												<AvatarWithFallback src={player.image} name={name} alt={name} size="lg" />
 											}
-											title={name}
+											title={
+												<span className="flex items-center gap-2">
+													{name}
+													{player.isGuest && (
+														<Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+															Guest
+														</Badge>
+													)}
+												</span>
+											}
 											subtitle={
 												player.disabled ? (
 													<span className="text-red-500">Disabled</span>
@@ -281,27 +585,43 @@ function PlayersPage() {
 											}
 										>
 											{canManagePlayers && (
-												<Button
-													variant="ghost"
-													size="sm"
-													className={
-														player.disabled
-															? "hover:text-emerald-600"
-															: "hover:text-red-500 hover:bg-red-500/10"
-													}
-													onClick={(e) => openConfirmDialog(player, e)}
-													disabled={setDisabledMutation.isPending}
-												>
-													<span className="hidden sm:inline">
-														{player.disabled ? "Enable" : "Disable"}
-													</span>
-													<span className="sm:hidden">
-														<HugeiconsIcon
-															icon={player.disabled ? UserCheck01Icon : UserBlock01Icon}
-															className="size-4"
-														/>
-													</span>
-												</Button>
+												<>
+													{player.isGuest && (
+														<Button
+															variant="ghost"
+															size="sm"
+															className="hover:text-blue-600 hover:bg-blue-500/10"
+															onClick={(e) => openEditGuestDialog(player, e)}
+															disabled={editGuestMutation.isPending}
+														>
+															<span className="hidden sm:inline">Edit</span>
+															<span className="sm:hidden">
+																<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+															</span>
+														</Button>
+													)}
+													<Button
+														variant="ghost"
+														size="sm"
+														className={
+															player.disabled
+																? "hover:text-emerald-600"
+																: "hover:text-red-500 hover:bg-red-500/10"
+														}
+														onClick={(e) => openConfirmDialog(player, e)}
+														disabled={setDisabledMutation.isPending}
+													>
+														<span className="hidden sm:inline">
+															{player.disabled ? "Enable" : "Disable"}
+														</span>
+														<span className="sm:hidden">
+															<HugeiconsIcon
+																icon={player.disabled ? UserCheck01Icon : UserBlock01Icon}
+																className="size-4"
+															/>
+														</span>
+													</Button>
+												</>
 											)}
 										</RowCard>
 									);

@@ -1,6 +1,26 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+	sqliteTable,
+	text,
+	integer,
+	real,
+	index,
+	uniqueIndex,
+	check,
+} from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { user, league } from "./auth-schema";
 import { timestampAuditFields } from "./common";
+
+export const guest = sqliteTable(
+	"guest",
+	{
+		id: text("id").primaryKey(),
+		email: text("email").notNull().unique(),
+		displayName: text("display_name").notNull(),
+		...timestampAuditFields,
+	},
+	(table) => [index("guest_email_idx").on(table.email)]
+);
 
 export const achievementType = [
 	"5_win_streak",
@@ -26,9 +46,8 @@ export const player = sqliteTable(
 	"player",
 	{
 		id: text("id").primaryKey(),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+		userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+		guestId: text("guest_id").references(() => guest.id, { onDelete: "cascade" }),
 		leagueId: text("league_id")
 			.notNull()
 			.references(() => league.id, { onDelete: "cascade" }),
@@ -36,8 +55,18 @@ export const player = sqliteTable(
 		...timestampAuditFields,
 	},
 	(table) => [
-		uniqueIndex("player_organization_user_uidx").on(table.leagueId, table.userId),
+		uniqueIndex("player_organization_user_uidx")
+			.on(table.leagueId, table.userId)
+			.where(sql`${table.userId} IS NOT NULL`),
+		uniqueIndex("player_organization_guest_uidx")
+			.on(table.leagueId, table.guestId)
+			.where(sql`${table.guestId} IS NOT NULL`),
 		index("player_user_id_idx").on(table.userId),
+		index("player_guest_id_idx").on(table.guestId),
+		check(
+			"player_user_or_guest_check",
+			sql`(${table.userId} IS NOT NULL AND ${table.guestId} IS NULL) OR (${table.userId} IS NULL AND ${table.guestId} IS NOT NULL)`
+		),
 	]
 );
 
