@@ -1,0 +1,242 @@
+/* Fire animations */
+@keyframes fire-pulse {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.03);
+	}
+}
+
+@keyframes spark-twinkle {
+	0% {
+		opacity: 0.15;
+		transform: scale(0.5);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.1);
+	}
+	100% {
+		opacity: 0.15;
+		transform: scale(0.5);
+	}
+}
+
+.animate-fire-pulse {
+	animation: fire-pulse 2.5s ease-in-out infinite;
+}
+
+.animate-spark-1 {
+	animation: spark-twinkle 1.4s ease-in-out infinite;
+}
+
+.animate-spark-2 {
+	animation: spark-twinkle 1.8s ease-in-out 0.25s infinite;
+}
+
+.animate-spark-3 {
+	animation: spark-twinkle 1.2s ease-in-out 0.5s infinite;
+}
+
+.animate-spark-4 {
+	animation: spark-twinkle 2s ease-in-out 0.7s infinite;
+}
+
+.animate-spark-5 {
+	animation: spark-twinkle 1.5s ease-in-out 1s infinite;
+}
+
+.animate-spark-6 {
+	animation: spark-twinkle 1.7s ease-in-out 0.4s infinite;
+}
+
+/* Comet orbit animations */
+@keyframes comet-orbit {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes comet-orbit-reverse {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(-360deg);
+	}
+}
+
+.animate-comet-1 {
+	animation: comet-orbit 3.5s linear infinite;
+}
+
+.animate-comet-2 {
+	animation: comet-orbit-reverse 4.8s linear infinite;
+}
+
+.animate-comet-3 {
+	animation: comet-orbit 5.2s linear infinite;
+}
+
+.animate-comet-4 {
+	animation: comet-orbit-reverse 3.8s linear infinite;
+}
+
+.animate-comet-5 {
+	animation: comet-orbit 6s linear infinite;
+}
+
+.animate-comet-6 {
+	animation: comet-orbit-reverse 4.2s linear infinite;
+}
+
+.animate-comet-7 {
+	animation: comet-orbit 5s linear infinite;
+}
+
+.animate-comet-8 {
+	animation: comet-orbit 4s linear infinite;
+}
+
+.animate-comet-9 {
+	animation: comet-orbit-reverse 5.5s linear infinite;
+}
+
+.animate-comet-10 {
+	animation: comet-orbit 3.2s linear infinite;
+}
+
+.animate-comet-11 {
+	animation: comet-orbit-reverse 4.5s linear infinite;
+}
+
+.animate-comet-12 {
+	animation: comet-orbit 5.8s linear infinite;
+}
+
+/* Ice animations */
+@keyframes ice-pulse {
+	0%,
+	100% {
+		opacity: 0.6;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.03);
+	}
+}
+
+@keyframes ice-shard {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scaleY(1);
+	}
+	50% {
+		opacity: 1;
+		transform: scaleY(1.12);
+	}
+}
+
+@keyframes ice-particle {
+	0% {
+		opacity: 0;
+		transform: translateY(2px) scale(0.6);
+	}
+	50% {
+		opacity: 1;
+		transform: translateY(-3px) scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-6px) scale(0.6);
+	}
+}
+
+.animate-ice-pulse {
+	animation: ice-pulse 3s ease-in-out infinite;
+}
+
+.animate-ice-shard-1 {
+	animation: ice-shard 2.8s ease-in-out infinite;
+	transform-origin: center bottom;
+}
+
+.animate-ice-shard-2 {
+	animation: ice-shard 3.2s ease-in-out 0.3s infinite;
+	transform-origin: center bottom;
+}
+
+.animate-ice-shard-3 {
+	animation: ice-shard 2.5s ease-in-out 0.6s infinite;
+	transform-origin: center bottom;
+}
+
+.animate-ice-shard-4 {
+	animation: ice-shard 3.5s ease-in-out 0.9s infinite;
+	transform-origin: center bottom;
+}
+
+.animate-ice-shard-5 {
+	animation: ice-shard 2.9s ease-in-out 1.2s infinite;
+	transform-origin: center bottom;
+}
+
+.animate-ice-particle-1 {
+	animation: ice-particle 3s ease-in-out infinite;
+}
+
+.animate-ice-particle-2 {
+	animation: ice-particle 3.5s ease-in-out 0.5s infinite;
+}
+
+.animate-ice-particle-3 {
+	animation: ice-particle 4s ease-in-out 1s infinite;
+}
+
+.animate-ice-particle-4 {
+	animation: ice-particle 3.8s ease-in-out 0.8s infinite;
+}
+
+.animate-ice-particle-5 {
+	animation: ice-particle 3.3s ease-in-out 1.5s infinite;
+}
+
+/* Streak flyout animations */
+@keyframes streak-particle {
+	0% {
+		opacity: 0;
+		transform: translateY(0) translateX(0) scale(0);
+	}
+	20% {
+		opacity: 0.8;
+		transform: translateY(-20px) translateX(calc(var(--drift) * 0.3)) scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-80px) translateX(var(--drift)) scale(0.3);
+	}
+}
+
+@keyframes streak-burst {
+	0% {
+		opacity: 0;
+		transform: rotate(var(--angle, 0deg)) scaleY(0);
+	}
+	30% {
+		opacity: 0.6;
+		transform: rotate(var(--angle, 0deg)) scaleY(1);
+	}
+	100% {
+		opacity: 0;
+		transform: rotate(var(--angle, 0deg)) scaleY(1.2);
+	}
+}

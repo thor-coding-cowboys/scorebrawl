@@ -12,12 +12,12 @@ interface PlayerData {
 async function setupPlayersAndSeason(
 	ctx: Awaited<ReturnType<typeof createAuthContext>>,
 	playerCount: number,
-	seasonOptions: { closed?: boolean } = {}
+	seasonOptions: { closed?: boolean } = {},
+	playerOptions: { names?: string[] } = {}
 ) {
 	const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
-	// Create players using the helper
-	await createPlayers(ctx, playerCount);
+	await createPlayers(ctx, playerCount, playerOptions);
 
 	const season = await client.season.create.mutate({
 		name: "Test Season",
@@ -213,14 +213,18 @@ describe("device API", () => {
 		});
 
 		it("matches players by first name", async () => {
-			const ctx = await createAuthContext();
-			const { season, players } = await setupPlayersAndSeason(ctx, 2);
+			const ctx = await createAuthContext({ user: { name: "Alice Johnson" } });
+			const { season } = await setupPlayersAndSeason(
+				ctx,
+				2,
+				{},
+				{
+					names: ["Bob Smith"],
+				}
+			);
 
 			const keyResponse = await createApiKey(ctx.sessionToken);
 			const keyData = (await keyResponse.json()) as { key: string };
-
-			const firstName0 = players[0].name.split(" ")[0];
-			const firstName1 = players[1].name.split(" ")[0];
 
 			const response = await SELF.fetch(
 				`http://localhost/api/device/leagues/${ctx.league.slug}/matches`,
@@ -232,8 +236,8 @@ describe("device API", () => {
 					},
 					body: JSON.stringify({
 						seasonSlug: season.slug,
-						homePlayerNames: [firstName0],
-						awayPlayerNames: [firstName1],
+						homePlayerNames: ["Alice"],
+						awayPlayerNames: ["Bob"],
 						homeScore: 2,
 						awayScore: 0,
 					}),

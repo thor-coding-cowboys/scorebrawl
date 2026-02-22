@@ -8,100 +8,18 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { FormDots } from "@/components/ui/form-dots";
+import { StreakAvatar } from "./streak-avatar";
+import { calculateStreak } from "@/lib/streak";
+import { FormBar } from "./form-bar";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { UserMultipleIcon } from "@hugeicons/core-free-icons";
 import { useNavigate, useParams } from "@tanstack/react-router";
-
-const getAssetUrl = (key: string | null | undefined): string | null => {
-	if (!key) return null;
-	if (key.startsWith("http://") || key.startsWith("https://")) {
-		return key;
-	}
-	return `/api/user-assets/${key}`;
-};
-
-function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
-	const [hasError, setHasError] = useState(false);
-	const logoUrl = getAssetUrl(logo);
-
-	if (!logoUrl || hasError) {
-		return (
-			<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-				<HugeiconsIcon icon={UserMultipleIcon} className="size-5 text-blue-500" />
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
-			<img
-				src={logoUrl}
-				alt={name}
-				className="h-full w-full object-cover"
-				onError={() => setHasError(true)}
-			/>
-		</div>
-	);
-}
 
 interface TeamStandingProps {
 	seasonSlug: string;
 	maxRows?: number;
 	currentPage?: number;
 	onPageChange?: (page: number) => void;
-}
-
-interface FormBarProps {
-	form: ("W" | "D" | "L")[] | undefined;
-	delta: number;
-}
-
-function FormBar({ form, delta }: FormBarProps) {
-	if (!form || form.length === 0) {
-		return (
-			<div className="flex items-center gap-2">
-				<span className="text-muted-foreground text-xs">-</span>
-				{delta !== 0 && (
-					<span
-						className={cn("text-xs font-medium", delta > 0 ? "text-green-600" : "text-red-600")}
-					>
-						{delta > 0 ? "+" : ""}
-						{delta}
-					</span>
-				)}
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex items-center gap-2">
-			<div className="flex items-center gap-1">
-				{form.map((result, i) => {
-					const colorClasses = {
-						W: "bg-green-500",
-						D: "bg-amber-500",
-						L: "bg-red-500",
-					}[result];
-					return (
-						<span key={`${result}-${i}`} className={cn("size-1.5 rounded-full", colorClasses)} />
-					);
-				})}
-			</div>
-			{delta !== 0 && (
-				<span
-					className={cn(
-						"text-xs font-medium tabular-nums",
-						delta > 0 ? "text-green-600" : "text-red-600"
-					)}
-				>
-					{delta > 0 ? "+" : ""}
-					{delta}
-				</span>
-			)}
-		</div>
-	);
 }
 
 function MobileTeamStandingRow({
@@ -124,6 +42,7 @@ function MobileTeamStandingRow({
 	onClick?: () => void;
 }) {
 	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
+	const streak = calculateStreak(item.form);
 
 	return (
 		<div
@@ -134,9 +53,13 @@ function MobileTeamStandingRow({
 			onClick={onClick}
 			data-testid={`team-standing-row-${item.id}`}
 		>
-			<div className="shrink-0 self-center">
-				<TeamIcon logo={item.logo} name={item.name} />
-			</div>
+			<StreakAvatar
+				src={item.logo}
+				name={item.name}
+				streak={streak}
+				size={32}
+				className="shrink-0 self-center"
+			/>
 
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<span
@@ -269,88 +192,91 @@ export function TeamStanding({
 						</TableRow>
 					</TableHeader>
 					<TableBody className="text-sm">
-						{paginatedData.map((item) => (
-							<TableRow
-								key={item.id}
-								className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
-								data-testid={`team-standing-row-${item.id}`}
-								onClick={() =>
-									leagueSlug &&
-									navigate({
-										to: "/leagues/$slug/teams/$teamId",
-										params: { slug: leagueSlug, teamId: item.leagueTeamId },
-									})
-								}
-							>
-								<TableCell className="py-2 w-full max-w-0">
-									<div className="flex items-center gap-2 min-w-0">
-										<TeamIcon logo={item.logo} name={item.name} />
-										<span
-											className="font-medium truncate"
-											data-testid={`team-standing-name-${item.id}`}
-										>
-											{item.name}
-										</span>
-									</div>
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`team-standing-mp-${item.id}`}
+						{paginatedData.map((item) => {
+							const streak = calculateStreak(item.form);
+							return (
+								<TableRow
+									key={item.id}
+									className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+									data-testid={`team-standing-row-${item.id}`}
+									onClick={() =>
+										leagueSlug &&
+										navigate({
+											to: "/leagues/$slug/teams/$teamId",
+											params: { slug: leagueSlug, teamId: item.leagueTeamId },
+										})
+									}
 								>
-									{item.matchCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`team-standing-wins-${item.id}`}
-								>
-									{item.winCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`team-standing-draws-${item.id}`}
-								>
-									{item.drawCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`team-standing-losses-${item.id}`}
-								>
-									{item.lossCount}
-								</TableCell>
-								<TableCell
-									className="text-center text-muted-foreground"
-									data-testid={`team-standing-wr-${item.id}`}
-								>
-									{item.matchCount > 0
-										? `${Math.round((item.winCount / item.matchCount) * 100)}%`
-										: "-"}
-								</TableCell>
-								<TableCell className="text-center" data-testid={`team-standing-diff-${item.id}`}>
-									<span
-										className={cn(
-											"font-medium",
-											item.pointDiff > 0 && "text-green-600",
-											item.pointDiff < 0 && "text-red-600",
-											item.pointDiff === 0 && "text-muted-foreground"
-										)}
+									<TableCell className="py-2 w-full max-w-0">
+										<div className="flex items-center gap-2 min-w-0">
+											<StreakAvatar src={item.logo} name={item.name} streak={streak} size={32} />
+											<span
+												className="font-medium truncate"
+												data-testid={`team-standing-name-${item.id}`}
+											>
+												{item.name}
+											</span>
+										</div>
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`team-standing-mp-${item.id}`}
 									>
-										{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
-									</span>
-								</TableCell>
-								<TableCell
-									className={cn(
-										"text-center text-base font-bold",
-										item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
-									)}
-									data-testid={`team-standing-score-${item.id}`}
-								>
-									{item.score}
-								</TableCell>
-								<TableCell>
-									<FormDots form={item.form} />
-								</TableCell>
-							</TableRow>
-						))}
+										{item.matchCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`team-standing-wins-${item.id}`}
+									>
+										{item.winCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`team-standing-draws-${item.id}`}
+									>
+										{item.drawCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`team-standing-losses-${item.id}`}
+									>
+										{item.lossCount}
+									</TableCell>
+									<TableCell
+										className="text-center text-muted-foreground"
+										data-testid={`team-standing-wr-${item.id}`}
+									>
+										{item.matchCount > 0
+											? `${Math.round((item.winCount / item.matchCount) * 100)}%`
+											: "-"}
+									</TableCell>
+									<TableCell className="text-center" data-testid={`team-standing-diff-${item.id}`}>
+										<span
+											className={cn(
+												"font-medium",
+												item.pointDiff > 0 && "text-green-600",
+												item.pointDiff < 0 && "text-red-600",
+												item.pointDiff === 0 && "text-muted-foreground"
+											)}
+										>
+											{item.pointDiff > 0 ? `+${item.pointDiff}` : item.pointDiff}
+										</span>
+									</TableCell>
+									<TableCell
+										className={cn(
+											"text-center text-base font-bold",
+											item.matchCount === 0 && "text-muted-foreground font-normal text-sm"
+										)}
+										data-testid={`team-standing-score-${item.id}`}
+									>
+										{item.score}
+									</TableCell>
+									<TableCell>
+										<FormDots form={item.form} />
+									</TableCell>
+								</TableRow>
+							);
+						})}
 						{emptyRows.map((i) => (
 							<TableRow key={`empty-${i}`} className="h-14">
 								<TableCell colSpan={9} />

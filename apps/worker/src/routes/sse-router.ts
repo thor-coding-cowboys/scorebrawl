@@ -11,11 +11,9 @@ type SSEEnv = {
 export const sseRouter = new Hono<SSEEnv>().get("/:leagueSlug/:seasonSlug", async (c) => {
 	const { leagueSlug, seasonSlug } = c.req.param();
 
-	// Create a unique ID for this league/season combination
 	const doId = c.env.SEASON_SSE.idFromName(`${leagueSlug}/${seasonSlug}`);
 	const stub = c.env.SEASON_SSE.get(doId);
 
-	// Forward the request to the Durable Object
 	const url = new URL(c.req.url);
 	url.pathname = "/connect";
 

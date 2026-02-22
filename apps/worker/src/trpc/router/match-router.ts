@@ -9,8 +9,94 @@ import { broadcastSeasonEvent } from "../../routes/sse-router";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 import { seasonProcedure, leagueMemberProcedure } from "../trpc";
 
-// Schema for optional match ID validation
 const matchIdSchema = createOptionalIdSchema("match");
+
+type StreakBroadcastEvent = {
+	type: "streak";
+	data: {
+		playerId: string;
+		playerName: string;
+		playerImage: string | null;
+		streak: number;
+		timestamp: number;
+		isTeam?: boolean;
+	};
+	user: { id: string; name: string };
+};
+
+function buildStreakBroadcastEvents(
+	streakPlayers: Array<{
+		playerId: string;
+		playerName: string;
+		playerImage: string | null;
+		streak: number;
+	}>,
+	streakTeams: Array<{
+		seasonTeamId: string;
+		teamName: string;
+		teamLogo: string | null;
+		streak: number;
+	}>,
+	user: { id: string; name: string }
+): StreakBroadcastEvent[] {
+	const events: StreakBroadcastEvent[] = [];
+	const timestamp = Date.now();
+
+	for (const player of streakPlayers) {
+		events.push({
+			type: "streak",
+			data: {
+				playerId: player.playerId,
+				playerName: player.playerName,
+				playerImage: player.playerImage,
+				streak: player.streak,
+				timestamp,
+			},
+			user,
+		});
+	}
+
+	for (const team of streakTeams) {
+		events.push({
+			type: "streak",
+			data: {
+				playerId: team.seasonTeamId,
+				playerName: team.teamName,
+				playerImage: team.teamLogo,
+				streak: team.streak,
+				timestamp,
+				isTeam: true,
+			},
+			user,
+		});
+	}
+
+	return events;
+}
+
+async function broadcastStreakEvents(
+	sseEnv: { SEASON_SSE: DurableObjectNamespace },
+	leagueSlug: string,
+	seasonSlug: string,
+	streakPlayers: Array<{
+		playerId: string;
+		playerName: string;
+		playerImage: string | null;
+		streak: number;
+	}>,
+	streakTeams: Array<{
+		seasonTeamId: string;
+		teamName: string;
+		teamLogo: string | null;
+		streak: number;
+	}>,
+	user: { id: string; name: string }
+) {
+	const events = buildStreakBroadcastEvents(streakPlayers, streakTeams, user);
+	await Promise.all(
+		events.map((event) => broadcastSeasonEvent(sseEnv, leagueSlug, seasonSlug, event))
+	);
+}
 
 export const matchRouter = {
 	createFromFixture: leagueMemberProcedure
@@ -36,7 +122,6 @@ export const matchRouter = {
 				});
 			}
 
-			// Get the fixture
 			const fixture = await seasonRepository.findFixtureById({
 				db: ctx.db,
 				seasonId: season.id,
@@ -57,7 +142,6 @@ export const matchRouter = {
 				});
 			}
 
-			// Create the match
 			const createdMatch = await matchRepository.create({
 				db: ctx.db,
 				input: {
@@ -70,7 +154,6 @@ export const matchRouter = {
 				},
 			});
 
-			// Assign match to fixture
 			await seasonRepository.assignMatchToFixture({
 				db: ctx.db,
 				seasonId: season.id,
@@ -78,13 +161,11 @@ export const matchRouter = {
 				matchId: createdMatch.id,
 			});
 
-			// Fetch updated standings
 			const standings = await seasonPlayerRepository.getStanding({
 				db: ctx.db,
 				seasonId: season.id,
 			});
 
-			// Broadcast match insert and standings update
 			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
 			if (sseEnv.SEASON_SSE) {
 				await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
@@ -98,6 +179,31 @@ export const matchRouter = {
 						name: ctx.authentication.user.name,
 					},
 				});
+			}
+
+			const [streakPlayers, streakTeams] = await Promise.all([
+				matchRepository.checkStreakThresholds({
+					db: ctx.db,
+					seasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],
+				}),
+				matchRepository.checkTeamStreakThresholds({
+					db: ctx.db,
+					matchId: createdMatch.id,
+				}),
+			]);
+
+			if (sseEnv.SEASON_SSE) {
+				await broadcastStreakEvents(
+					sseEnv,
+					ctx.organization.slug,
+					input.seasonSlug,
+					streakPlayers,
+					streakTeams,
+					{
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
+					}
+				);
 			}
 
 			// Dispatch achievement calculation
@@ -121,7 +227,6 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Validate teams have at least one player each
 			if (input.homeTeamPlayerIds.length === 0 || input.awayTeamPlayerIds.length === 0) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -129,7 +234,6 @@ export const matchRouter = {
 				});
 			}
 
-			// Validate teams have equal number of players
 			if (input.homeTeamPlayerIds.length !== input.awayTeamPlayerIds.length) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -150,7 +254,6 @@ export const matchRouter = {
 				});
 			}
 
-			// If an ID is provided, verify it doesn't already exist
 			if (input.id) {
 				try {
 					await matchRepository.findById({
@@ -158,15 +261,12 @@ export const matchRouter = {
 						matchId: input.id,
 						seasonId: comp.id,
 					});
-					// If we get here, the match exists
 					throw new TRPCError({
 						code: "CONFLICT",
 						message: "A match with this ID already exists",
 					});
 				} catch (error) {
-					// If it's our conflict error, rethrow it
 					if (error instanceof TRPCError) throw error;
-					// Otherwise, the match doesn't exist (expected), continue
 				}
 			}
 
@@ -184,19 +284,12 @@ export const matchRouter = {
 					},
 				})
 				.then(async (createdMatch) => {
-					// Fetch updated standings
 					const standings = await seasonPlayerRepository.getStanding({
 						db: ctx.db,
 						seasonId: comp.id,
 					});
 
-					// Broadcast match insert and standings update
 					const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
-					console.log("[SSE] Broadcasting match:insert", {
-						hasSseEnv: !!sseEnv.SEASON_SSE,
-						leagueSlug: ctx.organization.slug,
-						seasonSlug: input.seasonSlug,
-					});
 					if (sseEnv.SEASON_SSE) {
 						await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
 							type: "match:insert",
@@ -209,7 +302,31 @@ export const matchRouter = {
 								name: ctx.authentication.user.name,
 							},
 						});
-						console.log("[SSE] Broadcast complete");
+					}
+
+					const [streakPlayers, streakTeams] = await Promise.all([
+						matchRepository.checkStreakThresholds({
+							db: ctx.db,
+							seasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],
+						}),
+						matchRepository.checkTeamStreakThresholds({
+							db: ctx.db,
+							matchId: createdMatch.id,
+						}),
+					]);
+
+					if (sseEnv.SEASON_SSE) {
+						await broadcastStreakEvents(
+							sseEnv,
+							ctx.organization.slug,
+							input.seasonSlug,
+							streakPlayers,
+							streakTeams,
+							{
+								id: ctx.authentication.user.id,
+								name: ctx.authentication.user.name,
+							}
+						);
 					}
 
 					// Dispatch achievement calculation
@@ -236,13 +353,11 @@ export const matchRouter = {
 				seasonId: ctx.season.id,
 			});
 
-			// Fetch updated standings
 			const standings = await seasonPlayerRepository.getStanding({
 				db: ctx.db,
 				seasonId: ctx.season.id,
 			});
 
-			// Broadcast match delete and standings update
 			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
 			if (sseEnv.SEASON_SSE) {
 				broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
