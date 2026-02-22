@@ -4,7 +4,6 @@ import { calculateElo } from "@coding-cowboys/scorebrawl-util/elo-util";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
-	guest,
 	seasonPlayer,
 	season,
 	match,
@@ -196,12 +195,11 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			id: seasonPlayer.id,
 			score: seasonPlayer.score,
 			playerId: seasonPlayer.playerId,
-			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+			name: user.name,
 		})
 		.from(seasonPlayer)
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.leftJoin(user, eq(player.userId, user.id))
-		.leftJoin(guest, eq(player.guestId, guest.id))
+		.innerJoin(user, eq(player.userId, user.id))
 		.where(
 			and(eq(seasonPlayer.seasonId, input.seasonId), sql`${seasonPlayer.id} IN ${allPlayerIds}`)
 		);
@@ -507,14 +505,13 @@ export const getBySeasonId = async ({
 				result: matchPlayer.result,
 				scoreBefore: matchPlayer.scoreBefore,
 				scoreAfter: matchPlayer.scoreAfter,
-				playerName: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("player_name"),
+				playerName: user.name,
 				playerImage: user.image,
 			})
 			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
 			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-			.leftJoin(user, eq(player.userId, user.id))
-			.leftJoin(guest, eq(player.guestId, guest.id))
+			.innerJoin(user, eq(player.userId, user.id))
 			.where(inArray(matchPlayer.matchId, matchIds)),
 		db
 			.select({
@@ -626,14 +623,13 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 				result: matchPlayer.result,
 				scoreBefore: matchPlayer.scoreBefore,
 				scoreAfter: matchPlayer.scoreAfter,
-				name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+				name: user.name,
 				image: user.image,
 			})
 			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
 			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-			.leftJoin(user, eq(player.userId, user.id))
-			.leftJoin(guest, eq(player.guestId, guest.id))
+			.innerJoin(user, eq(player.userId, user.id))
 			.where(eq(matchPlayer.matchId, matchId)),
 		db
 			.select({
