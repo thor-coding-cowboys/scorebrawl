@@ -7,9 +7,6 @@
 	},
 	"plugins": ["react", "typescript", "import"],
 	"settings": {
-		"react": {
-			"version": "detect"
-		},
 		"jsx-runtime": "automatic"
 	},
 	"categories": {

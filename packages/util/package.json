@@ -15,8 +15,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"ulid": "catalog:",
-		"@ihs7/ts-elo": "catalog:"
+		"@ihs7/ts-elo": "catalog:",
+		"ulid": "catalog:"
 	},
 	"devDependencies": {
 		"typescript": "catalog:",

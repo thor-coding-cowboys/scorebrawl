@@ -483,7 +483,10 @@ export const getBySeasonId = async ({
 			.orderBy(desc(match.createdAt))
 			.limit(limit)
 			.offset(offset),
-		db.select({ count: sql<number>`count(*)` }).from(match).where(eq(match.seasonId, seasonId)),
+		db
+			.select({ count: sql<number>`count(*)` })
+			.from(match)
+			.where(eq(match.seasonId, seasonId)),
 	]);
 
 	const total = countResult?.count || 0;

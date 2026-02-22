@@ -281,7 +281,7 @@ function createRemoteDbClient(): DrizzleDB {
 	}
 
 	const remoteCallback = async (
-		sql: string,
+		rawSql: string,
 		params: unknown[],
 		_method: "run" | "all" | "values" | "get"
 	): Promise<{ rows: unknown[] }> => {
@@ -290,7 +290,7 @@ function createRemoteDbClient(): DrizzleDB {
 			`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/raw`,
 			{
 				method: "POST",
-				body: JSON.stringify({ sql, params }),
+				body: JSON.stringify({ sql: rawSql, params }),
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${token}`,
@@ -307,7 +307,7 @@ function createRemoteDbClient(): DrizzleDB {
 		if (!data.success) {
 			const errorMsg =
 				data.errors?.map((e) => `${e.code}: ${e.message}`).join("\n") ?? "Unknown error";
-			throw new Error(`D1 HTTP Error: ${errorMsg}\nSQL: ${sql}`);
+			throw new Error(`D1 HTTP Error: ${errorMsg}\nSQL: ${rawSql}`);
 		}
 
 		// Raw endpoint returns { columns: [...], rows: [[...], [...]] }

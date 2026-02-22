@@ -40,8 +40,8 @@
 		"date-fns": "catalog:",
 		"drizzle-orm": "catalog:",
 		"hono": "catalog:",
-		"resend": "catalog:",
 		"nanoid": "catalog:",
+		"resend": "catalog:",
 		"superjson": "catalog:"
 	},
 	"devDependencies": {
