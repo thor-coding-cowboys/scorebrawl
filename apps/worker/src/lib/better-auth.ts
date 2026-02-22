@@ -5,11 +5,8 @@ import { organization, apiKey } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { userPreference } from "../db/schema/user-preferences-schema";
-import { invitation, league, member as memberTable } from "../db/schema/auth-schema";
-import { guest, player } from "../db/schema/league-schema";
-import { createId } from "../utils/id-util";
 
 import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
 
@@ -86,105 +83,6 @@ export function createAuth({
 		}),
 		secret: betterAuthSecret,
 		databaseHooks: {
-			user: {
-				create: {
-					after: async (createdUser) => {
-						try {
-							// Check if guest records exist for this email
-							const guestPlayers = await db
-								.select({
-									playerId: player.id,
-									leagueId: player.leagueId,
-									leagueName: league.name,
-									guestDisplayName: guest.displayName,
-								})
-								.from(player)
-								.innerJoin(guest, eq(player.guestId, guest.id))
-								.innerJoin(league, eq(player.leagueId, league.id))
-								.where(eq(guest.email, createdUser.email));
-
-							if (guestPlayers.length === 0) return;
-
-							for (const guestPlayer of guestPlayers) {
-								// Skip if invitation already exists
-								const [existingInvite] = await db
-									.select({ id: invitation.id })
-									.from(invitation)
-									.where(
-										and(
-											eq(invitation.organizationId, guestPlayer.leagueId),
-											eq(invitation.email, createdUser.email),
-											eq(invitation.status, "pending")
-										)
-									)
-									.limit(1);
-
-								if (existingInvite) continue;
-
-								// Find league owner to use as inviter
-								const [leagueOwner] = await db
-									.select({ userId: memberTable.userId })
-									.from(memberTable)
-									.where(
-										and(
-											eq(memberTable.organizationId, guestPlayer.leagueId),
-											eq(memberTable.role, "owner")
-										)
-									)
-									.limit(1);
-
-								if (!leagueOwner) {
-									console.error(`No owner found for league ${guestPlayer.leagueId}`);
-									continue;
-								}
-
-								const invitationId = createId();
-								await db.insert(invitation).values({
-									id: invitationId,
-									organizationId: guestPlayer.leagueId,
-									email: createdUser.email,
-									role: "member",
-									status: "pending",
-									expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-									createdAt: new Date(),
-									inviterId: leagueOwner.userId,
-								});
-
-								// Send email notification
-								if (resendApiKey) {
-									try {
-										const { Resend } = await import("resend");
-										const resend = new Resend(resendApiKey);
-										const invitationAcceptLink = `${origin}/accept-invitation/${invitationId}`;
-
-										await resend.emails.send({
-											from: "no-reply@scorebrawl.com",
-											to: createdUser.email,
-											subject: `Claim your profile in ${guestPlayer.leagueName}`,
-											html: `
-												<p>Hi ${createdUser.name},</p>
-												<p>You've been participating in <strong>${guestPlayer.leagueName}</strong> as a guest player (${guestPlayer.guestDisplayName}).</p>
-												<p>Now that you've created an account, you can claim your profile!</p>
-												<p><a href="${invitationAcceptLink}">Claim Profile</a></p>
-												<p>Your stats and match history will be preserved.</p>
-											`,
-										});
-									} catch (e) {
-										console.error("Failed to send guest claim email:", e);
-									}
-								} else {
-									const invitationAcceptLink = `${origin}/accept-invitation/${invitationId}`;
-									console.log(
-										`Guest claim invitation for ${createdUser.email} in ${guestPlayer.leagueName}: ${invitationAcceptLink}`
-									);
-								}
-							}
-						} catch (e) {
-							console.error("Failed to check guest records on user signup:", e);
-						}
-					},
-				},
-			},
 			session: {
 				create: {
 					before: async (session) => {

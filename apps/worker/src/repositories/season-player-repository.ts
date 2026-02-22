@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
-import { guest, seasonPlayer, matchPlayer, player } from "../db/schema/league-schema";
+import { seasonPlayer, matchPlayer, player } from "../db/schema/league-schema";
 
 export const findAll = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	return db
@@ -13,15 +13,13 @@ export const findAll = async ({ db, seasonId }: { db: DrizzleDB; seasonId: strin
 			disabled: seasonPlayer.disabled,
 			createdAt: seasonPlayer.createdAt,
 			updatedAt: seasonPlayer.updatedAt,
-			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+			name: user.name,
 			image: user.image,
 			userId: player.userId,
-			isGuest: sql<boolean>`${player.guestId} IS NOT NULL`.as("is_guest"),
 		})
 		.from(seasonPlayer)
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.leftJoin(user, eq(player.userId, user.id))
-		.leftJoin(guest, eq(player.guestId, guest.id))
+		.innerJoin(user, eq(player.userId, user.id))
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(desc(seasonPlayer.score));
 };
@@ -35,8 +33,7 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		score: number;
 		name: string;
 		image: string | null;
-		userId: string | null;
-		isGuest: number;
+		userId: string;
 		matchCount: number;
 		winCount: number;
 		lossCount: number;
@@ -49,10 +46,9 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 			sp.season_id as seasonId,
 			sp.player_id as playerId,
 			sp.score,
-			COALESCE(u.name, g.display_name) as name,
+			u.name,
 			u.image,
 			p.user_id as userId,
-			(p.guest_id IS NOT NULL) as isGuest,
 			COALESCE(stats.match_count, 0) as matchCount,
 			COALESCE(stats.win_count, 0) as winCount,
 			COALESCE(stats.loss_count, 0) as lossCount,
@@ -61,8 +57,7 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 			form.recent_results as recentResults
 		FROM season_player sp
 		INNER JOIN player p ON sp.player_id = p.id
-		LEFT JOIN user u ON p.user_id = u.id
-		LEFT JOIN guest g ON p.guest_id = g.id
+		INNER JOIN user u ON p.user_id = u.id
 		LEFT JOIN (
 			SELECT
 				mp.season_player_id,
@@ -113,7 +108,6 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 		name: r.name,
 		image: r.image,
 		userId: r.userId,
-		isGuest: !!r.isGuest,
 		matchCount: r.matchCount,
 		winCount: r.winCount,
 		lossCount: r.lossCount,
@@ -131,13 +125,12 @@ export const getTopPlayer = async ({ db, seasonId }: { db: DrizzleDB; seasonId: 
 			seasonId: seasonPlayer.seasonId,
 			playerId: seasonPlayer.playerId,
 			score: seasonPlayer.score,
-			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+			name: user.name,
 			image: user.image,
 		})
 		.from(seasonPlayer)
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.leftJoin(user, eq(player.userId, user.id))
-		.leftJoin(guest, eq(player.guestId, guest.id))
+		.innerJoin(user, eq(player.userId, user.id))
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(desc(seasonPlayer.score))
 		.limit(1);
@@ -191,13 +184,12 @@ export const getPointProgression = async ({
 			seasonPlayerId: matchPlayer.seasonPlayerId,
 			scoreAfter: matchPlayer.scoreAfter,
 			createdAt: matchPlayer.createdAt,
-			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+			name: user.name,
 		})
 		.from(matchPlayer)
 		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
 		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.leftJoin(user, eq(player.userId, user.id))
-		.leftJoin(guest, eq(player.guestId, guest.id))
+		.innerJoin(user, eq(player.userId, user.id))
 		.where(eq(seasonPlayer.seasonId, seasonId))
 		.orderBy(matchPlayer.createdAt);
 };
@@ -217,7 +209,7 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 	}>(sql`
 		SELECT 
 			mp.season_player_id as seasonPlayerId,
-			COALESCE(u.name, g.display_name) as playerName,
+			u.name as playerName,
 			u.image as playerImage,
 			COUNT(*) as matchCount,
 			SUM(CASE WHEN mp.result = 'W' THEN 1 ELSE 0 END) as winCount,
@@ -227,12 +219,11 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 		FROM match_player mp
 		INNER JOIN season_player sp ON mp.season_player_id = sp.id
 		INNER JOIN player p ON sp.player_id = p.id
-		LEFT JOIN user u ON p.user_id = u.id
-		LEFT JOIN guest g ON p.guest_id = g.id
+		INNER JOIN user u ON p.user_id = u.id
 		WHERE sp.season_id = ${seasonId}
 		AND date(datetime(mp.created_at, 'unixepoch')) >= date('now', '-7 days')
 		AND date(datetime(mp.created_at, 'unixepoch')) <= date('now', '-1 day')
-		GROUP BY mp.season_player_id, COALESCE(u.name, g.display_name), u.image
+		GROUP BY mp.season_player_id, u.name, u.image
 		HAVING COUNT(*) > 0
 	`);
 
