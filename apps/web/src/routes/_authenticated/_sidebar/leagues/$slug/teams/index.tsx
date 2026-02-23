@@ -135,6 +135,8 @@ function TeamsPage() {
 		return teamsData?.teams || [];
 	}, [teamsData]);
 
+	const totalTeams = allTeamsData?.totalCount || 0;
+
 	// Stats always reflect all teams in the league, regardless of filter
 	const allTeams = useMemo(() => allTeamsData?.teams || [], [allTeamsData]);
 	const stats = useMemo(() => {
@@ -405,7 +407,12 @@ function TeamsPage() {
 				<div className="bg-muted/50 min-h-[100vh] flex-1 md:min-h-min p-6">
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
-							<h3 className="text-lg font-medium">Teams</h3>
+							<div className="flex items-center gap-3">
+								<h3 className="text-lg font-medium">Teams</h3>
+								<span className="text-sm text-muted-foreground">
+									Showing {teams.length} of {totalTeams}
+								</span>
+							</div>
 							{myPlayer && (
 								<GlowToggle
 									checked={showMyTeams}
