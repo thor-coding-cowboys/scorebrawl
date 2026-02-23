@@ -3,7 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { StreakFlyout } from "@/components/season/streak-flyout";
+import { StreakFlyout } from "@/components/streak-flyout";
 
 export type RouterContext = {
 	queryClient: QueryClient;

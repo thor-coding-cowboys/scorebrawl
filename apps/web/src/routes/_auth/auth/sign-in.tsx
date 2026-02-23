@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { SignInForm } from "@/components/auth/sign-in-form";
+import { SignInForm } from "./-components/sign-in-form";
 
 const authSearchSchema = z.object({
 	redirect: z.string().optional(),

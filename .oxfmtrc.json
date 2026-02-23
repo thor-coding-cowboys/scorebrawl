@@ -14,7 +14,6 @@
 	"endOfLine": "lf",
 	"ignorePatterns": [
 		"**/routeTree.gen.ts",
-		"**/components/ui/**",
 		"**/index.css",
 		"wrangler.json",
 		"**/wrangler.jsonc",

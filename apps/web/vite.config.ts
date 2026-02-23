@@ -24,7 +24,10 @@ export default defineConfig({
 	],
 	resolve: {
 		alias: {
-			"@": fileURLToPath(new URL("./src", import.meta.url)),
+			"@/components": fileURLToPath(new URL("./src/routes/-components", import.meta.url)),
+			"@/lib": fileURLToPath(new URL("./src/lib", import.meta.url)),
+			"@/hooks": fileURLToPath(new URL("./src/hooks", import.meta.url)),
+			"@/routes": fileURLToPath(new URL("./src/routes", import.meta.url)),
 			"@coding-cowboys/scorebrawl-worker": fileURLToPath(new URL("../worker/src", import.meta.url)),
 		},
 	},
