@@ -112,6 +112,15 @@ function TeamsPage() {
 		}
 	}, [role, canAccess, navigate, slug]);
 
+	// Always fetch unfiltered data for stats cards
+	const { data: allTeamsData } = useQuery({
+		queryKey: ["teams", slug, null],
+		queryFn: async () => {
+			return await trpcClient.leagueTeam.list.query({});
+		},
+		enabled: canAccess,
+	});
+
 	const { data: teamsData, isLoading } = useQuery({
 		queryKey: ["teams", slug, showMyTeams ? myPlayer?.id : null],
 		queryFn: async () => {
@@ -126,19 +135,21 @@ function TeamsPage() {
 		return teamsData?.teams || [];
 	}, [teamsData]);
 
+	// Stats always reflect all teams in the league, regardless of filter
+	const allTeams = useMemo(() => allTeamsData?.teams || [], [allTeamsData]);
 	const stats = useMemo(() => {
-		if (!teams.length) return { total: 0, withPlayers: 0, avgPlayers: 0 };
+		if (!allTeams.length) return { total: 0, withPlayers: 0, avgPlayers: 0 };
 
-		const withPlayers = teams.filter((t) => t.players.length > 0).length;
-		const totalPlayers = teams.reduce((acc, t) => acc + t.players.length, 0);
-		const avgPlayers = Math.round(totalPlayers / teams.length);
+		const withPlayers = allTeams.filter((t) => t.players.length > 0).length;
+		const totalPlayers = allTeams.reduce((acc, t) => acc + t.players.length, 0);
+		const avgPlayers = Math.round(totalPlayers / allTeams.length);
 
 		return {
-			total: teams.length,
+			total: allTeams.length,
 			withPlayers,
 			avgPlayers,
 		};
-	}, [teams]);
+	}, [allTeams]);
 
 	const editMutation = useMutation({
 		mutationFn: async ({ teamId, name }: { teamId: string; name: string }) => {

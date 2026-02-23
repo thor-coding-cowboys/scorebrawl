@@ -104,7 +104,7 @@ export const leagueTeamRouter = {
 			// Group players by team
 			const playersByTeam = new Map<
 				string,
-				{ id: string; userId: string; name: string | null }[]
+				{ id: string; userId: string | null; name: string | null }[]
 			>();
 			for (const p of allPlayers) {
 				const existing = playersByTeam.get(p.leagueTeamId) || [];
