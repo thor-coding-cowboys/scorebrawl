@@ -9,9 +9,9 @@
 
 ## Project Structure
 
-- `src/web` - Frontend (TanStack Router)
-- `src/worker` - Cloudflare Worker (Hono + tRPC)
-- `src/test` - Backend tests
+- `apps/web` - Frontend (TanStack Router)
+- `apps/worker` - Cloudflare Worker (Hono + tRPC)
+- `apps/worker/src/test` - Backend tests
 
 ## Dependencies
 
@@ -69,15 +69,80 @@ Validator targets: `"json"` (body), `"query"` (search params), `"header"`, `"par
 
 shadcn + Tailwind for all interfaces. Use **Hugeicons** for icons.
 
+## File Organization
+
+Uses TanStack Router file-based routing with co-located feature files.
+
+### Route Files
+
+Files in `apps/web/src/routes/` are automatically registered as routes unless excluded.
+
+### Non-Route Files
+
+Prefix directories/files with `-` to exclude them from route generation while keeping them co-located:
+
+```text
+apps/web/src/routes/
+├── __root.tsx                # Root layout
+├── index.tsx                 # Landing (/)
+├── -components/              # Shared components (excluded from routing)
+│   ├── ui/                   # shadcn primitives (@/components/ui)
+│   ├── layout/               # Shared layout (header, etc.)
+│   ├── sidebar/              # Sidebar components
+│   ├── leagues/              # League dialogs/forms (shared across routes)
+│   ├── landing.tsx
+│   ├── theme-switcher.tsx
+│   ├── streak-flyout.tsx
+│   └── streak-avatar.tsx
+├── _auth/
+│   └── auth/
+│       ├── sign-in.tsx       # Route: /auth/sign-in
+│       └── -components/      # Co-located auth components
+├── _authenticated/
+│   ├── _sidebar/
+│   │   ├── profile.tsx       # Route: /profile
+│   │   ├── -components/      # Co-located profile/devices components
+│   │   └── leagues/$slug/
+│   │       └── seasons/
+│   │           ├── index.tsx  # Route: /leagues/:slug/seasons
+│   │           ├── -components/  # Co-located season/match components
+│   │           │   ├── season/
+│   │           │   ├── match/
+│   │           │   └── seasons/
+│   │           └── $seasonSlug/
+│   │               ├── index.tsx
+│   │               └── matches.tsx
+│   └── leagues/
+│       └── index.tsx
+```
+
+### Path Aliases
+
+Explicit aliases in `tsconfig.json` and `vite.config.ts`:
+
+| Alias            | Resolves to                         |
+| ---------------- | ----------------------------------- |
+| `@/components/*` | `apps/web/src/routes/-components/*` |
+| `@/lib/*`        | `apps/web/src/lib/*`                |
+| `@/hooks/*`      | `apps/web/src/hooks/*`              |
+
+Use `@/components/` for shared UI (`@/components/ui/button`, `@/components/layout/header`). Use **relative imports** for co-located feature components (`./-components/...`).
+
+### Shared Code
+
+- `apps/web/src/routes/-components/` — Shared UI components (`@/components`)
+- `apps/web/src/hooks/` — Shared React hooks (`@/hooks`)
+- `apps/web/src/lib/` — Utilities and API client (`@/lib`)
+
 ## Testing
 
-Create integration tests for new tRPC routes. Reference `src/test/trpc/`.
+Create integration tests for new tRPC routes. Reference `apps/worker/src/test/trpc/`.
 
-Pattern: `createTRPCTestClient({ sessionToken })` with helpers from `src/test/setup/`. Uses Vitest + Cloudflare framework. Migrations auto-apply.
+Pattern: `createTRPCTestClient({ sessionToken })` with helpers from `apps/worker/src/test/setup/`. Uses Vitest + Cloudflare framework. Migrations auto-apply.
 
 ## Database
 
-Use Drizzle. Schema: `src/worker/db/schema/`
+Use Drizzle. Schema: `apps/worker/src/db/schema/`
 
 Migration workflow:
 

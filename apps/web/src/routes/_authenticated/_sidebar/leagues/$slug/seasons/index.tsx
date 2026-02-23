@@ -21,9 +21,9 @@ import {
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
 import { useQuery } from "@tanstack/react-query";
-import { CreateSeasonForm } from "@/components/seasons/create-season-form";
-import { EditSeasonForm } from "@/components/seasons/edit-season-form";
-import { CloseSeasonDialog } from "@/components/seasons/close-season-dialog";
+import { CreateSeasonForm } from "./-components/seasons/create-season-form";
+import { EditSeasonForm } from "./-components/seasons/edit-season-form";
+import { CloseSeasonDialog } from "./-components/seasons/close-season-dialog";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/")({
 	component: SeasonsPage,

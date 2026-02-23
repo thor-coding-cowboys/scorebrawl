@@ -34,10 +34,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RowCard } from "@/components/ui/row-card";
 import { Header } from "@/components/layout/header";
 import { authClient } from "@/lib/auth-client";
-import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
-import { EditPasskeyDialog } from "@/components/profile/edit-passkey-dialog";
-import { CreateApiKeyDialog } from "@/components/devices/create-api-key-dialog";
-import { EditApiKeyDialog } from "@/components/devices/edit-api-key-dialog";
+import { EditProfileDialog } from "./-components/profile/edit-profile-dialog";
+import { EditPasskeyDialog } from "./-components/profile/edit-passkey-dialog";
+import { CreateApiKeyDialog } from "./-components/devices/create-api-key-dialog";
+import { EditApiKeyDialog } from "./-components/devices/edit-api-key-dialog";
 import { useSession, fetchSessionForRoute } from "@/hooks/useSession";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTRPC } from "@/lib/trpc";

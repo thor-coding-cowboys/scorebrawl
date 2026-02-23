@@ -391,8 +391,8 @@ Both components handle loading skeletons automatically via the `isLoading` prop.
 ## File Structure
 
 List views: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/feature.tsx`
-Components: `apps/web/src/components/feature/component-name.tsx`
-Dialog forms: `apps/web/src/components/feature/feature-form.tsx`
+Shared components: `apps/web/src/routes/-components/` (aliased as `@/components`)
+Co-located components: `apps/web/src/routes/<route-path>/-components/`
 
 Route file naming (TanStack Router):
 - Use directory structure, never dot notation
