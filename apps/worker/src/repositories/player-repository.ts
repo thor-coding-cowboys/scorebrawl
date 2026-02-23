@@ -34,6 +34,33 @@ export const getAll = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string
 		.where(eq(player.leagueId, leagueId));
 };
 
+export const getByUserId = async ({
+	db,
+	userId,
+	leagueId,
+}: {
+	db: DrizzleDB;
+	userId: string;
+	leagueId: string;
+}) => {
+	const [p] = await db
+		.select({
+			id: player.id,
+			userId: player.userId,
+			leagueId: player.leagueId,
+			disabled: player.disabled,
+			createdAt: player.createdAt,
+			updatedAt: player.updatedAt,
+			name: user.name,
+			image: user.image,
+		})
+		.from(player)
+		.innerJoin(user, eq(player.userId, user.id))
+		.where(and(eq(player.userId, userId), eq(player.leagueId, leagueId)))
+		.limit(1);
+	return p ?? null;
+};
+
 export const getById = async ({
 	db,
 	playerId,

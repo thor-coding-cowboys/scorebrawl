@@ -340,6 +340,53 @@ Note: Standalone pages don't use `breadcrumbs` prop - Header renders children or
 10. **Container padding**: `p-6` for list containers
 11. **Empty state height**: `h-64` for consistent centering
 12. **Dashboard card glows**: Use themed radial gradient glows with matching icon colors (see Dashboard Cards section)
+13. **Avatars**: Always `rounded-lg` (never `rounded-full`). Use `AvatarWithFallback` or `PlayerAvatarGroup*` components — never raw `Avatar`/`AvatarImage`/`AvatarFallback` primitives (see Avatars section)
+
+## Avatars
+
+**Always use `rounded-lg`** — never `rounded-full` for avatars. The codebase uses rectangular rounded avatars consistently.
+
+### Single Avatar: `AvatarWithFallback`
+
+The preferred component for displaying a single user/player avatar. Handles asset URL conversion, 2-letter initials fallback, and deterministic name-based coloring automatically.
+
+```tsx
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+
+// In a RowCard icon slot
+<AvatarWithFallback src={player.image} name={player.name} alt={player.name} size="lg" />
+
+// Sizes: "sm" (24px), "md" (32px), "lg" (40px), "xl" (64px)
+```
+
+**Do NOT** use the raw `Avatar`/`AvatarImage`/`AvatarFallback` primitives from `@/components/ui/avatar` directly. Always use `AvatarWithFallback` instead.
+
+### Player Avatar Groups: `PlayerAvatarGroupInline` / `PlayerAvatarGroupGrid`
+
+For displaying multiple player avatars together. Two layout variants:
+
+```tsx
+import { PlayerAvatarGroupInline, PlayerAvatarGroupGrid } from "@/components/ui/player-avatar-group";
+
+// Inline row (e.g., team header, compact display)
+// Shows avatars side by side with optional overflow count
+<PlayerAvatarGroupInline
+  players={players}   // Array of { id, name, image? }
+  size="lg"           // "sm" | "md" | "lg" | "xl"
+  max={4}             // Max visible before "+N" overflow badge
+  isLoading={loading}
+/>
+
+// Grid with names (e.g., team roster, player grids)
+// Shows avatars in a responsive grid with names below each
+<PlayerAvatarGroupGrid
+  players={players}
+  size="xl"
+  isLoading={loading}
+/>
+```
+
+Both components handle loading skeletons automatically via the `isLoading` prop.
 
 ## File Structure
 

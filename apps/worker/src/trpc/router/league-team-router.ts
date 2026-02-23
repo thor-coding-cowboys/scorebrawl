@@ -1,6 +1,6 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, gt } from "drizzle-orm";
+import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { user } from "../../db/schema/auth-schema";
 import { leagueTeam, leagueTeamPlayer, player } from "../../db/schema/league-schema";
@@ -25,14 +25,45 @@ export const leagueTeamRouter = {
 			z.object({
 				cursor: z.string().optional(),
 				limit: z.number().min(1).max(100).default(50),
+				playerId: z.string().optional(),
 			})
 		)
 		.query(async ({ ctx: { db, organizationId }, input }) => {
-			const { cursor, limit } = input;
+			const { cursor, limit, playerId } = input;
 
-			const whereCondition = cursor
-				? and(eq(leagueTeam.leagueId, organizationId), gt(leagueTeam.id, cursor))
-				: eq(leagueTeam.leagueId, organizationId);
+			// If filtering by playerId, get team IDs the player belongs to
+			let playerTeamIds: string[] | null = null;
+			if (playerId) {
+				const playerTeams = await db
+					.select({ leagueTeamId: leagueTeamPlayer.leagueTeamId })
+					.from(leagueTeamPlayer)
+					.where(eq(leagueTeamPlayer.playerId, playerId));
+				playerTeamIds = playerTeams.map((t) => t.leagueTeamId);
+
+				// If player has no teams, return empty result early
+				if (playerTeamIds.length === 0) {
+					return {
+						teams: [],
+						totalCount: 0,
+						nextCursor: null,
+					};
+				}
+			}
+
+			// Build where conditions
+			const baseConditions = [eq(leagueTeam.leagueId, organizationId)];
+			if (cursor) {
+				baseConditions.push(gt(leagueTeam.id, cursor));
+			}
+			if (playerTeamIds) {
+				baseConditions.push(inArray(leagueTeam.id, playerTeamIds));
+			}
+
+			// Build count conditions (without cursor)
+			const countConditions = [eq(leagueTeam.leagueId, organizationId)];
+			if (playerTeamIds) {
+				countConditions.push(inArray(leagueTeam.id, playerTeamIds));
+			}
 
 			const [teams, [totalCountResult]] = await Promise.all([
 				db
@@ -44,35 +75,47 @@ export const leagueTeamRouter = {
 						updatedAt: leagueTeam.updatedAt,
 					})
 					.from(leagueTeam)
-					.where(whereCondition)
+					.where(and(...baseConditions))
 					.orderBy(leagueTeam.name)
 					.limit(limit + 1),
 				db
 					.select({ count: count() })
 					.from(leagueTeam)
-					.where(eq(leagueTeam.leagueId, organizationId)),
+					.where(and(...countConditions)),
 			]);
 
-			// Fetch players for each team
-			const teamsWithPlayers = await Promise.all(
-				teams.map(async (team) => {
-					const players = await db
-						.select({
-							id: player.id,
-							userId: player.userId,
-							name: user.name,
-						})
-						.from(leagueTeamPlayer)
-						.innerJoin(player, eq(leagueTeamPlayer.playerId, player.id))
-						.innerJoin(user, eq(player.userId, user.id))
-						.where(eq(leagueTeamPlayer.leagueTeamId, team.id));
+			// Fetch players for all teams in a single query to avoid N+1
+			const teamIds = teams.map((t) => t.id);
+			const allPlayers =
+				teamIds.length > 0
+					? await db
+							.select({
+								leagueTeamId: leagueTeamPlayer.leagueTeamId,
+								id: player.id,
+								userId: player.userId,
+								name: user.name,
+							})
+							.from(leagueTeamPlayer)
+							.innerJoin(player, eq(leagueTeamPlayer.playerId, player.id))
+							.innerJoin(user, eq(player.userId, user.id))
+							.where(inArray(leagueTeamPlayer.leagueTeamId, teamIds))
+					: [];
 
-					return {
-						...team,
-						players,
-					};
-				})
-			);
+			// Group players by team
+			const playersByTeam = new Map<
+				string,
+				{ id: string; userId: string | null; name: string | null }[]
+			>();
+			for (const p of allPlayers) {
+				const existing = playersByTeam.get(p.leagueTeamId) || [];
+				existing.push({ id: p.id, userId: p.userId, name: p.name });
+				playersByTeam.set(p.leagueTeamId, existing);
+			}
+
+			const teamsWithPlayers = teams.map((team) => ({
+				...team,
+				players: playersByTeam.get(team.id) || [],
+			}));
 
 			let nextCursor: string | null = null;
 			if (teams.length > limit) {
