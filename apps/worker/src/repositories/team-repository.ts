@@ -86,6 +86,7 @@ export const getTeamPlayersWithDetails = async ({
 	return db
 		.select({
 			id: player.id,
+			userId: player.userId,
 			name: user.name,
 			image: user.image,
 		})

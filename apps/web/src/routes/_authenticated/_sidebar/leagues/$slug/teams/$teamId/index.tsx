@@ -1,11 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	PlayerAvatarGroupInline,
+	PlayerAvatarGroupGrid,
+} from "@/components/ui/player-avatar-group";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LogoUpload } from "@/components/ui/logo-upload";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTRPC } from "@/lib/trpc";
+import { authClient } from "@/lib/auth-client";
+import { trpcClient, useTRPC } from "@/lib/trpc";
+import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
@@ -16,6 +34,7 @@ import {
 	ArrowDown01Icon,
 	UserMultipleIcon,
 	ChartIcon,
+	PencilEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from "recharts";
 import {
@@ -77,6 +96,20 @@ const matchResultsConfig = {
 function TeamProfilePage() {
 	const { slug, teamId } = Route.useLoaderData();
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [editName, setEditName] = useState("");
+	const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+	const [logoPreview, setLogoPreview] = useState<string | null>(null);
+	const [isLogoRemoved, setIsLogoRemoved] = useState(false);
+
+	const { data: activeMember } = authClient.useActiveMember();
+	const role = activeMember?.role;
+	const isEditor = role === "owner" || role === "admin" || role === "editor";
+
+	const { data: userSession } = authClient.useSession();
+	const currentUserId = userSession?.user?.id;
 
 	const {
 		data: team,
@@ -117,6 +150,139 @@ function TeamProfilePage() {
 		retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
 		staleTime: 5 * 60 * 1000, // 5 minutes
 	});
+
+	const canEdit =
+		isEditor || (!!currentUserId && !!players?.some((p) => p.userId === currentUserId));
+
+	const editMutation = useMutation({
+		mutationFn: async ({ name }: { name: string }) => {
+			return await trpcClient.leagueTeam.edit.mutate({ teamId, name });
+		},
+		onSuccess: () => {
+			toast.success("Team updated");
+			void queryClient.invalidateQueries({
+				queryKey: trpc.leagueTeam.getById.queryKey({ teamId }),
+			});
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to update team");
+		},
+	});
+
+	const uploadLogoMutation = useMutation({
+		mutationFn: async ({ imageData }: { imageData: string }) => {
+			return await trpcClient.leagueTeam.uploadLogo.mutate({ teamId, imageData });
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({
+				queryKey: trpc.leagueTeam.getById.queryKey({ teamId }),
+			});
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to upload logo");
+		},
+	});
+
+	const deleteLogoMutation = useMutation({
+		mutationFn: async () => {
+			return await trpcClient.leagueTeam.deleteLogo.mutate({ teamId });
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({
+				queryKey: trpc.leagueTeam.getById.queryKey({ teamId }),
+			});
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to remove logo");
+		},
+	});
+
+	const isSaving =
+		editMutation.isPending || uploadLogoMutation.isPending || deleteLogoMutation.isPending;
+
+	const openEditDialog = () => {
+		if (!team) return;
+		setEditName(team.name);
+		setLogoPreview(getAssetUrl(team.logo));
+		setSelectedLogo(null);
+		setIsLogoRemoved(false);
+		setIsEditDialogOpen(true);
+	};
+
+	const closeEditDialog = () => {
+		if (logoPreview?.startsWith("blob:")) {
+			URL.revokeObjectURL(logoPreview);
+		}
+		setIsEditDialogOpen(false);
+		setEditName("");
+		setSelectedLogo(null);
+		setLogoPreview(null);
+		setIsLogoRemoved(false);
+	};
+
+	const handleFileSelect = (file: File) => {
+		setSelectedLogo(file);
+		const previewUrl = URL.createObjectURL(file);
+		setLogoPreview(previewUrl);
+		setIsLogoRemoved(false);
+	};
+
+	const handleRemoveLogo = () => {
+		if (logoPreview?.startsWith("blob:")) {
+			URL.revokeObjectURL(logoPreview);
+		}
+		setSelectedLogo(null);
+		setLogoPreview(null);
+		setIsLogoRemoved(true);
+	};
+
+	const handleSaveEdit = async () => {
+		if (!team) {
+			closeEditDialog();
+			return;
+		}
+
+		const nameChanged = editName.trim() && editName !== team.name;
+		const logoUploaded = selectedLogo !== null;
+		const logoRemoved = isLogoRemoved && team.logo !== null;
+		const hasChanges = nameChanged || logoUploaded || logoRemoved;
+
+		if (!hasChanges) {
+			closeEditDialog();
+			return;
+		}
+
+		try {
+			if (nameChanged) {
+				await editMutation.mutateAsync({ name: editName.trim() });
+			}
+
+			if (logoUploaded && selectedLogo) {
+				const imageData = await new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = () => {
+						if (typeof reader.result === "string") {
+							resolve(reader.result);
+						} else {
+							reject(new Error("Failed to read file as data URL"));
+						}
+					};
+					reader.onerror = () => reject(new Error("Failed to read file"));
+					reader.readAsDataURL(selectedLogo);
+				});
+
+				await uploadLogoMutation.mutateAsync({ imageData });
+			}
+
+			if (logoRemoved) {
+				await deleteLogoMutation.mutateAsync();
+			}
+
+			closeEditDialog();
+		} catch {
+			// Error handling is done in mutation onError callbacks
+		}
+	};
 
 	if (teamError) {
 		return (
@@ -160,6 +326,58 @@ function TeamProfilePage() {
 
 	return (
 		<>
+			<Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && closeEditDialog()}>
+				<DialogContent className="sm:max-w-[425px]">
+					<DialogHeader className="pb-4 border-b border-border">
+						<div className="flex items-center gap-3">
+							<div className="w-2 h-6 bg-blue-500 rounded-full" />
+							<DialogTitle className="text-xl font-bold font-mono tracking-tight">
+								Edit Team
+							</DialogTitle>
+						</div>
+						<DialogDescription className="font-mono text-sm text-muted-foreground">
+							Update the team name and logo.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid gap-2">
+							<Label>Team Logo (Optional)</Label>
+							<LogoUpload
+								previewUrl={logoPreview}
+								fallback={
+									<HugeiconsIcon icon={UserMultipleIcon} className="size-12 text-blue-500" />
+								}
+								onFileSelect={handleFileSelect}
+								onRemove={logoPreview ? handleRemoveLogo : undefined}
+								disabled={isSaving}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="edit-team-name">Team Name</Label>
+							<Input
+								id="edit-team-name"
+								value={editName}
+								onChange={(e) => setEditName(e.target.value)}
+								placeholder="Enter team name"
+								maxLength={100}
+								disabled={isSaving}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							onClick={handleSaveEdit}
+							disabled={
+								isSaving ||
+								((!editName.trim() || editName === team?.name) && !selectedLogo && !isLogoRemoved)
+							}
+						>
+							{isSaving ? "Saving..." : "Save changes"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<Header
 				breadcrumbs={[
 					{ name: "Leagues", href: "/leagues" },
@@ -197,7 +415,19 @@ function TeamProfilePage() {
 										</div>
 									)}
 									<div className="flex-1">
-										<h1 className="text-3xl font-bold">{team?.name}</h1>
+										<div className="flex items-center gap-2">
+											<h1 className="text-3xl font-bold">{team?.name}</h1>
+											{canEdit && (
+												<Button
+													variant="ghost"
+													size="sm"
+													className="text-muted-foreground hover:text-foreground"
+													onClick={openEditDialog}
+												>
+													<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+												</Button>
+											)}
+										</div>
 										<div className="flex items-center gap-2 mt-1">
 											<Badge variant="secondary">{allTimeWinRate}% Win Rate</Badge>
 											{players && players.length > 0 && (
@@ -206,39 +436,12 @@ function TeamProfilePage() {
 										</div>
 									</div>
 									{/* Team Players Avatars */}
-									{playersLoading ? (
-										<div className="flex -space-x-2">
-											{Array.from({ length: 3 }).map((_, i) => (
-												<Skeleton
-													key={`avatar-skeleton-${i}`}
-													className="h-10 w-10 rounded-full border-2 border-background"
-												/>
-											))}
-										</div>
-									) : players && players.length > 0 ? (
-										<div className="flex -space-x-2">
-											{players.slice(0, 4).map((player) => (
-												<Avatar
-													key={player.id}
-													className="h-10 w-10 rounded-full border-2 border-background"
-												>
-													<AvatarImage
-														src={player.image ?? undefined}
-														alt={player.name}
-														className="rounded-full"
-													/>
-													<AvatarFallback className="text-sm rounded-full bg-primary/10">
-														{player.name.charAt(0)}
-													</AvatarFallback>
-												</Avatar>
-											))}
-											{players.length > 4 && (
-												<div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium">
-													+{players.length - 4}
-												</div>
-											)}
-										</div>
-									) : null}
+									<PlayerAvatarGroupInline
+										players={players ?? []}
+										size="lg"
+										max={4}
+										isLoading={playersLoading}
+									/>
 								</>
 							)}
 						</div>
@@ -609,37 +812,9 @@ function TeamProfilePage() {
 					</CardHeader>
 					<CardContent>
 						{playersLoading ? (
-							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-								{Array.from({ length: 4 }).map((_, i) => (
-									<div
-										key={`player-skeleton-${i}`}
-										className="flex flex-col items-center space-y-2"
-									>
-										<Skeleton className="w-16 h-16 rounded-full" />
-										<Skeleton className="h-4 w-20" />
-									</div>
-								))}
-							</div>
+							<PlayerAvatarGroupGrid players={[]} size="xl" isLoading />
 						) : players && players.length > 0 ? (
-							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-								{players.map((player) => (
-									<div key={player.id} className="flex flex-col items-center space-y-2">
-										<Avatar className="h-16 w-16 rounded-full">
-											<AvatarImage
-												src={player.image ?? undefined}
-												alt={player.name}
-												className="rounded-full"
-											/>
-											<AvatarFallback className="text-lg rounded-full bg-primary/10">
-												{player.name.charAt(0)}
-											</AvatarFallback>
-										</Avatar>
-										<div className="text-center">
-											<p className="text-sm font-medium">{player.name}</p>
-										</div>
-									</div>
-								))}
-							</div>
+							<PlayerAvatarGroupGrid players={players} size="xl" />
 						) : (
 							<div className="text-center text-muted-foreground py-8">
 								No players assigned to this team
