@@ -132,7 +132,7 @@ export const getStanding = async ({ db, seasonId }: { db: DrizzleDB; seasonId: s
 };
 
 export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
-	// Get stats for the last 7 days excluding today
+	// Get stats for the last 7 days including today
 	const weeklyTeamStats = await db.all<{
 		seasonTeamId: string;
 		teamName: string;
@@ -156,8 +156,8 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 		INNER JOIN season_team st ON mt.season_team_id = st.id
 		INNER JOIN league_team lt ON st.league_team_id = lt.id
 		WHERE st.season_id = ${seasonId}
-		AND date(datetime(mt.created_at, 'unixepoch')) >= date('now', '-7 days')
-		AND date(datetime(mt.created_at, 'unixepoch')) <= date('now', '-1 day')
+		AND date(datetime(mt.created_at, 'unixepoch')) >= date('now', '-6 days')
+		AND date(datetime(mt.created_at, 'unixepoch')) <= date('now')
 		GROUP BY mt.season_team_id, lt.name, lt.logo
 		HAVING COUNT(*) > 0
 	`);

@@ -203,8 +203,8 @@ export const getPointProgression = async ({
 };
 
 export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
-	// Get stats for the last 7 days excluding today
-	// date('now', '-1 day') = yesterday, date('now', '-7 days') = 7 days ago
+	// Get stats for the last 7 days including today
+	// date('now') = today, date('now', '-6 days') = 6 days ago
 	const weeklyPlayerStats = await db.all<{
 		seasonPlayerId: string;
 		playerName: string;
@@ -230,8 +230,8 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 		LEFT JOIN user u ON p.user_id = u.id
 		LEFT JOIN guest g ON p.guest_id = g.id
 		WHERE sp.season_id = ${seasonId}
-		AND date(datetime(mp.created_at, 'unixepoch')) >= date('now', '-7 days')
-		AND date(datetime(mp.created_at, 'unixepoch')) <= date('now', '-1 day')
+		AND date(datetime(mp.created_at, 'unixepoch')) >= date('now', '-6 days')
+		AND date(datetime(mp.created_at, 'unixepoch')) <= date('now')
 		GROUP BY mp.season_player_id, COALESCE(u.name, g.display_name), u.image
 		HAVING COUNT(*) > 0
 	`);

@@ -185,12 +185,11 @@ export function WeeklyPerformers({ seasonSlug }: WeeklyPerformersProps) {
 
 	const getWinRate = (wins: number, matches: number) => (matches > 0 ? wins / matches : 0);
 
-	// Get the last 7 days excluding today
+	// Get the last 7 days including today
 	const now = new Date();
 	const endDate = new Date(now);
-	endDate.setDate(now.getDate() - 1); // Yesterday
 	const startDate = new Date(endDate);
-	startDate.setDate(endDate.getDate() - 6); // 7 days before yesterday
+	startDate.setDate(endDate.getDate() - 6); // 6 days before today
 
 	const formatDate = (date: Date) =>
 		date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
