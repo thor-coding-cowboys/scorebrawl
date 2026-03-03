@@ -17,7 +17,7 @@ import {
 	Calendar01Icon,
 	ChartIcon,
 } from "@hugeicons/core-free-icons";
-import { Bar, BarChart, CartesianGrid, XAxis, Line, LineChart } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from "recharts";
 import {
 	ChartContainer,
 	ChartTooltip,
@@ -44,11 +44,11 @@ function truncateSlug(slug: string, maxLength = 10): string {
 const seasonHistoryConfig = {
 	score: {
 		label: "Final Score",
-		color: "hsl(var(--chart-1))",
+		color: "var(--chart-1)",
 	},
 	winRate: {
 		label: "Win Rate %",
-		color: "hsl(var(--chart-2))",
+		color: "var(--chart-2)",
 	},
 } satisfies ChartConfig;
 
@@ -535,29 +535,40 @@ function PlayerProfilePage() {
 							<CardContent>
 								<ChartContainer config={seasonHistoryConfig} className="h-[300px] w-full">
 									<LineChart data={seasonChartData}>
-										<CartesianGrid strokeDasharray="3 3" />
+										<CartesianGrid vertical={false} strokeDasharray="3 3" />
 										<XAxis
 											dataKey="season"
 											tickLine={false}
-											tickMargin={10}
 											axisLine={false}
+											tickMargin={8}
 											tickFormatter={(value) => value.slice(0, 10)}
+										/>
+										<YAxis yAxisId="left" tickLine={false} axisLine={false} />
+										<YAxis
+											yAxisId="right"
+											orientation="right"
+											tickLine={false}
+											axisLine={false}
+											domain={[0, 100]}
 										/>
 										<ChartTooltip content={<ChartTooltipContent />} />
 										<ChartLegend content={<ChartLegendContent />} />
 										<Line
+											yAxisId="left"
 											type="monotone"
 											dataKey="score"
 											stroke="var(--color-score)"
 											strokeWidth={2}
-											dot={{ r: 4 }}
+											dot={{ fill: "var(--color-score)" }}
 										/>
 										<Line
+											yAxisId="right"
 											type="monotone"
 											dataKey="winRate"
 											stroke="var(--color-winRate)"
 											strokeWidth={2}
-											dot={{ r: 4 }}
+											dot={{ fill: "var(--color-winRate)" }}
+											strokeDasharray="5 5"
 										/>
 									</LineChart>
 								</ChartContainer>
