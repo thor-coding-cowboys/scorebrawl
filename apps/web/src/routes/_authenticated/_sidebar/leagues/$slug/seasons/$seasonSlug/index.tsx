@@ -16,6 +16,8 @@ import { OverviewCard } from "../-components/season/overview-card";
 import { CreateMatchDialog } from "../-components/match/create-match-drawer";
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
+import { useCoinToss } from "@/hooks/use-coin-toss";
+import { CoinTossOverlay } from "../-components/season/coin-toss-overlay";
 import { z } from "zod";
 
 const seasonDashboardSearchSchema = z.object({
@@ -84,6 +86,8 @@ function SeasonDashboardPage() {
 			search: open ? { addMatch: true } : {},
 		});
 	};
+
+	const { visible: coinVisible, result: coinResult, dismiss: coinDismiss } = useCoinToss();
 
 	return (
 		<>
@@ -161,6 +165,7 @@ function SeasonDashboardPage() {
 					seasonSlug={seasonSlug}
 				/>
 			)}
+			<CoinTossOverlay visible={coinVisible} result={coinResult} onDone={coinDismiss} />
 		</>
 	);
 }
