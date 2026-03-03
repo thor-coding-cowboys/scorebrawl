@@ -12,8 +12,6 @@ function randomCoinSide(): CoinSide {
 	return Math.random() < 0.5 ? "heads" : "tails";
 }
 
-const LONG_PRESS_MS = 600;
-
 export function useCoinToss(): UseCoinTossReturn {
 	const [visible, setVisible] = useState(false);
 	const [result, setResult] = useState<CoinSide | null>(null);
@@ -54,58 +52,23 @@ export function useCoinToss(): UseCoinTossReturn {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [trigger]);
 
-	// Long press (mobile) — no permissions needed
+	// 2-finger double-tap (mobile) — fires when two fingers touch twice within 400ms
 	useEffect(() => {
-		let timer: ReturnType<typeof setTimeout> | null = null;
-		let startX = 0;
-		let startY = 0;
+		let lastTwoFingerTap = 0;
 
 		function onTouchStart(e: TouchEvent) {
-			const touch = e.touches[0];
-			startX = touch?.clientX ?? 0;
-			startY = touch?.clientY ?? 0;
-			timer = setTimeout(() => {
+			if (e.touches.length !== 2) return;
+			const now = Date.now();
+			if (now - lastTwoFingerTap < 400) {
 				trigger();
-				timer = null;
-			}, LONG_PRESS_MS);
-		}
-
-		function cancel(e: TouchEvent) {
-			if (!timer) return;
-			// Cancel if the finger moved more than 10px (it's a scroll, not a press)
-			const touch = e.changedTouches[0];
-			if (touch) {
-				const dx = Math.abs(touch.clientX - startX);
-				const dy = Math.abs(touch.clientY - startY);
-				if (dx > 10 || dy > 10) {
-					clearTimeout(timer);
-					timer = null;
-					return;
-				}
-			}
-			clearTimeout(timer);
-			timer = null;
-		}
-
-		function onTouchEnd() {
-			if (timer) {
-				clearTimeout(timer);
-				timer = null;
+				lastTwoFingerTap = 0;
+			} else {
+				lastTwoFingerTap = now;
 			}
 		}
 
 		window.addEventListener("touchstart", onTouchStart, { passive: true });
-		window.addEventListener("touchmove", cancel, { passive: true });
-		window.addEventListener("touchend", onTouchEnd, { passive: true });
-		window.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
-		return () => {
-			if (timer) clearTimeout(timer);
-			window.removeEventListener("touchstart", onTouchStart);
-			window.removeEventListener("touchmove", cancel);
-			window.removeEventListener("touchend", onTouchEnd);
-			window.removeEventListener("touchcancel", onTouchEnd);
-		};
+		return () => window.removeEventListener("touchstart", onTouchStart);
 	}, [trigger]);
 
 	return { visible, result, dismiss };
