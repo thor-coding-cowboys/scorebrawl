@@ -12,12 +12,12 @@ function randomCoinSide(): CoinSide {
 	return Math.random() < 0.5 ? "heads" : "tails";
 }
 
+const LONG_PRESS_MS = 600;
+
 export function useCoinToss(): UseCoinTossReturn {
 	const [visible, setVisible] = useState(false);
 	const [result, setResult] = useState<CoinSide | null>(null);
 
-	// Use a ref so shake/keypress handlers always see current value
-	// without needing to re-register listeners on every state change.
 	const visibleRef = useRef(false);
 	visibleRef.current = visible;
 
@@ -32,7 +32,7 @@ export function useCoinToss(): UseCoinTossReturn {
 		setResult(null);
 	}, []);
 
-	// Triple-F keypress detection
+	// Triple-F keypress (desktop)
 	useEffect(() => {
 		const timestamps: number[] = [];
 
@@ -40,12 +40,10 @@ export function useCoinToss(): UseCoinTossReturn {
 			if (e.key !== "f" && e.key !== "F") return;
 			const now = Date.now();
 			timestamps.push(now);
-
 			const cutoff = now - 800;
 			while (timestamps.length > 0 && (timestamps[0] ?? 0) < cutoff) {
 				timestamps.shift();
 			}
-
 			if (timestamps.length >= 3) {
 				timestamps.length = 0;
 				trigger();
@@ -56,82 +54,58 @@ export function useCoinToss(): UseCoinTossReturn {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [trigger]);
 
-	// Shake detection via DeviceMotion
+	// Long press (mobile) — no permissions needed
 	useEffect(() => {
-		const SHAKE_THRESHOLD = 18;
-		const SHAKE_COOLDOWN_MS = 1500;
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		let startX = 0;
+		let startY = 0;
 
-		let lastX = 0;
-		let lastY = 0;
-		let lastZ = 0;
-		let lastShake = 0;
-		let initialized = false;
-
-		function onMotion(e: DeviceMotionEvent) {
-			const acc = e.accelerationIncludingGravity;
-			if (!acc) return;
-
-			const x = acc.x ?? 0;
-			const y = acc.y ?? 0;
-			const z = acc.z ?? 0;
-
-			if (!initialized) {
-				lastX = x;
-				lastY = y;
-				lastZ = z;
-				initialized = true;
-				return;
-			}
-
-			const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
-			lastX = x;
-			lastY = y;
-			lastZ = z;
-
-			const now = Date.now();
-			if (delta > SHAKE_THRESHOLD && now - lastShake > SHAKE_COOLDOWN_MS) {
-				lastShake = now;
+		function onTouchStart(e: TouchEvent) {
+			const touch = e.touches[0];
+			startX = touch?.clientX ?? 0;
+			startY = touch?.clientY ?? 0;
+			timer = setTimeout(() => {
 				trigger();
-			}
+				timer = null;
+			}, LONG_PRESS_MS);
 		}
 
-		function attachMotionListener() {
-			window.addEventListener("devicemotion", onMotion);
-		}
-
-		if (typeof DeviceMotionEvent === "undefined") return;
-
-		// iOS 13+ requires explicit user-gesture permission.
-		// We request it on the first user tap so the prompt appears naturally.
-		if ("requestPermission" in DeviceMotionEvent) {
-			let granted = false;
-
-			async function requestAndAttach() {
-				if (granted) return;
-				try {
-					const state = await (
-						DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> }
-					).requestPermission();
-					if (state === "granted") {
-						granted = true;
-						attachMotionListener();
-					}
-				} catch {
-					// Permission denied or browser prevented the call
+		function cancel(e: TouchEvent) {
+			if (!timer) return;
+			// Cancel if the finger moved more than 10px (it's a scroll, not a press)
+			const touch = e.changedTouches[0];
+			if (touch) {
+				const dx = Math.abs(touch.clientX - startX);
+				const dy = Math.abs(touch.clientY - startY);
+				if (dx > 10 || dy > 10) {
+					clearTimeout(timer);
+					timer = null;
+					return;
 				}
 			}
-
-			window.addEventListener("click", requestAndAttach, { once: true });
-
-			return () => {
-				window.removeEventListener("click", requestAndAttach);
-				window.removeEventListener("devicemotion", onMotion);
-			};
+			clearTimeout(timer);
+			timer = null;
 		}
 
-		// Android / non-permission browsers — attach directly
-		attachMotionListener();
-		return () => window.removeEventListener("devicemotion", onMotion);
+		function onTouchEnd() {
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+		}
+
+		window.addEventListener("touchstart", onTouchStart, { passive: true });
+		window.addEventListener("touchmove", cancel, { passive: true });
+		window.addEventListener("touchend", onTouchEnd, { passive: true });
+		window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+		return () => {
+			if (timer) clearTimeout(timer);
+			window.removeEventListener("touchstart", onTouchStart);
+			window.removeEventListener("touchmove", cancel);
+			window.removeEventListener("touchend", onTouchEnd);
+			window.removeEventListener("touchcancel", onTouchEnd);
+		};
 	}, [trigger]);
 
 	return { visible, result, dismiss };
