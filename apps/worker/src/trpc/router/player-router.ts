@@ -261,6 +261,28 @@ export const playerRouter = {
 			});
 		}),
 
+	getSeasonHistory: leagueProcedure
+		.input(z.object({ playerId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const player = await playerRepository.getById({
+				db: ctx.db,
+				playerId: input.playerId,
+				leagueId: ctx.organizationId,
+			});
+
+			if (!player) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Player not found",
+				});
+			}
+
+			return playerRepository.getSeasonHistory({
+				db: ctx.db,
+				playerId: input.playerId,
+			});
+		}),
+
 	getRecentMatchesWithTeams: seasonProcedure
 		.input(z.object({ seasonSlug: z.string(), playerId: z.string() }))
 		.query(async ({ input, ctx }) => {

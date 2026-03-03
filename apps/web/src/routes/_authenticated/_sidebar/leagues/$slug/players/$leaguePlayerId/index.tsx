@@ -15,7 +15,17 @@ import {
 	ArrowUp01Icon,
 	ArrowDown01Icon,
 	Calendar01Icon,
+	ChartIcon,
 } from "@hugeicons/core-free-icons";
+import { Bar, BarChart, CartesianGrid, XAxis, Line, LineChart } from "recharts";
+import {
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+	ChartLegend,
+	ChartLegendContent,
+	type ChartConfig,
+} from "@/components/ui/chart";
 
 export const Route = createFileRoute(
 	"/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/"
@@ -30,6 +40,32 @@ function truncateSlug(slug: string, maxLength = 10): string {
 	if (slug.length <= maxLength) return slug;
 	return `${slug.slice(0, maxLength)}...`;
 }
+
+const seasonHistoryConfig = {
+	score: {
+		label: "Final Score",
+		color: "hsl(var(--chart-1))",
+	},
+	winRate: {
+		label: "Win Rate %",
+		color: "hsl(var(--chart-2))",
+	},
+} satisfies ChartConfig;
+
+const matchResultsConfig = {
+	wins: {
+		label: "Wins",
+		color: "#22c55e",
+	},
+	losses: {
+		label: "Losses",
+		color: "#ef4444",
+	},
+	draws: {
+		label: "Draws",
+		color: "#6b7280",
+	},
+} satisfies ChartConfig;
 
 function PlayerProfilePage() {
 	const { slug, leaguePlayerId } = Route.useLoaderData();
@@ -78,6 +114,11 @@ function PlayerProfilePage() {
 		trpc.player.getWorstTeammate.queryOptions({ playerId: leaguePlayerId })
 	);
 
+	// Season history
+	const { data: seasonHistory } = useQuery(
+		trpc.player.getSeasonHistory.queryOptions({ playerId: leaguePlayerId })
+	);
+
 	// Recent matches with team names
 	const { data: recentMatches, isLoading: matchesLoading } = useQuery({
 		...trpc.player.getRecentMatchesWithTeams.queryOptions({
@@ -120,6 +161,19 @@ function PlayerProfilePage() {
 		allTimeStats && allTimeStats.total > 0
 			? Math.round(((allTimeStats.wins || 0) / allTimeStats.total) * 100)
 			: 0;
+
+	const seasonChartData =
+		seasonHistory
+			?.map((h) => ({
+				season: h.season,
+				score: h.score,
+				winRate: h.winRate,
+				matches: h.matches,
+				wins: h.wins,
+				losses: h.losses,
+				draws: h.draws,
+			}))
+			.reverse() ?? [];
 
 	return (
 		<>
@@ -465,6 +519,82 @@ function PlayerProfilePage() {
 						)}
 					</CardContent>
 				</Card>
+
+				{/* Season Performance Charts */}
+				{seasonHistory && seasonHistory.length > 1 && (
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+						{/* Score & Win Rate Chart */}
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<HugeiconsIcon icon={ChartIcon} className="size-5 text-amber-500" />
+									Season Performance
+								</CardTitle>
+								<CardDescription>Score progression and win rate across seasons</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<ChartContainer config={seasonHistoryConfig} className="h-[300px] w-full">
+									<LineChart data={seasonChartData}>
+										<CartesianGrid strokeDasharray="3 3" />
+										<XAxis
+											dataKey="season"
+											tickLine={false}
+											tickMargin={10}
+											axisLine={false}
+											tickFormatter={(value) => value.slice(0, 10)}
+										/>
+										<ChartTooltip content={<ChartTooltipContent />} />
+										<ChartLegend content={<ChartLegendContent />} />
+										<Line
+											type="monotone"
+											dataKey="score"
+											stroke="var(--color-score)"
+											strokeWidth={2}
+											dot={{ r: 4 }}
+										/>
+										<Line
+											type="monotone"
+											dataKey="winRate"
+											stroke="var(--color-winRate)"
+											strokeWidth={2}
+											dot={{ r: 4 }}
+										/>
+									</LineChart>
+								</ChartContainer>
+							</CardContent>
+						</Card>
+
+						{/* Match Results Chart */}
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<HugeiconsIcon icon={Target01Icon} className="size-5 text-blue-500" />
+									Match Results
+								</CardTitle>
+								<CardDescription>Win/loss/draw distribution per season</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<ChartContainer config={matchResultsConfig} className="h-[300px] w-full">
+									<BarChart data={seasonChartData}>
+										<CartesianGrid strokeDasharray="3 3" />
+										<XAxis
+											dataKey="season"
+											tickLine={false}
+											tickMargin={10}
+											axisLine={false}
+											tickFormatter={(value) => value.slice(0, 10)}
+										/>
+										<ChartTooltip content={<ChartTooltipContent />} />
+										<ChartLegend content={<ChartLegendContent />} />
+										<Bar dataKey="wins" fill="var(--color-wins)" radius={4} />
+										<Bar dataKey="losses" fill="var(--color-losses)" radius={4} />
+										<Bar dataKey="draws" fill="var(--color-draws)" radius={4} />
+									</BarChart>
+								</ChartContainer>
+							</CardContent>
+						</Card>
+					</div>
+				)}
 
 				{/* Recent Matches */}
 				<Card>

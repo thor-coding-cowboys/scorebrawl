@@ -62,9 +62,14 @@ test.describe("Team Page", () => {
 		await expect(page.getByText("Total Matches")).toBeVisible();
 		await expect(page.getByText("Best Season")).toBeVisible();
 
-		// Verify charts section
-		await expect(page.getByText("Season Performance")).toBeVisible();
-		await expect(page.getByText("Match Results by Season")).toBeVisible();
+		// Verify charts section (only shown if team has 2+ seasons)
+		// Check if charts are present - they may not be if team only has 1 season
+		const seasonPerformanceChart = page.getByText("Season Performance");
+		const chartCount = await seasonPerformanceChart.count();
+		if (chartCount > 0) {
+			await expect(seasonPerformanceChart).toBeVisible();
+			await expect(page.getByText("Match Results by Season")).toBeVisible();
+		}
 
 		// Verify team roster section
 		await expect(page.getByText("Team Roster")).toBeVisible();

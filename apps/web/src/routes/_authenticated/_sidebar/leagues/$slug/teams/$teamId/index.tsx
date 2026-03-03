@@ -553,111 +553,113 @@ function TeamProfilePage() {
 					</Card>
 				</div>
 
-				{/* Charts Row */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-					{/* Season Performance Chart */}
-					<Card>
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<HugeiconsIcon icon={ChartIcon} className="size-5 text-amber-500" />
-								Season Performance
-							</CardTitle>
-							<CardDescription>Score and win rate across all seasons</CardDescription>
-						</CardHeader>
-						<CardContent>
-							{seasonHistoryLoading ? (
-								<div className="h-[250px] flex items-center justify-center">
-									<Skeleton className="h-full w-full" />
-								</div>
-							) : seasonChartData.length > 0 ? (
-								<ChartContainer config={seasonHistoryConfig} className="min-h-[250px] w-full">
-									<LineChart data={seasonChartData}>
-										<CartesianGrid vertical={false} strokeDasharray="3 3" />
-										<XAxis
-											dataKey="season"
-											tickLine={false}
-											axisLine={false}
-											tickMargin={8}
-											tickFormatter={(value) => value.slice(0, 10)}
-										/>
-										<YAxis yAxisId="left" tickLine={false} axisLine={false} />
-										<YAxis
-											yAxisId="right"
-											orientation="right"
-											tickLine={false}
-											axisLine={false}
-											domain={[0, 100]}
-										/>
-										<ChartTooltip content={<ChartTooltipContent />} />
-										<ChartLegend content={<ChartLegendContent />} />
-										<Line
-											yAxisId="left"
-											type="monotone"
-											dataKey="score"
-											stroke="var(--color-score)"
-											strokeWidth={2}
-											dot={{ fill: "var(--color-score)" }}
-										/>
-										<Line
-											yAxisId="right"
-											type="monotone"
-											dataKey="winRate"
-											stroke="var(--color-winRate)"
-											strokeWidth={2}
-											dot={{ fill: "var(--color-winRate)" }}
-											strokeDasharray="5 5"
-										/>
-									</LineChart>
-								</ChartContainer>
-							) : (
-								<div className="h-[250px] flex items-center justify-center text-muted-foreground">
-									No season history available
-								</div>
-							)}
-						</CardContent>
-					</Card>
+				{/* Season Performance Charts */}
+				{seasonHistory && seasonHistory.length > 1 && (
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+						{/* Season Performance Chart */}
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<HugeiconsIcon icon={ChartIcon} className="size-5 text-amber-500" />
+									Season Performance
+								</CardTitle>
+								<CardDescription>Score and win rate across all seasons</CardDescription>
+							</CardHeader>
+							<CardContent>
+								{seasonHistoryLoading ? (
+									<div className="h-[250px] flex items-center justify-center">
+										<Skeleton className="h-full w-full" />
+									</div>
+								) : seasonChartData.length > 0 ? (
+									<ChartContainer config={seasonHistoryConfig} className="min-h-[250px] w-full">
+										<LineChart data={seasonChartData}>
+											<CartesianGrid vertical={false} strokeDasharray="3 3" />
+											<XAxis
+												dataKey="season"
+												tickLine={false}
+												axisLine={false}
+												tickMargin={8}
+												tickFormatter={(value) => value.slice(0, 10)}
+											/>
+											<YAxis yAxisId="left" tickLine={false} axisLine={false} />
+											<YAxis
+												yAxisId="right"
+												orientation="right"
+												tickLine={false}
+												axisLine={false}
+												domain={[0, 100]}
+											/>
+											<ChartTooltip content={<ChartTooltipContent />} />
+											<ChartLegend content={<ChartLegendContent />} />
+											<Line
+												yAxisId="left"
+												type="monotone"
+												dataKey="score"
+												stroke="var(--color-score)"
+												strokeWidth={2}
+												dot={{ fill: "var(--color-score)" }}
+											/>
+											<Line
+												yAxisId="right"
+												type="monotone"
+												dataKey="winRate"
+												stroke="var(--color-winRate)"
+												strokeWidth={2}
+												dot={{ fill: "var(--color-winRate)" }}
+												strokeDasharray="5 5"
+											/>
+										</LineChart>
+									</ChartContainer>
+								) : (
+									<div className="h-[250px] flex items-center justify-center text-muted-foreground">
+										No season history available
+									</div>
+								)}
+							</CardContent>
+						</Card>
 
-					{/* Match Results Distribution */}
-					<Card>
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<HugeiconsIcon icon={UserMultiple02Icon} className="size-5 text-blue-500" />
-								Match Results by Season
-							</CardTitle>
-							<CardDescription>Wins, losses, and draws per season</CardDescription>
-						</CardHeader>
-						<CardContent>
-							{seasonHistoryLoading ? (
-								<div className="h-[250px] flex items-center justify-center">
-									<Skeleton className="h-full w-full" />
-								</div>
-							) : seasonChartData.length > 0 ? (
-								<ChartContainer config={matchResultsConfig} className="min-h-[250px] w-full">
-									<BarChart data={seasonChartData}>
-										<CartesianGrid vertical={false} strokeDasharray="3 3" />
-										<XAxis
-											dataKey="season"
-											tickLine={false}
-											axisLine={false}
-											tickMargin={8}
-											tickFormatter={(value) => value.slice(0, 10)}
-										/>
-										<YAxis tickLine={false} axisLine={false} />
-										<ChartTooltip content={<ChartTooltipContent />} />
-										<ChartLegend content={<ChartLegendContent />} />
-										<Bar dataKey="wins" fill="var(--color-wins)" radius={[4, 4, 0, 0]} />
-										<Bar dataKey="losses" fill="var(--color-losses)" radius={[4, 4, 0, 0]} />
-										<Bar dataKey="draws" fill="var(--color-draws)" radius={[4, 4, 0, 0]} />
-									</BarChart>
-								</ChartContainer>
-							) : (
-								<div className="h-[250px] flex items-center justify-center text-muted-foreground">
-									No season data available
-								</div>
-							)}
-						</CardContent>
-					</Card>
-				</div>
+						{/* Match Results Distribution */}
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<HugeiconsIcon icon={UserMultiple02Icon} className="size-5 text-blue-500" />
+									Match Results by Season
+								</CardTitle>
+								<CardDescription>Wins, losses, and draws per season</CardDescription>
+							</CardHeader>
+							<CardContent>
+								{seasonHistoryLoading ? (
+									<div className="h-[250px] flex items-center justify-center">
+										<Skeleton className="h-full w-full" />
+									</div>
+								) : seasonChartData.length > 0 ? (
+									<ChartContainer config={matchResultsConfig} className="min-h-[250px] w-full">
+										<BarChart data={seasonChartData}>
+											<CartesianGrid vertical={false} strokeDasharray="3 3" />
+											<XAxis
+												dataKey="season"
+												tickLine={false}
+												axisLine={false}
+												tickMargin={8}
+												tickFormatter={(value) => value.slice(0, 10)}
+											/>
+											<YAxis tickLine={false} axisLine={false} />
+											<ChartTooltip content={<ChartTooltipContent />} />
+											<ChartLegend content={<ChartLegendContent />} />
+											<Bar dataKey="wins" fill="var(--color-wins)" radius={[4, 4, 0, 0]} />
+											<Bar dataKey="losses" fill="var(--color-losses)" radius={[4, 4, 0, 0]} />
+											<Bar dataKey="draws" fill="var(--color-draws)" radius={[4, 4, 0, 0]} />
+										</BarChart>
+									</ChartContainer>
+								) : (
+									<div className="h-[250px] flex items-center justify-center text-muted-foreground">
+										No season data available
+									</div>
+								)}
+							</CardContent>
+						</Card>
+					</div>
+				)}
 
 				{/* Rival Analysis */}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
