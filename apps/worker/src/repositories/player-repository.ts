@@ -348,6 +348,7 @@ export const getRecentMatchesWithTeams = async ({
 			matchId: matchTeam.matchId,
 			teamName: leagueTeam.name,
 			result: matchTeam.result,
+			seasonTeamId: seasonTeam.id,
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
@@ -362,18 +363,73 @@ export const getRecentMatchesWithTeams = async ({
 		teamsByMatch.set(row.matchId, existing);
 	}
 
+	// Determine which team is home/away for each match by checking match_player.homeTeam
+	const homeTeamByMatch = new Map<string, string>(); // matchId -> seasonTeamId of home team
+
+	for (const matchId of matchIds) {
+		const [homeTeamCheck] = await db
+			.select({
+				seasonTeamId: seasonTeam.id,
+			})
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(seasonTeam, eq(seasonPlayer.seasonId, seasonTeam.seasonId))
+			.where(and(eq(matchPlayer.matchId, matchId), eq(matchPlayer.homeTeam, true)))
+			.limit(1);
+
+		if (homeTeamCheck) {
+			homeTeamByMatch.set(matchId, homeTeamCheck.seasonTeamId);
+		}
+	}
+
 	// Build result without N+1
 	return matches.map((m) => {
 		const teams = teamsByMatch.get(m.matchId) || [];
-		const winningTeam = teams.find((t) => t.result === "W");
-		const losingTeam = teams.find((t) => t.result === "L");
+		const homeSeasonTeamId = homeTeamByMatch.get(m.matchId);
+
+		const homeTeam = teams.find((t) => t.seasonTeamId === homeSeasonTeamId);
+		const awayTeam = teams.find((t) => t.seasonTeamId !== homeSeasonTeamId);
 
 		return {
 			...m,
-			homeTeamName: winningTeam?.teamName ?? teams[0]?.teamName ?? "Team A",
-			awayTeamName: losingTeam?.teamName ?? teams[1]?.teamName ?? "Team B",
+			homeTeamName: homeTeam?.teamName ?? teams[0]?.teamName ?? "Team A",
+			awayTeamName: awayTeam?.teamName ?? teams[1]?.teamName ?? "Team B",
 			homeScore: m.homeScore,
 			awayScore: m.awayScore,
 		};
 	});
+};
+
+export const getSeasonHistory = async ({ db, playerId }: { db: DrizzleDB; playerId: string }) => {
+	const history = await db
+		.select({
+			seasonName: season.name,
+			seasonSlug: season.slug,
+			finalScore: seasonPlayer.score,
+			matchCount: count(matchPlayer.id),
+			wins: sql<number>`sum(case when ${matchPlayer.result} = 'W' then 1 else 0 end)`,
+			losses: sql<number>`sum(case when ${matchPlayer.result} = 'L' then 1 else 0 end)`,
+			draws: sql<number>`sum(case when ${matchPlayer.result} = 'D' then 1 else 0 end)`,
+			startDate: season.startDate,
+			endDate: season.endDate,
+		})
+		.from(seasonPlayer)
+		.innerJoin(season, eq(seasonPlayer.seasonId, season.id))
+		.leftJoin(matchPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+		.where(eq(seasonPlayer.playerId, playerId))
+		.groupBy(seasonPlayer.id, season.id)
+		.orderBy(desc(season.startDate));
+
+	return history.map((h) => ({
+		season: h.seasonName,
+		slug: h.seasonSlug,
+		score: h.finalScore,
+		matches: h.matchCount,
+		wins: Number(h.wins) || 0,
+		losses: Number(h.losses) || 0,
+		draws: Number(h.draws) || 0,
+		winRate: h.matchCount > 0 ? Math.round(((Number(h.wins) || 0) / h.matchCount) * 100) : 0,
+		startDate: h.startDate,
+		endDate: h.endDate,
+	}));
 };

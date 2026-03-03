@@ -1,11 +1,13 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
 	match,
 	matchTeam,
+	matchPlayer,
 	season,
 	seasonTeam,
+	seasonPlayer,
 	leagueTeam,
 	leagueTeamPlayer,
 	player,
@@ -187,15 +189,17 @@ export const getRecentMatches = async ({
 	teamId: string;
 	limit: number;
 }) => {
-	// First, get the match IDs for our team's recent matches
+	// First, get the match IDs for our team's recent matches, ordered by match.createdAt
 	const ourMatchIds = await db
 		.select({
 			matchId: matchTeam.matchId,
+			createdAt: match.createdAt,
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+		.innerJoin(match, eq(matchTeam.matchId, match.id))
 		.where(eq(seasonTeam.leagueTeamId, teamId))
-		.orderBy(desc(matchTeam.createdAt))
+		.orderBy(desc(match.createdAt))
 		.limit(limit);
 
 	if (ourMatchIds.length === 0) {
@@ -204,27 +208,29 @@ export const getRecentMatches = async ({
 
 	const matchIdList = ourMatchIds.map((m) => m.matchId);
 
-	// Single query to get all match data for these matches with team names
+	// Get match data with team names. We need to determine which team is home/away
+	// by joining through match_player which has the home_team flag
 	const matchData = await db
-		.select({
+		.selectDistinct({
 			matchId: matchTeam.matchId,
 			result: matchTeam.result,
 			scoreBefore: matchTeam.scoreBefore,
 			scoreAfter: matchTeam.scoreAfter,
-			createdAt: matchTeam.createdAt,
+			matchCreatedAt: match.createdAt,
 			homeScore: match.homeScore,
 			awayScore: match.awayScore,
-			isOurTeam: eq(seasonTeam.leagueTeamId, teamId),
+			seasonTeamId: seasonTeam.id,
 			teamName: leagueTeam.name,
+			isOurTeam: eq(seasonTeam.leagueTeamId, teamId),
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
 		.innerJoin(match, eq(matchTeam.matchId, match.id))
 		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
 		.where(sql`${matchTeam.matchId} IN ${matchIdList}`)
-		.orderBy(desc(matchTeam.createdAt));
+		.orderBy(desc(match.createdAt));
 
-	// Group by matchId to get our team and opponent in one row
+	// For each match, determine which team is home/away by checking match_player.home_team
 	const matchMap = new Map<
 		string,
 		{
@@ -235,47 +241,88 @@ export const getRecentMatches = async ({
 			createdAt: Date;
 			homeScore: number | null;
 			awayScore: number | null;
-			myTeamName: string;
-			opponentName: string;
+			homeTeamName: string;
+			awayTeamName: string;
+			ourTeamIsHome: boolean;
 		}
 	>();
+	const orderedMatchIds: string[] = [];
 
+	// Group teams by match
+	const teamsByMatch = new Map<string, typeof matchData>();
 	for (const row of matchData) {
-		const existing = matchMap.get(row.matchId);
-		if (existing) {
-			// Second team for this match
-			if (row.isOurTeam) {
-				existing.myTeamName = row.teamName;
-			} else {
-				existing.opponentName = row.teamName;
-			}
-		} else {
-			// First team for this match
-			matchMap.set(row.matchId, {
-				matchId: row.matchId,
-				result: row.result,
-				scoreBefore: row.scoreBefore,
-				scoreAfter: row.scoreAfter,
-				createdAt: row.createdAt,
-				homeScore: row.homeScore,
-				awayScore: row.awayScore,
-				myTeamName: row.isOurTeam ? row.teamName : "",
-				opponentName: row.isOurTeam ? "" : row.teamName,
-			});
-		}
+		const teams = teamsByMatch.get(row.matchId) || [];
+		teams.push(row);
+		teamsByMatch.set(row.matchId, teams);
 	}
 
-	return Array.from(matchMap.values()).map((m) => ({
-		matchId: m.matchId,
-		result: m.result,
-		scoreBefore: m.scoreBefore,
-		scoreAfter: m.scoreAfter,
-		createdAt: m.createdAt,
-		myTeamName: m.myTeamName || "Your Team",
-		opponentName: m.opponentName || "Opponent",
-		myTeamScore: m.homeScore,
-		opponentScore: m.awayScore,
-	}));
+	// For each match, determine home/away by checking match_player
+	for (const [matchId, teams] of teamsByMatch.entries()) {
+		if (teams.length !== 2) continue;
+
+		orderedMatchIds.push(matchId);
+
+		// Get one player from each team to determine home/away
+		const team1 = teams[0];
+		const team2 = teams[1];
+
+		// Query match_player to find which team is home (home_team=1)
+		const [homeTeamCheck] = await db
+			.select({
+				seasonTeamId: seasonTeam.id,
+			})
+			.from(matchPlayer)
+			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(seasonTeam, eq(seasonPlayer.seasonId, seasonTeam.seasonId))
+			.where(
+				and(
+					eq(matchPlayer.matchId, matchId),
+					eq(matchPlayer.homeTeam, true),
+					or(eq(seasonTeam.id, team1.seasonTeamId), eq(seasonTeam.id, team2.seasonTeamId))
+				)
+			)
+			.limit(1);
+
+		const homeSeasonTeamId = homeTeamCheck?.seasonTeamId;
+		const team1IsHome = team1.seasonTeamId === homeSeasonTeamId;
+
+		const ourTeam = teams.find((t) => t.isOurTeam);
+		const opponentTeam = teams.find((t) => !t.isOurTeam);
+
+		if (!ourTeam || !opponentTeam) continue;
+
+		matchMap.set(matchId, {
+			matchId,
+			result: ourTeam.result,
+			scoreBefore: ourTeam.scoreBefore,
+			scoreAfter: ourTeam.scoreAfter,
+			createdAt: team1.matchCreatedAt,
+			homeScore: team1.homeScore,
+			awayScore: team1.awayScore,
+			homeTeamName: team1IsHome ? team1.teamName : team2.teamName,
+			awayTeamName: team1IsHome ? team2.teamName : team1.teamName,
+			ourTeamIsHome: ourTeam.seasonTeamId === homeSeasonTeamId,
+		});
+	}
+
+	// Return in database order (desc by match.createdAt)
+	return orderedMatchIds.map((matchId) => {
+		const m = matchMap.get(matchId);
+		if (!m) {
+			throw new Error(`Match ${matchId} not found in matchMap`);
+		}
+		return {
+			matchId: m.matchId,
+			result: m.result,
+			scoreBefore: m.scoreBefore,
+			scoreAfter: m.scoreAfter,
+			createdAt: m.createdAt,
+			myTeamName: m.ourTeamIsHome ? m.homeTeamName : m.awayTeamName,
+			opponentName: m.ourTeamIsHome ? m.awayTeamName : m.homeTeamName,
+			myTeamScore: m.ourTeamIsHome ? m.homeScore : m.awayScore,
+			opponentScore: m.ourTeamIsHome ? m.awayScore : m.homeScore,
+		};
+	});
 };
 
 export interface RivalTeam {
