@@ -414,6 +414,55 @@ describe("match router", () => {
 		expect(team2ScoreAfterCreate).not.toBe(1000);
 	});
 
+	it("creates a match with 12 players per team", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		await createPlayers(ctx, 24);
+		const season = await client.season.create.mutate({
+			name: "Test Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const seasonPlayers = await client.seasonPlayer.getAll.query({
+			seasonSlug: season.slug,
+		});
+
+		expect(seasonPlayers.length).toBe(24);
+
+		const homePlayers = seasonPlayers.slice(0, 12).map((p) => p.id);
+		const awayPlayers = seasonPlayers.slice(12, 24).map((p) => p.id);
+
+		const match = await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 3,
+			awayScore: 1,
+			homeTeamPlayerIds: homePlayers,
+			awayTeamPlayerIds: awayPlayers,
+		});
+
+		expect(match).toBeDefined();
+		expect(match.homeScore).toBe(3);
+		expect(match.awayScore).toBe(1);
+
+		// Verify teams were created
+		const teamStandings = await client.seasonTeam.getStanding.query({
+			seasonSlug: season.slug,
+		});
+		expect(teamStandings.length).toBe(2);
+
+		// Verify all players have updated scores
+		const updatedPlayers = await client.seasonPlayer.getAll.query({
+			seasonSlug: season.slug,
+		});
+		for (const p of updatedPlayers) {
+			expect(p.score).not.toBe(1000);
+		}
+	});
+
 	it("reuses existing teams for same player combinations", async () => {
 		const ctx = await createAuthContext();
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
