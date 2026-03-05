@@ -5,6 +5,7 @@ import { z } from "zod";
 import * as seasonPlayerRepository from "../../repositories/season-player-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
+import { withTransaction } from "../../db";
 import { user } from "../../db/schema/auth-schema";
 import { guest, player, season, seasonPlayer } from "../../db/schema/league-schema";
 import { createId } from "../../utils/id-util";
@@ -374,69 +375,71 @@ export const playerRouter = {
 				});
 			}
 
-			const now = new Date();
+			return withTransaction(ctx.db, async (tx) => {
+				const now = new Date();
 
-			// Create or reuse guest, create player, add to seasons
-			const [existingGuest] = await ctx.db
-				.select()
-				.from(guest)
-				.where(eq(guest.email, input.email))
-				.limit(1);
+				// Create or reuse guest, create player, add to seasons
+				const [existingGuest] = await tx
+					.select()
+					.from(guest)
+					.where(eq(guest.email, input.email))
+					.limit(1);
 
-			let guestId: string;
-			if (existingGuest) {
-				guestId = existingGuest.id;
-				if (existingGuest.displayName !== input.displayName) {
-					await ctx.db
-						.update(guest)
-						.set({ displayName: input.displayName, updatedAt: now })
-						.where(eq(guest.id, existingGuest.id));
+				let guestId: string;
+				if (existingGuest) {
+					guestId = existingGuest.id;
+					if (existingGuest.displayName !== input.displayName) {
+						await tx
+							.update(guest)
+							.set({ displayName: input.displayName, updatedAt: now })
+							.where(eq(guest.id, existingGuest.id));
+					}
+				} else {
+					guestId = createId();
+					await tx.insert(guest).values({
+						id: guestId,
+						email: input.email,
+						displayName: input.displayName,
+						createdAt: now,
+						updatedAt: now,
+					});
 				}
-			} else {
-				guestId = createId();
-				await ctx.db.insert(guest).values({
-					id: guestId,
-					email: input.email,
-					displayName: input.displayName,
+
+				const playerId = createId();
+				await tx.insert(player).values({
+					id: playerId,
+					userId: null,
+					guestId,
+					leagueId,
+					disabled: false,
 					createdAt: now,
 					updatedAt: now,
 				});
-			}
 
-			const playerId = createId();
-			await ctx.db.insert(player).values({
-				id: playerId,
-				userId: null,
-				guestId,
-				leagueId,
-				disabled: false,
-				createdAt: now,
-				updatedAt: now,
+				// Auto-add to ongoing/future seasons
+				const ongoingSeasons = await tx
+					.select({ id: season.id, initialScore: season.initialScore })
+					.from(season)
+					.where(
+						and(eq(season.leagueId, leagueId), or(gt(season.endDate, now), isNull(season.endDate)))
+					);
+
+				if (ongoingSeasons.length > 0) {
+					await tx.insert(seasonPlayer).values(
+						ongoingSeasons.map((s) => ({
+							id: createId(),
+							seasonId: s.id,
+							playerId,
+							score: s.initialScore,
+							disabled: false,
+							createdAt: now,
+							updatedAt: now,
+						}))
+					);
+				}
+
+				return { playerId, guestId };
 			});
-
-			// Auto-add to ongoing/future seasons
-			const ongoingSeasons = await ctx.db
-				.select({ id: season.id, initialScore: season.initialScore })
-				.from(season)
-				.where(
-					and(eq(season.leagueId, leagueId), or(gt(season.endDate, now), isNull(season.endDate)))
-				);
-
-			if (ongoingSeasons.length > 0) {
-				await ctx.db.insert(seasonPlayer).values(
-					ongoingSeasons.map((s) => ({
-						id: createId(),
-						seasonId: s.id,
-						playerId,
-						score: s.initialScore,
-						disabled: false,
-						createdAt: now,
-						updatedAt: now,
-					}))
-				);
-			}
-
-			return { playerId, guestId };
 		}),
 
 	editGuestPlayer: leagueEditorProcedure
