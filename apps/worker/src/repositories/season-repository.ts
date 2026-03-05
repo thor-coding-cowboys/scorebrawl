@@ -273,7 +273,11 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 	}));
 
 	if (seasonPlayerValues.length > 0) {
-		await db.insert(seasonPlayer).values(seasonPlayerValues);
+		const SEASON_PLAYER_BATCH_SIZE = 10;
+		for (let i = 0; i < seasonPlayerValues.length; i += SEASON_PLAYER_BATCH_SIZE) {
+			const batch = seasonPlayerValues.slice(i, i + SEASON_PLAYER_BATCH_SIZE);
+			await db.insert(seasonPlayer).values(batch);
+		}
 	}
 
 	// If 3-1-0 with rounds, generate fixtures

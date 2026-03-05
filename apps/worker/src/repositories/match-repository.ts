@@ -17,6 +17,9 @@ import {
 	seasonTeam,
 } from "../db/schema/league-schema";
 
+// D1 allows max 100 bound parameters per query
+const D1_BATCH_SIZE = 10;
+
 export interface MatchCreateInput {
 	id?: string;
 	seasonId: string;
@@ -133,15 +136,16 @@ const getOrInsertTeam = async ({
 			updatedAt: now,
 		});
 
-		await db.insert(leagueTeamPlayer).values(
-			players.map((p) => ({
-				id: newId("team"),
-				leagueTeamId: leagueTeamId as string,
-				playerId: p.playerId,
-				createdAt: now,
-				updatedAt: now,
-			}))
-		);
+		const teamPlayerValues = players.map((p) => ({
+			id: newId("team"),
+			leagueTeamId: leagueTeamId as string,
+			playerId: p.playerId,
+			createdAt: now,
+			updatedAt: now,
+		}));
+		for (let i = 0; i < teamPlayerValues.length; i += D1_BATCH_SIZE) {
+			await db.insert(leagueTeamPlayer).values(teamPlayerValues.slice(i, i + D1_BATCH_SIZE));
+		}
 	}
 
 	// Check if season team exists
@@ -293,7 +297,9 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		}),
 	];
 
-	await db.insert(matchPlayer).values(matchPlayerValues);
+	for (let i = 0; i < matchPlayerValues.length; i += D1_BATCH_SIZE) {
+		await db.insert(matchPlayer).values(matchPlayerValues.slice(i, i + D1_BATCH_SIZE));
+	}
 
 	// Update season player scores with new ELO ratings
 	const updatePromises = [...eloResult.homeTeam.players, ...eloResult.awayTeam.players].map(
