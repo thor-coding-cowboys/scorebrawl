@@ -13,19 +13,22 @@ import { calculateStreak } from "@/lib/streak";
 import { FormBar } from "./form-bar";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 interface TeamStandingProps {
 	seasonSlug: string;
+	leagueSlug?: string;
 	maxRows?: number;
 	currentPage?: number;
 	onPageChange?: (page: number) => void;
+	highlightPlayerIds?: Set<string>;
 }
 
 function MobileTeamStandingRow({
 	item,
 	leagueSlug,
 	onClick,
+	dimmed,
 }: {
 	item: {
 		id: string;
@@ -40,6 +43,7 @@ function MobileTeamStandingRow({
 	};
 	leagueSlug?: string;
 	onClick?: () => void;
+	dimmed?: boolean;
 }) {
 	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
 	const streak = calculateStreak(item.form);
@@ -48,7 +52,8 @@ function MobileTeamStandingRow({
 		<div
 			className={cn(
 				"flex items-center gap-2 bg-card px-1 py-3",
-				leagueSlug && "cursor-pointer hover:bg-muted/50"
+				leagueSlug && "cursor-pointer hover:bg-muted/50",
+				dimmed && "opacity-40"
 			)}
 			onClick={onClick}
 			data-testid={`team-standing-row-${item.id}`}
@@ -95,13 +100,13 @@ function MobileTeamStandingRow({
 
 export function TeamStanding({
 	seasonSlug,
+	leagueSlug,
 	maxRows,
 	currentPage: controlledPage,
+	highlightPlayerIds,
 }: TeamStandingProps) {
 	const { teamStandings, isLoading, error } = useTeamStandings(seasonSlug);
 	const navigate = useNavigate();
-	const params = useParams({ strict: false });
-	const leagueSlug = params.slug as string | undefined;
 	const [internalPage] = useState(0);
 	const currentPage = controlledPage ?? internalPage;
 
@@ -157,22 +162,28 @@ export function TeamStanding({
 		<div className="rounded-md" data-testid="team-standings-table">
 			{/* Mobile View - Card List */}
 			<div className="md:hidden flex flex-col divide-y divide-border">
-				{paginatedData.map((item) => (
-					<MobileTeamStandingRow
-						key={item.id}
-						item={item}
-						leagueSlug={leagueSlug}
-						onClick={
-							leagueSlug
-								? () =>
-										navigate({
-											to: "/leagues/$slug/teams/$teamId",
-											params: { slug: leagueSlug, teamId: item.leagueTeamId },
-										})
-								: undefined
-						}
-					/>
-				))}
+				{paginatedData.map((item) => {
+					const isDimmed = highlightPlayerIds
+						? !item.players.every((p) => highlightPlayerIds.has(p.id))
+						: false;
+					return (
+						<MobileTeamStandingRow
+							key={item.id}
+							item={item}
+							leagueSlug={leagueSlug}
+							dimmed={isDimmed}
+							onClick={
+								leagueSlug
+									? () =>
+											navigate({
+												to: "/leagues/$slug/teams/$teamId",
+												params: { slug: leagueSlug, teamId: item.leagueTeamId },
+											})
+									: undefined
+							}
+						/>
+					);
+				})}
 			</div>
 
 			{/* Desktop View - Table */}
@@ -194,10 +205,17 @@ export function TeamStanding({
 					<TableBody className="text-sm">
 						{paginatedData.map((item) => {
 							const streak = calculateStreak(item.form);
+							const isDimmed = highlightPlayerIds
+								? !item.players.every((p) => highlightPlayerIds.has(p.id))
+								: false;
 							return (
 								<TableRow
 									key={item.id}
-									className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+									className={cn(
+										"h-14",
+										leagueSlug && "cursor-pointer hover:bg-muted/50",
+										isDimmed && "opacity-40"
+									)}
 									data-testid={`team-standing-row-${item.id}`}
 									onClick={() =>
 										leagueSlug &&

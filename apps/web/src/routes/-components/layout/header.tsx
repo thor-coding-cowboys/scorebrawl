@@ -57,7 +57,7 @@ export function Header({
 											className={index < breadcrumbs.length - 1 ? "hidden md:block" : undefined}
 										>
 											{crumb.href ? (
-												<BreadcrumbLink render={<Link to={crumb.href} />}>
+												<BreadcrumbLink render={<Link to={crumb.href as never} />}>
 													{crumb.name}
 												</BreadcrumbLink>
 											) : (

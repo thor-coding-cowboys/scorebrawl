@@ -92,7 +92,7 @@ export function SignUpForm({ callbackURL, error }: SignUpFormProps) {
 				await invalidateSession();
 
 				// Successfully signed in, redirect to callback URL
-				void navigate({ to: callbackURL || "/" });
+				void navigate({ to: callbackURL || "/" } as never);
 			} else {
 				setApiError("Failed to create account. Please try again.");
 			}

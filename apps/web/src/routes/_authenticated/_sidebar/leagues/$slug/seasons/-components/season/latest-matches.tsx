@@ -4,7 +4,7 @@ import { trpcClient } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
 import { MatchRow } from "../match/match-row";
 import { Button } from "@/components/ui/button";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { RemoveMatchDialog } from "../match/remove-match-dialog";
@@ -12,12 +12,11 @@ import { RemoveMatchDialog } from "../match/remove-match-dialog";
 interface LatestMatchesProps {
 	seasonId: string;
 	seasonSlug: string;
+	slug: string;
 	canDelete?: boolean;
 }
 
-export function LatestMatches({ seasonId, seasonSlug, canDelete }: LatestMatchesProps) {
-	const params = useParams({ strict: false });
-	const slug = params.slug as string;
+export function LatestMatches({ seasonId, seasonSlug, slug, canDelete }: LatestMatchesProps) {
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 
 	const { data: matchesData } = useQuery({

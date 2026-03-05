@@ -58,7 +58,7 @@ export function StandingTabs({ seasonSlug, leagueSlug }: StandingTabsProps) {
 					{activeTab === 0 ? (
 						<Standing seasonSlug={seasonSlug} leagueSlug={leagueSlug} />
 					) : (
-						<TeamStanding seasonSlug={seasonSlug} />
+						<TeamStanding seasonSlug={seasonSlug} leagueSlug={leagueSlug} />
 					)}
 				</OverviewCard>
 			</div>

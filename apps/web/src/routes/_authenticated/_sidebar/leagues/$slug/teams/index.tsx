@@ -22,6 +22,7 @@ import { UserMultipleIcon, PencilEdit01Icon, Add01Icon } from "@hugeicons/core-f
 import { toast } from "sonner";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
+import { truncateSlug } from "@/lib/utils";
 
 // Helper to construct asset URL from key
 const getAssetUrl = (key: string | null | undefined): string | null => {
@@ -66,11 +67,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/tea
 });
 
 type Team = RouterOutput["leagueTeam"]["list"]["teams"][number];
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 function TeamsPage() {
 	const { slug } = Route.useLoaderData();

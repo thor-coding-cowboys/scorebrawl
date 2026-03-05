@@ -260,3 +260,109 @@ export const playerAchievement = sqliteTable(
 	},
 	(table) => [uniqueIndex("player_achievement_player_type_uidx").on(table.playerId, table.type)]
 );
+
+export const gameSession = sqliteTable(
+	"game_session",
+	{
+		id: text("id").primaryKey(),
+		seasonId: text("season_id")
+			.notNull()
+			.references(() => season.id, { onDelete: "cascade" }),
+		createdBy: text("created_by")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		status: text("status", { enum: ["active", "ended"] })
+			.notNull()
+			.default("active"),
+		rotationMode: text("rotation_mode", {
+			enum: ["winner-stays", "round-robin", "manual"],
+		}).notNull(),
+		teamSize: integer("team_size").notNull(),
+		maxConsecutiveGames: integer("max_consecutive_games"),
+		alwaysSplitConstraints: text("always_split_constraints"),
+		autoRandomize: integer("auto_randomize", { mode: "boolean" }).default(false).notNull(),
+		autoCoinToss: integer("auto_coin_toss", { mode: "boolean" }).default(false).notNull(),
+		endedAt: integer("ended_at", { mode: "timestamp" }),
+		...timestampAuditFields,
+	},
+	(table) => [
+		index("game_session_season_id_idx").on(table.seasonId),
+		index("game_session_season_status_idx").on(table.seasonId, table.status),
+	]
+);
+
+export const sessionPlayer = sqliteTable(
+	"session_player",
+	{
+		id: text("id").primaryKey(),
+		sessionId: text("session_id")
+			.notNull()
+			.references(() => gameSession.id, { onDelete: "cascade" }),
+		seasonPlayerId: text("season_player_id")
+			.notNull()
+			.references(() => seasonPlayer.id, { onDelete: "cascade" }),
+		status: text("status", { enum: ["waiting", "playing", "out"] })
+			.notNull()
+			.default("waiting"),
+		queuePosition: integer("queue_position").notNull(),
+		gamesPlayedThisSession: integer("games_played_this_session").notNull().default(0),
+		consecutiveGames: integer("consecutive_games").notNull().default(0),
+		joinedAt: integer("joined_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`(unixepoch())`),
+		...timestampAuditFields,
+	},
+	(table) => [
+		uniqueIndex("session_player_session_season_player_uidx").on(
+			table.sessionId,
+			table.seasonPlayerId
+		),
+		index("session_player_session_id_idx").on(table.sessionId),
+		index("session_player_session_status_idx").on(table.sessionId, table.status),
+	]
+);
+
+export const sessionMatch = sqliteTable(
+	"session_match",
+	{
+		id: text("id").primaryKey(),
+		sessionId: text("session_id")
+			.notNull()
+			.references(() => gameSession.id, { onDelete: "cascade" }),
+		// Note: This cascade doesn't fire in current code because deleteLastMatch deletes
+		// the session_match row first, then deletes the match. The cascade would only
+		// trigger if a match was deleted directly while session_match rows still reference it.
+		matchId: text("match_id").references(() => match.id, { onDelete: "cascade" }),
+		matchNumber: integer("match_number").notNull(),
+		homePlayerIds: text("home_player_ids").notNull(),
+		awayPlayerIds: text("away_player_ids").notNull(),
+		result: text("result", { enum: ["home", "away", "draw"] }),
+		...timestampAuditFields,
+	},
+	(table) => [
+		index("session_match_session_id_idx").on(table.sessionId),
+		index("session_match_match_id_idx").on(table.matchId),
+		index("session_match_session_result_idx").on(table.sessionId, table.result),
+	]
+);
+
+export const sessionCoinToss = sqliteTable(
+	"session_coin_toss",
+	{
+		id: text("id").primaryKey(),
+		sessionId: text("session_id")
+			.notNull()
+			.references(() => gameSession.id, { onDelete: "cascade" }),
+		sessionMatchId: text("session_match_id").references(() => sessionMatch.id, {
+			onDelete: "cascade",
+		}),
+		conflictType: text("conflict_type", {
+			enum: ["loser-rotation", "max-consecutive-exceeded", "draw-tiebreak"],
+		}).notNull(),
+		candidates: text("candidates").notNull(),
+		resolved: integer("resolved", { mode: "boolean" }).notNull().default(false),
+		resolvedWinnerIds: text("resolved_winner_ids"),
+		...timestampAuditFields,
+	},
+	(table) => [index("session_coin_toss_session_id_idx").on(table.sessionId)]
+);

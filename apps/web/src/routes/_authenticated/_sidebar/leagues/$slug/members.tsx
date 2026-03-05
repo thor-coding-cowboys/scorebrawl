@@ -31,6 +31,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { RowCard } from "@/components/ui/row-card";
+import { truncateSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/members")({
 	component: MembersPage,
@@ -56,11 +57,6 @@ type Member = {
 type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 function formatRole(role: string) {
 	return role.replace(/_/g, " ");
