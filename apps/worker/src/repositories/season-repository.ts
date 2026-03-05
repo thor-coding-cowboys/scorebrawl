@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, getTableColumns, gt, isNull, lt, or, sql } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import type { DrizzleDB } from "../db";
+import { withTransaction } from "../db";
 import { league as organization } from "../db/schema/auth-schema";
 import {
 	season,
@@ -214,137 +215,139 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 	const now = new Date();
 	const seasonId = input.id ?? newId("season");
 
-	const values =
-		input.scoreType === "elo"
-			? {
-					id: seasonId,
-					name: input.name,
-					slug,
-					leagueId: input.leagueId,
-					startDate: input.startDate,
-					endDate: input.endDate ?? null,
-					initialScore: input.initialScore,
-					kFactor: input.kFactor,
-					scoreType: "elo" as const,
-					rounds: null,
-					createdAt: now,
-					updatedAt: now,
-					createdBy: input.userId,
-					updatedBy: input.userId,
-					archived: false,
-					closed: false,
-				}
-			: {
-					id: seasonId,
-					name: input.name,
-					slug,
-					leagueId: input.leagueId,
-					startDate: input.startDate,
-					endDate: input.endDate ?? null,
-					initialScore: 0,
-					kFactor: -1,
-					rounds: input.rounds ?? null,
-					scoreType: "3-1-0" as const,
-					createdAt: now,
-					updatedAt: now,
-					createdBy: input.userId,
-					updatedBy: input.userId,
-					archived: false,
-					closed: false,
-				};
-
-	const comps = await db.insert(season).values(values).returning();
-	const comp = comps[0];
-
-	// Get all enabled players from organization and create season players
-	const players = await db
-		.select({ id: player.id })
-		.from(player)
-		.where(and(eq(player.leagueId, input.leagueId), eq(player.disabled, false)));
-
-	const seasonPlayerValues = players.map((p) => ({
-		id: newId("seasonPlayer"),
-		disabled: false,
-		score: comp.initialScore,
-		playerId: p.id,
-		seasonId: comp.id,
-		createdAt: now,
-		updatedAt: now,
-	}));
-
-	if (seasonPlayerValues.length > 0) {
-		const SEASON_PLAYER_BATCH_SIZE = 10;
-		for (let i = 0; i < seasonPlayerValues.length; i += SEASON_PLAYER_BATCH_SIZE) {
-			const batch = seasonPlayerValues.slice(i, i + SEASON_PLAYER_BATCH_SIZE);
-			await db.insert(seasonPlayer).values(batch);
-		}
-	}
-
-	// If 3-1-0 with rounds, generate fixtures
-	if (input.scoreType === "3-1-0" && input.rounds && input.rounds > 0) {
-		const seasonPlayerIds = seasonPlayerValues.map((cp) => cp.id);
-		const fixturesList: (typeof fixture.$inferInsert)[] = [];
-
-		const playersList: Array<string | null> = [...seasonPlayerIds];
-		if (playersList.length % 2 !== 0) {
-			playersList.push(null);
-		}
-
-		const totalPlayers = playersList.length;
-		const matchesPerRound = totalPlayers / 2;
-		const roundsPerCompleteTournament = totalPlayers - 1;
-
-		for (let tournament = 0; tournament < input.rounds; tournament++) {
-			let tournamentPlayers = [...playersList];
-
-			for (let roundNum = 0; roundNum < roundsPerCompleteTournament; roundNum++) {
-				const actualRound = tournament * roundsPerCompleteTournament + roundNum;
-				const roundFixtures: Array<{ homeId: string; awayId: string }> = [];
-
-				for (let i = 0; i < matchesPerRound; i++) {
-					const homeId = tournamentPlayers[i];
-					const awayId = tournamentPlayers[totalPlayers - 1 - i];
-
-					if (homeId !== null && awayId !== null) {
-						const finalHomeId = tournament % 2 === 0 ? homeId : awayId;
-						const finalAwayId = tournament % 2 === 0 ? awayId : homeId;
-						roundFixtures.push({ homeId: finalHomeId, awayId: finalAwayId });
-					}
-				}
-
-				for (const f of roundFixtures) {
-					fixturesList.push({
-						id: newId("fixture"),
-						homePlayerId: f.homeId,
-						awayPlayerId: f.awayId,
-						seasonId: comp.id,
-						round: actualRound + 1,
+	return withTransaction(db, async (tx) => {
+		const values =
+			input.scoreType === "elo"
+				? {
+						id: seasonId,
+						name: input.name,
+						slug,
+						leagueId: input.leagueId,
+						startDate: input.startDate,
+						endDate: input.endDate ?? null,
+						initialScore: input.initialScore,
+						kFactor: input.kFactor,
+						scoreType: "elo" as const,
+						rounds: null,
 						createdAt: now,
 						updatedAt: now,
-						matchId: null,
-						deletedAt: null,
-					});
+						createdBy: input.userId,
+						updatedBy: input.userId,
+						archived: false,
+						closed: false,
+					}
+				: {
+						id: seasonId,
+						name: input.name,
+						slug,
+						leagueId: input.leagueId,
+						startDate: input.startDate,
+						endDate: input.endDate ?? null,
+						initialScore: 0,
+						kFactor: -1,
+						rounds: input.rounds ?? null,
+						scoreType: "3-1-0" as const,
+						createdAt: now,
+						updatedAt: now,
+						createdBy: input.userId,
+						updatedBy: input.userId,
+						archived: false,
+						closed: false,
+					};
+
+		const comps = await tx.insert(season).values(values).returning();
+		const comp = comps[0];
+
+		// Get all enabled players from organization and create season players
+		const players = await tx
+			.select({ id: player.id })
+			.from(player)
+			.where(and(eq(player.leagueId, input.leagueId), eq(player.disabled, false)));
+
+		const seasonPlayerValues = players.map((p) => ({
+			id: newId("seasonPlayer"),
+			disabled: false,
+			score: comp.initialScore,
+			playerId: p.id,
+			seasonId: comp.id,
+			createdAt: now,
+			updatedAt: now,
+		}));
+
+		if (seasonPlayerValues.length > 0) {
+			const SEASON_PLAYER_BATCH_SIZE = 10;
+			for (let i = 0; i < seasonPlayerValues.length; i += SEASON_PLAYER_BATCH_SIZE) {
+				const batch = seasonPlayerValues.slice(i, i + SEASON_PLAYER_BATCH_SIZE);
+				await tx.insert(seasonPlayer).values(batch);
+			}
+		}
+
+		// If 3-1-0 with rounds, generate fixtures
+		if (input.scoreType === "3-1-0" && input.rounds && input.rounds > 0) {
+			const seasonPlayerIds = seasonPlayerValues.map((cp) => cp.id);
+			const fixturesList: (typeof fixture.$inferInsert)[] = [];
+
+			const playersList: Array<string | null> = [...seasonPlayerIds];
+			if (playersList.length % 2 !== 0) {
+				playersList.push(null);
+			}
+
+			const totalPlayers = playersList.length;
+			const matchesPerRound = totalPlayers / 2;
+			const roundsPerCompleteTournament = totalPlayers - 1;
+
+			for (let tournament = 0; tournament < input.rounds; tournament++) {
+				let tournamentPlayers = [...playersList];
+
+				for (let roundNum = 0; roundNum < roundsPerCompleteTournament; roundNum++) {
+					const actualRound = tournament * roundsPerCompleteTournament + roundNum;
+					const roundFixtures: Array<{ homeId: string; awayId: string }> = [];
+
+					for (let i = 0; i < matchesPerRound; i++) {
+						const homeId = tournamentPlayers[i];
+						const awayId = tournamentPlayers[totalPlayers - 1 - i];
+
+						if (homeId !== null && awayId !== null) {
+							const finalHomeId = tournament % 2 === 0 ? homeId : awayId;
+							const finalAwayId = tournament % 2 === 0 ? awayId : homeId;
+							roundFixtures.push({ homeId: finalHomeId, awayId: finalAwayId });
+						}
+					}
+
+					for (const f of roundFixtures) {
+						fixturesList.push({
+							id: newId("fixture"),
+							homePlayerId: f.homeId,
+							awayPlayerId: f.awayId,
+							seasonId: comp.id,
+							round: actualRound + 1,
+							createdAt: now,
+							updatedAt: now,
+							matchId: null,
+							deletedAt: null,
+						});
+					}
+
+					const rotatedPlayers = [
+						tournamentPlayers[0],
+						tournamentPlayers[totalPlayers - 1],
+						...tournamentPlayers.slice(1, totalPlayers - 1),
+					];
+					tournamentPlayers = rotatedPlayers;
 				}
+			}
 
-				const rotatedPlayers = [
-					tournamentPlayers[0],
-					tournamentPlayers[totalPlayers - 1],
-					...tournamentPlayers.slice(1, totalPlayers - 1),
-				];
-				tournamentPlayers = rotatedPlayers;
+			if (fixturesList.length > 0) {
+				const BATCH_SIZE = 10;
+				for (let i = 0; i < fixturesList.length; i += BATCH_SIZE) {
+					const batch = fixturesList.slice(i, i + BATCH_SIZE);
+					await tx.insert(fixture).values(batch);
+				}
 			}
 		}
 
-		if (fixturesList.length > 0) {
-			const BATCH_SIZE = 10;
-			for (let i = 0; i < fixturesList.length; i += BATCH_SIZE) {
-				const batch = fixturesList.slice(i, i + BATCH_SIZE);
-				await db.insert(fixture).values(batch);
-			}
-		}
-	}
-
-	return comp;
+		return comp;
+	});
 };
 
 export const findFixtures = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {

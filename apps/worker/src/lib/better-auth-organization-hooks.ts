@@ -2,6 +2,8 @@ import { eq, and, or, gt, isNull, ne } from "drizzle-orm";
 import type { DB } from "better-auth/adapters/drizzle";
 import { guest, player, season, seasonPlayer } from "../db/schema";
 import { createId } from "../utils/id-util";
+import type { DrizzleDB } from "../db";
+import { withTransaction } from "../db";
 
 /**
  * Creates a player record for a user in an organization and adds them to ongoing/future seasons
@@ -17,39 +19,47 @@ async function createPlayerForUser({
 }) {
 	const now = new Date();
 
-	// Insert into player table
-	const playerId = createId();
-	await db.insert(player).values({
-		id: playerId,
-		userId: userId,
-		leagueId: organizationId,
-		disabled: false,
-		createdAt: now,
-		updatedAt: now,
+	// Use transaction to ensure atomicity
+	return withTransaction(db as DrizzleDB, async (tx) => {
+		// Insert into player table
+		const playerId = createId();
+		await tx.insert(player).values({
+			id: playerId,
+			userId: userId,
+			leagueId: organizationId,
+			disabled: false,
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		// Find future or ongoing seasons
+		const ongoingAndFutureSeasons = await tx
+			.select({ id: season.id, initialScore: season.initialScore })
+			.from(season)
+			.where(
+				and(
+					eq(season.leagueId, organizationId),
+					or(gt(season.endDate, now), isNull(season.endDate))
+				)
+			);
+
+		// Insert into seasonPlayer for each ongoing season
+		if (ongoingAndFutureSeasons.length > 0) {
+			await tx.insert(seasonPlayer).values(
+				ongoingAndFutureSeasons.map((s: { id: string; initialScore: number }) => ({
+					id: createId(),
+					seasonId: s.id,
+					playerId,
+					score: s.initialScore,
+					disabled: false,
+					createdAt: now,
+					updatedAt: now,
+				}))
+			);
+		}
+
+		return { playerId };
 	});
-
-	// Find future or ongoing seasons
-	const ongoingAndFutureSeasons = await db
-		.select({ id: season.id, initialScore: season.initialScore })
-		.from(season)
-		.where(
-			and(eq(season.leagueId, organizationId), or(gt(season.endDate, now), isNull(season.endDate)))
-		);
-
-	// Insert into seasonPlayer for each ongoing season
-	if (ongoingAndFutureSeasons.length > 0) {
-		await db.insert(seasonPlayer).values(
-			ongoingAndFutureSeasons.map((s: { id: string; initialScore: number }) => ({
-				id: createId(),
-				seasonId: s.id,
-				playerId,
-				score: s.initialScore,
-				disabled: false,
-				createdAt: now,
-				updatedAt: now,
-			}))
-		);
-	}
 }
 
 /**
