@@ -17,6 +17,10 @@ export type SessionMatch = {
 	awayPlayerIds: string[];
 	result: "home" | "away" | "draw" | null;
 	matchId: string | null;
+	homeSessionScore: number;
+	awaySessionScore: number;
+	selectedHomePlayerIds: string[] | null;
+	selectedAwayPlayerIds: string[] | null;
 };
 
 export type CoinToss = {
@@ -31,6 +35,8 @@ export type ProposedLineup = {
 	awayPlayerIds: string[];
 	rotatedOut: string[];
 	coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+	selectedHomePlayerIds?: string[];
+	selectedAwayPlayerIds?: string[];
 } | null;
 
 export type GameSession = {
@@ -43,6 +49,7 @@ export type GameSession = {
 	autoRandomize: boolean;
 	autoCoinToss: boolean;
 	alwaysSplitConstraints: [string, string][];
+	proposedLineup: ProposedLineup;
 	players: SessionPlayer[];
 	matches: SessionMatch[];
 	pendingCoinTosses: CoinToss[];

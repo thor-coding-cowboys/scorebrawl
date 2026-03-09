@@ -4,56 +4,93 @@ import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
 import "@/lib/event-types";
 
-export interface SeasonSSEEvent {
-	type:
-		| "connected"
-		| "match:insert"
-		| "match:delete"
-		| "standings:update"
-		| "streak"
-		| "session:start"
-		| "session:update"
-		| "session:end";
+type StreakData = {
+	playerId?: string;
+	playerName?: string;
+	playerImage?: string | null;
+	streak?: number;
+	timestamp?: number;
+	isTeam?: boolean;
+};
+
+type SessionData = {
 	sessionId?: string;
-	user?: {
+	session?: { id: string };
+};
+
+type ScoreUpdateData = {
+	sessionId: string;
+	sessionMatchId: string;
+	homeScore: number;
+	awayScore: number;
+};
+
+type TeamSelectionUpdateData = {
+	sessionId: string;
+	sessionMatchId: string;
+	selectedHomePlayerIds: string[];
+	selectedAwayPlayerIds: string[];
+};
+
+type ProposedLineupData = {
+	sessionId: string;
+	proposedLineup: {
+		homePlayerIds: string[];
+		awayPlayerIds: string[];
+		rotatedOut: string[];
+		coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+		selectedHomePlayerIds: string[];
+		selectedAwayPlayerIds: string[];
+	};
+};
+
+type MatchData = {
+	match?: {
 		id: string;
+		seasonId: string;
+		homeScore: number;
+		awayScore: number;
+		createdAt: Date;
+	};
+	matchId?: string;
+	standings?: Array<{
+		id: string;
+		seasonId: string;
+		playerId: string;
+		score: number;
 		name: string;
-	};
-	data?: {
-		match?: {
-			id: string;
-			seasonId: string;
-			homeScore: number;
-			awayScore: number;
-			createdAt: Date;
-		};
-		matchId?: string;
-		standings?: Array<{
-			id: string;
-			seasonId: string;
-			playerId: string;
-			score: number;
-			name: string;
-			image: string | null;
-			userId: string;
-			matchCount: number;
-			winCount: number;
-			lossCount: number;
-			drawCount: number;
-			rank: number;
-			pointDiff: number;
-			form: Array<"W" | "D" | "L">;
-		}>;
-		playerId?: string;
-		playerName?: string;
-		playerImage?: string | null;
-		streak?: number;
-		timestamp?: number;
-		isTeam?: boolean;
-		sessionId?: string;
-		session?: { id: string };
-	};
-}
+		image: string | null;
+		userId: string;
+		matchCount: number;
+		winCount: number;
+		lossCount: number;
+		drawCount: number;
+		rank: number;
+		pointDiff: number;
+		form: Array<"W" | "D" | "L">;
+	}>;
+};
+
+export type SeasonSSEEvent =
+	| { type: "connected"; user?: { id: string; name: string } }
+	| { type: "streak"; user?: { id: string; name: string }; data: StreakData }
+	| { type: "session:start"; user?: { id: string; name: string }; data: SessionData }
+	| { type: "session:update"; user?: { id: string; name: string }; data: SessionData }
+	| { type: "session:end"; user?: { id: string; name: string }; data: SessionData }
+	| { type: "session:score-update"; user?: { id: string; name: string }; data: ScoreUpdateData }
+	| {
+			type: "session:team-selection-update";
+			user?: { id: string; name: string };
+			data: TeamSelectionUpdateData;
+	  }
+	| {
+			type: "session:proposed-lineup-update";
+			user?: { id: string; name: string };
+			data: ProposedLineupData;
+	  }
+	| { type: "match:insert"; user?: { id: string; name: string }; data?: MatchData }
+	| { type: "match:delete"; user?: { id: string; name: string }; data?: MatchData }
+	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData };
 
 interface UseSeasonSSEOptions {
 	leagueSlug: string;
@@ -131,8 +168,7 @@ export function useSeasonSSE({
 						parsed.type === "session:update" ||
 						parsed.type === "session:end"
 					) {
-						const sessionId =
-							parsed.data?.sessionId ?? parsed.data?.session?.id ?? parsed.sessionId;
+						const sessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;
 						window.dispatchEvent(
 							new CustomEvent("session-event", {
 								detail: { type: parsed.type, sessionId },
@@ -153,6 +189,46 @@ export function useSeasonSSE({
 						return;
 					}
 
+					if (parsed.type === "session:score-update") {
+						window.dispatchEvent(
+							new CustomEvent("score-update", {
+								detail: {
+									sessionId: parsed.data.sessionId,
+									sessionMatchId: parsed.data.sessionMatchId,
+									homeScore: parsed.data.homeScore,
+									awayScore: parsed.data.awayScore,
+								},
+							})
+						);
+						return;
+					}
+
+					if (parsed.type === "session:team-selection-update") {
+						window.dispatchEvent(
+							new CustomEvent("team-selection-update", {
+								detail: {
+									sessionId: parsed.data.sessionId,
+									sessionMatchId: parsed.data.sessionMatchId,
+									selectedHomePlayerIds: parsed.data.selectedHomePlayerIds,
+									selectedAwayPlayerIds: parsed.data.selectedAwayPlayerIds,
+								},
+							})
+						);
+						return;
+					}
+
+					if (parsed.type === "session:proposed-lineup-update") {
+						window.dispatchEvent(
+							new CustomEvent("proposed-lineup-update", {
+								detail: {
+									sessionId: parsed.data.sessionId,
+									proposedLineup: parsed.data.proposedLineup,
+								},
+							})
+						);
+						return;
+					}
+
 					// Skip invalidation for own events — the mutation onSuccess already handles it.
 					// Only invalidate for events from other users.
 					if (!isOwnEvent) {
@@ -162,7 +238,7 @@ export function useSeasonSSE({
 						}
 
 						if (
-							parsed.data?.standings ||
+							(parsed.type === "standings:update" && parsed.data?.standings) ||
 							parsed.type === "match:insert" ||
 							parsed.type === "match:delete"
 						) {

@@ -1,28 +1,27 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { leagueMemberProcedure } from "../trpc";
 import * as sessionRepository from "../../repositories/session-repository";
 import * as matchRepository from "../../repositories/match-repository";
+import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
-import { season, sessionCoinToss } from "../../db/schema/league-schema";
+import { sessionCoinToss } from "../../db/schema/league-schema";
 import { computeNextLineup } from "../../lib/session-rotation";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
 async function getSeasonBySlug(db: SessionDb, seasonSlug: string, organizationId: string) {
-	const [s] = await db
-		.select()
-		.from(season)
-		.where(and(eq(season.slug, seasonSlug), eq(season.leagueId, organizationId)))
-		.limit(1);
-
-	if (!s) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
+	try {
+		return await seasonRepository.getBySlug({ db, seasonSlug, leagueId: organizationId });
+	} catch (error) {
+		if (error instanceof Error && error.message === "Season not found") {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
+		}
+		throw error;
 	}
-	return s;
 }
 
 async function getSessionForOrg(db: SessionDb, sessionId: string, organizationId: string) {
@@ -330,6 +329,12 @@ export const sessionRouter = {
 				}
 			}
 
+			await sessionRepository.updateProposedLineup({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				proposedLineup,
+			});
+
 			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 				type: "session:update",
 				data: {
@@ -575,5 +580,113 @@ export const sessionRouter = {
 			});
 
 			return result;
+		}),
+
+	updateMatchScore: leagueMemberProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				sessionMatchId: z.string(),
+				homeScore: z.number().int().min(0),
+				awayScore: z.number().int().min(0),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+
+			const updated = await sessionRepository.updateMatchScore({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				sessionMatchId: input.sessionMatchId,
+				homeScore: input.homeScore,
+				awayScore: input.awayScore,
+			});
+
+			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+				type: "session:score-update",
+				data: {
+					sessionId: input.sessionId,
+					sessionMatchId: input.sessionMatchId,
+					homeScore: input.homeScore,
+					awayScore: input.awayScore,
+				},
+				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+			});
+
+			return updated;
+		}),
+
+	updateTeamSelection: leagueMemberProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				sessionMatchId: z.string(),
+				selectedHomePlayerIds: z.array(z.string()),
+				selectedAwayPlayerIds: z.array(z.string()),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+
+			const updated = await sessionRepository.updateTeamSelection({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				sessionMatchId: input.sessionMatchId,
+				selectedHomePlayerIds: input.selectedHomePlayerIds,
+				selectedAwayPlayerIds: input.selectedAwayPlayerIds,
+			});
+
+			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+				type: "session:team-selection-update",
+				data: {
+					sessionId: input.sessionId,
+					sessionMatchId: input.sessionMatchId,
+					selectedHomePlayerIds: input.selectedHomePlayerIds,
+					selectedAwayPlayerIds: input.selectedAwayPlayerIds,
+				},
+				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+			});
+
+			return updated;
+		}),
+
+	updateProposedLineup: leagueMemberProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				proposedLineup: z.object({
+					homePlayerIds: z.array(z.string()),
+					awayPlayerIds: z.array(z.string()),
+					rotatedOut: z.array(z.string()),
+					coinTossNeeded: z
+						.object({
+							conflictType: z.string(),
+							candidates: z.array(z.string()),
+						})
+						.nullable(),
+					selectedHomePlayerIds: z.array(z.string()),
+					selectedAwayPlayerIds: z.array(z.string()),
+				}),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+
+			const updated = await sessionRepository.updateProposedLineup({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				proposedLineup: input.proposedLineup,
+			});
+
+			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+				type: "session:proposed-lineup-update",
+				data: {
+					sessionId: input.sessionId,
+					proposedLineup: input.proposedLineup,
+				},
+				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+			});
+
+			return updated;
 		}),
 } satisfies TRPCRouterRecord;

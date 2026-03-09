@@ -1,7 +1,8 @@
 import { eq, and, asc, desc, sql, inArray, not, gt, isNull, isNotNull } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import { TRPCError } from "@trpc/server";
-import type { DrizzleDB } from "../db";
+import type { DrizzleDB, TransactionClient } from "../db";
+import { withTransaction } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
 	gameSession,
@@ -26,6 +27,56 @@ export function parseStringArray(json: string | null | undefined): string[] {
 		return [];
 	} catch {
 		return [];
+	}
+}
+
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+	const result = [...arr];
+	for (let i = result.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[result[i], result[j]] = [result[j], result[i]];
+	}
+	return result;
+}
+
+function parseProposedLineup(json: string | null | undefined): {
+	homePlayerIds: string[];
+	awayPlayerIds: string[];
+	rotatedOut: string[];
+	coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+	selectedHomePlayerIds?: string[];
+	selectedAwayPlayerIds?: string[];
+} | null {
+	if (!json) return null;
+	try {
+		const parsed = JSON.parse(json);
+		if (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			Array.isArray(parsed.homePlayerIds) &&
+			Array.isArray(parsed.awayPlayerIds) &&
+			Array.isArray(parsed.rotatedOut) &&
+			(parsed.coinTossNeeded === null ||
+				(typeof parsed.coinTossNeeded === "object" &&
+					typeof parsed.coinTossNeeded.conflictType === "string" &&
+					Array.isArray(parsed.coinTossNeeded.candidates)))
+		) {
+			return {
+				homePlayerIds: parsed.homePlayerIds,
+				awayPlayerIds: parsed.awayPlayerIds,
+				rotatedOut: parsed.rotatedOut,
+				coinTossNeeded: parsed.coinTossNeeded,
+				selectedHomePlayerIds: Array.isArray(parsed.selectedHomePlayerIds)
+					? parsed.selectedHomePlayerIds
+					: undefined,
+				selectedAwayPlayerIds: Array.isArray(parsed.selectedAwayPlayerIds)
+					? parsed.selectedAwayPlayerIds
+					: undefined,
+			};
+		}
+		return null;
+	} catch {
+		return null;
 	}
 }
 
@@ -71,47 +122,69 @@ export const createSession = async ({
 	autoCoinToss: boolean;
 	seasonPlayerIds: string[];
 }) => {
-	const now = new Date();
-	const sessionId = newId("gameSession");
+	return withTransaction(db, async (tx) => {
+		const now = new Date();
+		const sessionId = newId("gameSession");
 
-	await db.insert(gameSession).values({
-		id: sessionId,
-		seasonId,
-		createdBy,
-		status: "active",
-		rotationMode,
-		teamSize,
-		maxConsecutiveGames,
-		alwaysSplitConstraints: JSON.stringify(alwaysSplitConstraints),
-		autoRandomize,
-		autoCoinToss,
-		createdAt: now,
-		updatedAt: now,
+		await tx.insert(gameSession).values({
+			id: sessionId,
+			seasonId,
+			createdBy,
+			status: "active",
+			rotationMode,
+			teamSize,
+			maxConsecutiveGames,
+			alwaysSplitConstraints: JSON.stringify(alwaysSplitConstraints),
+			autoRandomize,
+			autoCoinToss,
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		const players = seasonPlayerIds.map((seasonPlayerId, index) => ({
+			id: newId("sessionPlayer"),
+			sessionId,
+			seasonPlayerId,
+			status: "waiting" as const,
+			queuePosition: index,
+			gamesPlayedThisSession: 0,
+			consecutiveGames: 0,
+			joinedAt: now,
+			createdAt: now,
+			updatedAt: now,
+		}));
+
+		await tx.insert(sessionPlayer).values(players);
+
+		if (players.length >= teamSize * 2) {
+			const shuffled = fisherYatesShuffle(players);
+			const homePlayerIds = shuffled.slice(0, teamSize).map((p) => p.id);
+			const awayPlayerIds = shuffled.slice(teamSize, teamSize * 2).map((p) => p.id);
+
+			await tx
+				.update(gameSession)
+				.set({
+					proposedLineup: JSON.stringify({
+						homePlayerIds: [],
+						awayPlayerIds: [],
+						rotatedOut: [],
+						coinTossNeeded: null,
+						selectedHomePlayerIds: homePlayerIds,
+						selectedAwayPlayerIds: awayPlayerIds,
+					}),
+				})
+				.where(eq(gameSession.id, sessionId));
+		}
+
+		const [session] = await tx.select().from(gameSession).where(eq(gameSession.id, sessionId));
+		const sessionPlayers = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(eq(sessionPlayer.sessionId, sessionId))
+			.orderBy(asc(sessionPlayer.queuePosition));
+
+		return { ...session, players: sessionPlayers };
 	});
-
-	const players = seasonPlayerIds.map((seasonPlayerId, index) => ({
-		id: newId("sessionPlayer"),
-		sessionId,
-		seasonPlayerId,
-		status: "waiting" as const,
-		queuePosition: index,
-		gamesPlayedThisSession: 0,
-		consecutiveGames: 0,
-		joinedAt: now,
-		createdAt: now,
-		updatedAt: now,
-	}));
-
-	await db.insert(sessionPlayer).values(players);
-
-	const [session] = await db.select().from(gameSession).where(eq(gameSession.id, sessionId));
-	const sessionPlayers = await db
-		.select()
-		.from(sessionPlayer)
-		.where(eq(sessionPlayer.sessionId, sessionId))
-		.orderBy(asc(sessionPlayer.queuePosition));
-
-	return { ...session, players: sessionPlayers };
 };
 
 export const getActiveSession = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
@@ -179,11 +252,18 @@ export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; session
 	return {
 		...session,
 		alwaysSplitConstraints: parseAlwaysSplit(session.alwaysSplitConstraints),
+		proposedLineup: parseProposedLineup(session.proposedLineup),
 		players,
 		matches: matches.map((m) => ({
 			...m,
 			homePlayerIds: parseStringArray(m.homePlayerIds),
 			awayPlayerIds: parseStringArray(m.awayPlayerIds),
+			selectedHomePlayerIds: m.selectedHomePlayerIds
+				? parseStringArray(m.selectedHomePlayerIds)
+				: null,
+			selectedAwayPlayerIds: m.selectedAwayPlayerIds
+				? parseStringArray(m.selectedAwayPlayerIds)
+				: null,
 		})),
 		pendingCoinTosses: coinTosses.map((ct) => ({
 			...ct,
@@ -297,62 +377,66 @@ export const startNextMatch = async ({
 	homeSeasonPlayerIds: string[];
 	awaySeasonPlayerIds: string[];
 }) => {
-	const [countResult] = await db
-		.select({ count: sql<number>`COUNT(*)` })
-		.from(sessionMatch)
-		.where(eq(sessionMatch.sessionId, sessionId));
+	return withTransaction(db, async (tx) => {
+		const [countResult] = await tx
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(sessionMatch)
+			.where(eq(sessionMatch.sessionId, sessionId));
 
-	const matchNumber = (countResult?.count ?? 0) + 1;
-	const now = new Date();
+		const matchNumber = (countResult?.count ?? 0) + 1;
+		const now = new Date();
 
-	const allSeasonPlayerIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
+		const allSeasonPlayerIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
 
-	const sessionPlayers = await db
-		.select()
-		.from(sessionPlayer)
-		.where(
-			and(
-				eq(sessionPlayer.sessionId, sessionId),
-				inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)
-			)
-		);
+		const sessionPlayers = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)
+				)
+			);
 
-	const [newMatch] = await db
-		.insert(sessionMatch)
-		.values({
-			id: newId("sessionMatch"),
-			sessionId,
-			matchId: null,
-			matchNumber,
-			homePlayerIds: JSON.stringify(homeSeasonPlayerIds),
-			awayPlayerIds: JSON.stringify(awaySeasonPlayerIds),
-			result: null,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.returning();
+		const [newMatch] = await tx
+			.insert(sessionMatch)
+			.values({
+				id: newId("sessionMatch"),
+				sessionId,
+				matchId: null,
+				matchNumber,
+				homePlayerIds: JSON.stringify(homeSeasonPlayerIds),
+				awayPlayerIds: JSON.stringify(awaySeasonPlayerIds),
+				result: null,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.returning();
 
-	const sessionPlayerIds = sessionPlayers.map((p) => p.id);
+		const sessionPlayerIds = sessionPlayers.map((p) => p.id);
 
-	if (sessionPlayerIds.length > 0) {
-		await db
+		if (sessionPlayerIds.length > 0) {
+			await tx
+				.update(sessionPlayer)
+				.set({ status: "playing", updatedAt: now })
+				.where(inArray(sessionPlayer.id, sessionPlayerIds));
+		}
+
+		await tx
 			.update(sessionPlayer)
-			.set({ status: "playing", updatedAt: now })
-			.where(inArray(sessionPlayer.id, sessionPlayerIds));
-	}
+			.set({ consecutiveGames: 0, updatedAt: now })
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					not(inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)),
+					gt(sessionPlayer.consecutiveGames, 0)
+				)
+			);
 
-	await db
-		.update(sessionPlayer)
-		.set({ consecutiveGames: 0, updatedAt: now })
-		.where(
-			and(
-				eq(sessionPlayer.sessionId, sessionId),
-				not(inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)),
-				gt(sessionPlayer.consecutiveGames, 0)
-			)
-		);
+		await tx.update(gameSession).set({ proposedLineup: null }).where(eq(gameSession.id, sessionId));
 
-	return newMatch;
+		return newMatch;
+	});
 };
 
 export const recordMatchResult = async ({
@@ -368,103 +452,106 @@ export const recordMatchResult = async ({
 	result: "home" | "away" | "draw";
 	matchId: string;
 }) => {
-	const now = new Date();
+	return withTransaction(db, async (tx) => {
+		const now = new Date();
 
-	await db
-		.update(sessionMatch)
-		.set({ result, matchId, updatedAt: now })
-		.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)));
+		await tx
+			.update(sessionMatch)
+			.set({ result, matchId, updatedAt: now })
+			.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)));
 
-	const [updatedMatch] = await db
-		.select()
-		.from(sessionMatch)
-		.where(eq(sessionMatch.id, sessionMatchId))
-		.limit(1);
+		const [updatedMatch] = await tx
+			.select()
+			.from(sessionMatch)
+			.where(eq(sessionMatch.id, sessionMatchId))
+			.limit(1);
 
-	if (!updatedMatch) throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
+		if (!updatedMatch)
+			throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
 
-	const homePlayerIds = parseStringArray(updatedMatch.homePlayerIds);
-	const awayPlayerIds = parseStringArray(updatedMatch.awayPlayerIds);
+		const homePlayerIds = parseStringArray(updatedMatch.homePlayerIds);
+		const awayPlayerIds = parseStringArray(updatedMatch.awayPlayerIds);
 
-	const winnerSeasonPlayerIds =
-		result === "home" ? homePlayerIds : result === "away" ? awayPlayerIds : [];
-	const loserSeasonPlayerIds =
-		result === "home" ? awayPlayerIds : result === "away" ? homePlayerIds : [];
-	const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
+		const winnerSeasonPlayerIds =
+			result === "home" ? homePlayerIds : result === "away" ? awayPlayerIds : [];
+		const loserSeasonPlayerIds =
+			result === "home" ? awayPlayerIds : result === "away" ? homePlayerIds : [];
+		const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
 
-	const playingSessionPlayers = await db
-		.select()
-		.from(sessionPlayer)
-		.where(
-			and(
-				eq(sessionPlayer.sessionId, sessionId),
-				inArray(sessionPlayer.seasonPlayerId, allPlayingIds)
-			)
-		);
+		const playingSessionPlayers = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, allPlayingIds)
+				)
+			);
 
-	const winnerSessionPlayerIds = playingSessionPlayers
-		.filter((p) => winnerSeasonPlayerIds.includes(p.seasonPlayerId))
-		.map((p) => p.id);
+		const winnerSessionPlayerIds = playingSessionPlayers
+			.filter((p) => winnerSeasonPlayerIds.includes(p.seasonPlayerId))
+			.map((p) => p.id);
 
-	const loserSessionPlayerIds = playingSessionPlayers
-		.filter((p) => loserSeasonPlayerIds.includes(p.seasonPlayerId))
-		.map((p) => p.id);
+		const loserSessionPlayerIds = playingSessionPlayers
+			.filter((p) => loserSeasonPlayerIds.includes(p.seasonPlayerId))
+			.map((p) => p.id);
 
-	const drawSessionPlayerIds = result === "draw" ? playingSessionPlayers.map((p) => p.id) : [];
+		const drawSessionPlayerIds = result === "draw" ? playingSessionPlayers.map((p) => p.id) : [];
 
-	const allSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
+		const allSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
 
-	const [maxWaitingPos] = await db
-		.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
-		.from(sessionPlayer)
-		.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+		const [maxWaitingPos] = await tx
+			.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
+			.from(sessionPlayer)
+			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
 
-	const baseQueuePos = (maxWaitingPos?.max ?? -1) + 1;
+		const baseQueuePos = (maxWaitingPos?.max ?? -1) + 1;
 
-	if (allSessionPlayerIds.length > 0) {
-		const consecutiveCaseParts = allSessionPlayerIds
-			.map((id) => {
-				if (result === "draw") {
-					return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`;
-				}
-				if (winnerSessionPlayerIds.includes(id)) {
-					return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`;
-				}
-				return sql`WHEN ${sessionPlayer.id} = ${id} THEN 0`;
-			})
-			.reduce((acc, part) => sql`${acc} ${part}`);
+		if (allSessionPlayerIds.length > 0) {
+			const consecutiveCaseParts = allSessionPlayerIds
+				.map((id) => {
+					if (result === "draw") {
+						return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`;
+					}
+					if (winnerSessionPlayerIds.includes(id)) {
+						return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`;
+					}
+					return sql`WHEN ${sessionPlayer.id} = ${id} THEN 0`;
+				})
+				.reduce((acc, part) => sql`${acc} ${part}`);
 
-		const queuePosCaseParts = allSessionPlayerIds
-			.map((id) => {
-				if (winnerSessionPlayerIds.includes(id)) {
-					const winIdx = winnerSessionPlayerIds.indexOf(id);
-					return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${winIdx}`;
-				}
-				const loserOrDrawIds = result === "draw" ? drawSessionPlayerIds : loserSessionPlayerIds;
-				const idx = loserOrDrawIds.indexOf(id);
-				return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${baseQueuePos + idx}`;
-			})
-			.reduce((acc, part) => sql`${acc} ${part}`);
+			const queuePosCaseParts = allSessionPlayerIds
+				.map((id) => {
+					if (winnerSessionPlayerIds.includes(id)) {
+						const winIdx = winnerSessionPlayerIds.indexOf(id);
+						return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${winIdx}`;
+					}
+					const loserOrDrawIds = result === "draw" ? drawSessionPlayerIds : loserSessionPlayerIds;
+					const idx = loserOrDrawIds.indexOf(id);
+					return sql`WHEN ${sessionPlayer.id} = ${id} THEN ${baseQueuePos + idx}`;
+				})
+				.reduce((acc, part) => sql`${acc} ${part}`);
 
-		await db
-			.update(sessionPlayer)
-			.set({
-				gamesPlayedThisSession: sql`${sessionPlayer.gamesPlayedThisSession} + 1`,
-				consecutiveGames: sql`CASE ${consecutiveCaseParts} END`,
-				queuePosition: sql`CASE ${queuePosCaseParts} END`,
-				status: "waiting",
-				updatedAt: now,
-			})
-			.where(inArray(sessionPlayer.id, allSessionPlayerIds));
-	}
+			await tx
+				.update(sessionPlayer)
+				.set({
+					gamesPlayedThisSession: sql`${sessionPlayer.gamesPlayedThisSession} + 1`,
+					consecutiveGames: sql`CASE ${consecutiveCaseParts} END`,
+					queuePosition: sql`CASE ${queuePosCaseParts} END`,
+					status: "waiting",
+					updatedAt: now,
+				})
+				.where(inArray(sessionPlayer.id, allSessionPlayerIds));
+		}
 
-	const allPlayers = await db
-		.select()
-		.from(sessionPlayer)
-		.where(eq(sessionPlayer.sessionId, sessionId))
-		.orderBy(asc(sessionPlayer.queuePosition));
+		const allPlayers = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(eq(sessionPlayer.sessionId, sessionId))
+			.orderBy(asc(sessionPlayer.queuePosition));
 
-	return { match: updatedMatch, players: allPlayers };
+		return { match: updatedMatch, players: allPlayers };
+	});
 };
 
 export const cancelCurrentMatch = async ({
@@ -474,99 +561,188 @@ export const cancelCurrentMatch = async ({
 	db: DrizzleDB;
 	sessionId: string;
 }) => {
-	const [current] = await db
-		.select()
-		.from(sessionMatch)
-		.where(and(eq(sessionMatch.sessionId, sessionId), isNull(sessionMatch.result)))
-		.limit(1);
+	return withTransaction(db, async (tx) => {
+		const [current] = await tx
+			.select()
+			.from(sessionMatch)
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNull(sessionMatch.result)))
+			.limit(1);
 
-	if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "No active match to cancel" });
+		if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "No active match to cancel" });
 
-	await db.delete(sessionMatch).where(eq(sessionMatch.id, current.id));
+		await tx.delete(sessionMatch).where(eq(sessionMatch.id, current.id));
 
-	const now = new Date();
-	await db
-		.update(sessionPlayer)
-		.set({ status: "waiting", updatedAt: now })
-		.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "playing")));
+		const now = new Date();
+		await tx
+			.update(sessionPlayer)
+			.set({ status: "waiting", updatedAt: now })
+			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "playing")));
 
-	await recalcConsecutiveGames(db, sessionId);
+		await recalcConsecutiveGames(tx, sessionId);
 
-	const players = await db
-		.select()
-		.from(sessionPlayer)
-		.where(eq(sessionPlayer.sessionId, sessionId))
-		.orderBy(asc(sessionPlayer.queuePosition));
+		const players = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(eq(sessionPlayer.sessionId, sessionId))
+			.orderBy(asc(sessionPlayer.queuePosition));
 
-	return { deletedMatch: current, players };
+		return { deletedMatch: current, players };
+	});
 };
 
 export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessionId: string }) => {
-	const [lastMatch] = await db
-		.select()
-		.from(sessionMatch)
-		.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
-		.orderBy(desc(sessionMatch.matchNumber))
-		.limit(1);
+	return withTransaction(db, async (tx) => {
+		const [lastMatch] = await tx
+			.select()
+			.from(sessionMatch)
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
+			.orderBy(desc(sessionMatch.matchNumber))
+			.limit(1);
 
-	if (!lastMatch)
-		throw new TRPCError({ code: "NOT_FOUND", message: "No completed match to delete" });
+		if (!lastMatch)
+			throw new TRPCError({ code: "NOT_FOUND", message: "No completed match to delete" });
 
-	const hasActiveMatch = await db
-		.select({ id: sessionMatch.id })
-		.from(sessionMatch)
-		.where(and(eq(sessionMatch.sessionId, sessionId), isNull(sessionMatch.result)))
-		.limit(1);
+		const hasActiveMatch = await tx
+			.select({ id: sessionMatch.id })
+			.from(sessionMatch)
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNull(sessionMatch.result)))
+			.limit(1);
 
-	if (hasActiveMatch.length > 0)
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Cannot delete last match while a match is in progress",
-		});
+		if (hasActiveMatch.length > 0)
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Cannot delete last match while a match is in progress",
+			});
 
-	const homePlayerIds = parseStringArray(lastMatch.homePlayerIds);
-	const awayPlayerIds = parseStringArray(lastMatch.awayPlayerIds);
-	const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
+		const homePlayerIds = parseStringArray(lastMatch.homePlayerIds);
+		const awayPlayerIds = parseStringArray(lastMatch.awayPlayerIds);
+		const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
 
-	const now = new Date();
+		const now = new Date();
 
-	const playingSessionPlayers = await db
-		.select({ id: sessionPlayer.id })
-		.from(sessionPlayer)
-		.where(
-			and(
-				eq(sessionPlayer.sessionId, sessionId),
-				inArray(sessionPlayer.seasonPlayerId, allPlayingIds)
-			)
-		);
+		const playingSessionPlayers = await tx
+			.select({ id: sessionPlayer.id })
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, allPlayingIds)
+				)
+			);
 
-	const playingIds = playingSessionPlayers.map((p) => p.id);
-	if (playingIds.length > 0) {
-		await db
-			.update(sessionPlayer)
-			.set({
-				gamesPlayedThisSession: sql`MAX(0, ${sessionPlayer.gamesPlayedThisSession} - 1)`,
-				updatedAt: now,
-			})
-			.where(inArray(sessionPlayer.id, playingIds));
-	}
+		const playingIds = playingSessionPlayers.map((p) => p.id);
+		if (playingIds.length > 0) {
+			await tx
+				.update(sessionPlayer)
+				.set({
+					gamesPlayedThisSession: sql`MAX(0, ${sessionPlayer.gamesPlayedThisSession} - 1)`,
+					updatedAt: now,
+				})
+				.where(inArray(sessionPlayer.id, playingIds));
+		}
 
-	await db.delete(sessionCoinToss).where(eq(sessionCoinToss.sessionMatchId, lastMatch.id));
+		await tx.delete(sessionCoinToss).where(eq(sessionCoinToss.sessionMatchId, lastMatch.id));
 
-	await db.delete(sessionMatch).where(eq(sessionMatch.id, lastMatch.id));
+		await tx.delete(sessionMatch).where(eq(sessionMatch.id, lastMatch.id));
 
-	await recalcConsecutiveGames(db, sessionId);
+		await recalcConsecutiveGames(tx, sessionId);
 
-	const players = await db
-		.select()
-		.from(sessionPlayer)
-		.where(eq(sessionPlayer.sessionId, sessionId))
-		.orderBy(asc(sessionPlayer.queuePosition));
+		const players = await tx
+			.select()
+			.from(sessionPlayer)
+			.where(eq(sessionPlayer.sessionId, sessionId))
+			.orderBy(asc(sessionPlayer.queuePosition));
 
-	return { deletedMatch: lastMatch, players };
+		return { deletedMatch: lastMatch, players };
+	});
 };
 
-async function recalcConsecutiveGames(db: DrizzleDB, sessionId: string) {
+export async function updateMatchScore({
+	db,
+	sessionId,
+	sessionMatchId,
+	homeScore,
+	awayScore,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	sessionMatchId: string;
+	homeScore: number;
+	awayScore: number;
+}) {
+	const [updated] = await db
+		.update(sessionMatch)
+		.set({ homeSessionScore: homeScore, awaySessionScore: awayScore })
+		.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)))
+		.returning({
+			id: sessionMatch.id,
+			homeSessionScore: sessionMatch.homeSessionScore,
+			awaySessionScore: sessionMatch.awaySessionScore,
+		});
+
+	return updated;
+}
+
+export async function updateTeamSelection({
+	db,
+	sessionId,
+	sessionMatchId,
+	selectedHomePlayerIds,
+	selectedAwayPlayerIds,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	sessionMatchId: string;
+	selectedHomePlayerIds: string[];
+	selectedAwayPlayerIds: string[];
+}) {
+	const [updated] = await db
+		.update(sessionMatch)
+		.set({
+			selectedHomePlayerIds: JSON.stringify(selectedHomePlayerIds),
+			selectedAwayPlayerIds: JSON.stringify(selectedAwayPlayerIds),
+		})
+		.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)))
+		.returning({
+			id: sessionMatch.id,
+			selectedHomePlayerIds: sessionMatch.selectedHomePlayerIds,
+			selectedAwayPlayerIds: sessionMatch.selectedAwayPlayerIds,
+		});
+
+	return updated;
+}
+
+export async function updateProposedLineup({
+	db,
+	sessionId,
+	proposedLineup,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	proposedLineup: {
+		homePlayerIds: string[];
+		awayPlayerIds: string[];
+		rotatedOut: string[];
+		coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+		selectedHomePlayerIds?: string[];
+		selectedAwayPlayerIds?: string[];
+	} | null;
+}) {
+	const [updated] = await db
+		.update(gameSession)
+		.set({
+			proposedLineup: proposedLineup ? JSON.stringify(proposedLineup) : null,
+		})
+		.where(eq(gameSession.id, sessionId))
+		.returning({
+			id: gameSession.id,
+			proposedLineup: gameSession.proposedLineup,
+		});
+
+	return updated;
+}
+
+async function recalcConsecutiveGames(db: DrizzleDB | TransactionClient, sessionId: string) {
 	const completedMatches = await db
 		.select()
 		.from(sessionMatch)

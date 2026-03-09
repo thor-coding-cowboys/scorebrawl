@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient, useTRPC, type AnyTRPC } from "@/lib/trpc";
 import { Header } from "@/components/layout/header";
@@ -28,9 +28,14 @@ import {
 	ArrowTurnBackwardIcon,
 	Delete02Icon,
 } from "@hugeicons/core-free-icons";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug, debounce } from "@/lib/utils";
 import { toast } from "sonner";
-import type { SessionEventDetail } from "@/lib/event-types";
+import type {
+	SessionEventDetail,
+	ScoreUpdateDetail,
+	TeamSelectionUpdateDetail,
+	ProposedLineupUpdateDetail,
+} from "@/lib/event-types";
 import { OverviewCard } from "../../../-components/season/overview-card";
 import {
 	fisherYatesShuffle,
@@ -56,6 +61,8 @@ export const Route = createFileRoute(
 )({
 	component: SessionLivePage,
 });
+
+const SSE_DEBOUNCE_THRESHOLD_MS = 500;
 
 function SessionLivePage() {
 	const { slug, seasonSlug, sessionId } = Route.useParams();
@@ -90,17 +97,90 @@ function SessionLivePage() {
 	const [showCoinToss, setShowCoinToss] = useState(false);
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
 	const [showPlayerDrawer, setShowPlayerDrawer] = useState(false);
+	const [showUndoDialog, setShowUndoDialog] = useState(false);
 
 	const [teamAssignment, setTeamAssignment] = useState<PlayerWithTeam[]>([]);
+
+	const lastLocalChangeRef = useRef<number>(0);
+	const lastLocalTeamChangeRef = useRef<number>(0);
+
+	const allMatches = session?.matches ?? [];
+	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
+	const currentMatchRef = useRef(currentMatch);
+	currentMatchRef.current = currentMatch;
+
+	const currentMatchId = currentMatch?.id ?? null;
+	const prevMatchIdRef = useRef<string | null>(currentMatchId);
+	if (currentMatchId !== prevMatchIdRef.current) {
+		prevMatchIdRef.current = currentMatchId;
+		setHomeScore(currentMatch?.homeSessionScore ?? 0);
+		setAwayScore(currentMatch?.awaySessionScore ?? 0);
+	}
+
+	const updateHomeScore = (updater: (prev: number) => number) => {
+		lastLocalChangeRef.current = Date.now();
+		setHomeScore(updater);
+	};
+
+	const updateAwayScore = (updater: (prev: number) => number) => {
+		lastLocalChangeRef.current = Date.now();
+		setAwayScore(updater);
+	};
 
 	useEffect(() => {
 		if (!session) return;
 		setTeamAssignment((prev) => {
 			const existingIds = new Set(prev.map((p) => p.id));
+			const currentMatch = session.matches.find((m) => m.result === null);
+
+			if (currentMatch) {
+				const useSelected = !!currentMatch.selectedHomePlayerIds?.length;
+				const homeIds = useSelected
+					? currentMatch.selectedHomePlayerIds!
+					: currentMatch.homePlayerIds;
+				const awayIds = useSelected
+					? currentMatch.selectedAwayPlayerIds!
+					: currentMatch.awayPlayerIds;
+				const merged = session.players.map((p) => {
+					const existing = prev.find((e) => e.id === p.id);
+					const key = useSelected ? p.id : p.seasonPlayerId;
+					const team: TeamAssignment = homeIds.includes(key)
+						? "home"
+						: awayIds.includes(key)
+							? "away"
+							: undefined;
+					return existing ? { ...existing, ...p, team } : { ...p, team };
+				});
+				return merged;
+			}
+
+			if (session.proposedLineup && !currentMatch) {
+				const homeIds = session.proposedLineup.selectedHomePlayerIds?.length
+					? session.proposedLineup.selectedHomePlayerIds
+					: session.proposedLineup.homePlayerIds;
+				const awayIds = session.proposedLineup.selectedAwayPlayerIds?.length
+					? session.proposedLineup.selectedAwayPlayerIds
+					: session.proposedLineup.awayPlayerIds;
+				if (homeIds.length || awayIds.length) {
+					const merged = session.players.map((p) => {
+						const existing = prev.find((e) => e.id === p.id);
+						const team: TeamAssignment = homeIds.includes(p.id)
+							? "home"
+							: awayIds.includes(p.id)
+								? "away"
+								: undefined;
+						return existing ? { ...existing, ...p, team } : { ...p, team };
+					});
+					return merged;
+				}
+			}
+
+			// Default: Just merge player data without changing teams
 			const merged = session.players.map((p) => {
 				const existing = prev.find((e) => e.id === p.id);
 				return existing ? { ...existing, ...p } : { ...p, team: undefined as TeamAssignment };
 			});
+
 			if (
 				prev.length === 0 ||
 				prev.some((p) => !session.players.find((sp) => sp.id === p.id)) ||
@@ -115,20 +195,6 @@ function SessionLivePage() {
 		});
 	}, [session]);
 
-	useEffect(() => {
-		if (!proposedLineup || !session) return;
-		setTeamAssignment(
-			session.players.map((p) => {
-				let team: TeamAssignment = undefined;
-				if (proposedLineup.homePlayerIds.includes(p.id)) team = "home";
-				else if (proposedLineup.awayPlayerIds.includes(p.id)) team = "away";
-				return { ...p, team };
-			})
-		);
-	}, [proposedLineup, session]);
-
-	const allMatches = session?.matches ?? [];
-	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
 	const pendingCoinToss = session?.pendingCoinTosses?.[0] ?? null;
 	const coinTossActive = !!pendingCoinToss;
 	const coinTossCandidates =
@@ -137,6 +203,149 @@ function SessionLivePage() {
 	const homePlayers = teamAssignment.filter((p) => p.team === "home");
 	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
 	const teamsBalanced = homePlayers.length === awayPlayers.length && homePlayers.length > 0;
+
+	useEffect(() => {
+		const handler = (e: CustomEvent<ScoreUpdateDetail>) => {
+			const detail = e.detail;
+			const match = currentMatchRef.current;
+			if (detail.sessionId === sessionId && match?.id === detail.sessionMatchId) {
+				const timeSinceLocalChange = Date.now() - lastLocalChangeRef.current;
+				if (timeSinceLocalChange > SSE_DEBOUNCE_THRESHOLD_MS) {
+					setHomeScore(detail.homeScore);
+					setAwayScore(detail.awayScore);
+				}
+			}
+		};
+		window.addEventListener("score-update", handler);
+		return () => window.removeEventListener("score-update", handler);
+	}, [sessionId]);
+
+	const updateMatchScore = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			sessionMatchId: string;
+			homeScore: number;
+			awayScore: number;
+		}) => client.session.updateMatchScore.mutate(input),
+	});
+	const updateMatchScoreRef = useRef(updateMatchScore);
+	updateMatchScoreRef.current = updateMatchScore;
+
+	const debouncedUpdateScore = useMemo(
+		() =>
+			debounce((home: number, away: number) => {
+				const match = currentMatchRef.current;
+				if (!match) return;
+				updateMatchScoreRef.current.mutate({
+					sessionId,
+					sessionMatchId: match.id,
+					homeScore: home,
+					awayScore: away,
+				});
+			}, 300),
+		[sessionId]
+	);
+
+	useEffect(() => {
+		if (!currentMatchRef.current) return;
+		debouncedUpdateScore(homeScore, awayScore);
+		return () => debouncedUpdateScore.cancel();
+	}, [homeScore, awayScore, debouncedUpdateScore]);
+
+	useEffect(() => {
+		const handler = (e: CustomEvent<TeamSelectionUpdateDetail>) => {
+			const detail = e.detail;
+			const match = currentMatchRef.current;
+			if (detail.sessionId === sessionId && match?.id === detail.sessionMatchId) {
+				const timeSinceLocalChange = Date.now() - lastLocalTeamChangeRef.current;
+				if (timeSinceLocalChange > SSE_DEBOUNCE_THRESHOLD_MS) {
+					setTeamAssignment((prev) =>
+						prev.map((p) => {
+							const isHome = detail.selectedHomePlayerIds.includes(p.id);
+							const isAway = detail.selectedAwayPlayerIds.includes(p.id);
+							return { ...p, team: isHome ? "home" : isAway ? "away" : undefined };
+						})
+					);
+				}
+			}
+		};
+		window.addEventListener("team-selection-update", handler);
+		return () => window.removeEventListener("team-selection-update", handler);
+	}, [sessionId]);
+
+	useEffect(() => {
+		const handler = (e: CustomEvent<ProposedLineupUpdateDetail>) => {
+			const detail = e.detail;
+			const match = currentMatchRef.current;
+			if (detail.sessionId === sessionId && !match) {
+				const timeSinceLocalChange = Date.now() - lastLocalTeamChangeRef.current;
+				if (timeSinceLocalChange > SSE_DEBOUNCE_THRESHOLD_MS) {
+					setProposedLineup(detail.proposedLineup);
+					setTeamAssignment((prev) =>
+						prev.map((p) => {
+							const isHome = detail.proposedLineup.selectedHomePlayerIds.includes(p.id);
+							const isAway = detail.proposedLineup.selectedAwayPlayerIds.includes(p.id);
+							return { ...p, team: isHome ? "home" : isAway ? "away" : undefined };
+						})
+					);
+				}
+			}
+		};
+		window.addEventListener("proposed-lineup-update", handler);
+		return () => window.removeEventListener("proposed-lineup-update", handler);
+	}, [sessionId]);
+
+	const updateTeamSelection = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			sessionMatchId: string;
+			selectedHomePlayerIds: string[];
+			selectedAwayPlayerIds: string[];
+		}) => client.session.updateTeamSelection.mutate(input),
+	});
+
+	const updateProposedLineup = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			proposedLineup: {
+				homePlayerIds: string[];
+				awayPlayerIds: string[];
+				rotatedOut: string[];
+				coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+				selectedHomePlayerIds: string[];
+				selectedAwayPlayerIds: string[];
+			};
+		}) => client.session.updateProposedLineup.mutate(input),
+	});
+
+	const saveTeamSelection = () => {
+		const homeIds = teamAssignment.filter((p) => p.team === "home").map((p) => p.id);
+		const awayIds = teamAssignment.filter((p) => p.team === "away").map((p) => p.id);
+
+		if (currentMatch && currentMatch.result === null) {
+			updateTeamSelection.mutate({
+				sessionId,
+				sessionMatchId: currentMatch.id,
+				selectedHomePlayerIds: homeIds,
+				selectedAwayPlayerIds: awayIds,
+			});
+		} else {
+			const currentProposed = proposedLineup || {
+				homePlayerIds: [],
+				awayPlayerIds: [],
+				rotatedOut: [],
+				coinTossNeeded: null,
+			};
+			updateProposedLineup.mutate({
+				sessionId,
+				proposedLineup: {
+					...currentProposed,
+					selectedHomePlayerIds: homeIds,
+					selectedAwayPlayerIds: awayIds,
+				},
+			});
+		}
+	};
 
 	const startNextMatch = useMutation({
 		mutationFn: (input: {
@@ -285,12 +494,14 @@ function SessionLivePage() {
 			queryClient.invalidateQueries({
 				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
 			});
+			setShowUndoDialog(false);
 			toast.success("Last match deleted");
 		},
 		onError: () => toast.error("Failed to delete last match"),
 	});
 
 	const handlePlayerSelect = (player: PlayerWithTeam, team: "home" | "away") => {
+		lastLocalTeamChangeRef.current = Date.now();
 		setTeamAssignment((prev) =>
 			prev.map((p) => {
 				if (p.id !== player.id) return p;
@@ -301,6 +512,7 @@ function SessionLivePage() {
 
 	const handleShuffle = () => {
 		if (!session) return;
+		lastLocalTeamChangeRef.current = Date.now();
 		const available = session.players.filter((p) => p.status !== "out");
 		const shuffled = fisherYatesShuffle(available);
 		const rawHome = shuffled.slice(0, session.teamSize).map((p) => p.id);
@@ -323,6 +535,7 @@ function SessionLivePage() {
 
 	const handleEven = () => {
 		if (!session) return;
+		lastLocalTeamChangeRef.current = Date.now();
 		const available = session.players.filter((p) => p.status !== "out");
 		const sorted = [...available].sort((a, b) => b.score - a.score);
 		const rawHome: string[] = [];
@@ -356,6 +569,7 @@ function SessionLivePage() {
 
 	const handleRotation = () => {
 		if (!session) return;
+		lastLocalTeamChangeRef.current = Date.now();
 		if (
 			proposedLineup &&
 			(proposedLineup.homePlayerIds.length > 0 || proposedLineup.awayPlayerIds.length > 0)
@@ -528,14 +742,14 @@ function SessionLivePage() {
 											<ScoreStepper
 												label="Home"
 												score={homeScore}
-												onIncrement={() => setHomeScore((s) => s + 1)}
-												onDecrement={() => setHomeScore((s) => Math.max(0, s - 1))}
+												onIncrement={() => updateHomeScore((s) => s + 1)}
+												onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
 											/>
 											<ScoreStepper
 												label="Away"
 												score={awayScore}
-												onIncrement={() => setAwayScore((s) => s + 1)}
-												onDecrement={() => setAwayScore((s) => Math.max(0, s - 1))}
+												onIncrement={() => updateAwayScore((s) => s + 1)}
+												onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
 											/>
 										</div>
 									</div>
@@ -615,7 +829,7 @@ function SessionLivePage() {
 											{startNextMatch.isPending ? "Starting..." : "Start Match"}
 										</GlowButton>
 										{allMatches.some((m) => m.result !== null) && (
-											<AlertDialog>
+											<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
 												<AlertDialogTrigger
 													render={
 														<Button
@@ -641,9 +855,10 @@ function SessionLivePage() {
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
 															onClick={() => deleteLastMatch.mutate()}
+															disabled={deleteLastMatch.isPending}
 															className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 														>
-															Undo Match
+															{deleteLastMatch.isPending ? "Deleting..." : "Undo Match"}
 														</AlertDialogAction>
 													</AlertDialogFooter>
 												</AlertDialogContent>
@@ -694,7 +909,10 @@ function SessionLivePage() {
 			{canSelectTeam && (
 				<PlayerSelectionDrawer
 					isOpen={showPlayerDrawer}
-					onClose={() => setShowPlayerDrawer(false)}
+					onClose={() => {
+						saveTeamSelection();
+						setShowPlayerDrawer(false);
+					}}
 					session={session}
 					teamAssignment={teamAssignment}
 					onSelect={handlePlayerSelect}
