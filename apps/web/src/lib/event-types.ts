@@ -1,6 +1,7 @@
 export interface SessionEventDetail {
 	type: "session:start" | "session:update" | "session:end";
 	sessionId?: string;
+	userName?: string;
 }
 
 export interface StreakEventDetail {

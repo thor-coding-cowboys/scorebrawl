@@ -79,16 +79,24 @@ function SessionLivePage() {
 	useEffect(() => {
 		const handler = (e: CustomEvent<SessionEventDetail>) => {
 			const detail = e.detail;
-			if (
-				(detail.type === "session:update" || detail.type === "session:end") &&
-				detail.sessionId === sessionId
-			) {
+			if (detail.type === "session:end" && detail.sessionId === sessionId) {
+				if (detail.userName) {
+					toast.info(`Session ended by ${detail.userName}`);
+				}
+				navigate({
+					to: "/leagues/$slug/seasons/$seasonSlug",
+					params: { slug, seasonSlug },
+					replace: true,
+				});
+				return;
+			}
+			if (detail.type === "session:update" && detail.sessionId === sessionId) {
 				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
 			}
 		};
 		window.addEventListener("session-event", handler);
 		return () => window.removeEventListener("session-event", handler);
-	}, [sessionId, queryClient]);
+	}, [sessionId, queryClient, navigate, slug, seasonSlug]);
 
 	const [proposedLineup, setProposedLineup] = useState<ProposedLineup>(null);
 	const [pendingCoinTossId, setPendingCoinTossId] = useState<string | null>(null);
@@ -100,9 +108,11 @@ function SessionLivePage() {
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
 
 	const [teamAssignment, setTeamAssignment] = useState<PlayerWithTeam[]>([]);
+	const [isShuffling, setIsShuffling] = useState(false);
 
 	const lastLocalChangeRef = useRef<number>(0);
 	const lastLocalTeamChangeRef = useRef<number>(0);
+	const shuffleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	const allMatches = session?.matches ?? [];
 	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
@@ -253,6 +263,12 @@ function SessionLivePage() {
 	}, [homeScore, awayScore, debouncedUpdateScore]);
 
 	useEffect(() => {
+		return () => {
+			if (shuffleTimeoutRef.current) clearTimeout(shuffleTimeoutRef.current);
+		};
+	}, []);
+
+	useEffect(() => {
 		const handler = (e: CustomEvent<TeamSelectionUpdateDetail>) => {
 			const detail = e.detail;
 			const match = currentMatchRef.current;
@@ -392,18 +408,24 @@ function SessionLivePage() {
 				const label = conflictType === "draw-tiebreak" ? "Draw tiebreak" : "Displacement tie";
 				toast.info(`${label} resolved: ${winnerNames.join(", ")} won the coin toss`);
 				if (session?.autoRandomize && res.proposedLineup) {
-					applyRandomizedLineup(res.proposedLineup);
+					triggerShuffleAnimation(() => applyRandomizedLineup(res.proposedLineup!));
+				} else if (res.proposedLineup) {
+					triggerShuffleAnimation(() => setProposedLineup(res.proposedLineup));
 				} else {
-					setProposedLineup(res.proposedLineup);
+					setProposedLineup(null);
 				}
 			} else if (res.proposedLineup?.coinTossNeeded) {
-				setProposedLineup(res.proposedLineup);
-				setPendingCoinTossId(res.coinTossId);
-				setShowCoinToss(true);
+				triggerShuffleAnimation(() => {
+					setProposedLineup(res.proposedLineup);
+					setPendingCoinTossId(res.coinTossId);
+					setShowCoinToss(true);
+				});
 			} else if (session?.autoRandomize && res.proposedLineup) {
-				applyRandomizedLineup(res.proposedLineup);
+				triggerShuffleAnimation(() => applyRandomizedLineup(res.proposedLineup!));
+			} else if (res.proposedLineup) {
+				triggerShuffleAnimation(() => setProposedLineup(res.proposedLineup));
 			} else {
-				setProposedLineup(res.proposedLineup);
+				setProposedLineup(null);
 			}
 		},
 		onError: () => toast.error("Failed to record result"),
@@ -431,6 +453,16 @@ function SessionLivePage() {
 				team: homeSet.has(p.id) ? "home" : awaySet.has(p.id) ? "away" : undefined,
 			}))
 		);
+	};
+
+	const triggerShuffleAnimation = (onComplete: () => void) => {
+		if (shuffleTimeoutRef.current) clearTimeout(shuffleTimeoutRef.current);
+		setIsShuffling(true);
+		setTeamAssignment((prev) => prev.map((p) => ({ ...p, team: undefined })));
+		shuffleTimeoutRef.current = setTimeout(() => {
+			setIsShuffling(false);
+			onComplete();
+		}, 600);
 	};
 
 	const resolveCoinToss = useMutation({
@@ -798,11 +830,15 @@ function SessionLivePage() {
 											label="Home"
 											players={homePlayers}
 											emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+											isShuffling={isShuffling}
+											expectedPlayerCount={session.teamSize}
 										/>
 										<TeamRosterCard
 											label="Away"
 											players={awayPlayers}
 											emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+											isShuffling={isShuffling}
+											expectedPlayerCount={session.teamSize}
 										/>
 									</div>
 
