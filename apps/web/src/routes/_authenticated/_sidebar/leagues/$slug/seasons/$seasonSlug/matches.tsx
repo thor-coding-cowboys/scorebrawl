@@ -15,6 +15,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
+import { truncateSlug } from "@/lib/utils";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
@@ -32,11 +33,6 @@ export const Route = createFileRoute(
 		return { slug: params.slug, seasonSlug };
 	},
 });
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 const PAGE_SIZE = 30;
 

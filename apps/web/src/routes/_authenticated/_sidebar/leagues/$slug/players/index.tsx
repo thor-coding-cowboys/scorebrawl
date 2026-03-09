@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { authClient } from "@/lib/auth-client";
+import { truncateSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 
@@ -38,11 +39,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/pla
 		return { slug: params.slug };
 	},
 });
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 type Player = {
 	id: string;
@@ -563,7 +559,7 @@ function PlayersPage() {
 											title={
 												<span className="flex items-center gap-2">
 													{name}
-													{player.isGuest && (
+													{!!player.isGuest && (
 														<Badge variant="secondary" className="text-[10px] px-1.5 py-0">
 															Guest
 														</Badge>
@@ -586,7 +582,7 @@ function PlayersPage() {
 										>
 											{canManagePlayers && (
 												<>
-													{player.isGuest && (
+													{!!player.isGuest && (
 														<Button
 															variant="ghost"
 															size="sm"

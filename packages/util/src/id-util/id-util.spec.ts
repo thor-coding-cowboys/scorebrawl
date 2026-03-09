@@ -76,6 +76,10 @@ describe("id-util", () => {
 				leaguePlayer: "lp",
 				fixture: "fxtr",
 				leagueTeam: "orgt",
+				gameSession: "gsess",
+				sessionPlayer: "sesp",
+				sessionMatch: "sm",
+				coinToss: "ct",
 			});
 		});
 	});

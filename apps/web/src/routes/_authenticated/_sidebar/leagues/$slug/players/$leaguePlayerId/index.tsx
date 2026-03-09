@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
+import { truncateSlug } from "@/lib/utils";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
@@ -35,11 +36,6 @@ export const Route = createFileRoute(
 		return { slug: params.slug, leaguePlayerId: params.leaguePlayerId };
 	},
 });
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 const seasonHistoryConfig = {
 	score: {

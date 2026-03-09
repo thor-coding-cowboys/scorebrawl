@@ -25,3 +25,6 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 });
 
 export type TRPCClient = typeof trpcClient;
+
+// biome-ignore lint: escape hatch for tRPC route type inference gaps in Cloudflare Workers
+export type AnyTRPC = any;

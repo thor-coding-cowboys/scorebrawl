@@ -15,23 +15,8 @@ CREATE TABLE `__new_player` (
 );
 --> statement-breakpoint
 INSERT INTO `__new_player`(`id`, `user_id`, `guest_id`, `league_id`, `disabled`, `created_at`, `updated_at`, `deleted_at`) SELECT `id`, `user_id`, `guest_id`, `league_id`, `disabled`, `created_at`, `updated_at`, `deleted_at` FROM `player`;--> statement-breakpoint
-CREATE TABLE `__backup_match_player` AS SELECT * FROM `match_player`;--> statement-breakpoint
-CREATE TABLE `__backup_fixture` AS SELECT * FROM `fixture`;--> statement-breakpoint
-CREATE TABLE `__backup_season_player` AS SELECT * FROM `season_player`;--> statement-breakpoint
-CREATE TABLE `__backup_league_team_player` AS SELECT * FROM `league_team_player`;--> statement-breakpoint
-CREATE TABLE `__backup_player_achievement` AS SELECT * FROM `player_achievement`;--> statement-breakpoint
 DROP TABLE `player`;--> statement-breakpoint
 ALTER TABLE `__new_player` RENAME TO `player`;--> statement-breakpoint
-INSERT OR IGNORE INTO `league_team_player` SELECT * FROM `__backup_league_team_player`;--> statement-breakpoint
-INSERT OR IGNORE INTO `player_achievement` SELECT * FROM `__backup_player_achievement`;--> statement-breakpoint
-INSERT OR IGNORE INTO `season_player` SELECT * FROM `__backup_season_player`;--> statement-breakpoint
-INSERT OR IGNORE INTO `fixture` SELECT * FROM `__backup_fixture`;--> statement-breakpoint
-INSERT OR IGNORE INTO `match_player` SELECT * FROM `__backup_match_player`;--> statement-breakpoint
-DROP TABLE `__backup_match_player`;--> statement-breakpoint
-DROP TABLE `__backup_fixture`;--> statement-breakpoint
-DROP TABLE `__backup_season_player`;--> statement-breakpoint
-DROP TABLE `__backup_league_team_player`;--> statement-breakpoint
-DROP TABLE `__backup_player_achievement`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
 CREATE UNIQUE INDEX `player_organization_user_uidx` ON `player` (`league_id`,`user_id`) WHERE "player"."user_id" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX `player_organization_guest_uidx` ON `player` (`league_id`,`guest_id`) WHERE "player"."guest_id" IS NOT NULL;--> statement-breakpoint

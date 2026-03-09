@@ -20,6 +20,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
+import { truncateSlug } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CreateSeasonForm } from "./-components/seasons/create-season-form";
 import { EditSeasonForm } from "./-components/seasons/edit-season-form";
@@ -33,11 +34,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 });
 
 type Season = RouterOutput["season"]["getAll"][number];
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 function formatDate(date: Date) {
 	return new Date(date).toLocaleDateString("en-US", {

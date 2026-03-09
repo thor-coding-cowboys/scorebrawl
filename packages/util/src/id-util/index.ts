@@ -14,6 +14,10 @@ const prefixes = {
 	leaguePlayer: "lp",
 	fixture: "fxtr",
 	leagueTeam: "orgt",
+	gameSession: "gsess",
+	sessionPlayer: "sesp",
+	sessionMatch: "sm",
+	coinToss: "ct",
 } as const;
 
 export const newId = (prefix: keyof typeof prefixes): string => {

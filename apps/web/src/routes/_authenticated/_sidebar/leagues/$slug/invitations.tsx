@@ -32,6 +32,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RowCard } from "@/components/ui/row-card";
+import { truncateSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/invitations")({
 	component: InvitationsPage,
@@ -76,11 +77,6 @@ const roleConfig = {
 		description: "Read-only access to content",
 	},
 } as const;
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 function InvitationsPage() {
 	const { slug } = Route.useLoaderData();

@@ -1,14 +1,7 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../middleware/context";
 
-type SSEEnv = {
-	Bindings: HonoEnv["Bindings"] & {
-		SEASON_SSE: DurableObjectNamespace;
-	};
-	Variables: HonoEnv["Variables"];
-};
-
-export const sseRouter = new Hono<SSEEnv>().get("/:leagueSlug/:seasonSlug", async (c) => {
+export const sseRouter = new Hono<HonoEnv>().get("/:leagueSlug/:seasonSlug", async (c) => {
 	const { leagueSlug, seasonSlug } = c.req.param();
 
 	const doId = c.env.SEASON_SSE.idFromName(`${leagueSlug}/${seasonSlug}`);
@@ -21,7 +14,7 @@ export const sseRouter = new Hono<SSEEnv>().get("/:leagueSlug/:seasonSlug", asyn
 });
 
 export async function broadcastSeasonEvent(
-	env: { SEASON_SSE: DurableObjectNamespace },
+	env: Pick<Env, "SEASON_SSE">,
 	leagueSlug: string,
 	seasonSlug: string,
 	event: { type: string; data: unknown; user?: { id: string; name: string } }

@@ -96,7 +96,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 
 			if (data) {
 				await invalidateSession();
-				navigate({ to: callbackURL || "/" });
+				navigate({ to: callbackURL || "/" } as never);
 			} else {
 				setApiError("Failed to sign in. Please try again.");
 			}
@@ -188,7 +188,7 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 
 			if (data) {
 				await invalidateSession();
-				navigate({ to: callbackURL || "/" });
+				navigate({ to: callbackURL || "/" } as never);
 			} else {
 				setApiError("Failed to sign in with passkey. Please try again.");
 				setIsPasskeyLoading(false);

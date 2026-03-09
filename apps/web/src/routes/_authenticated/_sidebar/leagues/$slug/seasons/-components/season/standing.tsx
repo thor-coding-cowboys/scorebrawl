@@ -17,12 +17,14 @@ import { useNavigate } from "@tanstack/react-router";
 interface StandingProps {
 	seasonSlug: string;
 	leagueSlug?: string;
+	highlightPlayerIds?: Set<string>;
 }
 
 function MobileStandingRow({
 	item,
 	leagueSlug,
 	onClick,
+	dimmed,
 }: {
 	item: {
 		id: string;
@@ -37,6 +39,7 @@ function MobileStandingRow({
 	};
 	leagueSlug?: string;
 	onClick?: () => void;
+	dimmed?: boolean;
 }) {
 	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
 	const streak = calculateStreak(item.form);
@@ -45,7 +48,8 @@ function MobileStandingRow({
 		<div
 			className={cn(
 				"flex items-center gap-2 bg-card px-1 py-3",
-				leagueSlug && "cursor-pointer hover:bg-muted/50"
+				leagueSlug && "cursor-pointer hover:bg-muted/50",
+				dimmed && "opacity-40"
 			)}
 			onClick={onClick}
 			data-testid={`standing-row-${item.id}`}
@@ -87,7 +91,7 @@ function MobileStandingRow({
 	);
 }
 
-export function Standing({ seasonSlug, leagueSlug }: StandingProps) {
+export function Standing({ seasonSlug, leagueSlug, highlightPlayerIds }: StandingProps) {
 	const { standings } = useStandings(seasonSlug);
 	const navigate = useNavigate();
 
@@ -117,6 +121,7 @@ export function Standing({ seasonSlug, leagueSlug }: StandingProps) {
 						key={item.id}
 						item={item}
 						leagueSlug={leagueSlug}
+						dimmed={highlightPlayerIds ? !highlightPlayerIds.has(item.id) : false}
 						onClick={
 							leagueSlug
 								? () =>
@@ -149,10 +154,15 @@ export function Standing({ seasonSlug, leagueSlug }: StandingProps) {
 					<TableBody className="text-sm">
 						{sortedData.map((item) => {
 							const streak = calculateStreak(item.form);
+							const isDimmed = highlightPlayerIds ? !highlightPlayerIds.has(item.id) : false;
 							return (
 								<TableRow
 									key={item.id}
-									className={cn("h-14", leagueSlug && "cursor-pointer hover:bg-muted/50")}
+									className={cn(
+										"h-14",
+										leagueSlug && "cursor-pointer hover:bg-muted/50",
+										isDimmed && "opacity-40"
+									)}
 									data-testid={`standing-row-${item.id}`}
 									onClick={
 										leagueSlug

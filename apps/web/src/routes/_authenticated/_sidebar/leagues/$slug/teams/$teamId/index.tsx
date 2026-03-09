@@ -23,6 +23,7 @@ import { LogoUpload } from "@/components/ui/logo-upload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { trpcClient, useTRPC } from "@/lib/trpc";
+import { truncateSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -52,11 +53,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/tea
 		return { slug: params.slug, teamId: params.teamId };
 	},
 });
-
-function truncateSlug(slug: string, maxLength = 10): string {
-	if (slug.length <= maxLength) return slug;
-	return `${slug.slice(0, maxLength)}...`;
-}
 
 // Helper to construct asset URL from key
 const getAssetUrl = (key: string | null | undefined): string | null => {

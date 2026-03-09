@@ -2,9 +2,18 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
+import "@/lib/event-types";
 
 export interface SeasonSSEEvent {
-	type: "connected" | "match:insert" | "match:delete" | "standings:update" | "streak";
+	type:
+		| "connected"
+		| "match:insert"
+		| "match:delete"
+		| "standings:update"
+		| "streak"
+		| "session:start"
+		| "session:update"
+		| "session:end";
 	sessionId?: string;
 	user?: {
 		id: string;
@@ -41,6 +50,8 @@ export interface SeasonSSEEvent {
 		streak?: number;
 		timestamp?: number;
 		isTeam?: boolean;
+		sessionId?: string;
+		session?: { id: string };
 	};
 }
 
@@ -92,11 +103,8 @@ export function useSeasonSSE({
 					const parsed: SeasonSSEEvent = JSON.parse(event.data);
 
 					if (parsed.type === "connected") {
-						console.log("[SSE] Connected with sessionId:", parsed.sessionId);
 						return;
 					}
-
-					console.log("[SSE] Received event:", parsed.type);
 
 					const t = trpcRef.current;
 					const qc = queryClientRef.current;
@@ -115,6 +123,33 @@ export function useSeasonSSE({
 								},
 							})
 						);
+						return;
+					}
+
+					if (
+						parsed.type === "session:start" ||
+						parsed.type === "session:update" ||
+						parsed.type === "session:end"
+					) {
+						const sessionId =
+							parsed.data?.sessionId ?? parsed.data?.session?.id ?? parsed.sessionId;
+						window.dispatchEvent(
+							new CustomEvent("session-event", {
+								detail: { type: parsed.type, sessionId },
+							})
+						);
+
+						if (parsed.type === "session:update" || parsed.type === "session:end") {
+							qc.invalidateQueries({
+								queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+							});
+							qc.invalidateQueries({
+								queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
+							});
+							qc.invalidateQueries({
+								queryKey: t.match.getLatest.queryKey({ seasonSlug }),
+							});
+						}
 						return;
 					}
 
@@ -161,7 +196,6 @@ export function useSeasonSSE({
 			};
 
 			eventSource.onerror = () => {
-				console.log("[SSE] Connection error, reconnecting...");
 				eventSource.close();
 				eventSourceRef.current = null;
 

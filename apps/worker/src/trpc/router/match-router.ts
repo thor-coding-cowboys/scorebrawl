@@ -75,7 +75,7 @@ function buildStreakBroadcastEvents(
 }
 
 async function broadcastStreakEvents(
-	sseEnv: { SEASON_SSE: DurableObjectNamespace },
+	env: Pick<Env, "SEASON_SSE">,
 	leagueSlug: string,
 	seasonSlug: string,
 	streakPlayers: Array<{
@@ -94,7 +94,7 @@ async function broadcastStreakEvents(
 ) {
 	const events = buildStreakBroadcastEvents(streakPlayers, streakTeams, user);
 	await Promise.all(
-		events.map((event) => broadcastSeasonEvent(sseEnv, leagueSlug, seasonSlug, event))
+		events.map((event) => broadcastSeasonEvent(env, leagueSlug, seasonSlug, event))
 	);
 }
 
@@ -166,20 +166,17 @@ export const matchRouter = {
 				seasonId: season.id,
 			});
 
-			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
-			if (sseEnv.SEASON_SSE) {
-				await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
-					type: "match:insert",
-					data: {
-						match: createdMatch,
-						standings,
-					},
-					user: {
-						id: ctx.authentication.user.id,
-						name: ctx.authentication.user.name,
-					},
-				});
-			}
+			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+				type: "match:insert",
+				data: {
+					match: createdMatch,
+					standings,
+				},
+				user: {
+					id: ctx.authentication.user.id,
+					name: ctx.authentication.user.name,
+				},
+			});
 
 			const [streakPlayers, streakTeams] = await Promise.all([
 				matchRepository.checkStreakThresholds({
@@ -192,19 +189,17 @@ export const matchRouter = {
 				}),
 			]);
 
-			if (sseEnv.SEASON_SSE) {
-				await broadcastStreakEvents(
-					sseEnv,
-					ctx.organization.slug,
-					input.seasonSlug,
-					streakPlayers,
-					streakTeams,
-					{
-						id: ctx.authentication.user.id,
-						name: ctx.authentication.user.name,
-					}
-				);
-			}
+			await broadcastStreakEvents(
+				ctx.env,
+				ctx.organization.slug,
+				input.seasonSlug,
+				streakPlayers,
+				streakTeams,
+				{
+					id: ctx.authentication.user.id,
+					name: ctx.authentication.user.name,
+				}
+			);
 
 			// Dispatch achievement calculation
 			const seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];
@@ -289,20 +284,17 @@ export const matchRouter = {
 						seasonId: comp.id,
 					});
 
-					const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
-					if (sseEnv.SEASON_SSE) {
-						await broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
-							type: "match:insert",
-							data: {
-								match: createdMatch,
-								standings,
-							},
-							user: {
-								id: ctx.authentication.user.id,
-								name: ctx.authentication.user.name,
-							},
-						});
-					}
+					await broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+						type: "match:insert",
+						data: {
+							match: createdMatch,
+							standings,
+						},
+						user: {
+							id: ctx.authentication.user.id,
+							name: ctx.authentication.user.name,
+						},
+					});
 
 					const [streakPlayers, streakTeams] = await Promise.all([
 						matchRepository.checkStreakThresholds({
@@ -315,19 +307,17 @@ export const matchRouter = {
 						}),
 					]);
 
-					if (sseEnv.SEASON_SSE) {
-						await broadcastStreakEvents(
-							sseEnv,
-							ctx.organization.slug,
-							input.seasonSlug,
-							streakPlayers,
-							streakTeams,
-							{
-								id: ctx.authentication.user.id,
-								name: ctx.authentication.user.name,
-							}
-						);
-					}
+					await broadcastStreakEvents(
+						ctx.env,
+						ctx.organization.slug,
+						input.seasonSlug,
+						streakPlayers,
+						streakTeams,
+						{
+							id: ctx.authentication.user.id,
+							name: ctx.authentication.user.name,
+						}
+					);
 
 					// Dispatch achievement calculation
 					const seasonPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
@@ -358,20 +348,17 @@ export const matchRouter = {
 				seasonId: ctx.season.id,
 			});
 
-			const sseEnv = ctx.env as unknown as { SEASON_SSE: DurableObjectNamespace };
-			if (sseEnv.SEASON_SSE) {
-				broadcastSeasonEvent(sseEnv, ctx.organization.slug, input.seasonSlug, {
-					type: "match:delete",
-					data: {
-						matchId: input.matchId,
-						standings,
-					},
-					user: {
-						id: ctx.authentication.user.id,
-						name: ctx.authentication.user.name,
-					},
-				});
-			}
+			broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+				type: "match:delete",
+				data: {
+					matchId: input.matchId,
+					standings,
+				},
+				user: {
+					id: ctx.authentication.user.id,
+					name: ctx.authentication.user.name,
+				},
+			});
 
 			return { success: true };
 		}),

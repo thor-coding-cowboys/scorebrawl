@@ -8,9 +8,10 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 interface TeamStandingCardProps {
 	seasonSlug: string;
+	leagueSlug?: string;
 }
 
-export function TeamStandingCard({ seasonSlug }: TeamStandingCardProps) {
+export function TeamStandingCard({ seasonSlug, leagueSlug }: TeamStandingCardProps) {
 	const { standings } = useStandings(seasonSlug);
 	const { teamStandings } = useTeamStandings(seasonSlug);
 	const maxRows = standings.length;
@@ -51,6 +52,7 @@ export function TeamStandingCard({ seasonSlug }: TeamStandingCardProps) {
 		>
 			<TeamStanding
 				seasonSlug={seasonSlug}
+				leagueSlug={leagueSlug}
 				maxRows={maxRows}
 				currentPage={currentPage}
 				onPageChange={setCurrentPage}

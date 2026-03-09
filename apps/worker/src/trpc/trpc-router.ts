@@ -9,6 +9,7 @@ import { userRouter } from "./router/user-router";
 import { organizationRouter } from "./router/organization-router";
 import { seasonTeamRouter } from "./router/season-team-router";
 import { leagueTeamRouter } from "./router/league-team-router";
+import { sessionRouter } from "./router/session-router";
 import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
@@ -23,6 +24,7 @@ export const trpcRouter = createTRPCRouter({
 	match: matchRouter,
 	seasonPlayer: seasonPlayerRouter,
 	seasonTeam: seasonTeamRouter,
+	session: sessionRouter,
 });
 
 export type TRPCRouter = typeof trpcRouter;
