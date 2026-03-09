@@ -282,6 +282,7 @@ export const gameSession = sqliteTable(
 		alwaysSplitConstraints: text("always_split_constraints"),
 		autoRandomize: integer("auto_randomize", { mode: "boolean" }).default(false).notNull(),
 		autoCoinToss: integer("auto_coin_toss", { mode: "boolean" }).default(false).notNull(),
+		proposedLineup: text("proposed_lineup"),
 		endedAt: integer("ended_at", { mode: "timestamp" }),
 		...timestampAuditFields,
 	},
@@ -337,6 +338,10 @@ export const sessionMatch = sqliteTable(
 		homePlayerIds: text("home_player_ids").notNull(),
 		awayPlayerIds: text("away_player_ids").notNull(),
 		result: text("result", { enum: ["home", "away", "draw"] }),
+		homeSessionScore: integer("home_session_score").notNull().default(0),
+		awaySessionScore: integer("away_session_score").notNull().default(0),
+		selectedHomePlayerIds: text("selected_home_player_ids"),
+		selectedAwayPlayerIds: text("selected_away_player_ids"),
 		...timestampAuditFields,
 	},
 	(table) => [
