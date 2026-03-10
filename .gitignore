@@ -222,3 +222,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Garmin Connect IQ
+apps/garmin/build/
+apps/garmin/developer_key.pem
+apps/garmin/developer_key.der
