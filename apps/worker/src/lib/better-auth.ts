@@ -322,6 +322,12 @@ export function createAuth({
 			apiKey({
 				defaultPrefix: isProduction ? "sb_live" : "sb_dev",
 				enableMetadata: true,
+				enableSessionForAPIKeys: true,
+				rateLimit: {
+					enabled: true,
+					maxRequests: 10000,
+					timeWindow: 1000 * 60 * 60 * 24,
+				},
 			}),
 		],
 	});

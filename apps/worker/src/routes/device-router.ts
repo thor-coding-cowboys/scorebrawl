@@ -1,11 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { league, member, player, season, seasonPlayer, user } from "../db/schema";
+import { league, member, player, season, seasonPlayer, sessionCoinToss, user } from "../db/schema";
 import type { EnforcedAuthHonoEnv } from "../middleware/auth";
-import { create as createMatch } from "../repositories/match-repository";
+import {
+	create as createMatch,
+	checkStreakThresholds,
+	checkTeamStreakThresholds,
+} from "../repositories/match-repository";
+import * as sessionRepository from "../repositories/session-repository";
+import { computeNextLineup } from "../lib/session-rotation";
+import { broadcastSeasonEvent } from "./sse-router";
 import type { AchievementQueueMessage } from "../services/achievement-calculation";
 import type { AuthType } from "../middleware/context";
 
@@ -17,40 +25,26 @@ import type { AuthType } from "../middleware/context";
 const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
 	.use("*", async (c, next) => {
 		const betterAuth = c.get("betterAuth");
-		const db = c.get("db");
 		const apiKey = c.req.header("x-api-key");
 
 		if (!apiKey) {
 			throw new HTTPException(401, { message: "Missing API key" });
 		}
 
-		const result = await betterAuth.api.verifyApiKey({
-			body: { key: apiKey },
-		});
-
-		if (!result.valid || !result.key) {
+		let session;
+		try {
+			session = await betterAuth.api.getSession({
+				headers: new Headers({ "x-api-key": apiKey }),
+			});
+		} catch {
 			throw new HTTPException(401, { message: "Invalid API key" });
 		}
 
-		const userData = await db.select().from(user).where(eq(user.id, result.key.userId)).get();
-
-		if (!userData) {
-			throw new HTTPException(401, { message: "User not found" });
+		if (!session) {
+			throw new HTTPException(401, { message: "Invalid API key" });
 		}
 
-		c.set("authentication", {
-			user: userData,
-			session: {
-				id: result.key.id,
-				token: apiKey,
-				userId: result.key.userId,
-				expiresAt: result.key.expiresAt ?? new Date(Date.now() + 86400000),
-				createdAt: result.key.createdAt,
-				updatedAt: result.key.updatedAt,
-				ipAddress: null,
-				userAgent: c.req.header("user-agent") ?? null,
-			},
-		} as AuthType);
+		c.set("authentication", session as AuthType);
 
 		await next();
 	})
@@ -71,7 +65,7 @@ const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
 
 		return c.json({ leagues: userLeagues });
 	})
-	.get("/leagues/:leagueSlug/context", async (c) => {
+	.get("/leagues/:leagueSlug/context", async (c: Context<EnforcedAuthHonoEnv>) => {
 		const db = c.get("db");
 		const userId = c.get("authentication").user.id;
 		const { leagueSlug } = c.req.param();
@@ -108,7 +102,7 @@ const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
 			.from(season)
 			.where(and(eq(season.leagueId, leagueData.id), eq(season.archived, false)));
 
-		const activeSeason = seasons.find((s) => !s.closed) || seasons[0];
+		const activeSeason = seasons.find((s) => !s.closed) ?? null;
 
 		if (!activeSeason) {
 			return c.json({
@@ -150,6 +144,731 @@ const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
 				score: p.score,
 			})),
 		});
+	});
+
+async function resolveLeagueAndMembership(c: Context<EnforcedAuthHonoEnv>) {
+	const db = c.get("db");
+	const userId = c.get("authentication").user.id;
+	const leagueSlug = c.req.param("leagueSlug");
+
+	const leagueData = await db
+		.select({ id: league.id, name: league.name, slug: league.slug })
+		.from(league)
+		.where(eq(league.slug, leagueSlug))
+		.get();
+
+	if (!leagueData) {
+		throw new HTTPException(404, { message: "League not found" });
+	}
+
+	const memberData = await db
+		.select({ id: member.id })
+		.from(member)
+		.where(and(eq(member.organizationId, leagueData.id), eq(member.userId, userId)))
+		.get();
+
+	if (!memberData) {
+		throw new HTTPException(403, { message: "Not a member of this league" });
+	}
+
+	const seasons = await db
+		.select({
+			id: season.id,
+			name: season.name,
+			slug: season.slug,
+			closed: season.closed,
+			archived: season.archived,
+		})
+		.from(season)
+		.where(and(eq(season.leagueId, leagueData.id), eq(season.archived, false)));
+
+	const activeSeason = seasons.find((s) => !s.closed) ?? null;
+
+	return { leagueData, activeSeason, userId };
+}
+
+function formatSessionState(
+	fullSession: NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>,
+	seasonSlug: string
+) {
+	const currentMatch = fullSession.matches.find((m) => m.result === null);
+	const pendingCoinToss = fullSession.pendingCoinTosses[0] ?? null;
+
+	const playerNameMap = new Map(fullSession.players.map((p) => [p.id, p.displayName]));
+	const resolveNames = (ids: string[]) =>
+		ids.map((id) => ({ sessionPlayerId: id, name: playerNameMap.get(id) ?? "Unknown" }));
+
+	const resolveNamesFromSeasonPlayerIds = (seasonPlayerIds: string[]) =>
+		seasonPlayerIds.map((spId) => {
+			const sp = fullSession.players.find((p) => p.seasonPlayerId === spId);
+			return { sessionPlayerId: sp?.id ?? "", name: sp?.displayName ?? "Unknown" };
+		});
+
+	let state: "proposed_lineup" | "match_in_progress" | "coin_toss_pending";
+	if (pendingCoinToss) {
+		state = "coin_toss_pending";
+	} else if (currentMatch) {
+		state = "match_in_progress";
+	} else {
+		state = "proposed_lineup";
+	}
+
+	const lineup = fullSession.proposedLineup;
+	let proposedLineup = null;
+	if (lineup) {
+		const homeIds = lineup.selectedHomePlayerIds ?? lineup.homePlayerIds;
+		const awayIds = lineup.selectedAwayPlayerIds ?? lineup.awayPlayerIds;
+		proposedLineup = {
+			home: resolveNames(homeIds),
+			away: resolveNames(awayIds),
+		};
+	}
+
+	const waitingPlayers = fullSession.players
+		.filter((p) => p.status === "waiting")
+		.sort((a, b) => a.queuePosition - b.queuePosition);
+
+	const playingIds = new Set<string>();
+	if (currentMatch) {
+		for (const spId of currentMatch.homePlayerIds) {
+			const sp = fullSession.players.find((p) => p.seasonPlayerId === spId);
+			if (sp) playingIds.add(sp.id);
+		}
+		for (const spId of currentMatch.awayPlayerIds) {
+			const sp = fullSession.players.find((p) => p.seasonPlayerId === spId);
+			if (sp) playingIds.add(sp.id);
+		}
+	}
+	if (lineup) {
+		const homeIds = lineup.selectedHomePlayerIds ?? lineup.homePlayerIds;
+		const awayIds = lineup.selectedAwayPlayerIds ?? lineup.awayPlayerIds;
+		for (const id of [...homeIds, ...awayIds]) playingIds.add(id);
+	}
+
+	const queue = waitingPlayers
+		.filter((p) => !playingIds.has(p.id))
+		.map((p) => ({ sessionPlayerId: p.id, name: p.displayName }));
+
+	return {
+		session: {
+			id: fullSession.id,
+			seasonSlug,
+			matchCount: fullSession.matches.length,
+			teamSize: fullSession.teamSize,
+			rotationMode: fullSession.rotationMode,
+			state,
+			currentMatch: currentMatch
+				? {
+						sessionMatchId: currentMatch.id,
+						matchNumber: currentMatch.matchNumber,
+						home: resolveNamesFromSeasonPlayerIds(currentMatch.homePlayerIds),
+						away: resolveNamesFromSeasonPlayerIds(currentMatch.awayPlayerIds),
+						homeScore: currentMatch.homeSessionScore,
+						awayScore: currentMatch.awaySessionScore,
+					}
+				: null,
+			proposedLineup,
+			pendingCoinToss: pendingCoinToss
+				? {
+						id: pendingCoinToss.id,
+						conflictType: pendingCoinToss.conflictType,
+						candidates: resolveNames(pendingCoinToss.candidates),
+					}
+				: null,
+			queue,
+		},
+	};
+}
+
+// Session endpoints
+deviceRouter
+	.get("/leagues/:leagueSlug/session/active", async (c) => {
+		const db = c.get("db");
+		const { activeSeason } = await resolveLeagueAndMembership(c);
+
+		if (!activeSeason) {
+			return c.json({ session: null });
+		}
+
+		const rawSession = await sessionRepository.getActiveSession({
+			db,
+			seasonId: activeSeason.id,
+		});
+
+		if (!rawSession) {
+			return c.json({ session: null });
+		}
+
+		const fullSession = await sessionRepository.getSessionById({
+			db,
+			sessionId: rawSession.id,
+		});
+
+		if (!fullSession) {
+			return c.json({ session: null });
+		}
+
+		return c.json(formatSessionState(fullSession, activeSeason.slug));
+	})
+	.post("/leagues/:leagueSlug/session/start-match", async (c) => {
+		const db = c.get("db");
+		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+
+		if (!activeSeason) {
+			throw new HTTPException(400, { message: "No active season" });
+		}
+
+		const rawSession = await sessionRepository.getActiveSession({
+			db,
+			seasonId: activeSeason.id,
+		});
+
+		if (!rawSession) {
+			throw new HTTPException(400, { message: "No active session" });
+		}
+
+		const fullSession = await sessionRepository.getSessionById({
+			db,
+			sessionId: rawSession.id,
+		});
+
+		if (!fullSession) {
+			throw new HTTPException(400, { message: "Session not found" });
+		}
+
+		const inProgressMatch = fullSession.matches.find((m) => m.result === null);
+		if (inProgressMatch) {
+			throw new HTTPException(400, { message: "Match already in progress" });
+		}
+
+		const lineup = fullSession.proposedLineup;
+		if (!lineup) {
+			throw new HTTPException(400, { message: "No proposed lineup" });
+		}
+
+		const homeSessionPlayerIds = lineup.selectedHomePlayerIds ?? lineup.homePlayerIds;
+		const awaySessionPlayerIds = lineup.selectedAwayPlayerIds ?? lineup.awayPlayerIds;
+
+		const playerMap = new Map(fullSession.players.map((p) => [p.id, p.seasonPlayerId]));
+		const homeSeasonPlayerIds = homeSessionPlayerIds.map((id) => playerMap.get(id)!);
+		const awaySeasonPlayerIds = awaySessionPlayerIds.map((id) => playerMap.get(id)!);
+
+		const sessionMatch = await sessionRepository.startNextMatch({
+			db,
+			sessionId: rawSession.id,
+			homeSeasonPlayerIds,
+			awaySeasonPlayerIds,
+		});
+
+		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+			type: "session:update",
+			data: { sessionId: rawSession.id, match: sessionMatch },
+			user: { id: userId, name: c.get("authentication").user.name },
+		});
+
+		return c.json({ success: true, matchNumber: sessionMatch.matchNumber });
+	})
+	.post(
+		"/leagues/:leagueSlug/session/record-result",
+		zValidator(
+			"query",
+			z.object({
+				homeScore: z.coerce.number().int().min(0).max(99),
+				awayScore: z.coerce.number().int().min(0).max(99),
+			})
+		),
+		async (c) => {
+			const db = c.get("db");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const { homeScore, awayScore } = c.req.valid("query");
+
+			if (!activeSeason) {
+				throw new HTTPException(400, { message: "No active season" });
+			}
+
+			const rawSession = await sessionRepository.getActiveSession({
+				db,
+				seasonId: activeSeason.id,
+			});
+
+			if (!rawSession) {
+				throw new HTTPException(400, { message: "No active session" });
+			}
+
+			const fullSession = await sessionRepository.getSessionById({
+				db,
+				sessionId: rawSession.id,
+			});
+
+			if (!fullSession) {
+				throw new HTTPException(400, { message: "Session not found" });
+			}
+
+			const sessionMatch = fullSession.matches.find((m) => m.result === null);
+			if (!sessionMatch) {
+				throw new HTTPException(400, { message: "No match in progress" });
+			}
+
+			const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
+			const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
+
+			const result: "home" | "away" | "draw" =
+				homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : "draw";
+
+			const createdMatch = await createMatch({
+				db,
+				input: {
+					seasonId: activeSeason.id,
+					homeScore,
+					awayScore,
+					homeTeamPlayerIds: homeSeasonPlayerIds,
+					awayTeamPlayerIds: awaySeasonPlayerIds,
+					userId,
+				},
+			});
+
+			await c.env.ACHIEVEMENT_QUEUE.send({
+				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+			} satisfies AchievementQueueMessage);
+
+			const { match: updatedMatch, players: updatedPlayers } =
+				await sessionRepository.recordMatchResult({
+					db,
+					sessionId: rawSession.id,
+					sessionMatchId: sessionMatch.id,
+					result,
+					matchId: createdMatch.id,
+				});
+
+			const homeSessionPlayerIds = updatedPlayers
+				.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
+				.map((p) => p.id);
+			const awaySessionPlayerIds = updatedPlayers
+				.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
+				.map((p) => p.id);
+
+			let proposedLineup = computeNextLineup({
+				mode: fullSession.rotationMode,
+				teamSize: fullSession.teamSize,
+				maxConsecutiveGames: fullSession.maxConsecutiveGames,
+				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+				players: updatedPlayers.map((p) => ({
+					id: p.id,
+					seasonPlayerId: p.seasonPlayerId,
+					status: p.status,
+					queuePosition: p.queuePosition,
+					gamesPlayedThisSession: p.gamesPlayedThisSession,
+					consecutiveGames: p.consecutiveGames,
+				})),
+				lastResult: result,
+				homePlayerIds: homeSessionPlayerIds,
+				awayPlayerIds: awaySessionPlayerIds,
+			});
+
+			if (proposedLineup.coinTossNeeded) {
+				const { conflictType, candidates } = proposedLineup.coinTossNeeded;
+
+				if (fullSession.autoCoinToss) {
+					let resolvedWinnerIds: string[];
+					if (conflictType === "draw-tiebreak") {
+						resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
+					} else {
+						const shuffled = [...candidates];
+						for (let i = shuffled.length - 1; i > 0; i--) {
+							const j = Math.floor(Math.random() * (i + 1));
+							[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+						}
+						const winnerCount = Math.ceil(candidates.length / 2);
+						resolvedWinnerIds = shuffled.slice(0, winnerCount);
+					}
+
+					const coinToss = await sessionRepository.createCoinToss({
+						db,
+						sessionId: rawSession.id,
+						sessionMatchId: sessionMatch.id,
+						conflictType,
+						candidates,
+					});
+					await sessionRepository.resolveCoinToss({
+						db,
+						coinTossId: coinToss.id,
+						resolvedWinnerIds,
+					});
+
+					proposedLineup = computeNextLineup({
+						mode: fullSession.rotationMode,
+						teamSize: fullSession.teamSize,
+						maxConsecutiveGames: fullSession.maxConsecutiveGames,
+						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+						players: updatedPlayers.map((p) => ({
+							id: p.id,
+							seasonPlayerId: p.seasonPlayerId,
+							status: p.status,
+							queuePosition: p.queuePosition,
+							gamesPlayedThisSession: p.gamesPlayedThisSession,
+							consecutiveGames: p.consecutiveGames,
+						})),
+						lastResult: result,
+						homePlayerIds: homeSessionPlayerIds,
+						awayPlayerIds: awaySessionPlayerIds,
+						resolvedCoinTossWinnerIds: resolvedWinnerIds,
+					});
+				} else {
+					await sessionRepository.createCoinToss({
+						db,
+						sessionId: rawSession.id,
+						sessionMatchId: sessionMatch.id,
+						conflictType,
+						candidates,
+					});
+				}
+			}
+
+			await sessionRepository.updateProposedLineup({
+				db,
+				sessionId: rawSession.id,
+				proposedLineup,
+			});
+
+			const userName = c.get("authentication").user.name;
+			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+				type: "session:update",
+				data: {
+					sessionId: rawSession.id,
+					match: updatedMatch,
+					players: updatedPlayers,
+					proposedLineup,
+				},
+				user: { id: userId, name: userName },
+			});
+
+			const [streakPlayers, streakTeams] = await Promise.all([
+				checkStreakThresholds({
+					db,
+					seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+				}),
+				checkTeamStreakThresholds({
+					db,
+					matchId: createdMatch.id,
+				}),
+			]);
+
+			const userInfo = { id: userId, name: userName };
+			const timestamp = Date.now();
+			const streakEvents = [
+				...streakPlayers.map((p) => ({
+					type: "streak" as const,
+					data: {
+						playerId: p.playerId,
+						playerName: p.playerName,
+						playerImage: p.playerImage,
+						streak: p.streak,
+						timestamp,
+					},
+					user: userInfo,
+				})),
+				...streakTeams.map((t) => ({
+					type: "streak" as const,
+					data: {
+						playerId: t.seasonTeamId,
+						playerName: t.teamName,
+						playerImage: t.teamLogo,
+						streak: t.streak,
+						timestamp,
+						isTeam: true,
+					},
+					user: userInfo,
+				})),
+			];
+			await Promise.all(
+				streakEvents.map((event) =>
+					broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, event)
+				)
+			);
+
+			const refreshedSession = await sessionRepository.getSessionById({
+				db,
+				sessionId: rawSession.id,
+			});
+
+			if (!refreshedSession) {
+				throw new HTTPException(500, { message: "Failed to reload session" });
+			}
+
+			return c.json(formatSessionState(refreshedSession, activeSeason.slug));
+		}
+	)
+	.post(
+		"/leagues/:leagueSlug/session/resolve-coin-toss",
+		zValidator("query", z.object({ coinTossId: z.string(), winnerIds: z.string().min(1) })),
+		async (c) => {
+			const db = c.get("db");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const { coinTossId, winnerIds: winnerIdsRaw } = c.req.valid("query");
+			const winnerIds = winnerIdsRaw.split(",");
+
+			if (!activeSeason) {
+				throw new HTTPException(400, { message: "No active season" });
+			}
+
+			const rawSession = await sessionRepository.getActiveSession({
+				db,
+				seasonId: activeSeason.id,
+			});
+
+			if (!rawSession) {
+				throw new HTTPException(400, { message: "No active session" });
+			}
+
+			const [coinToss] = await db
+				.select()
+				.from(sessionCoinToss)
+				.where(
+					and(eq(sessionCoinToss.id, coinTossId), eq(sessionCoinToss.sessionId, rawSession.id))
+				)
+				.limit(1);
+
+			if (!coinToss) {
+				throw new HTTPException(404, { message: "Coin toss not found" });
+			}
+
+			const candidates = sessionRepository.parseStringArray(coinToss.candidates);
+			if (!winnerIds.every((id) => candidates.includes(id))) {
+				throw new HTTPException(400, { message: "Invalid winner IDs" });
+			}
+
+			const resolved = await sessionRepository.resolveCoinToss({
+				db,
+				coinTossId,
+				resolvedWinnerIds: winnerIds,
+			});
+
+			if (!resolved) {
+				throw new HTTPException(404, { message: "Coin toss not found" });
+			}
+
+			const fullSession = await sessionRepository.getSessionById({
+				db,
+				sessionId: resolved.sessionId,
+			});
+
+			if (!fullSession) {
+				throw new HTTPException(404, { message: "Session not found" });
+			}
+
+			const resolvedWinnerIds = resolved.resolvedWinnerIds
+				? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
+				: [];
+
+			const triggeringMatch = resolved.sessionMatchId
+				? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
+				: null;
+
+			let proposedLineup = null;
+			if (triggeringMatch?.result) {
+				const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
+				const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
+
+				proposedLineup = computeNextLineup({
+					mode: fullSession.rotationMode,
+					teamSize: fullSession.teamSize,
+					maxConsecutiveGames: fullSession.maxConsecutiveGames,
+					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+					players: fullSession.players.map((p) => ({
+						id: p.id,
+						seasonPlayerId: p.seasonPlayerId,
+						status: p.status,
+						queuePosition: p.queuePosition,
+						gamesPlayedThisSession: p.gamesPlayedThisSession,
+						consecutiveGames: p.consecutiveGames,
+					})),
+					lastResult: triggeringMatch.result,
+					homePlayerIds: fullSession.players
+						.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
+						.map((p) => p.id),
+					awayPlayerIds: fullSession.players
+						.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
+						.map((p) => p.id),
+					resolvedCoinTossWinnerIds: resolvedWinnerIds,
+				});
+
+				await sessionRepository.updateProposedLineup({
+					db,
+					sessionId: resolved.sessionId,
+					proposedLineup,
+				});
+			}
+
+			const userName = c.get("authentication").user.name;
+			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+				type: "session:update",
+				data: {
+					sessionId: resolved.sessionId,
+					resolvedCoinToss: resolved,
+					proposedLineup,
+				},
+				user: { id: userId, name: userName },
+			});
+
+			const refreshedSession = await sessionRepository.getSessionById({
+				db,
+				sessionId: resolved.sessionId,
+			});
+
+			if (!refreshedSession) {
+				throw new HTTPException(500, { message: "Failed to reload session" });
+			}
+
+			return c.json(formatSessionState(refreshedSession, activeSeason.slug));
+		}
+	)
+	.post(
+		"/leagues/:leagueSlug/session/update-score",
+		zValidator(
+			"query",
+			z.object({
+				homeScore: z.coerce.number().int().min(0).max(99),
+				awayScore: z.coerce.number().int().min(0).max(99),
+			})
+		),
+		async (c) => {
+			const db = c.get("db");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const { homeScore, awayScore } = c.req.valid("query");
+
+			if (!activeSeason) {
+				throw new HTTPException(400, { message: "No active season" });
+			}
+
+			const rawSession = await sessionRepository.getActiveSession({
+				db,
+				seasonId: activeSeason.id,
+			});
+
+			if (!rawSession) {
+				throw new HTTPException(400, { message: "No active session" });
+			}
+
+			const fullSession = await sessionRepository.getSessionById({
+				db,
+				sessionId: rawSession.id,
+			});
+
+			if (!fullSession) {
+				throw new HTTPException(400, { message: "Session not found" });
+			}
+
+			const sessionMatch = fullSession.matches.find((m) => m.result === null);
+			if (!sessionMatch) {
+				throw new HTTPException(400, { message: "No match in progress" });
+			}
+
+			await sessionRepository.updateMatchScore({
+				db,
+				sessionId: rawSession.id,
+				sessionMatchId: sessionMatch.id,
+				homeScore,
+				awayScore,
+			});
+
+			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+				type: "session:score-update",
+				data: {
+					sessionId: rawSession.id,
+					sessionMatchId: sessionMatch.id,
+					homeScore,
+					awayScore,
+				},
+				user: { id: userId, name: c.get("authentication").user.name },
+			});
+
+			return c.json({ success: true });
+		}
+	)
+	.post("/leagues/:leagueSlug/session/shuffle-lineup", async (c) => {
+		const db = c.get("db");
+		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+
+		if (!activeSeason) {
+			throw new HTTPException(400, { message: "No active season" });
+		}
+
+		const rawSession = await sessionRepository.getActiveSession({
+			db,
+			seasonId: activeSeason.id,
+		});
+
+		if (!rawSession) {
+			throw new HTTPException(400, { message: "No active session" });
+		}
+
+		const fullSession = await sessionRepository.getSessionById({
+			db,
+			sessionId: rawSession.id,
+		});
+
+		if (!fullSession) {
+			throw new HTTPException(400, { message: "Session not found" });
+		}
+
+		const currentMatch = fullSession.matches.find((m) => m.result === null);
+		if (currentMatch) {
+			throw new HTTPException(400, { message: "Match already in progress" });
+		}
+
+		const lineup = fullSession.proposedLineup;
+		if (!lineup) {
+			throw new HTTPException(400, { message: "No proposed lineup" });
+		}
+
+		const allPlayerIds = [...lineup.homePlayerIds, ...lineup.awayPlayerIds];
+
+		const shuffled = [...allPlayerIds];
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+		}
+
+		const teamSize = shuffled.length / 2;
+		const newHomeIds = shuffled.slice(0, teamSize);
+		const newAwayIds = shuffled.slice(teamSize);
+
+		const newLineup = {
+			homePlayerIds: newHomeIds,
+			awayPlayerIds: newAwayIds,
+			rotatedOut: lineup.rotatedOut,
+			coinTossNeeded: lineup.coinTossNeeded,
+		};
+
+		await sessionRepository.updateProposedLineup({
+			db,
+			sessionId: rawSession.id,
+			proposedLineup: newLineup,
+		});
+
+		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+			type: "session:proposed-lineup-update",
+			data: {
+				sessionId: rawSession.id,
+				proposedLineup: {
+					...newLineup,
+					selectedHomePlayerIds: newHomeIds,
+					selectedAwayPlayerIds: newAwayIds,
+				},
+			},
+			user: { id: userId, name: c.get("authentication").user.name },
+		});
+
+		const refreshedSession = await sessionRepository.getSessionById({
+			db,
+			sessionId: rawSession.id,
+		});
+
+		if (!refreshedSession) {
+			throw new HTTPException(500, { message: "Failed to reload session" });
+		}
+
+		return c.json(formatSessionState(refreshedSession, activeSeason.slug));
 	});
 
 const createMatchSchema = z.object({

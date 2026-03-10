@@ -1,0 +1,23 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <properties>
+        <property id="apiKey" type="string"></property>
+        <property id="serverUrl" type="string">https://scorebrawl.com</property>
+    </properties>
+
+    <strings>
+        <string id="AppName">ScoreBrawl</string>
+        <string id="ApiKeyTitle">API Key</string>
+        <string id="ServerUrlTitle">Server URL</string>
+    </strings>
+
+    <settings>
+        <setting propertyKey="@Properties.apiKey" title="@Strings.ApiKeyTitle">
+            <settingConfig type="alphaNumeric"/>
+        </setting>
+        <setting propertyKey="@Properties.serverUrl" title="@Strings.ServerUrlTitle">
+            <settingConfig type="alphaNumeric"/>
+        </setting>
+    </settings>
+
+</resources>
