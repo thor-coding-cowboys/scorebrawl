@@ -531,6 +531,105 @@ describe("session router", () => {
 		});
 	});
 
+	describe("joinSelf", () => {
+		it("allows authenticated season player to join active session", async () => {
+			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+			});
+
+			const newPlayer = await client.session.joinSelf.mutate({
+				sessionId: session.id,
+			});
+
+			expect(newPlayer.id).toBeDefined();
+			expect(newPlayer.seasonPlayerId).toBe(seasonPlayers[3].id);
+
+			const updated = await client.session.getById.query({ sessionId: session.id });
+			expect(updated.players).toHaveLength(4);
+			const joinedPlayer = updated.players.find((p) => p.seasonPlayerId === seasonPlayers[3].id);
+			expect(joinedPlayer).toBeDefined();
+		});
+
+		it("rejects user who is not a season player", async () => {
+			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+			});
+
+			const otherUserCtx = await createAuthContext();
+			const otherUserClient = createTRPCTestClient({ sessionToken: otherUserCtx.sessionToken });
+
+			await expect(
+				otherUserClient.session.joinSelf.mutate({
+					sessionId: session.id,
+				})
+			).rejects.toThrow("not a player");
+		});
+
+		it("rejects joining twice with CONFLICT error", async () => {
+			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+			});
+
+			await client.session.joinSelf.mutate({
+				sessionId: session.id,
+			});
+
+			await expect(
+				client.session.joinSelf.mutate({
+					sessionId: session.id,
+				})
+			).rejects.toThrow("already in this session");
+		});
+
+		it("rejects invalid sessionId with NOT_FOUND error", async () => {
+			const { client } = await setupSeasonWithPlayers(2);
+
+			await expect(
+				client.session.joinSelf.mutate({
+					sessionId: "non-existent-session-id",
+				})
+			).rejects.toThrow("Session not found");
+		});
+
+		it("rejects joining ended session with BAD_REQUEST error", async () => {
+			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+			});
+
+			await client.session.end.mutate({ sessionId: session.id });
+
+			await expect(
+				client.session.joinSelf.mutate({
+					sessionId: session.id,
+				})
+			).rejects.toThrow("Session is not active");
+		});
+	});
+
 	describe("error paths", () => {
 		it("rejects duplicate addPlayer", async () => {
 			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);

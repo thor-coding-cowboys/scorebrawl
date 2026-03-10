@@ -230,6 +230,7 @@ export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; session
 				displayName: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("display_name"),
 				playerImage: user.image,
 				score: seasonPlayer.score,
+				userId: player.userId,
 			})
 			.from(sessionPlayer)
 			.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
@@ -1149,6 +1150,7 @@ export const getSessionWithSeason = async ({
 			sessionSeasonId: gameSession.seasonId,
 			seasonSlug: season.slug,
 			leagueId: season.leagueId,
+			sessionStatus: gameSession.status,
 		})
 		.from(gameSession)
 		.innerJoin(season, eq(gameSession.seasonId, season.id))

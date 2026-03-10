@@ -171,7 +171,7 @@ export function useSeasonSSE({
 						const sessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;
 						window.dispatchEvent(
 							new CustomEvent("session-event", {
-								detail: { type: parsed.type, sessionId },
+								detail: { type: parsed.type, sessionId, userName: parsed.user?.name },
 							})
 						);
 

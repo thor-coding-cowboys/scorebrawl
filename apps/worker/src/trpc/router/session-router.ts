@@ -1,7 +1,8 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { seasonPlayer, player, sessionPlayer } from "../../db/schema/league-schema";
 import { leagueMemberProcedure } from "../trpc";
 import * as sessionRepository from "../../repositories/session-repository";
 import * as matchRepository from "../../repositories/match-repository";
@@ -105,6 +106,70 @@ export const sessionRouter = {
 			}
 
 			return session;
+		}),
+
+	joinSelf: leagueMemberProcedure
+		.input(z.object({ sessionId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await sessionRepository.getSessionWithSeason({
+				db: ctx.db,
+				sessionId: input.sessionId,
+			});
+
+			if (!sessionInfo) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+			}
+
+			if (sessionInfo.sessionStatus !== "active") {
+				throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
+			}
+
+			const [seasonPlayerRecord] = await ctx.db
+				.select({
+					id: seasonPlayer.id,
+					alreadyInSession: sql<boolean>`EXISTS(
+					SELECT 1 FROM ${sessionPlayer}
+					WHERE ${sessionPlayer.sessionId} = ${input.sessionId}
+					AND ${sessionPlayer.seasonPlayerId} = ${seasonPlayer.id}
+				)`.as("already_in_session"),
+				})
+				.from(seasonPlayer)
+				.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+				.where(
+					and(
+						eq(seasonPlayer.seasonId, sessionInfo.sessionSeasonId),
+						eq(player.userId, ctx.authentication.user.id)
+					)
+				)
+				.limit(1);
+
+			if (!seasonPlayerRecord) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "You are not a player in this season",
+				});
+			}
+
+			if (seasonPlayerRecord.alreadyInSession) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "You are already in this session",
+				});
+			}
+
+			const newPlayer = await sessionRepository.addPlayerToSession({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				seasonPlayerId: seasonPlayerRecord.id,
+			});
+
+			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+				type: "session:update",
+				data: { sessionId: input.sessionId, player: newPlayer },
+				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+			});
+
+			return newPlayer;
 		}),
 
 	addPlayer: leagueMemberProcedure

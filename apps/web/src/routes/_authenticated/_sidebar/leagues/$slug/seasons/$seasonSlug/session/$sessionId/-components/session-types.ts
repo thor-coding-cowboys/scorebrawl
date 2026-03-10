@@ -8,6 +8,7 @@ export type SessionPlayer = {
 	queuePosition: number;
 	gamesPlayedThisSession: number;
 	consecutiveGames: number;
+	userId: string | null;
 };
 
 export type SessionMatch = {

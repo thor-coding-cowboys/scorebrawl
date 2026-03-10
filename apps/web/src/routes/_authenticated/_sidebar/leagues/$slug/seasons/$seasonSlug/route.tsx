@@ -86,7 +86,7 @@ function SeasonLayout() {
 						}
 					>
 						<HugeiconsIcon icon={PlayIcon} className="size-3.5" />
-						Join Session
+						Go to Session
 					</Button>
 				</div>
 			)}
