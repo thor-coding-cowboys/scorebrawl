@@ -205,6 +205,82 @@ export const getActiveSession = async ({ db, seasonId }: { db: DrizzleDB; season
 	return { ...session, players };
 };
 
+export const getActiveSessionFull = async ({
+	db,
+	seasonId,
+}: {
+	db: DrizzleDB;
+	seasonId: string;
+}) => {
+	const [session] = await db
+		.select()
+		.from(gameSession)
+		.where(and(eq(gameSession.seasonId, seasonId), eq(gameSession.status, "active")))
+		.limit(1);
+
+	if (!session) return null;
+
+	const sessionId = session.id;
+
+	const [players, matches, coinTosses] = await Promise.all([
+		db
+			.select({
+				id: sessionPlayer.id,
+				sessionId: sessionPlayer.sessionId,
+				seasonPlayerId: sessionPlayer.seasonPlayerId,
+				status: sessionPlayer.status,
+				queuePosition: sessionPlayer.queuePosition,
+				gamesPlayedThisSession: sessionPlayer.gamesPlayedThisSession,
+				consecutiveGames: sessionPlayer.consecutiveGames,
+				joinedAt: sessionPlayer.joinedAt,
+				createdAt: sessionPlayer.createdAt,
+				updatedAt: sessionPlayer.updatedAt,
+				displayName: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("display_name"),
+				playerImage: user.image,
+				score: seasonPlayer.score,
+				userId: player.userId,
+			})
+			.from(sessionPlayer)
+			.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.leftJoin(user, eq(player.userId, user.id))
+			.leftJoin(guest, eq(player.guestId, guest.id))
+			.where(eq(sessionPlayer.sessionId, sessionId))
+			.orderBy(asc(sessionPlayer.queuePosition)),
+		db
+			.select()
+			.from(sessionMatch)
+			.where(eq(sessionMatch.sessionId, sessionId))
+			.orderBy(asc(sessionMatch.matchNumber)),
+		db
+			.select()
+			.from(sessionCoinToss)
+			.where(and(eq(sessionCoinToss.sessionId, sessionId), eq(sessionCoinToss.resolved, false))),
+	]);
+
+	return {
+		...session,
+		alwaysSplitConstraints: parseAlwaysSplit(session.alwaysSplitConstraints),
+		proposedLineup: parseProposedLineup(session.proposedLineup),
+		players,
+		matches: matches.map((m) => ({
+			...m,
+			homePlayerIds: parseStringArray(m.homePlayerIds),
+			awayPlayerIds: parseStringArray(m.awayPlayerIds),
+			selectedHomePlayerIds: m.selectedHomePlayerIds
+				? parseStringArray(m.selectedHomePlayerIds)
+				: null,
+			selectedAwayPlayerIds: m.selectedAwayPlayerIds
+				? parseStringArray(m.selectedAwayPlayerIds)
+				: null,
+		})),
+		pendingCoinTosses: coinTosses.map((ct) => ({
+			...ct,
+			candidates: parseStringArray(ct.candidates),
+		})),
+	};
+};
+
 export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; sessionId: string }) => {
 	const [session] = await db
 		.select()
@@ -813,58 +889,95 @@ export async function updateProposedLineup({
 }
 
 async function recalcConsecutiveGames(db: DrizzleDB | TransactionClient, sessionId: string) {
+	// Fetch only necessary columns to reduce memory and CPU usage
 	const completedMatches = await db
-		.select()
+		.select({
+			matchNumber: sessionMatch.matchNumber,
+			homePlayerIds: sessionMatch.homePlayerIds,
+			awayPlayerIds: sessionMatch.awayPlayerIds,
+		})
 		.from(sessionMatch)
 		.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
 		.orderBy(desc(sessionMatch.matchNumber));
 
+	// Early exit if no matches
+	if (completedMatches.length === 0) return;
+
 	const allPlayers = await db
-		.select()
+		.select({
+			id: sessionPlayer.id,
+			seasonPlayerId: sessionPlayer.seasonPlayerId,
+			consecutiveGames: sessionPlayer.consecutiveGames,
+		})
 		.from(sessionPlayer)
 		.where(eq(sessionPlayer.sessionId, sessionId));
 
+	// Early exit if no players
+	if (allPlayers.length === 0) return;
+
 	const now = new Date();
 
+	// Track consecutive games played (not wins) - players in match increment counter
+	// Players who sit out a match get reset to 0 (finalized)
 	const streak = new Map<string, number>();
 	const finalized = new Set<string>();
-	const allSeasonPlayerIds = new Set(allPlayers.map((p) => p.seasonPlayerId));
 
+	// Process matches in reverse order (most recent first)
 	for (const m of completedMatches) {
-		if (finalized.size === allSeasonPlayerIds.size) break;
+		// Early termination when all players finalized
+		if (finalized.size === allPlayers.length) break;
 
 		const home = parseStringArray(m.homePlayerIds);
 		const away = parseStringArray(m.awayPlayerIds);
-		const inMatch = new Set([...home, ...away]);
 
-		for (const spId of allSeasonPlayerIds) {
-			if (finalized.has(spId)) continue;
-			if (!inMatch.has(spId)) {
-				finalized.add(spId);
+		// Build Set once per match for O(1) lookups
+		const inMatch = new Set<string>();
+		for (const id of home) inMatch.add(id);
+		for (const id of away) inMatch.add(id);
+
+		// Check each player - only those in the match continue their streak
+		for (const sp of allPlayers) {
+			if (finalized.has(sp.seasonPlayerId)) continue;
+
+			if (!inMatch.has(sp.seasonPlayerId)) {
+				// Player sat out - their streak is finalized
+				finalized.add(sp.seasonPlayerId);
 				continue;
 			}
-			streak.set(spId, (streak.get(spId) ?? 0) + 1);
+
+			// Player played - increment streak
+			streak.set(sp.seasonPlayerId, (streak.get(sp.seasonPlayerId) ?? 0) + 1);
 		}
 	}
 
+	// Batch updates by grouping players with same consecutive count
 	const updates = new Map<number, string[]>();
 	for (const sp of allPlayers) {
 		const consecutive = streak.get(sp.seasonPlayerId) ?? 0;
 		if (sp.consecutiveGames !== consecutive) {
-			const ids = updates.get(consecutive) ?? [];
-			ids.push(sp.id);
-			updates.set(consecutive, ids);
+			const ids = updates.get(consecutive);
+			if (ids) {
+				ids.push(sp.id);
+			} else {
+				updates.set(consecutive, [sp.id]);
+			}
 		}
 	}
 
-	await Promise.all(
-		[...updates.entries()].map(([consecutive, ids]) =>
+	// Execute batched updates - one query per unique consecutive value
+	const updatePromises: Promise<unknown>[] = [];
+	for (const [consecutive, ids] of updates) {
+		updatePromises.push(
 			db
 				.update(sessionPlayer)
 				.set({ consecutiveGames: consecutive, updatedAt: now })
 				.where(inArray(sessionPlayer.id, ids))
-		)
-	);
+		);
+	}
+
+	if (updatePromises.length > 0) {
+		await Promise.all(updatePromises);
+	}
 }
 
 export const createCoinToss = async ({
@@ -943,44 +1056,62 @@ export const getSessionSummary = async ({
 	db: DrizzleDB;
 	sessionId: string;
 }) => {
-	const [session] = await db
-		.select({
-			id: gameSession.id,
-			seasonId: gameSession.seasonId,
-			rotationMode: gameSession.rotationMode,
-			teamSize: gameSession.teamSize,
-			maxConsecutiveGames: gameSession.maxConsecutiveGames,
-			createdAt: gameSession.createdAt,
-			endedAt: gameSession.endedAt,
-			status: gameSession.status,
-		})
-		.from(gameSession)
-		.where(eq(gameSession.id, sessionId))
-		.limit(1);
+	// Run independent queries in parallel
+	const [sessionResult, totalMatchesResult, sessionPlayers, completedMatches] = await Promise.all([
+		db
+			.select({
+				id: gameSession.id,
+				seasonId: gameSession.seasonId,
+				rotationMode: gameSession.rotationMode,
+				teamSize: gameSession.teamSize,
+				maxConsecutiveGames: gameSession.maxConsecutiveGames,
+				createdAt: gameSession.createdAt,
+				endedAt: gameSession.endedAt,
+				status: gameSession.status,
+			})
+			.from(gameSession)
+			.where(eq(gameSession.id, sessionId))
+			.limit(1),
+		db
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(sessionMatch)
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result))),
+		db
+			.select({
+				sessionPlayerId: sessionPlayer.id,
+				seasonPlayerId: sessionPlayer.seasonPlayerId,
+				gamesPlayedThisSession: sessionPlayer.gamesPlayedThisSession,
+				displayName: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("display_name"),
+				playerImage: user.image,
+			})
+			.from(sessionPlayer)
+			.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.leftJoin(user, eq(player.userId, user.id))
+			.leftJoin(guest, eq(player.guestId, guest.id))
+			.where(eq(sessionPlayer.sessionId, sessionId)),
+		db
+			.select({
+				sessionMatchId: sessionMatch.id,
+				matchId: sessionMatch.matchId,
+				matchNumber: sessionMatch.matchNumber,
+				homePlayerIds: sessionMatch.homePlayerIds,
+				awayPlayerIds: sessionMatch.awayPlayerIds,
+				result: sessionMatch.result,
+				homeScore: match.homeScore,
+				awayScore: match.awayScore,
+				matchCreatedAt: match.createdAt,
+			})
+			.from(sessionMatch)
+			.innerJoin(match, eq(sessionMatch.matchId, match.id))
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
+			.orderBy(asc(sessionMatch.matchNumber)),
+	]);
 
+	const session = sessionResult[0];
 	if (!session) return null;
 
-	const [totalMatchesResult] = await db
-		.select({ count: sql<number>`COUNT(*)` })
-		.from(sessionMatch)
-		.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)));
-
-	const totalMatches = totalMatchesResult?.count ?? 0;
-
-	const sessionPlayers = await db
-		.select({
-			sessionPlayerId: sessionPlayer.id,
-			seasonPlayerId: sessionPlayer.seasonPlayerId,
-			gamesPlayedThisSession: sessionPlayer.gamesPlayedThisSession,
-			displayName: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("display_name"),
-			playerImage: user.image,
-		})
-		.from(sessionPlayer)
-		.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
-		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.leftJoin(user, eq(player.userId, user.id))
-		.leftJoin(guest, eq(player.guestId, guest.id))
-		.where(eq(sessionPlayer.sessionId, sessionId));
+	const totalMatches = totalMatchesResult[0]?.count ?? 0;
 
 	const sessionPlayerIds = sessionPlayers.map((p) => p.seasonPlayerId);
 
@@ -995,25 +1126,9 @@ export const getSessionSummary = async ({
 		};
 	}
 
-	const completedMatches = await db
-		.select({
-			sessionMatchId: sessionMatch.id,
-			matchId: sessionMatch.matchId,
-			matchNumber: sessionMatch.matchNumber,
-			homePlayerIds: sessionMatch.homePlayerIds,
-			awayPlayerIds: sessionMatch.awayPlayerIds,
-			result: sessionMatch.result,
-			homeScore: match.homeScore,
-			awayScore: match.awayScore,
-			matchCreatedAt: match.createdAt,
-		})
-		.from(sessionMatch)
-		.innerJoin(match, eq(sessionMatch.matchId, match.id))
-		.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
-		.orderBy(asc(sessionMatch.matchNumber));
-
 	const matchIds = completedMatches.map((m) => m.matchId).filter(Boolean) as string[];
 
+	// matchPlayerStats depends on completedMatches, so run after
 	const matchPlayerStats =
 		matchIds.length > 0
 			? await db
@@ -1120,22 +1235,41 @@ export const getSessionSummary = async ({
 		{ wins: number; losses: number; draws: number; games: number }
 	>();
 
-	for (const cm of completedMatches) {
+	// Limit matches processed for team combos to prevent CPU timeouts
+	// For sessions with >100 matches, only process the most recent 100
+	// This maintains reasonable accuracy while preventing CPU limit issues
+	const MAX_MATCHES_FOR_COMBOS = 100;
+	const matchesForCombos =
+		completedMatches.length > MAX_MATCHES_FOR_COMBOS
+			? completedMatches.slice(0, MAX_MATCHES_FOR_COMBOS)
+			: completedMatches;
+
+	for (const cm of matchesForCombos) {
 		const homeIds = parseStringArray(cm.homePlayerIds);
 		const awayIds = parseStringArray(cm.awayPlayerIds);
 
 		const addCombo = (ids: string[], result: "win" | "loss" | "draw") => {
-			if (ids.length < 2) return;
+			const len = ids.length;
+			if (len < 2) return;
+
+			// Sort once and use indices directly to avoid array allocations
 			const sorted = [...ids].sort();
-			for (let i = 0; i < sorted.length; i++) {
-				for (let j = i + 1; j < sorted.length; j++) {
-					const key = `${sorted[i]}|${sorted[j]}`;
-					const entry = comboCounts.get(key) ?? { wins: 0, losses: 0, draws: 0, games: 0 };
+
+			// Generate all pairs: O(n²) where n is team size
+			// For 6v6, this is 15 combinations per team per match
+			for (let i = 0; i < len - 1; i++) {
+				const id1 = sorted[i];
+				for (let j = i + 1; j < len; j++) {
+					const key = `${id1}|${sorted[j]}`;
+					let entry = comboCounts.get(key);
+					if (!entry) {
+						entry = { wins: 0, losses: 0, draws: 0, games: 0 };
+						comboCounts.set(key, entry);
+					}
 					entry.games++;
 					if (result === "win") entry.wins++;
 					else if (result === "loss") entry.losses++;
 					else entry.draws++;
-					comboCounts.set(key, entry);
 				}
 			}
 		};

@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { league, member, player, season, seasonPlayer, sessionCoinToss, user } from "../db/schema";
+import { league, member, player, season, seasonPlayer, user } from "../db/schema";
 import type { EnforcedAuthHonoEnv } from "../middleware/auth";
 import {
 	create as createMatch,
@@ -290,18 +290,9 @@ deviceRouter
 			return c.json({ session: null });
 		}
 
-		const rawSession = await sessionRepository.getActiveSession({
+		const fullSession = await sessionRepository.getActiveSessionFull({
 			db,
 			seasonId: activeSeason.id,
-		});
-
-		if (!rawSession) {
-			return c.json({ session: null });
-		}
-
-		const fullSession = await sessionRepository.getSessionById({
-			db,
-			sessionId: rawSession.id,
 		});
 
 		if (!fullSession) {
@@ -318,22 +309,13 @@ deviceRouter
 			throw new HTTPException(400, { message: "No active season" });
 		}
 
-		const rawSession = await sessionRepository.getActiveSession({
+		const fullSession = await sessionRepository.getActiveSessionFull({
 			db,
 			seasonId: activeSeason.id,
 		});
 
-		if (!rawSession) {
-			throw new HTTPException(400, { message: "No active session" });
-		}
-
-		const fullSession = await sessionRepository.getSessionById({
-			db,
-			sessionId: rawSession.id,
-		});
-
 		if (!fullSession) {
-			throw new HTTPException(400, { message: "Session not found" });
+			throw new HTTPException(400, { message: "No active session" });
 		}
 
 		const inProgressMatch = fullSession.matches.find((m) => m.result === null);
@@ -355,14 +337,14 @@ deviceRouter
 
 		const sessionMatch = await sessionRepository.startNextMatch({
 			db,
-			sessionId: rawSession.id,
+			sessionId: fullSession.id,
 			homeSeasonPlayerIds,
 			awaySeasonPlayerIds,
 		});
 
 		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 			type: "session:update",
-			data: { sessionId: rawSession.id, match: sessionMatch },
+			data: { sessionId: fullSession.id, match: sessionMatch },
 			user: { id: userId, name: c.get("authentication").user.name },
 		});
 
@@ -386,22 +368,13 @@ deviceRouter
 				throw new HTTPException(400, { message: "No active season" });
 			}
 
-			const rawSession = await sessionRepository.getActiveSession({
+			const fullSession = await sessionRepository.getActiveSessionFull({
 				db,
 				seasonId: activeSeason.id,
 			});
 
-			if (!rawSession) {
-				throw new HTTPException(400, { message: "No active session" });
-			}
-
-			const fullSession = await sessionRepository.getSessionById({
-				db,
-				sessionId: rawSession.id,
-			});
-
 			if (!fullSession) {
-				throw new HTTPException(400, { message: "Session not found" });
+				throw new HTTPException(400, { message: "No active session" });
 			}
 
 			const sessionMatch = fullSession.matches.find((m) => m.result === null);
@@ -434,7 +407,7 @@ deviceRouter
 			const { match: updatedMatch, players: updatedPlayers } =
 				await sessionRepository.recordMatchResult({
 					db,
-					sessionId: rawSession.id,
+					sessionId: fullSession.id,
 					sessionMatchId: sessionMatch.id,
 					result,
 					matchId: createdMatch.id,
@@ -485,7 +458,7 @@ deviceRouter
 
 					const coinToss = await sessionRepository.createCoinToss({
 						db,
-						sessionId: rawSession.id,
+						sessionId: fullSession.id,
 						sessionMatchId: sessionMatch.id,
 						conflictType,
 						candidates,
@@ -512,13 +485,13 @@ deviceRouter
 						})),
 						lastResult: result,
 						homePlayerIds: homeSessionPlayerIds,
-						awayPlayerIds: awaySessionPlayerIds,
+						awayPlayerIds: awaySeasonPlayerIds,
 						resolvedCoinTossWinnerIds: resolvedWinnerIds,
 					});
 				} else {
 					await sessionRepository.createCoinToss({
 						db,
-						sessionId: rawSession.id,
+						sessionId: fullSession.id,
 						sessionMatchId: sessionMatch.id,
 						conflictType,
 						candidates,
@@ -528,7 +501,7 @@ deviceRouter
 
 			await sessionRepository.updateProposedLineup({
 				db,
-				sessionId: rawSession.id,
+				sessionId: fullSession.id,
 				proposedLineup,
 			});
 
@@ -536,7 +509,7 @@ deviceRouter
 			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 				type: "session:update",
 				data: {
-					sessionId: rawSession.id,
+					sessionId: fullSession.id,
 					match: updatedMatch,
 					players: updatedPlayers,
 					proposedLineup,
@@ -588,16 +561,34 @@ deviceRouter
 				)
 			);
 
-			const refreshedSession = await sessionRepository.getSessionById({
-				db,
-				sessionId: rawSession.id,
-			});
-
-			if (!refreshedSession) {
-				throw new HTTPException(500, { message: "Failed to reload session" });
-			}
-
-			return c.json(formatSessionState(refreshedSession, activeSeason.slug));
+			const mergedSession = {
+				...fullSession,
+				players: updatedPlayers.map((p) => ({
+					...p,
+					displayName: fullSession.players.find((fp) => fp.id === p.id)?.displayName ?? "Unknown",
+					playerImage: fullSession.players.find((fp) => fp.id === p.id)?.playerImage ?? null,
+					score: fullSession.players.find((fp) => fp.id === p.id)?.score ?? 0,
+					userId: fullSession.players.find((fp) => fp.id === p.id)?.userId ?? null,
+				})),
+				matches: fullSession.matches.map((m) =>
+					m.id === updatedMatch.id
+						? {
+								...m,
+								...updatedMatch,
+								homePlayerIds: sessionRepository.parseStringArray(updatedMatch.homePlayerIds),
+								awayPlayerIds: sessionRepository.parseStringArray(updatedMatch.awayPlayerIds),
+								selectedHomePlayerIds: sessionRepository.parseStringArray(
+									updatedMatch.selectedHomePlayerIds
+								),
+								selectedAwayPlayerIds: sessionRepository.parseStringArray(
+									updatedMatch.selectedAwayPlayerIds
+								),
+							}
+						: m
+				),
+				proposedLineup,
+			};
+			return c.json(formatSessionState(mergedSession, activeSeason.slug));
 		}
 	)
 	.post(
@@ -613,29 +604,22 @@ deviceRouter
 				throw new HTTPException(400, { message: "No active season" });
 			}
 
-			const rawSession = await sessionRepository.getActiveSession({
+			const fullSession = await sessionRepository.getActiveSessionFull({
 				db,
 				seasonId: activeSeason.id,
 			});
 
-			if (!rawSession) {
+			if (!fullSession) {
 				throw new HTTPException(400, { message: "No active session" });
 			}
 
-			const [coinToss] = await db
-				.select()
-				.from(sessionCoinToss)
-				.where(
-					and(eq(sessionCoinToss.id, coinTossId), eq(sessionCoinToss.sessionId, rawSession.id))
-				)
-				.limit(1);
+			const coinToss = fullSession.pendingCoinTosses.find((ct) => ct.id === coinTossId);
 
 			if (!coinToss) {
 				throw new HTTPException(404, { message: "Coin toss not found" });
 			}
 
-			const candidates = sessionRepository.parseStringArray(coinToss.candidates);
-			if (!winnerIds.every((id) => candidates.includes(id))) {
+			if (!winnerIds.every((id) => coinToss.candidates.includes(id))) {
 				throw new HTTPException(400, { message: "Invalid winner IDs" });
 			}
 
@@ -647,15 +631,6 @@ deviceRouter
 
 			if (!resolved) {
 				throw new HTTPException(404, { message: "Coin toss not found" });
-			}
-
-			const fullSession = await sessionRepository.getSessionById({
-				db,
-				sessionId: resolved.sessionId,
-			});
-
-			if (!fullSession) {
-				throw new HTTPException(404, { message: "Session not found" });
 			}
 
 			const resolvedWinnerIds = resolved.resolvedWinnerIds
@@ -697,7 +672,7 @@ deviceRouter
 
 				await sessionRepository.updateProposedLineup({
 					db,
-					sessionId: resolved.sessionId,
+					sessionId: fullSession.id,
 					proposedLineup,
 				});
 			}
@@ -706,23 +681,19 @@ deviceRouter
 			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 				type: "session:update",
 				data: {
-					sessionId: resolved.sessionId,
+					sessionId: fullSession.id,
 					resolvedCoinToss: resolved,
 					proposedLineup,
 				},
 				user: { id: userId, name: userName },
 			});
 
-			const refreshedSession = await sessionRepository.getSessionById({
-				db,
-				sessionId: resolved.sessionId,
-			});
-
-			if (!refreshedSession) {
-				throw new HTTPException(500, { message: "Failed to reload session" });
-			}
-
-			return c.json(formatSessionState(refreshedSession, activeSeason.slug));
+			const mergedSession = {
+				...fullSession,
+				pendingCoinTosses: fullSession.pendingCoinTosses.filter((ct) => ct.id !== resolved.id),
+				proposedLineup,
+			};
+			return c.json(formatSessionState(mergedSession, activeSeason.slug));
 		}
 	)
 	.post(
@@ -743,22 +714,13 @@ deviceRouter
 				throw new HTTPException(400, { message: "No active season" });
 			}
 
-			const rawSession = await sessionRepository.getActiveSession({
+			const fullSession = await sessionRepository.getActiveSessionFull({
 				db,
 				seasonId: activeSeason.id,
 			});
 
-			if (!rawSession) {
-				throw new HTTPException(400, { message: "No active session" });
-			}
-
-			const fullSession = await sessionRepository.getSessionById({
-				db,
-				sessionId: rawSession.id,
-			});
-
 			if (!fullSession) {
-				throw new HTTPException(400, { message: "Session not found" });
+				throw new HTTPException(400, { message: "No active session" });
 			}
 
 			const sessionMatch = fullSession.matches.find((m) => m.result === null);
@@ -768,7 +730,7 @@ deviceRouter
 
 			await sessionRepository.updateMatchScore({
 				db,
-				sessionId: rawSession.id,
+				sessionId: fullSession.id,
 				sessionMatchId: sessionMatch.id,
 				homeScore,
 				awayScore,
@@ -777,7 +739,7 @@ deviceRouter
 			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 				type: "session:score-update",
 				data: {
-					sessionId: rawSession.id,
+					sessionId: fullSession.id,
 					sessionMatchId: sessionMatch.id,
 					homeScore,
 					awayScore,
@@ -796,22 +758,13 @@ deviceRouter
 			throw new HTTPException(400, { message: "No active season" });
 		}
 
-		const rawSession = await sessionRepository.getActiveSession({
+		const fullSession = await sessionRepository.getActiveSessionFull({
 			db,
 			seasonId: activeSeason.id,
 		});
 
-		if (!rawSession) {
-			throw new HTTPException(400, { message: "No active session" });
-		}
-
-		const fullSession = await sessionRepository.getSessionById({
-			db,
-			sessionId: rawSession.id,
-		});
-
 		if (!fullSession) {
-			throw new HTTPException(400, { message: "Session not found" });
+			throw new HTTPException(400, { message: "No active session" });
 		}
 
 		const currentMatch = fullSession.matches.find((m) => m.result === null);
@@ -845,14 +798,14 @@ deviceRouter
 
 		await sessionRepository.updateProposedLineup({
 			db,
-			sessionId: rawSession.id,
+			sessionId: fullSession.id,
 			proposedLineup: newLineup,
 		});
 
 		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 			type: "session:proposed-lineup-update",
 			data: {
-				sessionId: rawSession.id,
+				sessionId: fullSession.id,
 				proposedLineup: {
 					...newLineup,
 					selectedHomePlayerIds: newHomeIds,
@@ -862,9 +815,9 @@ deviceRouter
 			user: { id: userId, name: c.get("authentication").user.name },
 		});
 
-		const refreshedSession = await sessionRepository.getSessionById({
+		const refreshedSession = await sessionRepository.getActiveSessionFull({
 			db,
-			sessionId: rawSession.id,
+			seasonId: activeSeason.id,
 		});
 
 		if (!refreshedSession) {

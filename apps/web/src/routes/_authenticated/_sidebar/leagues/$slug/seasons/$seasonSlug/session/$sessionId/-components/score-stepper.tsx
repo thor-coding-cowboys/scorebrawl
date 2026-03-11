@@ -3,7 +3,8 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Remove01Icon, ReloadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
-import type { SessionPlayer } from "./session-types";
+import { cn } from "@/lib/utils";
+import type { SessionPlayer, SessionMatch } from "./session-types";
 
 export function ScoreStepper({
 	label,
@@ -111,7 +112,7 @@ export function QueueList({
 	onRemovePlayer,
 	isRemoving,
 }: {
-	session: { players: SessionPlayer[] };
+	session: { players: SessionPlayer[]; matches: SessionMatch[] };
 	onRemovePlayer?: (sessionPlayerId: string) => void;
 	isRemoving?: boolean;
 }) {
@@ -142,6 +143,7 @@ export function QueueList({
 						<PlayerQueueRow
 							key={p.id}
 							player={p}
+							matches={session.matches}
 							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
 							isRemoving={isRemoving}
 						/>
@@ -159,6 +161,7 @@ export function QueueList({
 						<PlayerQueueRow
 							key={p.id}
 							player={p}
+							matches={session.matches}
 							rank={i + 1}
 							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
 							isRemoving={isRemoving}
@@ -174,7 +177,7 @@ export function QueueList({
 						</span>
 					</div>
 					{out.map((p) => (
-						<PlayerQueueRow key={p.id} player={p} />
+						<PlayerQueueRow key={p.id} player={p} matches={session.matches} />
 					))}
 				</>
 			)}
@@ -182,17 +185,53 @@ export function QueueList({
 	);
 }
 
+function getPlayerResultForMatch(
+	player: SessionPlayer,
+	match: SessionMatch
+): "win" | "loss" | "draw" | null {
+	if (!match.result) return null;
+
+	const isHome = match.homePlayerIds.includes(player.seasonPlayerId);
+	const isAway = match.awayPlayerIds.includes(player.seasonPlayerId);
+
+	if (!isHome && !isAway) return null;
+
+	if (match.result === "draw") return "draw";
+
+	const isWinner = (isHome && match.result === "home") || (isAway && match.result === "away");
+	return isWinner ? "win" : "loss";
+}
+
 export function PlayerQueueRow({
 	player,
+	matches,
 	rank,
 	onRemove,
 	isRemoving,
 }: {
 	player: SessionPlayer;
+	matches: SessionMatch[];
 	rank?: number;
 	onRemove?: () => void;
 	isRemoving?: boolean;
 }) {
+	// Get completed matches this player participated in, sorted by match number (most recent first)
+	const playerMatches = matches
+		.filter(
+			(m) =>
+				m.result &&
+				(m.homePlayerIds.includes(player.seasonPlayerId) ||
+					m.awayPlayerIds.includes(player.seasonPlayerId))
+		)
+		.sort((a, b) => b.matchNumber - a.matchNumber);
+
+	// Get results for the most recent consecutive games (in chronological order for display)
+	const recentResults = playerMatches
+		.slice(0, Math.min(player.consecutiveGames, 8))
+		.reverse()
+		.map((m) => getPlayerResultForMatch(player, m))
+		.filter((r): r is "win" | "loss" | "draw" => r !== null);
+
 	return (
 		<div className="flex items-center gap-3 px-4 py-2">
 			{rank !== undefined ? (
@@ -212,11 +251,18 @@ export function PlayerQueueRow({
 						className="flex items-center gap-0.5"
 						title={`${player.consecutiveGames} consecutive games played`}
 					>
-						{Array.from({ length: Math.min(player.consecutiveGames, 8) }, (_, i) => (
-							<span key={i} className="size-1.5 rounded-full bg-amber-500" />
-						))}
+						{recentResults.map((result, i) => {
+							// Color by result: green=win, red=loss, yellow=draw
+							const dotColor =
+								result === "win"
+									? "bg-green-500"
+									: result === "loss"
+										? "bg-red-500"
+										: "bg-yellow-500";
+							return <span key={i} className={cn("size-1.5 rounded-full", dotColor)} />;
+						})}
 						{player.consecutiveGames > 8 && (
-							<span className="text-[0.6rem] text-amber-600 font-medium">
+							<span className="text-[0.6rem] text-muted-foreground font-medium">
 								+{player.consecutiveGames - 8}
 							</span>
 						)}

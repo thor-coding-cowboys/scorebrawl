@@ -305,31 +305,40 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			await tx.insert(matchPlayer).values(matchPlayerValues.slice(i, i + D1_BATCH_SIZE));
 		}
 
-		// Update season player scores with new ELO ratings
-		const updatePromises = [...eloResult.homeTeam.players, ...eloResult.awayTeam.players].map(
-			(playerResult) =>
-				tx
-					.update(seasonPlayer)
-					.set({ score: playerResult.scoreAfter })
-					.where(eq(seasonPlayer.id, playerResult.id))
-		);
-		await Promise.all(updatePromises);
+		// Update season player scores with new ELO ratings (single CASE-based UPDATE)
+		const allPlayerResults = [...eloResult.homeTeam.players, ...eloResult.awayTeam.players];
+		const playerCaseParts = allPlayerResults
+			.map((p) => sql`WHEN ${seasonPlayer.id} = ${p.id} THEN ${p.scoreAfter}`)
+			.reduce((acc, part) => sql`${acc} ${part}`);
+		await tx
+			.update(seasonPlayer)
+			.set({ score: sql`CASE ${playerCaseParts} END` })
+			.where(
+				inArray(
+					seasonPlayer.id,
+					allPlayerResults.map((p) => p.id)
+				)
+			);
 
 		// Handle team creation and scoring for 2+ player matches
 		if (homePlayers.length > 1 && awayPlayers.length > 1) {
-			const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = await getOrInsertTeam({
-				db: tx,
-				seasonData,
-				players: homePlayers,
-				now,
-			});
+			const [homeTeamResult, awayTeamResult] = await Promise.all([
+				getOrInsertTeam({
+					db: tx,
+					seasonData,
+					players: homePlayers,
+					now,
+				}),
+				getOrInsertTeam({
+					db: tx,
+					seasonData,
+					players: awayPlayers,
+					now,
+				}),
+			]);
 
-			const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = await getOrInsertTeam({
-				db: tx,
-				seasonData,
-				players: awayPlayers,
-				now,
-			});
+			const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = homeTeamResult;
+			const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = awayTeamResult;
 
 			// Calculate team scores
 			const teamMatchResult = calculateMatchResult({
@@ -368,16 +377,23 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 				},
 			]);
 
-			// Update season team scores
-			for (const teamResult of [
+			// Update season team scores (single CASE-based UPDATE)
+			const allTeamResults = [
 				...teamMatchResult.homeTeam.players,
 				...teamMatchResult.awayTeam.players,
-			]) {
-				await tx
-					.update(seasonTeam)
-					.set({ score: teamResult.scoreAfter })
-					.where(eq(seasonTeam.id, teamResult.id));
-			}
+			];
+			const teamCaseParts = allTeamResults
+				.map((t) => sql`WHEN ${seasonTeam.id} = ${t.id} THEN ${t.scoreAfter}`)
+				.reduce((acc, part) => sql`${acc} ${part}`);
+			await tx
+				.update(seasonTeam)
+				.set({ score: sql`CASE ${teamCaseParts} END` })
+				.where(
+					inArray(
+						seasonTeam.id,
+						allTeamResults.map((t) => t.id)
+					)
+				);
 		}
 
 		return {
@@ -407,29 +423,40 @@ export const checkStreakThresholds = async ({
 > => {
 	if (seasonPlayerIds.length === 0) return [];
 
-	const allMatches = await db
-		.select({
-			seasonPlayerId: matchPlayer.seasonPlayerId,
-			result: matchPlayer.result,
-			createdAt: matchPlayer.createdAt,
-			playerId: player.id,
-			playerName: user.name,
-			playerImage: user.image,
-		})
-		.from(matchPlayer)
-		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.innerJoin(user, eq(player.userId, user.id))
-		.where(inArray(matchPlayer.seasonPlayerId, seasonPlayerIds))
-		.orderBy(desc(matchPlayer.createdAt));
+	const allMatches = await db.all<{
+		seasonPlayerId: string;
+		result: "W" | "L" | "D";
+		playerId: string;
+		playerName: string | null;
+		playerImage: string | null;
+	}>(sql`
+		SELECT
+			mp.season_player_id as seasonPlayerId,
+			mp.result,
+			p.id as playerId,
+			u.name as playerName,
+			u.image as playerImage
+		FROM (
+			SELECT
+				season_player_id,
+				result,
+				created_at,
+				ROW_NUMBER() OVER (PARTITION BY season_player_id ORDER BY created_at DESC) as rn
+			FROM match_player
+			WHERE season_player_id IN ${seasonPlayerIds}
+		) mp
+		INNER JOIN season_player sp ON mp.season_player_id = sp.id
+		INNER JOIN player p ON sp.player_id = p.id
+		INNER JOIN user u ON p.user_id = u.id
+		WHERE mp.rn <= 16
+		ORDER BY mp.season_player_id, mp.created_at DESC
+	`);
 
 	const matchesByPlayer = new Map<string, typeof allMatches>();
 	for (const match of allMatches) {
 		const existing = matchesByPlayer.get(match.seasonPlayerId) || [];
-		if (existing.length < 16) {
-			existing.push(match);
-			matchesByPlayer.set(match.seasonPlayerId, existing);
-		}
+		existing.push(match);
+		matchesByPlayer.set(match.seasonPlayerId, existing);
 	}
 
 	const results: Array<{
@@ -520,27 +547,37 @@ export const checkTeamStreakThresholds = async ({
 
 	const seasonTeamIds = teams.map((t) => t.seasonTeamId);
 
-	const allMatches = await db
-		.select({
-			seasonTeamId: matchTeam.seasonTeamId,
-			result: matchTeam.result,
-			createdAt: matchTeam.createdAt,
-			teamName: leagueTeam.name,
-			teamLogo: leagueTeam.logo,
-		})
-		.from(matchTeam)
-		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.innerJoin(leagueTeam, eq(seasonTeam.leagueTeamId, leagueTeam.id))
-		.where(inArray(matchTeam.seasonTeamId, seasonTeamIds))
-		.orderBy(desc(matchTeam.createdAt));
+	const allMatches = await db.all<{
+		seasonTeamId: string;
+		result: "W" | "L" | "D";
+		teamName: string;
+		teamLogo: string | null;
+	}>(sql`
+		SELECT
+			mt.season_team_id as seasonTeamId,
+			mt.result,
+			lt.name as teamName,
+			lt.logo as teamLogo
+		FROM (
+			SELECT
+				season_team_id,
+				result,
+				created_at,
+				ROW_NUMBER() OVER (PARTITION BY season_team_id ORDER BY created_at DESC) as rn
+			FROM match_team
+			WHERE season_team_id IN ${seasonTeamIds}
+		) mt
+		INNER JOIN season_team st ON mt.season_team_id = st.id
+		INNER JOIN league_team lt ON st.league_team_id = lt.id
+		WHERE mt.rn <= 16
+		ORDER BY mt.season_team_id, mt.created_at DESC
+	`);
 
 	const matchesByTeam = new Map<string, typeof allMatches>();
 	for (const match of allMatches) {
 		const existing = matchesByTeam.get(match.seasonTeamId) || [];
-		if (existing.length < 16) {
-			existing.push(match);
-			matchesByTeam.set(match.seasonTeamId, existing);
-		}
+		existing.push(match);
+		matchesByTeam.set(match.seasonTeamId, existing);
 	}
 
 	const results: Array<{
