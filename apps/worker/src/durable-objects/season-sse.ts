@@ -9,6 +9,8 @@ export interface SeasonSSEEvent {
 	};
 }
 
+const ALARM_INTERVAL = 10_000; // 10 seconds - hibernate quickly when idle
+
 export class SeasonSSE extends DurableObject {
 	private sessions: Map<string, ReadableStreamDefaultController> = new Map();
 	private alarmScheduled = false;
@@ -17,10 +19,19 @@ export class SeasonSSE extends DurableObject {
 		const url = new URL(request.url);
 
 		if (url.pathname === "/broadcast") {
-			// Handle broadcast from router
 			const event: SeasonSSEEvent = await request.json();
-			console.log("[SeasonSSE] Broadcasting to", this.sessions.size, "sessions:", event.type);
-			this.broadcast(event);
+			if (this.sessions.size > 0) {
+				const errors = this.broadcast(event);
+				if (errors > 0) {
+					console.log(
+						"[SeasonSSE] Broadcast errors:",
+						errors,
+						"of",
+						this.sessions.size,
+						"sessions"
+					);
+				}
+			}
 			return new Response("OK");
 		}
 
@@ -32,16 +43,19 @@ export class SeasonSSE extends DurableObject {
 			start: (ctrl) => {
 				controller = ctrl;
 				this.sessions.set(sessionId, controller);
+				console.log("[SeasonSSE] Connected, total:", this.sessions.size);
 
-				// Send initial connection message
+				if (this.sessions.size > 50) {
+					console.warn("[SeasonSSE] High session count:", this.sessions.size);
+				}
+
 				const data = `data: ${JSON.stringify({ type: "connected", sessionId })}\n\n`;
 				controller.enqueue(new TextEncoder().encode(data));
-
-				// Schedule alarm for cleanup
 				this.scheduleAlarm();
 			},
 			cancel: () => {
 				this.sessions.delete(sessionId);
+				console.log("[SeasonSSE] Disconnected, remaining:", this.sessions.size);
 				this.scheduleAlarm();
 			},
 		});
@@ -55,24 +69,25 @@ export class SeasonSSE extends DurableObject {
 		});
 	}
 
-	broadcast(event: SeasonSSEEvent) {
+	broadcast(event: SeasonSSEEvent): number {
 		const data = `data: ${JSON.stringify(event)}\n\n`;
 		const encoded = new TextEncoder().encode(data);
+		let errors = 0;
 
 		for (const controller of this.sessions.values()) {
 			try {
 				controller.enqueue(encoded);
 			} catch {
-				// Client disconnected, will be cleaned up
+				errors++;
 			}
 		}
+		return errors;
 	}
 
 	private async scheduleAlarm() {
 		if (this.alarmScheduled) return;
 
-		// Clean up if no sessions after 1 minute
-		const alarmTime = Date.now() + 60_000;
+		const alarmTime = Date.now() + ALARM_INTERVAL;
 		await this.ctx.storage.setAlarm(alarmTime);
 		this.alarmScheduled = true;
 	}
@@ -80,12 +95,9 @@ export class SeasonSSE extends DurableObject {
 	async alarm() {
 		this.alarmScheduled = false;
 
-		// If no active sessions, we can let the DO hibernate
 		if (this.sessions.size === 0) {
-			// Clear any stored data if needed
 			await this.ctx.storage.deleteAll();
 		} else {
-			// Reschedule if there are still sessions
 			this.scheduleAlarm();
 		}
 	}
