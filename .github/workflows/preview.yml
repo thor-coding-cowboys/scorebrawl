@@ -75,14 +75,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: 🌱 Seed Database
-        run: bun run db:seed:remote -m 4 -M 15
-        working-directory: apps/worker
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_DATABASE_ID: ${{ steps.get-db.outputs.database_id }}
-          CLOUDFLARE_D1_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
       - name: 🔐 Set BETTER_AUTH_SECRET
         run: bun run .github/scripts/preview/set-better-auth-secret.ts
         env:
@@ -98,6 +90,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config wrangler.preview.jsonc
+
+      - name: 🌱 Seed Database via Queue
+        run: bun run db:seed:trigger -m 4 -M 15
+        working-directory: apps/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 📋 Get preview URL
         id: get-url

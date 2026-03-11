@@ -15,6 +15,10 @@ import {
 	calculateAchievements,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
+import {
+	runBulkSeed,
+	type SeedQueueMessage,
+} from "./services/bulk-seed";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
@@ -34,17 +38,44 @@ const app = new Hono<HonoEnv>()
 		return enforceAuthMiddleware(c, next);
 	});
 
+type QueueMessage = AchievementQueueMessage | SeedQueueMessage;
+
 export default {
 	fetch: app.fetch,
-	async queue(batch: MessageBatch<AchievementQueueMessage>, env: Env) {
+	async queue(batch: MessageBatch<QueueMessage>, env: Env) {
 		const db = getDb(env.DB);
 		for (const msg of batch.messages) {
-			try {
-				await calculateAchievements(db, msg.body.seasonPlayerIds);
-				msg.ack();
-			} catch (error) {
-				console.error("[Achievement Queue] Failed to process message:", error);
-				msg.retry();
+			const body = msg.body;
+			
+			// Handle seed queue messages
+			if ('action' in body && body.action === "bulk-seed") {
+				try {
+					console.log("[Seed Queue] Starting bulk seed:", { memberCount: body.memberCount, matchCount: body.matchCount });
+					const result = await runBulkSeed(db, { 
+						memberCount: body.memberCount, 
+						matchCount: body.matchCount 
+					});
+					
+					if (result.success) {
+						console.log("[Seed Queue] Bulk seed completed:", result.stats);
+						msg.ack();
+					} else {
+						console.error("[Seed Queue] Bulk seed failed:", result.message);
+						msg.retry();
+					}
+				} catch (error) {
+					console.error("[Seed Queue] Failed to process message:", error);
+					msg.retry();
+				}
+			} else {
+				// Handle achievement queue messages
+				try {
+					await calculateAchievements(db, (body as AchievementQueueMessage).seasonPlayerIds);
+					msg.ack();
+				} catch (error) {
+					console.error("[Achievement Queue] Failed to process message:", error);
+					msg.retry();
+				}
 			}
 		}
 	},
