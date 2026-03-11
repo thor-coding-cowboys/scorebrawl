@@ -15,6 +15,7 @@ export interface RotationInput {
 	mode: RotationMode;
 	teamSize: number;
 	maxConsecutiveGames: number | null;
+	autoRandomize: boolean;
 	alwaysSplitConstraints: [string, string][]; // seasonPlayer ID pairs
 	players: SessionPlayerState[];
 	lastResult: MatchResult;
@@ -38,6 +39,15 @@ export interface ProposedLineup {
 
 function playerById(players: SessionPlayerState[], id: string): SessionPlayerState | undefined {
 	return players.find((p) => p.id === id);
+}
+
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+	const result = [...arr];
+	for (let i = result.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[result[i]!, result[j]!] = [result[j]!, result[i]!];
+	}
+	return result;
 }
 
 function enforceAlwaysSplit(
@@ -95,6 +105,7 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 		mode,
 		teamSize,
 		maxConsecutiveGames,
+		autoRandomize,
 		alwaysSplitConstraints,
 		players,
 		lastResult,
@@ -137,6 +148,32 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 	}
 
 	// winner-stays
+
+	const playingIds = new Set([...homePlayerIds, ...awayPlayerIds]);
+	const waitingQueue = players
+		.filter((p) => p.status === "waiting" && !playingIds.has(p.id))
+		.sort((a, b) => a.queuePosition - b.queuePosition);
+
+	const totalPlaying = homePlayerIds.length + awayPlayerIds.length;
+	const slotsToFill = Math.min(waitingQueue.length, totalPlaying);
+
+	// ── Rule 1: No waiters → nobody out ──
+	if (slotsToFill === 0) {
+		const constrained = enforceAlwaysSplit(
+			[...homePlayerIds],
+			[...awayPlayerIds],
+			alwaysSplitConstraints,
+			players
+		);
+		return {
+			homePlayerIds: constrained.homeIds,
+			awayPlayerIds: constrained.awayIds,
+			rotatedOut: [],
+			coinTossNeeded: null,
+		};
+	}
+
+	// ── Determine winners / losers ──
 	let winnerIds: string[];
 	let loserIds: string[];
 
@@ -157,18 +194,19 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 			winnerIds = homePlayerIds;
 			loserIds = awayPlayerIds;
 		} else if (resolvedCoinTossWinnerIds && resolvedCoinTossWinnerIds.length > 0) {
-			// Coin toss resolved: check which team the winners belong to
 			const homeSet = new Set(homePlayerIds);
 			const winnersAreHome = resolvedCoinTossWinnerIds.some((id) => homeSet.has(id));
 			winnerIds = winnersAreHome ? homePlayerIds : awayPlayerIds;
 			loserIds = winnersAreHome ? awayPlayerIds : homePlayerIds;
 		} else {
-			const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
 			return {
 				homePlayerIds: [],
 				awayPlayerIds: [],
 				rotatedOut: [],
-				coinTossNeeded: { conflictType: "draw-tiebreak", candidates: allPlayingIds },
+				coinTossNeeded: {
+					conflictType: "draw-tiebreak",
+					candidates: [...homePlayerIds, ...awayPlayerIds],
+				},
 			};
 		}
 	} else {
@@ -178,151 +216,213 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 
 	const winnersOnHome = homePlayerIds.includes(winnerIds[0] ?? "");
 
-	const playingIds = new Set([...homePlayerIds, ...awayPlayerIds]);
-	const waitingQueue = players
-		.filter((p) => p.status === "waiting" && !playingIds.has(p.id))
-		.sort((a, b) => a.queuePosition - b.queuePosition);
+	// ── Special: waiters >= playing → all rotate out ──
+	if (slotsToFill >= totalPlaying) {
+		const incoming = autoRandomize
+			? fisherYatesShuffle(waitingQueue.slice(0, teamSize * 2).map((p) => p.id))
+			: waitingQueue.slice(0, teamSize * 2).map((p) => p.id);
+		const newHome = incoming.slice(0, teamSize);
+		const newAway = incoming.slice(teamSize, teamSize * 2);
+		const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
+		const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
+		return {
+			homePlayerIds: constrained.homeIds,
+			awayPlayerIds: constrained.awayIds,
+			rotatedOut: allPlayingIds,
+			coinTossNeeded: null,
+		};
+	}
 
-	// Displacement-first: N incoming players displace exactly N current players.
-	// Displacement priority: losers first (most consecutiveGames, then most gamesPlayed),
-	// then winners (only relevant when maxConsecutiveGames forces them out).
-	const N = waitingQueue.length;
-
-	const byPriority = (a: SessionPlayerState, b: SessionPlayerState) => {
-		if (b.consecutiveGames !== a.consecutiveGames) return b.consecutiveGames - a.consecutiveGames;
-		return b.gamesPlayedThisSession - a.gamesPlayedThisSession;
-	};
+	// ── Sort helpers ──
+	const byConsecutiveDesc = (a: SessionPlayerState, b: SessionPlayerState) =>
+		b.consecutiveGames - a.consecutiveGames;
 
 	const loserStates = loserIds
 		.map((id) => playerById(players, id))
 		.filter((p): p is SessionPlayerState => p !== undefined)
-		.sort(byPriority);
+		.sort(byConsecutiveDesc);
 
 	const winnerStates = winnerIds
 		.map((id) => playerById(players, id))
 		.filter((p): p is SessionPlayerState => p !== undefined)
-		.sort(byPriority);
+		.sort(byConsecutiveDesc);
 
-	// Apply maxConsecutiveGames: winners over the limit are forced into the displacement list.
-	// players snapshot is always post-mutation (consecutiveGames already incremented).
-	const forcedWinners =
+	const allPlayingStates = [...loserStates, ...winnerStates];
+
+	// ── Rule 3: maxConsecutiveGames forces rotation ──
+	const forced =
 		maxConsecutiveGames !== null
-			? winnerStates.filter((p) => p.consecutiveGames >= maxConsecutiveGames)
+			? allPlayingStates
+					.filter((p) => p.consecutiveGames >= maxConsecutiveGames)
+					.sort(byConsecutiveDesc)
 			: [];
 
-	// Displacement list: forced winners first (must leave when possible), then losers, then remaining winners
-	const remainingWinners = winnerStates.filter((p) => !forcedWinners.includes(p));
-	const displacementList = [...forcedWinners, ...loserStates, ...remainingWinners];
+	const forcedIds = new Set(forced.map((p) => p.id));
+	type PlayerGroup = "forced" | "loser" | "winner";
 
-	// Check for a coin-toss tie at the cut point (position N-1 / N)
-	const forcedWinnerIds = new Set(forcedWinners.map((p) => p.id));
-	const playerGroup = (id: string) =>
-		forcedWinnerIds.has(id) ? "forced" : loserIds.includes(id) ? "loser" : "winner";
+	// ── Build rotation list with tie detection ──
+	const rotateOut: string[] = [];
+	let remaining = slotsToFill;
 
-	if (N > 0 && N < displacementList.length) {
-		const lastOut = displacementList[N - 1];
-		const firstIn = displacementList[N];
-		if (
-			lastOut &&
-			firstIn &&
-			lastOut.consecutiveGames === firstIn.consecutiveGames &&
-			lastOut.gamesPlayedThisSession === firstIn.gamesPlayedThisSession &&
-			// Only coin-toss within the same group (forced vs forced, losers vs losers, or winners vs winners)
-			playerGroup(lastOut.id) === playerGroup(firstIn.id)
-		) {
-			const tiedStats = { c: lastOut.consecutiveGames, g: lastOut.gamesPlayedThisSession };
-			const tiedGroup = playerGroup(lastOut.id);
-			const tiedCandidates = displacementList.filter(
-				(p) =>
-					p.consecutiveGames === tiedStats.c &&
-					p.gamesPlayedThisSession === tiedStats.g &&
-					playerGroup(p.id) === tiedGroup
-			);
+	const pickFromCandidates = (
+		candidates: SessionPlayerState[],
+		count: number,
+		group: PlayerGroup
+	): { picked: string[]; coinToss: CoinTossNeeded | null } => {
+		if (count <= 0 || candidates.length === 0) return { picked: [], coinToss: null };
+		if (candidates.length <= count) return { picked: candidates.map((p) => p.id), coinToss: null };
+
+		const lastOut = candidates[count - 1]!;
+		const firstIn = candidates[count]!;
+
+		if (lastOut.consecutiveGames === firstIn.consecutiveGames) {
+			const tiedConsecutive = lastOut.consecutiveGames;
+			const tiedCandidates = candidates.filter((p) => p.consecutiveGames === tiedConsecutive);
 
 			if (resolvedCoinTossWinnerIds && resolvedCoinTossWinnerIds.length > 0) {
-				// Re-order displacementList: toss losers (not in resolvedWinners) come first within the tied group
-				const tiedCandidateIds = new Set(tiedCandidates.map((p) => p.id));
-				const reordered = [...displacementList.filter((p) => !tiedCandidateIds.has(p.id))];
-				// Among tied candidates: those NOT in resolvedWinnerIds go out first
-				const tiedLosers = tiedCandidates.filter((p) => !resolvedCoinTossWinnerIds.includes(p.id));
-				const tiedWinners = tiedCandidates.filter((p) => resolvedCoinTossWinnerIds.includes(p.id));
-				// Insert tiedLosers before tiedWinners at their original position in the list
-				const insertPos = displacementList.findIndex((p) => tiedCandidateIds.has(p.id));
-				reordered.splice(insertPos, 0, ...tiedLosers, ...tiedWinners);
-
-				const resolvedDisplaced = new Set(reordered.slice(0, N).map((p) => p.id));
-				const resolvedRotatedOut = [...resolvedDisplaced];
-				const resolvedSurvivingLosers = loserStates.filter((p) => !resolvedDisplaced.has(p.id));
-				const resolvedSurvivingWinners = winnerStates.filter((p) => !resolvedDisplaced.has(p.id));
-				const resolvedWinnerTeam = [...resolvedSurvivingWinners.map((p) => p.id)];
-				const resolvedOpposingPool = [
-					...waitingQueue.map((p) => p.id),
-					...resolvedSurvivingLosers.map((p) => p.id),
-				];
-				while (resolvedWinnerTeam.length < teamSize && resolvedOpposingPool.length > teamSize) {
-					resolvedWinnerTeam.push(resolvedOpposingPool.pop()!);
-				}
-				const resolvedFinalHome = winnersOnHome ? resolvedWinnerTeam : resolvedOpposingPool;
-				const resolvedFinalAway = winnersOnHome ? resolvedOpposingPool : resolvedWinnerTeam;
-				const resolvedConstrained = enforceAlwaysSplit(
-					resolvedFinalHome,
-					resolvedFinalAway,
-					alwaysSplitConstraints,
-					players
-				);
-				return {
-					homePlayerIds: resolvedConstrained.homeIds,
-					awayPlayerIds: resolvedConstrained.awayIds,
-					rotatedOut: resolvedRotatedOut,
-					coinTossNeeded: null,
-				};
+				const staySet = new Set(resolvedCoinTossWinnerIds);
+				const tiedOut = tiedCandidates.filter((p) => !staySet.has(p.id));
+				const tiedStay = tiedCandidates.filter((p) => staySet.has(p.id));
+				const nonTied = candidates.filter((p) => p.consecutiveGames !== tiedConsecutive);
+				const reordered = [...nonTied, ...tiedOut, ...tiedStay];
+				reordered.sort((a, b) => {
+					const aGroup = a.consecutiveGames !== tiedConsecutive ? 0 : staySet.has(a.id) ? 2 : 1;
+					const bGroup = b.consecutiveGames !== tiedConsecutive ? 0 : staySet.has(b.id) ? 2 : 1;
+					if (aGroup !== bGroup) return aGroup - bGroup;
+					return b.consecutiveGames - a.consecutiveGames;
+				});
+				return { picked: reordered.slice(0, count).map((p) => p.id), coinToss: null };
 			}
 
-			const definiteOut = displacementList
-				.slice(0, N)
-				.filter(
-					(p) => p.consecutiveGames !== tiedStats.c || p.gamesPlayedThisSession !== tiedStats.g
-				)
+			const definiteOut = candidates
+				.slice(0, count)
+				.filter((p) => p.consecutiveGames !== tiedConsecutive)
 				.map((p) => p.id);
 			return {
-				homePlayerIds: [],
-				awayPlayerIds: [],
-				rotatedOut: definiteOut,
-				coinTossNeeded: {
-					conflictType:
-						playerGroup(lastOut.id) === "loser" ? "loser-rotation" : "max-consecutive-exceeded",
+				picked: definiteOut,
+				coinToss: {
+					conflictType: group === "forced" ? "max-consecutive-exceeded" : "loser-rotation",
 					candidates: tiedCandidates.map((p) => p.id),
 				},
 			};
 		}
+
+		return { picked: candidates.slice(0, count).map((p) => p.id), coinToss: null };
+	};
+
+	const loserIdSet = new Set(loserIds);
+
+	const pickStep = (
+		candidates: SessionPlayerState[],
+		group: PlayerGroup
+	): CoinTossNeeded | null => {
+		const count = Math.min(candidates.length, remaining);
+		const result = pickFromCandidates(candidates, count, group);
+		if (result.coinToss) return result.coinToss;
+		rotateOut.push(...result.picked);
+		remaining -= result.picked.length;
+		return null;
+	};
+
+	// Step 1: Forced players — tier by consecutiveGames (highest first),
+	// within each tier losers before winners.
+	const consecutiveTiers = [...new Set(forced.map((p) => p.consecutiveGames))].sort(
+		(a, b) => b - a
+	);
+	for (const tier of consecutiveTiers) {
+		if (remaining <= 0) break;
+		const tierPlayers = forced.filter((p) => p.consecutiveGames === tier);
+		const tierLosers = tierPlayers.filter((p) => loserIdSet.has(p.id));
+		const tierWinners = tierPlayers.filter((p) => !loserIdSet.has(p.id));
+
+		if (remaining > 0 && tierLosers.length > 0) {
+			const coinToss = pickStep(tierLosers, "forced");
+			if (coinToss) {
+				return {
+					homePlayerIds: [],
+					awayPlayerIds: [],
+					rotatedOut: rotateOut,
+					coinTossNeeded: coinToss,
+				};
+			}
+		}
+		if (remaining > 0 && tierWinners.length > 0) {
+			const coinToss = pickStep(tierWinners, "forced");
+			if (coinToss) {
+				return {
+					homePlayerIds: [],
+					awayPlayerIds: [],
+					rotatedOut: rotateOut,
+					coinTossNeeded: coinToss,
+				};
+			}
+		}
 	}
 
-	const displaced = new Set(displacementList.slice(0, N).map((p) => p.id));
-	const rotatedOut = [...displaced];
-
-	// Survivors
-	const survivingLosers = loserStates.filter((p) => !displaced.has(p.id));
-	const survivingWinners = winnerStates.filter((p) => !displaced.has(p.id));
-
-	// Build teams: winners stay on their side, waiters + surviving losers form the opposing team.
-	// If forced winners were displaced, their spots on the winner team need filling from surviving losers.
-	const winnerTeam = [...survivingWinners.map((p) => p.id)];
-	const opposingPool = [...waitingQueue.map((p) => p.id), ...survivingLosers.map((p) => p.id)];
-
-	// Promote from opposing pool to winner team if it's short
-	while (winnerTeam.length < teamSize && opposingPool.length >= teamSize) {
-		winnerTeam.push(opposingPool.pop()!);
+	// Step 2: Non-forced losers (Rule 4)
+	if (remaining > 0) {
+		const nonForcedLosers = loserStates.filter((p) => !forcedIds.has(p.id)).sort(byConsecutiveDesc);
+		const coinToss2 = pickStep(nonForcedLosers, "loser");
+		if (coinToss2) {
+			return {
+				homePlayerIds: [],
+				awayPlayerIds: [],
+				rotatedOut: rotateOut,
+				coinTossNeeded: coinToss2,
+			};
+		}
 	}
 
-	const finalHome = winnersOnHome ? winnerTeam : opposingPool;
-	const finalAway = winnersOnHome ? opposingPool : winnerTeam;
+	// Step 3: Non-forced winners (Rule 4 overflow)
+	if (remaining > 0) {
+		const nonForcedWinners = winnerStates
+			.filter((p) => !forcedIds.has(p.id))
+			.sort(byConsecutiveDesc);
+		const coinToss3 = pickStep(nonForcedWinners, "winner");
+		if (coinToss3) {
+			return {
+				homePlayerIds: [],
+				awayPlayerIds: [],
+				rotatedOut: rotateOut,
+				coinTossNeeded: coinToss3,
+			};
+		}
+	}
+
+	// ── Build teams ──
+	const displacedSet = new Set(rotateOut);
+	const survivingWinners = winnerStates.filter((p) => !displacedSet.has(p.id));
+	const survivingLosers = loserStates.filter((p) => !displacedSet.has(p.id));
+
+	let finalHome: string[];
+	let finalAway: string[];
+
+	if (autoRandomize) {
+		const allPlaying = fisherYatesShuffle([
+			...survivingWinners.map((p) => p.id),
+			...survivingLosers.map((p) => p.id),
+			...waitingQueue.slice(0, slotsToFill).map((p) => p.id),
+		]);
+		finalHome = allPlaying.slice(0, teamSize);
+		finalAway = allPlaying.slice(teamSize, teamSize * 2);
+	} else {
+		const winnerTeam = [...survivingWinners.map((p) => p.id)];
+		const opposingPool = [...waitingQueue.map((p) => p.id), ...survivingLosers.map((p) => p.id)];
+
+		while (winnerTeam.length < teamSize && opposingPool.length > teamSize) {
+			winnerTeam.push(opposingPool.shift()!);
+		}
+
+		finalHome = winnersOnHome ? winnerTeam : opposingPool;
+		finalAway = winnersOnHome ? opposingPool : winnerTeam;
+	}
 
 	const constrained = enforceAlwaysSplit(finalHome, finalAway, alwaysSplitConstraints, players);
 
 	return {
 		homePlayerIds: constrained.homeIds,
 		awayPlayerIds: constrained.awayIds,
-		rotatedOut,
+		rotatedOut: rotateOut,
 		coinTossNeeded: null,
 	};
 }

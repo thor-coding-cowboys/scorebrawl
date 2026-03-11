@@ -492,6 +492,16 @@ function SessionLivePage() {
 		onError: () => toast.error("Failed to add player"),
 	});
 
+	const removePlayer = useMutation({
+		mutationFn: (input: { sessionId: string; sessionPlayerId: string }) =>
+			client.session.removePlayer.mutate(input) as Promise<unknown>,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			toast.success("Player removed from session");
+		},
+		onError: () => toast.error("Failed to remove player"),
+	});
+
 	const endSession = useMutation({
 		mutationFn: () => client.session.end.mutate({ sessionId }) as Promise<unknown>,
 		onSuccess: () => {
@@ -913,7 +923,13 @@ function SessionLivePage() {
 								</Badge>
 							}
 						>
-							<QueueList session={session} />
+							<QueueList
+								session={session}
+								onRemovePlayer={(sessionPlayerId) =>
+									removePlayer.mutate({ sessionId, sessionPlayerId })
+								}
+								isRemoving={removePlayer.isPending}
+							/>
 							{session.alwaysSplitConstraints.length > 0 && (
 								<div className="mt-3 text-xs text-muted-foreground space-y-1">
 									<span className="font-medium text-foreground text-sm">Always Split</span>

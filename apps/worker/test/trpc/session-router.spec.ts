@@ -655,7 +655,7 @@ describe("session router", () => {
 			).rejects.toThrow();
 		});
 
-		it("rejects removing playing player", async () => {
+		it("allows removing playing player", async () => {
 			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
 			const session = await client.session.create.mutate({
@@ -675,12 +675,14 @@ describe("session router", () => {
 			const withMatch = await client.session.getById.query({ sessionId: session.id });
 			const playingPlayer = withMatch.players.find((p) => p.status === "playing")!;
 
-			await expect(
-				client.session.removePlayer.mutate({
-					sessionId: session.id,
-					sessionPlayerId: playingPlayer.id,
-				})
-			).rejects.toThrow("currently in a match");
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: playingPlayer.id,
+			});
+
+			const updatedSession = await client.session.getById.query({ sessionId: session.id });
+			const removedPlayer = updatedSession.players.find((p) => p.id === playingPlayer.id);
+			expect(removedPlayer?.status).toBe("out");
 		});
 
 		it("rejects deleteLastMatch with no completed match", async () => {
