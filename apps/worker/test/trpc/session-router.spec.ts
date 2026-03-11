@@ -533,14 +533,23 @@ describe("session router", () => {
 
 	describe("joinSelf", () => {
 		it("allows authenticated season player to join active session", async () => {
-			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+			const { ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
+			// Find which season player belongs to the authenticated user
+			const authUserSeasonPlayerIndex = seasonPlayers.findIndex((p) => p.userId === ctx.user.id);
+			expect(authUserSeasonPlayerIndex).toBeGreaterThanOrEqual(0);
+
+			// Get the other 3 players (not the auth user)
+			const otherPlayers = seasonPlayers.filter((_, i) => i !== authUserSeasonPlayerIndex);
+			expect(otherPlayers.length).toBe(3);
+
+			// Create session with the other 3 players so auth user can join
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
 				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				seasonPlayerIds: otherPlayers.map((p) => p.id),
 			});
 
 			const newPlayer = await client.session.joinSelf.mutate({
@@ -548,11 +557,14 @@ describe("session router", () => {
 			});
 
 			expect(newPlayer.id).toBeDefined();
-			expect(newPlayer.seasonPlayerId).toBe(seasonPlayers[3].id);
+			// Authenticated user's season player
+			expect(newPlayer.seasonPlayerId).toBe(seasonPlayers[authUserSeasonPlayerIndex].id);
 
 			const updated = await client.session.getById.query({ sessionId: session.id });
 			expect(updated.players).toHaveLength(4);
-			const joinedPlayer = updated.players.find((p) => p.seasonPlayerId === seasonPlayers[3].id);
+			const joinedPlayer = updated.players.find(
+				(p) => p.seasonPlayerId === seasonPlayers[authUserSeasonPlayerIndex].id
+			);
 			expect(joinedPlayer).toBeDefined();
 		});
 
@@ -578,20 +590,31 @@ describe("session router", () => {
 		});
 
 		it("rejects joining twice with CONFLICT error", async () => {
-			const { ctx: _ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+			const { ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
+			// Find which season player belongs to the authenticated user
+			const authUserSeasonPlayerIndex = seasonPlayers.findIndex((p) => p.userId === ctx.user.id);
+			expect(authUserSeasonPlayerIndex).toBeGreaterThanOrEqual(0);
+
+			// Get the other 3 players (not the auth user)
+			const otherPlayers = seasonPlayers.filter((_, i) => i !== authUserSeasonPlayerIndex);
+			expect(otherPlayers.length).toBe(3);
+
+			// Create session with the other 3 players so auth user can join
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
 				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				seasonPlayerIds: otherPlayers.map((p) => p.id),
 			});
 
+			// First join should succeed (auth user is not in session yet)
 			await client.session.joinSelf.mutate({
 				sessionId: session.id,
 			});
 
+			// Second join should fail
 			await expect(
 				client.session.joinSelf.mutate({
 					sessionId: session.id,
