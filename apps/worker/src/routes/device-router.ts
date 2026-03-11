@@ -451,6 +451,7 @@ deviceRouter
 				mode: fullSession.rotationMode,
 				teamSize: fullSession.teamSize,
 				maxConsecutiveGames: fullSession.maxConsecutiveGames,
+				autoRandomize: fullSession.autoRandomize,
 				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 				players: updatedPlayers.map((p) => ({
 					id: p.id,
@@ -500,6 +501,7 @@ deviceRouter
 						teamSize: fullSession.teamSize,
 						maxConsecutiveGames: fullSession.maxConsecutiveGames,
 						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+						autoRandomize: fullSession.autoRandomize,
 						players: updatedPlayers.map((p) => ({
 							id: p.id,
 							seasonPlayerId: p.seasonPlayerId,
@@ -674,6 +676,7 @@ deviceRouter
 					teamSize: fullSession.teamSize,
 					maxConsecutiveGames: fullSession.maxConsecutiveGames,
 					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+					autoRandomize: fullSession.autoRandomize,
 					players: fullSession.players.map((p) => ({
 						id: p.id,
 						seasonPlayerId: p.seasonPlayerId,

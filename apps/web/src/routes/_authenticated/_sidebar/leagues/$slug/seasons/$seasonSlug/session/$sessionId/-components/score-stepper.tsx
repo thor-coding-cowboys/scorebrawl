@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Remove01Icon, ReloadIcon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Remove01Icon, ReloadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import type { SessionPlayer } from "./session-types";
 
 export function ScoreStepper({
@@ -106,7 +106,15 @@ export function TeamRosterCard({
 	);
 }
 
-export function QueueList({ session }: { session: { players: SessionPlayer[] } }) {
+export function QueueList({
+	session,
+	onRemovePlayer,
+	isRemoving,
+}: {
+	session: { players: SessionPlayer[] };
+	onRemovePlayer?: (sessionPlayerId: string) => void;
+	isRemoving?: boolean;
+}) {
 	const playing = session.players.filter((p) => p.status === "playing");
 	const waiting = session.players
 		.filter((p) => p.status === "waiting")
@@ -131,7 +139,12 @@ export function QueueList({ session }: { session: { players: SessionPlayer[] } }
 						</span>
 					</div>
 					{playing.map((p) => (
-						<PlayerQueueRow key={p.id} player={p} />
+						<PlayerQueueRow
+							key={p.id}
+							player={p}
+							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							isRemoving={isRemoving}
+						/>
 					))}
 				</>
 			)}
@@ -143,7 +156,13 @@ export function QueueList({ session }: { session: { players: SessionPlayer[] } }
 						</span>
 					</div>
 					{waiting.map((p, i) => (
-						<PlayerQueueRow key={p.id} player={p} rank={i + 1} />
+						<PlayerQueueRow
+							key={p.id}
+							player={p}
+							rank={i + 1}
+							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							isRemoving={isRemoving}
+						/>
 					))}
 				</>
 			)}
@@ -163,7 +182,17 @@ export function QueueList({ session }: { session: { players: SessionPlayer[] } }
 	);
 }
 
-export function PlayerQueueRow({ player, rank }: { player: SessionPlayer; rank?: number }) {
+export function PlayerQueueRow({
+	player,
+	rank,
+	onRemove,
+	isRemoving,
+}: {
+	player: SessionPlayer;
+	rank?: number;
+	onRemove?: () => void;
+	isRemoving?: boolean;
+}) {
 	return (
 		<div className="flex items-center gap-3 px-4 py-2">
 			{rank !== undefined ? (
@@ -181,7 +210,7 @@ export function PlayerQueueRow({ player, rank }: { player: SessionPlayer; rank?:
 				{player.consecutiveGames > 0 && (
 					<span
 						className="flex items-center gap-0.5"
-						title={`${player.consecutiveGames} consecutive wins`}
+						title={`${player.consecutiveGames} consecutive games played`}
 					>
 						{Array.from({ length: Math.min(player.consecutiveGames, 8) }, (_, i) => (
 							<span key={i} className="size-1.5 rounded-full bg-amber-500" />
@@ -197,6 +226,18 @@ export function PlayerQueueRow({ player, rank }: { player: SessionPlayer; rank?:
 					{player.gamesPlayedThisSession}g
 				</span>
 				<span className="text-sm font-semibold tabular-nums font-mono">{player.score}</span>
+				{onRemove && (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={onRemove}
+						disabled={isRemoving}
+						className="h-6 w-6 text-muted-foreground hover:text-destructive"
+						title="Remove player from session"
+					>
+						<HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
+					</Button>
+				)}
 			</div>
 		</div>
 	);

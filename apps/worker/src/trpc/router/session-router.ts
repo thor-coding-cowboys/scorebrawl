@@ -197,11 +197,47 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			await sessionRepository.removePlayerFromSession({
+			const removedPlayer = await sessionRepository.removePlayerFromSession({
 				db: ctx.db,
 				sessionId: input.sessionId,
 				sessionPlayerId: input.sessionPlayerId,
 			});
+
+			if (removedPlayer.status === "playing") {
+				await sessionRepository.handlePlayerRemovalFromMatch({
+					db: ctx.db,
+					sessionId: input.sessionId,
+					sessionPlayerId: input.sessionPlayerId,
+				});
+			}
+
+			const fullSession = await sessionRepository.getSessionById({
+				db: ctx.db,
+				sessionId: input.sessionId,
+			});
+
+			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
+				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
+				if (lastMatch?.result) {
+					const proposedLineup = computeNextLineup({
+						mode: fullSession.rotationMode,
+						teamSize: fullSession.teamSize,
+						maxConsecutiveGames: fullSession.maxConsecutiveGames,
+						autoRandomize: fullSession.autoRandomize,
+						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+						players: fullSession.players,
+						lastResult: lastMatch.result,
+						homePlayerIds: lastMatch.homePlayerIds,
+						awayPlayerIds: lastMatch.awayPlayerIds,
+					});
+
+					await sessionRepository.updateProposedLineup({
+						db: ctx.db,
+						sessionId: input.sessionId,
+						proposedLineup,
+					});
+				}
+			}
 
 			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 				type: "session:update",
@@ -309,6 +345,7 @@ export const sessionRouter = {
 				mode: fullSession.rotationMode,
 				teamSize: fullSession.teamSize,
 				maxConsecutiveGames: fullSession.maxConsecutiveGames,
+				autoRandomize: fullSession.autoRandomize,
 				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 				players: updatedPlayers.map((p) => ({
 					id: p.id,
@@ -363,6 +400,7 @@ export const sessionRouter = {
 						mode: fullSession.rotationMode,
 						teamSize: fullSession.teamSize,
 						maxConsecutiveGames: fullSession.maxConsecutiveGames,
+						autoRandomize: fullSession.autoRandomize,
 						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 						players: updatedPlayers.map((p) => ({
 							id: p.id,
@@ -515,6 +553,7 @@ export const sessionRouter = {
 					mode: fullSession.rotationMode,
 					teamSize: fullSession.teamSize,
 					maxConsecutiveGames: fullSession.maxConsecutiveGames,
+					autoRandomize: fullSession.autoRandomize,
 					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 					players: fullSession.players.map((p) => ({
 						id: p.id,
