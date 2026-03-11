@@ -16,6 +16,7 @@ interface BaseContext {
 	betterAuth: ReturnType<typeof betterAuth>;
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
+	waitUntil: (promise: Promise<unknown>) => void;
 }
 
 // Extended context types

@@ -16,6 +16,7 @@ export const trpcServer = honoTrpcServer({
 			betterAuth,
 			userAssets: c.get("userAssets"),
 			env: c.env,
+			waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
 			// Per-request cache shared across batched tRPC procedures
 			_cache: new Map<string, unknown>(),
 		};

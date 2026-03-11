@@ -449,49 +449,59 @@ export const sessionRouter = {
 				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 			});
 
-			const [streakPlayers, streakTeams] = await Promise.all([
-				matchRepository.checkStreakThresholds({
-					db: ctx.db,
-					seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
-				}),
-				matchRepository.checkTeamStreakThresholds({
-					db: ctx.db,
-					matchId: createdMatch.id,
-				}),
-			]);
+			// Move streak checking off the critical path using waitUntil
+			const streakCheckPromise = (async () => {
+				const [streakPlayers, streakTeams] = await Promise.all([
+					matchRepository.checkStreakThresholds({
+						db: ctx.db,
+						seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+					}),
+					matchRepository.checkTeamStreakThresholds({
+						db: ctx.db,
+						matchId: createdMatch.id,
+					}),
+				]);
 
-			const user = { id: ctx.authentication.user.id, name: ctx.authentication.user.name };
-			const timestamp = Date.now();
-			const streakEvents = [
-				...streakPlayers.map((p) => ({
-					type: "streak" as const,
-					data: {
-						playerId: p.playerId,
-						playerName: p.playerName,
-						playerImage: p.playerImage,
-						streak: p.streak,
-						timestamp,
-					},
-					user,
-				})),
-				...streakTeams.map((t) => ({
-					type: "streak" as const,
-					data: {
-						playerId: t.seasonTeamId,
-						playerName: t.teamName,
-						playerImage: t.teamLogo,
-						streak: t.streak,
-						timestamp,
-						isTeam: true,
-					},
-					user,
-				})),
-			];
-			await Promise.all(
-				streakEvents.map((event) =>
-					broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, event)
-				)
-			);
+				const user = { id: ctx.authentication.user.id, name: ctx.authentication.user.name };
+				const timestamp = Date.now();
+				const streakEvents = [
+					...streakPlayers.map((p) => ({
+						type: "streak" as const,
+						data: {
+							playerId: p.playerId,
+							playerName: p.playerName,
+							playerImage: p.playerImage,
+							streak: p.streak,
+							timestamp,
+						},
+						user,
+					})),
+					...streakTeams.map((t) => ({
+						type: "streak" as const,
+						data: {
+							playerId: t.seasonTeamId,
+							playerName: t.teamName,
+							playerImage: t.teamLogo,
+							streak: t.streak,
+							timestamp,
+							isTeam: true,
+						},
+						user,
+					})),
+				];
+				await Promise.all(
+					streakEvents.map((event) =>
+						broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, event)
+					)
+				);
+			})();
+
+			// Wait for it if not in production, otherwise let it run in background
+			if (process.env.NODE_ENV === "development") {
+				await streakCheckPromise;
+			} else {
+				ctx.waitUntil(streakCheckPromise);
+			}
 
 			return {
 				match: updatedMatch,
