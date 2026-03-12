@@ -174,18 +174,16 @@ ${"─".repeat(50)}
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				messages: [
-					{
-						body: JSON.stringify(message),
-					},
-				],
+				body: JSON.stringify(message),
 			}),
 		}
 	);
 
 	if (!sendResponse.ok) {
-		const error = await sendResponse.text();
-		console.error(red("Failed to send message to queue:"), error);
+		const errorText = await sendResponse.text();
+		console.error(red("Failed to send message to queue:"));
+		console.error("Status:", sendResponse.status, sendResponse.statusText);
+		console.error("Response:", errorText);
 		process.exit(1);
 	}
 
