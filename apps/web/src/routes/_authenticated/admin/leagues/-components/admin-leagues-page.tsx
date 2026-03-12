@@ -1,0 +1,328 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { authClient } from "@/lib/auth-client";
+import { trpcClient } from "@/lib/trpc";
+import { Skeleton } from "@/components/ui/skeleton";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
+import { DatabaseAddIcon } from "@hugeicons/core-free-icons";
+import { SeedLeagueDialog } from "@/components/leagues/seed-league-dialog";
+
+const PAGE_SIZE = 25;
+
+type AdminLeague = {
+	id: string;
+	name: string;
+	slug: string;
+	logo: string | null;
+	memberCount: number;
+	seasonCount: number;
+	matchCount: number;
+	createdAt: Date;
+};
+
+type LeagueStats = {
+	totalLeagues: number;
+	newLeaguesThisWeek: number;
+	newLeaguesPrevWeek: number;
+	totalSeasons: number;
+	totalMatches: number;
+};
+
+function formatRelativeDate(date: Date | null): string {
+	if (!date) return "—";
+	const d = new Date(date);
+	const now = new Date();
+	const diffMs = now.getTime() - d.getTime();
+	const diffMins = Math.floor(diffMs / (1000 * 60));
+	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	if (diffMins < 1) return "Just now";
+	if (diffMins < 60) return `${diffMins}m ago`;
+	if (diffHours < 24) return `${diffHours}h ago`;
+	if (diffDays < 365) return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+	return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function LeagueAvatar({ league }: { league: AdminLeague }) {
+	if (league.logo) {
+		return (
+			<img
+				src={league.logo}
+				alt={league.name}
+				className="h-7 w-7 object-cover ring-1 ring-border"
+			/>
+		);
+	}
+	const initials = league.name
+		.split(" ")
+		.map((n) => n[0])
+		.slice(0, 2)
+		.join("")
+		.toUpperCase();
+	const colors = [
+		"bg-blue-500",
+		"bg-violet-500",
+		"bg-emerald-500",
+		"bg-amber-500",
+		"bg-rose-500",
+		"bg-cyan-500",
+		"bg-fuchsia-500",
+		"bg-lime-500",
+	];
+	const colorIdx =
+		league.id.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % colors.length;
+	return (
+		<div
+			className={`flex h-7 w-7 items-center justify-center text-[0.6rem] font-semibold text-white ${colors[colorIdx]}`}
+		>
+			{initials}
+		</div>
+	);
+}
+
+function StatCard({
+	label,
+	description,
+	value,
+	change,
+	changeLabel,
+	loading,
+}: {
+	label: string;
+	description: string;
+	value?: number;
+	change?: number;
+	changeLabel?: string;
+	loading: boolean;
+}) {
+	const isPositive = change !== undefined && change > 0;
+	const isNeutral = change === undefined || change === 0;
+
+	return (
+		<div className="flex flex-col gap-3 border border-border bg-card p-5">
+			<div>
+				<div className="text-sm font-medium">{label}</div>
+				<div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
+			</div>
+			{loading ? (
+				<Skeleton className="h-10 w-12" />
+			) : (
+				<div className="text-4xl font-semibold tracking-tight">{value ?? 0}</div>
+			)}
+			{changeLabel && (
+				<div
+					className={`flex items-center gap-1.5 text-xs font-medium ${
+						isNeutral ? "text-muted-foreground" : isPositive ? "text-emerald-500" : "text-rose-500"
+					}`}
+				>
+					{isNeutral ? <span>—</span> : isPositive ? <span>↑</span> : <span>↓</span>}
+					{loading ? (
+						<Skeleton className="h-3 w-24" />
+					) : (
+						<span>
+							{isNeutral ? "0%" : `${isPositive ? "+" : ""}${change}%`} {changeLabel}
+						</span>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
+export function AdminLeaguesPage() {
+	const { data: session } = authClient.useSession();
+	const [offset, setOffset] = useState(0);
+	const [isSeedDialogOpen, setIsSeedDialogOpen] = useState(false);
+
+	const { data: seedStatus } = useQuery({
+		queryKey: ["admin", "seedEnabled"],
+		queryFn: async () => trpcClient.admin.seedEnabled.query(),
+	});
+
+	const { data: stats, isPending: statsLoading } = useQuery<LeagueStats>({
+		queryKey: ["admin", "leagueStats"],
+		queryFn: async () => {
+			return await trpcClient.admin.leagueStats.query();
+		},
+	});
+
+	const { data: leaguesPage, isPending: leaguesLoading } = useQuery({
+		queryKey: ["admin", "leagues", offset],
+		queryFn: async () => {
+			return await trpcClient.admin.leagues.query({
+				limit: PAGE_SIZE,
+				offset,
+			});
+		},
+	});
+
+	const today = new Date().toLocaleDateString("en-US", {
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+	});
+
+	const weekChangePercent = stats
+		? stats.newLeaguesPrevWeek === 0
+			? stats.newLeaguesThisWeek > 0
+				? 100
+				: 0
+			: Math.round(
+					((stats.newLeaguesThisWeek - stats.newLeaguesPrevWeek) / stats.newLeaguesPrevWeek) * 100
+				)
+		: undefined;
+
+	const totalPages = leaguesPage ? Math.ceil(leaguesPage.total / PAGE_SIZE) : 0;
+	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+
+	return (
+		<>
+			<div className="container mx-auto p-6 space-y-8">
+				{/* Header */}
+				<div className="flex items-center justify-between">
+					<div>
+						<h1 className="text-2xl font-semibold tracking-tight">
+							Welcome back, {session?.user?.name}
+						</h1>
+						<p className="mt-1 text-sm text-muted-foreground">{today}</p>
+					</div>
+					{seedStatus?.enabled && (
+						<GlowButton
+							icon={DatabaseAddIcon}
+							glowColor={glowColors.amber}
+							size="sm"
+							className="gap-1.5"
+							onClick={() => setIsSeedDialogOpen(true)}
+						>
+							Seed League
+						</GlowButton>
+					)}
+				</div>
+
+				{/* Stats */}
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+					<StatCard
+						label="Total Leagues"
+						description="All leagues"
+						value={stats?.totalLeagues}
+						loading={statsLoading}
+					/>
+					<StatCard
+						label="New Leagues This Week"
+						description="Created in the last 7 days"
+						value={stats?.newLeaguesThisWeek}
+						change={weekChangePercent}
+						changeLabel="from previous week"
+						loading={statsLoading}
+					/>
+					<StatCard
+						label="Total Seasons"
+						description="All seasons across leagues"
+						value={stats?.totalSeasons}
+						loading={statsLoading}
+					/>
+					<StatCard
+						label="Total Matches"
+						description="All matches played"
+						value={stats?.totalMatches}
+						loading={statsLoading}
+					/>
+				</div>
+
+				{/* Leagues table */}
+				<div className="border border-border bg-card">
+					<div className="flex items-center justify-between border-b border-border px-5 py-4">
+						<h2 className="text-sm font-semibold">Leagues</h2>
+						{!statsLoading && (
+							<span className="text-xs text-muted-foreground">
+								{stats?.totalLeagues ?? 0} total
+							</span>
+						)}
+					</div>
+
+					<div className="overflow-x-auto">
+						<table className="w-full text-sm">
+							<thead>
+								<tr className="border-b border-border">
+									{["Created", "Name", "Slug", "Players", "Seasons", "Matches"].map((h) => (
+										<th
+											key={h}
+											className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+										>
+											{h}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{leaguesLoading
+									? Array.from({ length: 8 }).map((_row, i) => (
+											<tr key={`skeleton-row-${i}`} className="border-b border-border">
+												{Array.from({ length: 6 }).map((_col, j) => (
+													<td key={`skeleton-cell-${i}-${j}`} className="px-5 py-3.5">
+														<Skeleton
+															className="h-4"
+															style={{ width: `${[60, 120, 80, 60, 60, 60][j]}px` }}
+														/>
+													</td>
+												))}
+											</tr>
+										))
+									: leaguesPage?.leagues.map((league: AdminLeague, i: number) => (
+											<tr
+												key={league.id}
+												className={`transition hover:bg-muted/50 ${i < leaguesPage.leagues.length - 1 ? "border-b border-border" : ""}`}
+											>
+												<td className="whitespace-nowrap px-5 py-3.5 text-xs text-muted-foreground">
+													{formatRelativeDate(league.createdAt)}
+												</td>
+												<td className="px-5 py-3.5">
+													<div className="flex items-center gap-2.5">
+														<LeagueAvatar league={league} />
+														<span className="font-medium">{league.name}</span>
+													</div>
+												</td>
+												<td className="px-5 py-3.5 text-muted-foreground font-mono text-xs">
+													/{league.slug}
+												</td>
+												<td className="px-5 py-3.5 text-muted-foreground">{league.memberCount}</td>
+												<td className="px-5 py-3.5 text-muted-foreground">{league.seasonCount}</td>
+												<td className="px-5 py-3.5 text-muted-foreground">{league.matchCount}</td>
+											</tr>
+										))}
+							</tbody>
+						</table>
+					</div>
+
+					{/* Pagination */}
+					{totalPages > 1 && (
+						<div className="flex items-center justify-between border-t border-border px-5 py-3">
+							<span className="text-xs text-muted-foreground">
+								Page {currentPage} of {totalPages}
+							</span>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+									disabled={offset === 0}
+									className="border border-border px-3 py-1.5 text-xs font-medium transition hover:border-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+								>
+									Previous
+								</button>
+								<button
+									type="button"
+									onClick={() => setOffset(offset + PAGE_SIZE)}
+									disabled={currentPage >= totalPages}
+									className="border border-border px-3 py-1.5 text-xs font-medium transition hover:border-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+								>
+									Next
+								</button>
+							</div>
+						</div>
+					)}
+				</div>
+			</div>
+			<SeedLeagueDialog isOpen={isSeedDialogOpen} onClose={() => setIsSeedDialogOpen(false)} />
+		</>
+	);
+}

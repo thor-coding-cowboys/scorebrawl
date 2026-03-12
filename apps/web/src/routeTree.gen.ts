@@ -14,6 +14,7 @@ import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInvitationInvitationIdRouteImport } from './routes/accept-invitation.$invitationId'
 import { Route as PublicHomeRouteImport } from './routes/_public/home'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedSidebarRouteRouteImport } from './routes/_authenticated/_sidebar/route'
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedLeaguesIndexRouteImport } from './routes/_authenticated/leagues/index'
@@ -22,6 +23,8 @@ import { Route as AuthenticatedSidebarProfileRouteImport } from './routes/_authe
 import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
 import { Route as AuthAuthForgotPasswordRouteImport } from './routes/_auth/auth/forgot-password'
+import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
+import { Route as AuthenticatedAdminLeaguesIndexRouteImport } from './routes/_authenticated/admin/leagues/index'
 import { Route as AuthenticatedSidebarLeaguesSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/route'
 import { Route as AuthenticatedSidebarLeaguesSlugIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/index'
 import { Route as AuthenticatedSidebarLeaguesSlugTeamsRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/teams'
@@ -62,6 +65,11 @@ const PublicHomeRoute = PublicHomeRouteImport.update({
   id: '/_public/home',
   path: '/home',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSidebarRouteRoute =
   AuthenticatedSidebarRouteRouteImport.update({
@@ -107,6 +115,18 @@ const AuthAuthForgotPasswordRoute = AuthAuthForgotPasswordRouteImport.update({
   path: '/auth/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthenticatedAdminUsersIndexRoute =
+  AuthenticatedAdminUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminLeaguesIndexRoute =
+  AuthenticatedAdminLeaguesIndexRouteImport.update({
+    id: '/leagues/',
+    path: '/leagues/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedSidebarLeaguesSlugRouteRoute =
   AuthenticatedSidebarLeaguesSlugRouteRouteImport.update({
     id: '/leagues/$slug',
@@ -217,6 +237,7 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdSummaryRou
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
@@ -227,6 +248,8 @@ export interface FileRoutesByFullPath {
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
+  '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -245,6 +268,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
@@ -254,6 +278,8 @@ export interface FileRoutesByTo {
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
+  '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
@@ -274,6 +300,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/_sidebar': typeof AuthenticatedSidebarRouteRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_public/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/_auth/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
@@ -284,6 +311,8 @@ export interface FileRoutesById {
   '/_authenticated/leagues/': typeof AuthenticatedLeaguesIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/_authenticated/_sidebar/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
+  '/_authenticated/admin/leagues/': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/_authenticated/_sidebar/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/_authenticated/_sidebar/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -304,6 +333,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/home'
     | '/accept-invitation/$invitationId'
     | '/auth/forgot-password'
@@ -314,6 +344,8 @@ export interface FileRouteTypes {
     | '/leagues'
     | '/onboarding'
     | '/leagues/$slug'
+    | '/admin/leagues'
+    | '/admin/users'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug/teams'
@@ -332,6 +364,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/home'
     | '/accept-invitation/$invitationId'
     | '/auth/forgot-password'
@@ -341,6 +374,8 @@ export interface FileRouteTypes {
     | '/onboarding/create-league'
     | '/leagues'
     | '/onboarding'
+    | '/admin/leagues'
+    | '/admin/users'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug'
@@ -360,6 +395,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_authenticated'
     | '/_authenticated/_sidebar'
+    | '/_authenticated/admin'
     | '/_public/home'
     | '/accept-invitation/$invitationId'
     | '/_auth/auth/forgot-password'
@@ -370,6 +406,8 @@ export interface FileRouteTypes {
     | '/_authenticated/leagues/'
     | '/_authenticated/onboarding/'
     | '/_authenticated/_sidebar/leagues/$slug'
+    | '/_authenticated/admin/leagues/'
+    | '/_authenticated/admin/users/'
     | '/_authenticated/_sidebar/leagues/$slug/invitations'
     | '/_authenticated/_sidebar/leagues/$slug/members'
     | '/_authenticated/_sidebar/leagues/$slug/teams'
@@ -432,6 +470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/_sidebar': {
       id: '/_authenticated/_sidebar'
       path: ''
@@ -487,6 +532,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthAuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
+    }
+    '/_authenticated/admin/users/': {
+      id: '/_authenticated/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/leagues/': {
+      id: '/_authenticated/admin/leagues/'
+      path: '/leagues'
+      fullPath: '/admin/leagues'
+      preLoaderRoute: typeof AuthenticatedAdminLeaguesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/_sidebar/leagues/$slug': {
       id: '/_authenticated/_sidebar/leagues/$slug'
@@ -717,8 +776,25 @@ const AuthenticatedSidebarRouteRouteWithChildren =
     AuthenticatedSidebarRouteRouteChildren,
   )
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminLeaguesIndexRoute: typeof AuthenticatedAdminLeaguesIndexRoute
+  AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminLeaguesIndexRoute: AuthenticatedAdminLeaguesIndexRoute,
+    AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSidebarRouteRoute: typeof AuthenticatedSidebarRouteRouteWithChildren
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedOnboardingCreateLeagueRoute: typeof AuthenticatedOnboardingCreateLeagueRoute
   AuthenticatedLeaguesIndexRoute: typeof AuthenticatedLeaguesIndexRoute
   AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
@@ -726,6 +802,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSidebarRouteRoute: AuthenticatedSidebarRouteRouteWithChildren,
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedOnboardingCreateLeagueRoute:
     AuthenticatedOnboardingCreateLeagueRoute,
   AuthenticatedLeaguesIndexRoute: AuthenticatedLeaguesIndexRoute,

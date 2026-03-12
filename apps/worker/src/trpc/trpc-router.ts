@@ -1,4 +1,5 @@
 import { achievementRouter } from "./router/achievement-router";
+import { adminRouter } from "./router/admin-router";
 import { seasonPlayerRouter } from "./router/season-player-router";
 import { seasonRouter } from "./router/season-router";
 import { matchRouter } from "./router/match-router";
@@ -14,6 +15,7 @@ import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
 	achievement: achievementRouter,
+	admin: adminRouter,
 	leagueTeam: leagueTeamRouter,
 	member: memberRouter,
 	league: leagueRouter,

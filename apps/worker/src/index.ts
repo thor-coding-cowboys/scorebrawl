@@ -5,6 +5,7 @@ export { SeasonSSE } from "./durable-objects/season-sse";
 
 import { contextStorage } from "hono/context-storage";
 import { getDb } from "./db";
+import { user } from "./db/schema";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
@@ -16,61 +17,50 @@ import {
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
 import { runBulkSeed, type SeedQueueMessage } from "./services/bulk-seed";
+import { seedLeague, type SeedInput } from "./services/seed";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
 	.use("*", contextStorage())
 	.use("*", contextMiddleware)
+	// Health check endpoint - also triggers auto-seed on first request
+	.get("/api/health", async (c) => {
+		const db = c.get("db");
+
+		// Only auto-seed if AUTO_SEED_PREVIEW env var is set (preview environments only)
+		const autoSeedEnabled = c.env.AUTO_SEED_PREVIEW === "true" || c.env.AUTO_SEED_PREVIEW === "1";
+		let seedQueued = false;
+
+		if (autoSeedEnabled) {
+			// Check if database is empty (no users yet)
+			const userCount = await db.$count(user);
+
+			if (userCount === 0) {
+				console.log("[Auto-Seed] Database empty, queueing seed...");
+				// Queue seed request - 4 members, 15 matches for preview
+				c.executionCtx.waitUntil(
+					c.env.SEED_QUEUE.send({
+						action: "bulk-seed",
+						memberCount: 4,
+						matchCount: 15,
+					})
+				);
+				seedQueued = true;
+			}
+		}
+
+		return c.json({
+			status: "ok",
+			autoSeed: autoSeedEnabled,
+			seedQueued,
+		});
+	})
 	.route("/api/auth", authRouter)
 	.route("/api/device", deviceRouter)
 	.route("/api/sse", sseRouter)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
 	.use("/api/trpc/*", trpcServer)
-	// Admin seed endpoint - accepts admin session or seed secret
-	.post("/api/admin/seed", async (c) => {
-		const seedSecret = c.req.header("X-Seed-Secret");
-		const authHeader = c.req.header("Authorization");
-		const sessionToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-		const expectedSecret = "preview-seed-token-2024";
-
-		// Check if admin user (via session) or has secret token
-		const isAdmin = await (async () => {
-			if (seedSecret === expectedSecret) return true;
-			if (!sessionToken) return false;
-
-			// Verify session via better-auth
-			try {
-				const auth = c.get("betterAuth");
-				const session = await auth.api.getSession({
-					headers: new Headers({ Authorization: `Bearer ${sessionToken}` }),
-				});
-				// Check if user has admin role
-				return session?.user?.role === "admin";
-			} catch {
-				return false;
-			}
-		})();
-
-		if (!isAdmin) {
-			return c.json({ success: false, message: "Unauthorized" }, 401);
-		}
-
-		const body = await c.req.json<{ memberCount: number; matchCount: number }>();
-		const { memberCount = 100, matchCount = 500 } = body;
-
-		// Send to queue for async processing
-		await c.env.SEED_QUEUE.send({
-			action: "bulk-seed",
-			memberCount,
-			matchCount,
-		});
-
-		return c.json({
-			success: true,
-			message: `Seed request queued: ${memberCount} members, ${matchCount} matches`,
-		});
-	})
 	.use("*", async (c, next) => {
 		// Device routes handle their own auth via API key
 		if (c.req.path.startsWith("/api/device/") || c.req.path.startsWith("/api/device")) {
@@ -79,7 +69,7 @@ const app = new Hono<HonoEnv>()
 		return enforceAuthMiddleware(c, next);
 	});
 
-type QueueMessage = AchievementQueueMessage | SeedQueueMessage;
+type QueueMessage = AchievementQueueMessage | SeedQueueMessage | SeedInput;
 
 export default {
 	fetch: app.fetch,
@@ -88,7 +78,7 @@ export default {
 		for (const msg of batch.messages) {
 			const body = msg.body;
 
-			// Handle seed queue messages
+			// Handle bulk-seed queue messages (auto-seed for preview environments)
 			if ("action" in body && body.action === "bulk-seed") {
 				try {
 					console.log("[Seed Queue] Starting bulk seed:", {
@@ -110,6 +100,26 @@ export default {
 				} catch (error) {
 					console.error("[Seed Queue] Failed to process message:", error);
 					msg.retry();
+				}
+			} else if ("leagueSlug" in body) {
+				// Handle admin-triggered seed (from seed dialog)
+				if (!env.SEED_ALLOWED) {
+					console.warn("[Seed Queue] SEED_ALLOWED not set, skipping");
+					msg.ack();
+					return;
+				}
+				try {
+					console.log("[Seed Queue] Starting admin seed:", {
+						leagueName: body.leagueName,
+						memberCount: body.memberCount,
+						matchCount: body.matchCount,
+					});
+					const result = await seedLeague(db, body);
+					console.log("[Seed Queue] Admin seed completed:", result);
+					msg.ack();
+				} catch (error) {
+					console.error("[Seed Queue] Admin seed failed:", error);
+					msg.ack(); // Don't retry - max_retries is 0 anyway
 				}
 			} else {
 				// Handle achievement queue messages

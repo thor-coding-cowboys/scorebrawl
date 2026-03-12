@@ -1,5 +1,4 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import type { betterAuth } from "better-auth";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z } from "zod";
@@ -8,12 +7,13 @@ import { member, league as organization } from "../db/schema/auth-schema";
 import { season } from "../db/schema/league-schema";
 import type { AuthType, HonoEnv } from "../middleware/context";
 import type { R2BucketRef } from "../lib/asset-util";
+import type { createAuth } from "../lib/better-auth";
 
 // Base context type
 interface BaseContext {
 	authentication?: AuthType;
 	db: ReturnType<typeof getDb>;
-	betterAuth: ReturnType<typeof betterAuth>;
+	betterAuth: ReturnType<typeof createAuth>;
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
 	waitUntil: (promise: Promise<unknown>) => void;
@@ -178,3 +178,22 @@ export const leagueMemberProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
+
+// Admin procedure - checks user:list permission via better-auth
+const enforceAdmin = t.middleware(async ({ ctx, next }) => {
+	if (!ctx.authentication) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+
+	const result = await ctx.betterAuth.api.userHasPermission({
+		body: { userId: ctx.authentication.user.id, permissions: { user: ["list"] } },
+	});
+
+	if (!result?.success) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+	}
+
+	return next({ ctx: { authentication: ctx.authentication } });
+});
+
+export const adminProcedure = t.procedure.use(enforceUserIsAuthed).use(enforceAdmin);
