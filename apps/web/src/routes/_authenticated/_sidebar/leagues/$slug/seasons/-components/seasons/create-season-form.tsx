@@ -34,7 +34,7 @@ const createSeasonSchema = z
 			.min(1, "Slug is required")
 			.max(100, "Slug is too long")
 			.regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens"),
-		startDate: z.date({ required_error: "Start date is required" }),
+		startDate: z.date(),
 		endDate: z.date().optional(),
 		rounds: z.number().int().min(1, "Rounds must be at least 1"),
 		initialScore: z.number().int().min(0, "Initial score must be at least 0"),

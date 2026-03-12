@@ -25,7 +25,8 @@
 		"db:seed": "bun run ./scripts/seed.ts",
 		"db:seed:trigger": "bun run ./scripts/trigger-seed.ts",
 		"db:migrate:prod": "wrangler d1 migrations apply scorebrawl --remote",
-		"db:studio": "DATABASE_URL=file:$(ls ../../.db/local/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1) bun run --bun drizzle-kit studio"
+		"db:studio": "DATABASE_URL=file:$(ls ../../.db/local/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1) bun run --bun drizzle-kit studio",
+		"better-auth:generate": "bunx @better-auth/cli@latest generate --config src/lib/better-auth.ts --output src/db/schema/auth-schema.ts"
 	},
 	"dependencies": {
 		"@better-auth/passkey": "catalog:",
@@ -42,7 +43,8 @@
 		"hono": "catalog:",
 		"nanoid": "catalog:",
 		"resend": "catalog:",
-		"superjson": "catalog:"
+		"superjson": "catalog:",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "catalog:",

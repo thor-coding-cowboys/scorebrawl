@@ -146,10 +146,9 @@ const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
 		});
 	});
 
-async function resolveLeagueAndMembership(c: Context<EnforcedAuthHonoEnv>) {
+async function resolveLeagueAndMembership(leagueSlug: string, c: Context<EnforcedAuthHonoEnv>) {
 	const db = c.get("db");
 	const userId = c.get("authentication").user.id;
-	const leagueSlug = c.req.param("leagueSlug");
 
 	const leagueData = await db
 		.select({ id: league.id, name: league.name, slug: league.slug })
@@ -284,7 +283,8 @@ function formatSessionState(
 deviceRouter
 	.get("/leagues/:leagueSlug/session/active", async (c) => {
 		const db = c.get("db");
-		const { activeSeason } = await resolveLeagueAndMembership(c);
+		const leagueSlug = c.req.param("leagueSlug");
+		const { activeSeason } = await resolveLeagueAndMembership(leagueSlug, c);
 
 		if (!activeSeason) {
 			return c.json({ session: null });
@@ -303,7 +303,8 @@ deviceRouter
 	})
 	.post("/leagues/:leagueSlug/session/start-match", async (c) => {
 		const db = c.get("db");
-		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+		const leagueSlug = c.req.param("leagueSlug");
+		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(leagueSlug, c);
 
 		if (!activeSeason) {
 			throw new HTTPException(400, { message: "No active season" });
@@ -361,7 +362,8 @@ deviceRouter
 		),
 		async (c) => {
 			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const leagueSlug = c.req.param("leagueSlug");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(leagueSlug, c);
 			const { homeScore, awayScore } = c.req.valid("query");
 
 			if (!activeSeason) {
@@ -596,7 +598,8 @@ deviceRouter
 		zValidator("query", z.object({ coinTossId: z.string(), winnerIds: z.string().min(1) })),
 		async (c) => {
 			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const leagueSlug = c.req.param("leagueSlug");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(leagueSlug, c);
 			const { coinTossId, winnerIds: winnerIdsRaw } = c.req.valid("query");
 			const winnerIds = winnerIdsRaw.split(",");
 
@@ -707,7 +710,8 @@ deviceRouter
 		),
 		async (c) => {
 			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const leagueSlug = c.req.param("leagueSlug");
+			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(leagueSlug, c);
 			const { homeScore, awayScore } = c.req.valid("query");
 
 			if (!activeSeason) {
@@ -752,7 +756,8 @@ deviceRouter
 	)
 	.post("/leagues/:leagueSlug/session/shuffle-lineup", async (c) => {
 		const db = c.get("db");
-		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+		const leagueSlug = c.req.param("leagueSlug");
+		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(leagueSlug, c);
 
 		if (!activeSeason) {
 			throw new HTTPException(400, { message: "No active season" });

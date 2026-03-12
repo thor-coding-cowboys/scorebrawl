@@ -8,6 +8,7 @@
 	],
 	"type": "module",
 	"scripts": {
+		"better-auth:generate": "@better-auth/cli@latest generate --config apps/worker/src/middleware/context.ts --output apps/worker/src/db/schema/auth-schema.ts",
 		"build": "turbo run build",
 		"predev": "bun db:migrate",
 		"dev": "turbo run dev",
@@ -32,6 +33,7 @@
 		"wrangler": "^4.67.0"
 	},
 	"devDependencies": {
+		"@better-auth/cli": "^1.4.21",
 		"@typescript/native-preview": "catalog:",
 		"oxfmt": "0.34.0",
 		"oxlint": "^1.49.0",
@@ -43,14 +45,14 @@
 	"catalog": {
 		"@base-ui/react": "^1.0.0",
 		"@better-auth/passkey": "^1.4.8",
-		"@hono/zod-validator": "^0.4.3",
+		"@hono/zod-validator": "^0.7.6",
 		"@ihs7/ts-elo": "^2.0.0",
 		"@sindresorhus/slugify": "^2.2.1",
 		"@cloudflare/vite-plugin": "1.15.3",
 		"@cloudflare/vitest-pool-workers": "^0.11.1",
 		"@cloudflare/workers-types": "^4.20251213.0",
 		"@fontsource-variable/jetbrains-mono": "^5.2.8",
-		"@hono/trpc-server": "^0.4.1",
+		"@hono/trpc-server": "^0.4.2",
 		"@hookform/resolvers": "^5.2.2",
 		"@hugeicons/core-free-icons": "^2.0.0",
 		"@hugeicons/react": "^1.1.1",
@@ -78,11 +80,11 @@
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
 		"date-fns": "^4.1.0",
-		"drizzle-kit": "1.0.0-beta.2-f9236e3",
-		"drizzle-orm": "1.0.0-beta.2-f9236e3",
+		"drizzle-kit": "1.0.0-beta.16-2ffd1a5",
+		"drizzle-orm": "1.0.0-beta.16-2ffd1a5",
 		"embla-carousel-react": "^8.6.0",
 		"globals": "16.5.0",
-		"hono": "4.10.7",
+		"hono": "4.12.7",
 		"hugeicons-react": "^0.3.0",
 		"input-otp": "^1.4.2",
 		"nanoid": "^5.1.6",
@@ -106,7 +108,8 @@
 		"vite": "^6.0.0",
 		"vitest": "~3.2.0",
 		"web-vitals": "^5.1.0",
-		"wrangler": "^4.61.1"
+		"wrangler": "^4.61.1",
+		"zod": "^4.3.6"
 	},
 	"cloudflare": {
 		"label": "Scorebrawl",
