@@ -125,10 +125,10 @@ ${"─".repeat(50)}
 	console.log(cyan("Sending seed request to queue..."));
 
 	// Send message to queue using wrangler (always sends to preview)
-	const wranglerArgs = ["wrangler", "queue", "send", "scorebrawl-seed-queue", message];
+	const wranglerArgs = ["queues", "send", "scorebrawl-seed-queue", message];
 
 	const proc = spawn({
-		cmd: ["bunx", ...wranglerArgs],
+		cmd: ["bunx", "wrangler", ...wranglerArgs],
 		cwd: process.cwd(),
 		stdout: "pipe",
 		stderr: "pipe",
