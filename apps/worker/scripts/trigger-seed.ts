@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Trigger bulk seed for preview environments via D1 HTTP API.
+ * Trigger bulk seed for preview environments using admin user authentication.
  *
- * This script seeds preview databases by calling the Worker directly
- * with a secret seed token, bypassing the need for queue-based seeding in CI.
+ * This script signs in as the seed user and uses the session token
+to trigger bulk seeding via the admin endpoint.
  *
  * ⚠️  PREVIEW ENVIRONMENTS ONLY
  *
@@ -17,6 +17,11 @@ const red = (text: string) => `\x1b[31m${text}\x1b[0m`;
 const yellow = (text: string) => `\x1b[33m${text}\x1b[0m`;
 const cyan = (text: string) => `\x1b[36m${text}\x1b[0m`;
 const bold = (text: string) => `\x1b[1m${text}\x1b[0m`;
+
+const SEED_USER = {
+	email: "seed@scorebrawl.com",
+	password: "Test.1234",
+};
 
 const DEFAULT_MEMBER_COUNT = 100;
 const DEFAULT_MATCH_COUNT = 500;
@@ -74,7 +79,7 @@ ${"─".repeat(50)}
 
 ${yellow("⚠️  PREVIEW ENVIRONMENTS ONLY")}
 
-Seeds preview databases by calling the Worker directly.
+This script signs in as the seed user and triggers bulk seeding.
 
 ${bold("Usage:")} bun run scripts/trigger-seed.ts [options]
 
@@ -85,11 +90,44 @@ ${bold("Options:")}
 
 ${bold("Environment:")}
   PREVIEW_URL              Preview Worker URL (required)
-  SCOREBRAWL_SEED_SECRET   Secret token for seeding (optional, uses default if not set)
 
 ${bold("Examples:")}
   PREVIEW_URL=https://... bun run scripts/trigger-seed.ts -m 4 -M 15
 `);
+}
+
+async function signIn(previewUrl: string): Promise<string> {
+	console.log(cyan("Signing in as seed user..."));
+
+	const response = await fetch(`${previewUrl}/api/auth/sign-in/email`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			email: SEED_USER.email,
+			password: SEED_USER.password,
+		}),
+	});
+
+	if (!response.ok) {
+		const error = await response.text();
+		throw new Error(`Sign in failed: ${error}`);
+	}
+
+	// Extract session token from cookies
+	const setCookie = response.headers.get("set-cookie");
+	if (!setCookie) {
+		throw new Error("No session cookie returned");
+	}
+
+	// Parse session token from cookie
+	const sessionMatch = setCookie.match(/better-auth.session_token=([^;]+)/);
+	if (!sessionMatch) {
+		throw new Error("Could not extract session token from cookie");
+	}
+
+	return sessionMatch[1];
 }
 
 async function main() {
@@ -103,7 +141,6 @@ async function main() {
 	const previewUrl = process.env.PREVIEW_URL;
 	if (!previewUrl) {
 		console.error(red("Error: PREVIEW_URL environment variable must be set"));
-		console.error("Example: PREVIEW_URL=https://scorebrawl-pr-123.coding-cowboys.workers.dev");
 		process.exit(1);
 	}
 
@@ -115,39 +152,48 @@ ${"─".repeat(50)}
   Matches:     ${args.matches}
 `);
 
-	// Send seed request to the preview Worker
-	console.log(cyan("Sending seed request to preview Worker..."));
+	try {
+		// Sign in to get session token
+		const sessionToken = await signIn(previewUrl);
+		console.log(green("Signed in successfully!"));
 
-	const response = await fetch(`${previewUrl}/api/admin/seed`, {
-		method: "POST",
+		// Trigger seed with session token
+		console.log(cyan("Triggering bulk seed..."));
+
+		const response = await fetch(`${previewUrl}/api/admin/seed`, {
+			method: "POST",
 		headers: {
-			"Content-Type": "application/json",
-			"X-Seed-Token": process.env.SCOREBRAWL_SEED_SECRET || "dev-seed-token",
-		},
-		body: JSON.stringify({
-			memberCount: args.members,
-			matchCount: args.matches,
-		}),
-	});
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${sessionToken}`,
+			},
+			body: JSON.stringify({
+				memberCount: args.members,
+				matchCount: args.matches,
+			}),
+		});
 
-	if (!response.ok) {
-		const errorText = await response.text();
-		console.error(red("\nFailed to trigger seed:"));
-		console.error("Status:", response.status, response.statusText);
-		console.error("Response:", errorText);
-		process.exit(1);
-	}
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(red("\nFailed to trigger seed:"));
+			console.error("Status:", response.status, response.statusText);
+			console.error("Response:", errorText);
+			process.exit(1);
+		}
 
-	const result = (await response.json()) as { success: boolean; message: string };
+		const result = await response.json() as { success: boolean; message: string };
 
-	if (result.success) {
-		console.log(green("\nSeed request sent successfully!"));
-		console.log(result.message);
-		console.log(yellow("\nThe seed is processing asynchronously."));
-		console.log(`Monitor with: ${bold("bunx wrangler tail")}`);
-	} else {
-		console.error(red("\nSeed request failed:"));
-		console.error(result.message);
+		if (result.success) {
+			console.log(green("\nSeed request sent successfully!"));
+			console.log(result.message);
+			console.log(yellow("\nThe seed is processing asynchronously."));
+			console.log(`Monitor with: ${bold("bunx wrangler tail")}`);
+		} else {
+			console.error(red("\nSeed request failed:"));
+			console.error(result.message);
+			process.exit(1);
+		}
+	} catch (error) {
+		console.error(red("\nError:"), error instanceof Error ? error.message : error);
 		process.exit(1);
 	}
 }

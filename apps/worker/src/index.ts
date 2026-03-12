@@ -27,19 +27,34 @@ const app = new Hono<HonoEnv>()
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
 	.use("/api/trpc/*", trpcServer)
-	// Admin seed endpoint - secured by secret token, no auth required
+	// Admin seed endpoint - accepts admin session or seed secret
 	.post("/api/admin/seed", async (c) => {
 		const seedSecret = c.req.header("X-Seed-Secret");
+		const authHeader = c.req.header("Authorization");
+		const sessionToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 		const expectedSecret = "preview-seed-token-2024";
 
-		// TODO: Re-enable auth check after testing
-		// if (seedSecret !== expectedSecret) {
-		// 	return c.json({ success: false, message: "Unauthorized" }, 401);
-		// }
+		// Check if admin user (via session) or has secret token
+		const isAdmin = await (async () => {
+			if (seedSecret === expectedSecret) return true;
+			if (!sessionToken) return false;
 
-		console.log("[Seed] Auth check bypassed for testing");
-		console.log("[Seed] Received secret:", seedSecret);
-		console.log("[Seed] Expected secret:", expectedSecret);
+			// Verify session via better-auth
+			try {
+				const auth = c.get("betterAuth");
+				const session = await auth.api.getSession({
+					headers: new Headers({ Authorization: `Bearer ${sessionToken}` }),
+				});
+				// Check if user has admin role
+				return session?.user?.role === "admin";
+			} catch {
+				return false;
+			}
+		})();
+
+		if (!isAdmin) {
+			return c.json({ success: false, message: "Unauthorized" }, 401);
+		}
 
 		const body = await c.req.json<{ memberCount: number; matchCount: number }>();
 		const { memberCount = 100, matchCount = 500 } = body;
