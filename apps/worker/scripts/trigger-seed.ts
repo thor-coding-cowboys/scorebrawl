@@ -116,6 +116,7 @@ ${"─".repeat(50)}
 
 	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 	const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+	const queueName = process.env.QUEUE_NAME || "scorebrawl-seed-queue";
 
 	if (!accountId || !apiToken) {
 		console.error(red("Error: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set"));
@@ -144,10 +145,11 @@ ${"─".repeat(50)}
 	const queuesData = (await listQueuesResponse.json()) as {
 		result: Array<{ queue_id: string; queue_name: string }>;
 	};
-	const queue = queuesData.result.find((q) => q.queue_name === "scorebrawl-seed-queue");
+	console.log(cyan(`Looking for queue: ${queueName}`));
+	const queue = queuesData.result.find((q) => q.queue_name === queueName);
 
 	if (!queue) {
-		console.error(red("Error: Could not find queue 'scorebrawl-seed-queue'"));
+		console.error(red(`Error: Could not find queue '${queueName}'`));
 		console.error("Available queues:", queuesData.result.map((q) => q.queue_name).join(", "));
 		process.exit(1);
 	}
