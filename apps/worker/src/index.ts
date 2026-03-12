@@ -20,6 +20,10 @@ import { trpcServer } from "./trpc/server";
 const app = new Hono<HonoEnv>()
 	.use("*", contextStorage())
 	.use("*", contextMiddleware)
+	.get("/api/version", (c) => {
+		const version = c.env.VERSION || "local";
+		return c.json({ version });
+	})
 	.route("/api/auth", authRouter)
 	.route("/api/device", deviceRouter)
 	.route("/api/sse", sseRouter)
