@@ -27,6 +27,30 @@ const app = new Hono<HonoEnv>()
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
 	.use("/api/trpc/*", trpcServer)
+	// Admin seed endpoint - secured by secret token, no auth required
+	.post("/api/admin/seed", async (c) => {
+		const seedSecret = c.req.header("X-Seed-Secret");
+		const expectedSecret = c.env.SCOREBRAWL_SEED_SECRET || "dev-seed-token";
+
+		if (seedSecret !== expectedSecret) {
+			return c.json({ success: false, message: "Unauthorized" }, 401);
+		}
+
+		const body = await c.req.json<{ memberCount: number; matchCount: number }>();
+		const { memberCount = 100, matchCount = 500 } = body;
+
+		// Send to queue for async processing
+		await c.env.SEED_QUEUE.send({
+			action: "bulk-seed",
+			memberCount,
+			matchCount,
+		});
+
+		return c.json({
+			success: true,
+			message: `Seed request queued: ${memberCount} members, ${matchCount} matches`,
+		});
+	})
 	.use("*", async (c, next) => {
 		// Device routes handle their own auth via API key
 		if (c.req.path.startsWith("/api/device/") || c.req.path.startsWith("/api/device")) {

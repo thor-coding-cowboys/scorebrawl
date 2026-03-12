@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 /**
- * Trigger bulk seed via Cloudflare Queue for preview environments ONLY.
+ * Trigger bulk seed for preview environments via D1 HTTP API.
  *
- * This script sends a message to the seed queue using the Cloudflare API,
- * which is processed by the Worker running close to the D1 database.
+ * This script seeds preview databases by calling the Worker directly
+ * with a secret seed token, bypassing the need for queue-based seeding in CI.
  *
- * ⚠️  PREVIEW ENVIRONMENTS ONLY - This will only seed preview databases, never production.
+ * ⚠️  PREVIEW ENVIRONMENTS ONLY
  *
  * Usage:
  *   bun run scripts/trigger-seed.ts --members 100 --matches 500
@@ -69,13 +69,12 @@ function parseArgs(): {
 
 function printHelp() {
 	console.log(`
-${bold(cyan("Scorebrawl Preview Queue Seed Trigger"))}
+${bold(cyan("Scorebrawl Preview Seed Trigger"))}
 ${"─".repeat(50)}
 
 ${yellow("⚠️  PREVIEW ENVIRONMENTS ONLY")}
 
-This script seeds preview databases via Cloudflare Queue.
-Runs inside the Worker for maximum performance (close to D1).
+Seeds preview databases by calling the Worker directly.
 
 ${bold("Usage:")} bun run scripts/trigger-seed.ts [options]
 
@@ -84,17 +83,12 @@ ${bold("Options:")}
   -M, --matches <n>     Number of matches to create (default: ${DEFAULT_MATCH_COUNT})
   -h, --help            Show this help message
 
+${bold("Environment:")}
+  PREVIEW_URL              Preview Worker URL (required)
+  SCOREBRAWL_SEED_SECRET   Secret token for seeding (optional, uses default if not set)
+
 ${bold("Examples:")}
-  bun run scripts/trigger-seed.ts              # Seed preview with defaults
-  bun run scripts/trigger-seed.ts -m 1000      # Create 1000 members
-  bun run scripts/trigger-seed.ts -M 10000     # Create 10000 matches
-  bun run scripts/trigger-seed.ts -m 500 -M 2500  # Large dataset
-
-${bold("Note:")}
-  The seed runs asynchronously via queue. Check logs with:
-  bunx wrangler tail
-
-${red("Production seeding is NOT supported via this script.")}
+  PREVIEW_URL=https://... bun run scripts/trigger-seed.ts -m 4 -M 15
 `);
 }
 
@@ -106,97 +100,54 @@ async function main() {
 		process.exit(0);
 	}
 
+	const previewUrl = process.env.PREVIEW_URL;
+	if (!previewUrl) {
+		console.error(red("Error: PREVIEW_URL environment variable must be set"));
+		console.error("Example: PREVIEW_URL=https://scorebrawl-pr-123.coding-cowboys.workers.dev");
+		process.exit(1);
+	}
+
 	console.log(`
-${bold(cyan("Preview Queue Seed Trigger"))}
+${bold(cyan("Preview Seed Trigger"))}
 ${"─".repeat(50)}
-  Environment: ${yellow("PREVIEW ONLY")}
+  URL:         ${previewUrl}
   Members:     ${args.members}
   Matches:     ${args.matches}
 `);
 
-	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-	const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-	const queueName = process.env.QUEUE_NAME || "scorebrawl-seed-queue";
+	// Send seed request to the preview Worker
+	console.log(cyan("Sending seed request to preview Worker..."));
 
-	if (!accountId || !apiToken) {
-		console.error(red("Error: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set"));
-		process.exit(1);
-	}
+	const response = await fetch(`${previewUrl}/api/admin/seed`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-Seed-Token": process.env.SCOREBRAWL_SEED_SECRET || "dev-seed-token",
+		},
+		body: JSON.stringify({
+			memberCount: args.members,
+			matchCount: args.matches,
+		}),
+	});
 
-	// First, get the queue ID by name
-	console.log(cyan("Looking up queue ID..."));
-	const listQueuesResponse = await fetch(
-		`https://api.cloudflare.com/client/v4/accounts/${accountId}/queues`,
-		{
-			method: "GET",
-			headers: {
-				Authorization: `Bearer ${apiToken}`,
-				"Content-Type": "application/json",
-			},
-		}
-	);
-
-	if (!listQueuesResponse.ok) {
-		const error = await listQueuesResponse.text();
-		console.error(red("Failed to list queues:"), error);
-		process.exit(1);
-	}
-
-	const queuesData = (await listQueuesResponse.json()) as {
-		result: Array<{ queue_id: string; queue_name: string }>;
-	};
-	console.log(cyan(`Looking for queue: ${queueName}`));
-	const queue = queuesData.result.find((q) => q.queue_name === queueName);
-
-	if (!queue) {
-		console.error(red(`Error: Could not find queue '${queueName}'`));
-		console.error("Available queues:", queuesData.result.map((q) => q.queue_name).join(", "));
-		process.exit(1);
-	}
-
-	console.log(cyan(`Found queue ID: ${queue.queue_id}`));
-
-	// Send message to queue
-	console.log(cyan("Sending seed request to queue..."));
-
-	const message = {
-		action: "bulk-seed",
-		memberCount: args.members,
-		matchCount: args.matches,
-	};
-
-	// Send message to queue using Cloudflare API
-	// The API expects messages in a specific format
-	const sendResponse = await fetch(
-		`https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/${queue.queue_id}/messages`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiToken}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				messages: [JSON.stringify(message)],
-			}),
-		}
-	);
-
-	if (!sendResponse.ok) {
-		const errorText = await sendResponse.text();
-		console.error(red("Failed to send message to queue:"));
-		console.error("Status:", sendResponse.status, sendResponse.statusText);
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.error(red("\nFailed to trigger seed:"));
+		console.error("Status:", response.status, response.statusText);
 		console.error("Response:", errorText);
 		process.exit(1);
 	}
 
-	const sendData = (await sendResponse.json()) as { success: boolean };
+	const result = (await response.json()) as { success: boolean; message: string };
 
-	if (sendData.success) {
+	if (result.success) {
 		console.log(green("\nSeed request sent successfully!"));
+		console.log(result.message);
 		console.log(yellow("\nThe seed is processing asynchronously."));
 		console.log(`Monitor with: ${bold("bunx wrangler tail")}`);
 	} else {
-		console.error(red("\nFailed to send seed request"));
+		console.error(red("\nSeed request failed:"));
+		console.error(result.message);
 		process.exit(1);
 	}
 }
