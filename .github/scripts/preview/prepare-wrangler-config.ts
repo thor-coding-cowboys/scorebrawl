@@ -6,11 +6,12 @@ const prNumber = process.env.PR_NUMBER;
 const dbId = process.env.DB_ID;
 const dbName = process.env.DB_NAME;
 const bucketName = process.env.BUCKET_NAME;
-const queueName = process.env.QUEUE_NAME;
+const achievementQueueName = process.env.ACHIEVEMENT_QUEUE_NAME;
+const seedQueueName = process.env.SEED_QUEUE_NAME;
 
-if (!prNumber || !dbId || !dbName || !bucketName || !queueName) {
+if (!prNumber || !dbId || !dbName || !bucketName || !achievementQueueName || !seedQueueName) {
 	console.error(
-		"PR_NUMBER, DB_ID, DB_NAME, BUCKET_NAME, and QUEUE_NAME environment variables are required"
+		"PR_NUMBER, DB_ID, DB_NAME, BUCKET_NAME, ACHIEVEMENT_QUEUE_NAME, and SEED_QUEUE_NAME environment variables are required"
 	);
 	process.exit(1);
 }
@@ -36,10 +37,18 @@ config.r2_buckets[0].bucket_name = bucketName;
 
 // Update queue names to PR-specific
 for (const producer of config.queues.producers) {
-	producer.queue = queueName;
+	if (producer.binding === "ACHIEVEMENT_QUEUE") {
+		producer.queue = achievementQueueName;
+	} else if (producer.binding === "SEED_QUEUE") {
+		producer.queue = seedQueueName;
+	}
 }
 for (const consumer of config.queues.consumers) {
-	consumer.queue = queueName;
+	if (consumer.queue === "scorebrawl-achievement-calculations") {
+		consumer.queue = achievementQueueName;
+	} else if (consumer.queue === "scorebrawl-seed-queue") {
+		consumer.queue = seedQueueName;
+	}
 }
 
 // Remove custom domain routes for preview

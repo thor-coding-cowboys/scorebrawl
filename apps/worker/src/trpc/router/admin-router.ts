@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { adminProcedure, createTRPCRouter } from "../trpc";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { user, league as organization, member } from "../../db/schema/auth-schema";
 import { season, match } from "../../db/schema/league-schema";
 import { desc, count, and, gte, lt, eq, sql } from "drizzle-orm";
+import type { SeedInput } from "../../services/seed";
 
 const PAGE_SIZE = 25;
 
@@ -173,5 +174,40 @@ export const adminRouter = createTRPCRouter({
 				offset,
 				limit,
 			};
+		}),
+
+	seedEnabled: protectedProcedure.query(({ ctx }) => {
+		return { enabled: !!ctx.env.SEED_ALLOWED };
+	}),
+
+	triggerSeed: adminProcedure
+		.input(
+			z.object({
+				leagueName: z.string().min(1).max(100),
+				leagueSlug: z
+					.string()
+					.min(1)
+					.max(100)
+					.regex(/^[a-z0-9-]+$/),
+				memberCount: z.number().int().min(3).max(50),
+				matchCount: z.number().int().min(1).max(500),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.env.SEED_ALLOWED) {
+				throw new Error("Seed is not allowed in this environment");
+			}
+
+			const message: SeedInput = {
+				leagueName: input.leagueName,
+				leagueSlug: input.leagueSlug,
+				memberCount: input.memberCount,
+				matchCount: input.matchCount,
+				userId: ctx.authentication.user.id,
+			};
+
+			await ctx.env.SEED_QUEUE.send(message);
+
+			return { queued: true };
 		}),
 });

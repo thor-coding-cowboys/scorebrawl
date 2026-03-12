@@ -1149,7 +1149,8 @@ async function main() {
 			process.exit(1);
 		}
 
-		const success = await seedDatabase(args.members, args.matches, false, true);
+		// Remote only seeds the seed user — league/season/members/matches are created via admin UI
+		const success = await seedDatabase(0, 0, false, true);
 		process.exit(success ? 0 : 1);
 	}
 
