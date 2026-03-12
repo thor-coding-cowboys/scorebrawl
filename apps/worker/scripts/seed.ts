@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Local development database seeding script.
- * 
+ *
  * ⚠️  LOCAL DEVELOPMENT ONLY - This script only works with local SQLite databases.
- * 
+ *
  * For preview/production environments, use:
  *   bun run scripts/trigger-seed.ts
- * 
+ *
  * This script seeds the local database with test data including:
  * - A seed user (seed@scorebrawl.com / Test.1234)
  * - A league with season
@@ -440,10 +440,6 @@ async function createMatch({
 		awayPlayers: awayPlayers.map((p) => ({ id: p.seasonPlayerId, score: p.score })),
 	});
 
-	// Get team scores before match
-	const homeTeamScoreBefore = homeTeamResult.score;
-	const awayTeamScoreBefore = awayTeamResult.score;
-
 	// Calculate new team scores based on average player scores
 	const homeTeamScoreAfter =
 		eloResult.homeTeam.players.reduce((sum, p) => sum + p.scoreAfter, 0) / homePlayers.length;
@@ -491,11 +487,9 @@ async function createMatch({
 
 	// Create match players and update player scores
 	await db.insert(matchPlayer).values([
-		...homePlayerIds.map((seasonPlayerId, index) => {
+		...homePlayerIds.map((seasonPlayerId) => {
 			const playerScoreBefore = playerScores.get(seasonPlayerId) ?? seasonData.initialScore;
-			const playerEloResult = eloResult.homeTeam.players.find(
-				(p) => p.id === seasonPlayerId
-			);
+			const playerEloResult = eloResult.homeTeam.players.find((p) => p.id === seasonPlayerId);
 			const playerScoreAfter = playerEloResult?.scoreAfter ?? playerScoreBefore;
 			playerScores.set(seasonPlayerId, playerScoreAfter);
 
@@ -512,11 +506,9 @@ async function createMatch({
 				updatedAt: now,
 			};
 		}),
-		...awayPlayerIds.map((seasonPlayerId, index) => {
+		...awayPlayerIds.map((seasonPlayerId) => {
 			const playerScoreBefore = playerScores.get(seasonPlayerId) ?? seasonData.initialScore;
-			const playerEloResult = eloResult.awayTeam.players.find(
-				(p) => p.id === seasonPlayerId
-			);
+			const playerEloResult = eloResult.awayTeam.players.find((p) => p.id === seasonPlayerId);
 			const playerScoreAfter = playerEloResult?.scoreAfter ?? playerScoreBefore;
 			playerScores.set(seasonPlayerId, playerScoreAfter);
 
@@ -621,9 +613,7 @@ async function seedDatabase(
 			console.log(yellow("\n⚠️  For preview/production seeding, use:"));
 			console.log(bold("  bun run scripts/trigger-seed.ts"));
 
-			const wantMembers = await prompt(
-				"\nDatabase already seeded. Create additional members?"
-			);
+			const wantMembers = await prompt("\nDatabase already seeded. Create additional members?");
 			if (wantMembers.toLowerCase() !== "y" && wantMembers.toLowerCase() !== "yes") {
 				effectiveMemberCount = 0;
 			}

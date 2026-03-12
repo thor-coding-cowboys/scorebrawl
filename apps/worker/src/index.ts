@@ -15,10 +15,7 @@ import {
 	calculateAchievements,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
-import {
-	runBulkSeed,
-	type SeedQueueMessage,
-} from "./services/bulk-seed";
+import { runBulkSeed, type SeedQueueMessage } from "./services/bulk-seed";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
@@ -46,16 +43,19 @@ export default {
 		const db = getDb(env.DB);
 		for (const msg of batch.messages) {
 			const body = msg.body;
-			
+
 			// Handle seed queue messages
-			if ('action' in body && body.action === "bulk-seed") {
+			if ("action" in body && body.action === "bulk-seed") {
 				try {
-					console.log("[Seed Queue] Starting bulk seed:", { memberCount: body.memberCount, matchCount: body.matchCount });
-					const result = await runBulkSeed(db, { 
-						memberCount: body.memberCount, 
-						matchCount: body.matchCount 
+					console.log("[Seed Queue] Starting bulk seed:", {
+						memberCount: body.memberCount,
+						matchCount: body.matchCount,
 					});
-					
+					const result = await runBulkSeed(db, {
+						memberCount: body.memberCount,
+						matchCount: body.matchCount,
+					});
+
 					if (result.success) {
 						console.log("[Seed Queue] Bulk seed completed:", result.stats);
 						msg.ack();

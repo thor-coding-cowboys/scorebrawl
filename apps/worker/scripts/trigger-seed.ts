@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Trigger bulk seed via Cloudflare Queue for preview environments ONLY.
- * 
+ *
  * This script sends a message to the seed queue, which is processed by the Worker
  * running close to the D1 database (much faster than HTTP API seeding).
- * 
+ *
  * ⚠️  PREVIEW ENVIRONMENTS ONLY - This will only seed preview databases, never production.
- * 
+ *
  * Usage:
  *   bun run scripts/trigger-seed.ts --members 100 --matches 500
  *   bun run scripts/trigger-seed.ts -m 1000 -M 5000
@@ -125,13 +125,7 @@ ${"─".repeat(50)}
 	console.log(cyan("Sending seed request to queue..."));
 
 	// Send message to queue using wrangler (always sends to preview)
-	const wranglerArgs = [
-		"wrangler",
-		"queue",
-		"send",
-		"scorebrawl-seed-queue",
-		message,
-	];
+	const wranglerArgs = ["wrangler", "queue", "send", "scorebrawl-seed-queue", message];
 
 	const proc = spawn({
 		cmd: ["bunx", ...wranglerArgs],

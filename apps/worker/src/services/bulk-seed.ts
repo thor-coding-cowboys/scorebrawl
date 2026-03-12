@@ -56,23 +56,128 @@ function generateEmail(index: number): string {
 // Generate random name
 function generateName(index: number): string {
 	const firstNames = [
-		"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
-		"William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-		"Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
-		"Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley",
-		"Steven", "Kimberly", "Paul", "Emily", "Andrew", "Donna", "Joshua", "Michelle",
-		"Kenneth", "Dorothy", "Kevin", "Carol", "Brian", "Amanda", "George", "Melissa",
-		"Edward", "Deborah", "Ronald", "Stephanie", "Timothy", "Rebecca", "Jason", "Sharon",
-		"Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary", "Amy",
-		"Nicholas", "Shirley", "Eric", "Angela", "Jonathan", "Helen", "Stephen", "Anna",
-		"Larry", "Brenda", "Justin", "Pamela", "Scott", "Nicole", "Brandon", "Emma",
+		"James",
+		"Mary",
+		"John",
+		"Patricia",
+		"Robert",
+		"Jennifer",
+		"Michael",
+		"Linda",
+		"William",
+		"Elizabeth",
+		"David",
+		"Barbara",
+		"Richard",
+		"Susan",
+		"Joseph",
+		"Jessica",
+		"Thomas",
+		"Sarah",
+		"Charles",
+		"Karen",
+		"Christopher",
+		"Nancy",
+		"Daniel",
+		"Lisa",
+		"Matthew",
+		"Betty",
+		"Anthony",
+		"Margaret",
+		"Mark",
+		"Sandra",
+		"Donald",
+		"Ashley",
+		"Steven",
+		"Kimberly",
+		"Paul",
+		"Emily",
+		"Andrew",
+		"Donna",
+		"Joshua",
+		"Michelle",
+		"Kenneth",
+		"Dorothy",
+		"Kevin",
+		"Carol",
+		"Brian",
+		"Amanda",
+		"George",
+		"Melissa",
+		"Edward",
+		"Deborah",
+		"Ronald",
+		"Stephanie",
+		"Timothy",
+		"Rebecca",
+		"Jason",
+		"Sharon",
+		"Jeffrey",
+		"Laura",
+		"Ryan",
+		"Cynthia",
+		"Jacob",
+		"Kathleen",
+		"Gary",
+		"Amy",
+		"Nicholas",
+		"Shirley",
+		"Eric",
+		"Angela",
+		"Jonathan",
+		"Helen",
+		"Stephen",
+		"Anna",
+		"Larry",
+		"Brenda",
+		"Justin",
+		"Pamela",
+		"Scott",
+		"Nicole",
+		"Brandon",
+		"Emma",
 	];
 	const lastNames = [
-		"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-		"Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
-		"Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
-		"White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
-		"Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+		"Smith",
+		"Johnson",
+		"Williams",
+		"Brown",
+		"Jones",
+		"Garcia",
+		"Miller",
+		"Davis",
+		"Rodriguez",
+		"Martinez",
+		"Hernandez",
+		"Lopez",
+		"Gonzalez",
+		"Wilson",
+		"Anderson",
+		"Thomas",
+		"Taylor",
+		"Moore",
+		"Jackson",
+		"Martin",
+		"Lee",
+		"Perez",
+		"Thompson",
+		"White",
+		"Harris",
+		"Sanchez",
+		"Clark",
+		"Ramirez",
+		"Lewis",
+		"Robinson",
+		"Walker",
+		"Young",
+		"Allen",
+		"King",
+		"Wright",
+		"Scott",
+		"Torres",
+		"Nguyen",
+		"Hill",
+		"Flores",
 	];
 	const firstName = firstNames[index % firstNames.length];
 	const lastName = lastNames[Math.floor(index / firstNames.length) % lastNames.length];
@@ -415,8 +520,12 @@ export async function runBulkSeed(
 					});
 
 					// Update team scores
-					const homeScoreAfter = eloResult.homeTeam.players.reduce((sum, p) => sum + p.scoreAfter, 0) / homePlayers.length;
-					const awayScoreAfter = eloResult.awayTeam.players.reduce((sum, p) => sum + p.scoreAfter, 0) / awayPlayers.length;
+					const homeScoreAfter =
+						eloResult.homeTeam.players.reduce((sum, p) => sum + p.scoreAfter, 0) /
+						homePlayers.length;
+					const awayScoreAfter =
+						eloResult.awayTeam.players.reduce((sum, p) => sum + p.scoreAfter, 0) /
+						awayPlayers.length;
 					teamScores.set(homeTeamResult.seasonTeamId, homeScoreAfter);
 					teamScores.set(awayTeamResult.seasonTeamId, awayScoreAfter);
 
@@ -427,7 +536,9 @@ export async function runBulkSeed(
 						if (!playerId) continue;
 
 						const scoreBefore = playerScores.get(seasonPlayerId) ?? SEED_SEASON.initialScore;
-						const scoreAfter = eloResult.homeTeam.players.find((p) => p.id === seasonPlayerId)?.scoreAfter ?? scoreBefore;
+						const scoreAfter =
+							eloResult.homeTeam.players.find((p) => p.id === seasonPlayerId)?.scoreAfter ??
+							scoreBefore;
 						playerScores.set(seasonPlayerId, scoreAfter);
 
 						matchPlayerBatch.push({
@@ -449,7 +560,9 @@ export async function runBulkSeed(
 						if (!playerId) continue;
 
 						const scoreBefore = playerScores.get(seasonPlayerId) ?? SEED_SEASON.initialScore;
-						const scoreAfter = eloResult.awayTeam.players.find((p) => p.id === seasonPlayerId)?.scoreAfter ?? scoreBefore;
+						const scoreAfter =
+							eloResult.awayTeam.players.find((p) => p.id === seasonPlayerId)?.scoreAfter ??
+							scoreBefore;
 						playerScores.set(seasonPlayerId, scoreAfter);
 
 						matchPlayerBatch.push({
@@ -511,18 +624,12 @@ export async function runBulkSeed(
 
 				// Update all player scores
 				for (const [seasonPlayerId, score] of playerScores) {
-					await db
-						.update(seasonPlayer)
-						.set({ score })
-						.where(eq(seasonPlayer.id, seasonPlayerId));
+					await db.update(seasonPlayer).set({ score }).where(eq(seasonPlayer.id, seasonPlayerId));
 				}
 
 				// Update all team scores
 				for (const [seasonTeamId, score] of teamScores) {
-					await db
-						.update(seasonTeam)
-						.set({ score })
-						.where(eq(seasonTeam.id, seasonTeamId));
+					await db.update(seasonTeam).set({ score }).where(eq(seasonTeam.id, seasonTeamId));
 				}
 			}
 		}
@@ -561,10 +668,12 @@ async function getOrCreateTeamBatch(
 	if (!leagueTeamId) {
 		// Create new league team
 		leagueTeamId = createId();
-		const teamName = seasonPlayerIds.map((id) => {
-			const playerId = playerIdMap.get(id);
-			return playerId ? `Player${playerId.slice(0, 4)}` : "Unknown";
-		}).join(" & ");
+		const teamName = seasonPlayerIds
+			.map((id) => {
+				const playerId = playerIdMap.get(id);
+				return playerId ? `Player${playerId.slice(0, 4)}` : "Unknown";
+			})
+			.join(" & ");
 
 		leagueTeamBatch.push({
 			id: leagueTeamId,
