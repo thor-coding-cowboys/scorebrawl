@@ -11,7 +11,6 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"deploy": "wrangler deploy",
 		"wrangler-typecheck": "wrangler deploy --dry-run",
 		"typecheck": "tsgo --noEmit",
 		"test": "vitest run",
