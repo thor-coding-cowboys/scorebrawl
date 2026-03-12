@@ -165,6 +165,8 @@ ${"─".repeat(50)}
 		matchCount: args.matches,
 	};
 
+	// Send message to queue using Cloudflare API
+	// The API expects messages in a specific format
 	const sendResponse = await fetch(
 		`https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/${queue.queue_id}/messages`,
 		{
@@ -174,7 +176,7 @@ ${"─".repeat(50)}
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				body: JSON.stringify(message),
+				messages: [JSON.stringify(message)],
 			}),
 		}
 	);
