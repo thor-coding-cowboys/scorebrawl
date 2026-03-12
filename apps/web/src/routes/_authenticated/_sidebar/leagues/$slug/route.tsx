@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-
 import { useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { fetchSessionForRoute, SESSION_QUERY_KEY, useSession } from "@/hooks/useSession.ts";
+import { fetchSessionForRoute, useSession } from "@/hooks/useSession.ts";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 	component: LeaguesLayout,
@@ -28,8 +28,8 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug")({
 				console.error("Failed to set active organization:", error);
 				throw redirect({ to: "/leagues" });
 			}
-			// Invalidate session cache so sidebar reflects new active org
-			await context.queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+			// Invalidate all queries so all org-scoped data refreshes for the new league
+			await context.queryClient.invalidateQueries();
 		}
 	},
 	loader: async ({ params }) => {
