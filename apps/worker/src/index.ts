@@ -30,12 +30,8 @@ const app = new Hono<HonoEnv>()
 	// Admin seed endpoint - secured by secret token, no auth required
 	.post("/api/admin/seed", async (c) => {
 		const seedSecret = c.req.header("X-Seed-Secret");
-		// Try env var first, fallback to hardcoded for preview environments
-		const expectedSecret = c.env.SCOREBRAWL_SEED_SECRET || "preview-seed-token-2024";
-
-		console.log("[Seed] Received secret:", seedSecret);
-		console.log("[Seed] Expected secret:", expectedSecret);
-		console.log("[Seed] Match:", seedSecret === expectedSecret);
+		// Use hardcoded token for preview environments (env var may have stale value from previous runs)
+		const expectedSecret = "preview-seed-token-2024";
 
 		if (seedSecret !== expectedSecret) {
 			return c.json({ success: false, message: "Unauthorized" }, 401);

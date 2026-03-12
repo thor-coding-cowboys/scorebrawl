@@ -83,13 +83,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
 
-      - name: 🔐 Set SCOREBRAWL_SEED_SECRET
-        run: |
-          echo "preview-seed-token-2024" | bunx wrangler secret put SCOREBRAWL_SEED_SECRET --name "${{ steps.prepare-config.outputs.worker_name }}" --config wrangler.preview.jsonc
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: 🚀 Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         id: deploy
