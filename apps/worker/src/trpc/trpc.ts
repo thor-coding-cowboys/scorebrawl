@@ -17,6 +17,7 @@ interface BaseContext {
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
 	waitUntil: (promise: Promise<unknown>) => void;
+	headers: Headers;
 }
 
 // Extended context types
@@ -178,3 +179,24 @@ export const leagueMemberProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
+
+// Admin check middleware
+const adminCheckMiddleware = t.middleware(async ({ ctx, next }) => {
+	if (!ctx.authentication) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	try {
+		await ctx.betterAuth.api.listUserAccounts({ headers: ctx.headers });
+	} catch (err) {
+		console.log("Admin check failed", err);
+		throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+	}
+
+	return next({
+		ctx: {
+			authentication: ctx.authentication,
+		},
+	});
+});
+
+export const adminProcedure = t.procedure.use(enforceUserIsAuthed).use(adminCheckMiddleware);

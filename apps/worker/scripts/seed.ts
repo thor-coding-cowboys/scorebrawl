@@ -29,6 +29,7 @@ import { calculateEloMatch, determineMatchResult } from "@coding-cowboys/scorebr
 
 // Seed configuration
 const SEED_USER = {
+	id: "seed-user-id",
 	email: "seed@scorebrawl.com",
 	password: "Test.1234",
 	name: randFullName(),
@@ -711,18 +712,14 @@ async function seedDatabase(
 			}
 		}
 
-		let ownerUserId: string;
-
 		if (existingUser) {
 			if (!mainSeedExists || !isInteractive) {
 				console.log(dim(`  ○ User already exists: ${SEED_USER.email}`));
 			}
-			ownerUserId = existingUser.id;
 		} else {
 			// Create user
-			ownerUserId = createId();
 			await db.insert(user).values({
-				id: ownerUserId,
+				id: SEED_USER.id,
 				name: SEED_USER.name,
 				email: SEED_USER.email,
 				emailVerified: true,
@@ -736,9 +733,9 @@ async function seedDatabase(
 			const accountId = createId();
 			await db.insert(account).values({
 				id: accountId,
-				accountId: ownerUserId,
+				accountId: SEED_USER.id,
 				providerId: "credential",
-				userId: ownerUserId,
+				userId: SEED_USER.id,
 				password: hashedPassword,
 				createdAt: now,
 				updatedAt: now,
@@ -757,7 +754,7 @@ async function seedDatabase(
 			leagueId = existingLeague.id;
 
 			// Get owner's player ID
-			const [ownerPlayer] = await db.select().from(player).where(eq(player.userId, ownerUserId));
+			const [ownerPlayer] = await db.select().from(player).where(eq(player.userId, SEED_USER.id));
 			ownerPlayerId = ownerPlayer?.id || null;
 		} else {
 			leagueId = createId();
@@ -776,7 +773,7 @@ async function seedDatabase(
 			await db.insert(member).values({
 				id: memberId,
 				organizationId: leagueId,
-				userId: ownerUserId,
+				userId: SEED_USER.id,
 				role: "owner",
 				createdAt: now,
 			});
@@ -786,7 +783,7 @@ async function seedDatabase(
 			ownerPlayerId = createId();
 			await db.insert(player).values({
 				id: ownerPlayerId,
-				userId: ownerUserId,
+				userId: SEED_USER.id,
 				leagueId: leagueId,
 				disabled: false,
 				createdAt: now,
@@ -818,8 +815,8 @@ async function seedDatabase(
 				leagueId: leagueId,
 				archived: false,
 				closed: false,
-				createdBy: ownerUserId,
-				updatedBy: ownerUserId,
+				createdBy: SEED_USER.id,
+				updatedBy: SEED_USER.id,
 				createdAt: now,
 				updatedAt: now,
 			});
@@ -1018,7 +1015,7 @@ async function seedDatabase(
 						teamScores,
 						existingTeams,
 						leagueId,
-						ownerUserId,
+						ownerUserId: SEED_USER.id,
 						now,
 						matchIndex: i,
 						matchCount,
@@ -1066,7 +1063,7 @@ async function seedDatabase(
 							teamScores,
 							existingTeams,
 							leagueId,
-							ownerUserId,
+							ownerUserId: SEED_USER.id,
 							now,
 							matchIndex: matchCount + i,
 							matchCount: matchCount + rivalryMatchCount,

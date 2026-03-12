@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
@@ -14,6 +14,10 @@ export const user = sqliteTable("user", {
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
+	role: text("role"),
+	banned: integer("banned", { mode: "boolean" }).default(false),
+	banReason: text("ban_reason"),
+	banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
 });
 
 export const session = sqliteTable(
@@ -33,6 +37,7 @@ export const session = sqliteTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
+		impersonatedBy: text("impersonated_by"),
 		activeOrganizationId: text("active_organization_id"),
 	},
 	(table) => [index("session_userId_idx").on(table.userId)]
@@ -113,7 +118,7 @@ export const member = sqliteTable(
 		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 	},
 	(table) => [
-		uniqueIndex("member_org_user_uidx").on(table.organizationId, table.userId),
+		index("member_organizationId_idx").on(table.organizationId),
 		index("member_userId_idx").on(table.userId),
 	]
 );
@@ -179,81 +184,20 @@ export const apikey = sqliteTable(
 		refillInterval: integer("refill_interval"),
 		refillAmount: integer("refill_amount"),
 		lastRefillAt: integer("last_refill_at", { mode: "timestamp_ms" }),
-		enabled: integer("enabled", { mode: "boolean" }).default(true).notNull(),
-		rateLimitEnabled: integer("rate_limit_enabled", { mode: "boolean" }).default(true).notNull(),
-		rateLimitTimeWindow: integer("rate_limit_time_window"),
-		rateLimitMax: integer("rate_limit_max"),
-		requestCount: integer("request_count").default(0).notNull(),
+		enabled: integer("enabled", { mode: "boolean" }).default(true),
+		rateLimitEnabled: integer("rate_limit_enabled", {
+			mode: "boolean",
+		}).default(true),
+		rateLimitTimeWindow: integer("rate_limit_time_window").default(86400000),
+		rateLimitMax: integer("rate_limit_max").default(10000),
+		requestCount: integer("request_count").default(0),
 		remaining: integer("remaining"),
 		lastRequest: integer("last_request", { mode: "timestamp_ms" }),
 		expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
-		createdAt: integer("created_at", { mode: "timestamp_ms" })
-			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-			.notNull(),
-		updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-			.$onUpdate(() => new Date())
-			.notNull(),
+		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 		permissions: text("permissions"),
 		metadata: text("metadata"),
 	},
-	(table) => [index("apikey_userId_idx").on(table.userId)]
+	(table) => [index("apikey_key_idx").on(table.key), index("apikey_userId_idx").on(table.userId)]
 );
-
-/*export const userRelations = relations(user, ({ many }) => ({
-	sessions: many(session),
-	accounts: many(account),
-	members: many(member),
-	invitations: many(invitation),
-	passkeys: many(passkey),
-}));
-
-export const sessionRelations = relations(session, ({ one }) => ({
-	user: one(user, {
-		fields: [session.userId],
-		references: [user.id],
-	}),
-}));
-
-export const accountRelations = relations(account, ({ one }) => ({
-	user: one(user, {
-		fields: [account.userId],
-		references: [user.id],
-	}),
-}));
-
-export const leagueRelations = relations(league, ({ many }) => ({
-	members: many(member),
-	invitations: many(invitation),
-}));
-
-
-export const memberRelations = relations(member, ({ one }) => ({
-	league: one(league, {
-		fields: [member.organizationId],
-		references: [league.id],
-	}),
-	user: one(user, {
-		fields: [member.userId],
-		references: [user.id],
-	}),
-}));
-
-export const invitationRelations = relations(invitation, ({ one }) => ({
-	league: one(league, {
-		fields: [invitation.organizationId],
-		references: [league.id],
-	}),
-	user: one(user, {
-		fields: [invitation.inviterId],
-		references: [user.id],
-	}),
-}));
-
-export const passkeyRelations = relations(passkey, ({ one }) => ({
-	user: one(user, {
-		fields: [passkey.userId],
-		references: [user.id],
-	}),
-}));
-*/
