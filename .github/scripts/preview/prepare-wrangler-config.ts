@@ -45,9 +45,10 @@ for (const consumer of config.queues.consumers) {
 // Remove custom domain routes for preview
 config.routes = undefined;
 
-// Clear vars to avoid using production values in preview
-// Preview-specific vars should be set via secrets or env in the workflow
-config.vars = {};
+// Set preview-specific vars (avoid production values)
+config.vars = {
+	ADMIN_USER_IDS: "seed-user-id",
+};
 
 // Write preview config
 const previewConfigPath = "wrangler.preview.jsonc";

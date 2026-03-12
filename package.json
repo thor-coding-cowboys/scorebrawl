@@ -8,6 +8,7 @@
 	],
 	"type": "module",
 	"scripts": {
+		"better-auth:generate": "bunx @better-auth/cli@latest generate --config apps/worker/src/middleware/context.ts --output apps/worker/src/db/schema/auth-schema.ts",
 		"build": "turbo run build",
 		"predev": "bun db:migrate",
 		"dev": "turbo run dev",
