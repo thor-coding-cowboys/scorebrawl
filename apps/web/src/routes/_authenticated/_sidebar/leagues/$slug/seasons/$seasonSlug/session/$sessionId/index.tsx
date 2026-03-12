@@ -113,6 +113,7 @@ function SessionLivePage() {
 	const lastLocalChangeRef = useRef<number>(0);
 	const lastLocalTeamChangeRef = useRef<number>(0);
 	const shuffleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const localShuffleRef = useRef<{ homeIds: string[]; awayIds: string[] } | null>(null);
 
 	const allMatches = session?.matches ?? [];
 	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
@@ -144,6 +145,8 @@ function SessionLivePage() {
 			const currentMatch = session.matches.find((m) => m.result === null);
 
 			if (currentMatch) {
+				// Clear local shuffle when a match is active
+				localShuffleRef.current = null;
 				const useSelected = !!currentMatch.selectedHomePlayerIds?.length;
 				const homeIds = useSelected
 					? currentMatch.selectedHomePlayerIds!
@@ -165,12 +168,17 @@ function SessionLivePage() {
 			}
 
 			if (session.proposedLineup && !currentMatch) {
-				const homeIds = session.proposedLineup.selectedHomePlayerIds?.length
-					? session.proposedLineup.selectedHomePlayerIds
-					: session.proposedLineup.homePlayerIds;
-				const awayIds = session.proposedLineup.selectedAwayPlayerIds?.length
-					? session.proposedLineup.selectedAwayPlayerIds
-					: session.proposedLineup.awayPlayerIds;
+				// Use local shuffle if available, otherwise use session proposedLineup
+				const homeIds = localShuffleRef.current?.homeIds?.length
+					? localShuffleRef.current.homeIds
+					: session.proposedLineup.selectedHomePlayerIds?.length
+						? session.proposedLineup.selectedHomePlayerIds
+						: session.proposedLineup.homePlayerIds;
+				const awayIds = localShuffleRef.current?.awayIds?.length
+					? localShuffleRef.current.awayIds
+					: session.proposedLineup.selectedAwayPlayerIds?.length
+						? session.proposedLineup.selectedAwayPlayerIds
+						: session.proposedLineup.awayPlayerIds;
 				if (homeIds.length || awayIds.length) {
 					const merged = session.players.map((p) => {
 						const existing = prev.find((e) => e.id === p.id);
@@ -391,41 +399,57 @@ function SessionLivePage() {
 				autoResolvedCoinToss: { winnerNames: string[]; conflictType: string } | null;
 			}>,
 		onSuccess: (res) => {
-			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
-			});
 			setHomeScore(0);
 			setAwayScore(0);
-			if (res.autoResolvedCoinToss) {
-				const { winnerNames, conflictType } = res.autoResolvedCoinToss;
-				const label = conflictType === "draw-tiebreak" ? "Draw tiebreak" : "Displacement tie";
-				toast.info(`${label} resolved: ${winnerNames.join(", ")} won the coin toss`);
-				if (session?.autoRandomize && res.proposedLineup) {
-					triggerShuffleAnimation(() => applyRandomizedLineup(res.proposedLineup!));
-				} else if (res.proposedLineup) {
-					triggerShuffleAnimation(() => setProposedLineup(res.proposedLineup));
-				} else {
-					setProposedLineup(null);
-				}
-			} else if (res.proposedLineup?.coinTossNeeded) {
-				triggerShuffleAnimation(() => {
+
+			const afterShuffle = () => {
+				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
+				});
+			};
+
+			const needsShuffle = session?.autoRandomize && res.proposedLineup;
+
+			const setupLineup = () => {
+				if (res.autoResolvedCoinToss) {
+					const { winnerNames, conflictType } = res.autoResolvedCoinToss;
+					const label = conflictType === "draw-tiebreak" ? "Draw tiebreak" : "Displacement tie";
+					toast.info(`${label} resolved: ${winnerNames.join(", ")} won the coin toss`);
+					if (session?.autoRandomize && res.proposedLineup) {
+						applyRandomizedLineup(res.proposedLineup!);
+					} else if (res.proposedLineup) {
+						setProposedLineup(res.proposedLineup);
+					} else {
+						setProposedLineup(null);
+					}
+				} else if (res.proposedLineup?.coinTossNeeded) {
 					setProposedLineup(res.proposedLineup);
 					setPendingCoinTossId(res.coinTossId);
 					setShowCoinToss(true);
+				} else if (session?.autoRandomize && res.proposedLineup) {
+					applyRandomizedLineup(res.proposedLineup!);
+				} else if (res.proposedLineup) {
+					setProposedLineup(res.proposedLineup);
+				} else {
+					setProposedLineup(null);
+				}
+			};
+
+			if (needsShuffle) {
+				triggerShuffleAnimation(() => {
+					setupLineup();
+					afterShuffle();
 				});
-			} else if (session?.autoRandomize && res.proposedLineup) {
-				triggerShuffleAnimation(() => applyRandomizedLineup(res.proposedLineup!));
-			} else if (res.proposedLineup) {
-				triggerShuffleAnimation(() => setProposedLineup(res.proposedLineup));
 			} else {
-				setProposedLineup(null);
+				setupLineup();
+				afterShuffle();
 			}
 		},
 		onError: () => toast.error("Failed to record result"),
@@ -453,6 +477,8 @@ function SessionLivePage() {
 				team: homeSet.has(p.id) ? "home" : awaySet.has(p.id) ? "away" : undefined,
 			}))
 		);
+		// Save to ref so session refetch doesn't overwrite
+		localShuffleRef.current = { homeIds: fixedHome, awayIds: fixedAway };
 	};
 
 	const triggerShuffleAnimation = (onComplete: () => void) => {
@@ -777,142 +803,145 @@ function SessionLivePage() {
 								</div>
 							}
 						>
-							{currentMatch ? (
-								<div className="flex flex-col gap-4">
-									<div className="bg-muted/30">
-										<div className="grid grid-cols-2">
-											<ScoreStepper
+							<div className="flex flex-col gap-4">
+								<div className="bg-muted/30">
+									<div className="grid grid-cols-2">
+										<ScoreStepper
+											label="Home"
+											score={homeScore}
+											onIncrement={() => updateHomeScore((s) => s + 1)}
+											onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
+											disabled={!currentMatch}
+										/>
+										<ScoreStepper
+											label="Away"
+											score={awayScore}
+											onIncrement={() => updateAwayScore((s) => s + 1)}
+											onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
+											disabled={!currentMatch}
+										/>
+									</div>
+								</div>
+								{currentMatch ? (
+									<>
+										<div className="grid grid-cols-2 gap-4">
+											<TeamRosterCard
 												label="Home"
-												score={homeScore}
-												onIncrement={() => updateHomeScore((s) => s + 1)}
-												onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
+												players={currentMatch.homePlayerIds
+													.map((sid) => getPlayerBySeasonId(session, sid))
+													.filter((p): p is SessionPlayer => p !== undefined)}
 											/>
-											<ScoreStepper
+											<TeamRosterCard
 												label="Away"
-												score={awayScore}
-												onIncrement={() => updateAwayScore((s) => s + 1)}
-												onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
+												players={currentMatch.awayPlayerIds
+													.map((sid) => getPlayerBySeasonId(session, sid))
+													.filter((p): p is SessionPlayer => p !== undefined)}
 											/>
 										</div>
-									</div>
 
-									<div className="grid grid-cols-2 gap-4">
-										<TeamRosterCard
-											label="Home"
-											players={currentMatch.homePlayerIds
-												.map((sid) => getPlayerBySeasonId(session, sid))
-												.filter((p): p is SessionPlayer => p !== undefined)}
-										/>
-										<TeamRosterCard
-											label="Away"
-											players={currentMatch.awayPlayerIds
-												.map((sid) => getPlayerBySeasonId(session, sid))
-												.filter((p): p is SessionPlayer => p !== undefined)}
-										/>
-									</div>
+										<div className="flex flex-col gap-2">
+											<GlowButton
+												glowColor={glowColors.blue}
+												onClick={handleRecordResult}
+												disabled={recordResult.isPending}
+												className="w-full gap-2"
+											>
+												<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
+												{recordResult.isPending ? "Recording..." : "Record Result"}
+											</GlowButton>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => cancelMatch.mutate()}
+												disabled={cancelMatch.isPending}
+												className="w-full gap-1.5 text-muted-foreground"
+											>
+												<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
+												{cancelMatch.isPending ? "Cancelling..." : "Cancel Match"}
+											</Button>
+										</div>
+									</>
+								) : (
+									<>
+										<div className="grid grid-cols-2 gap-4">
+											<TeamRosterCard
+												label="Home"
+												players={homePlayers}
+												emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+												isShuffling={isShuffling}
+												expectedPlayerCount={session.teamSize}
+											/>
+											<TeamRosterCard
+												label="Away"
+												players={awayPlayers}
+												emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+												isShuffling={isShuffling}
+												expectedPlayerCount={session.teamSize}
+											/>
+										</div>
 
-									<div className="flex flex-col gap-2 border-t border-border pt-4">
-										<GlowButton
-											glowColor={glowColors.blue}
-											onClick={handleRecordResult}
-											disabled={recordResult.isPending}
-											className="w-full gap-2"
-										>
-											<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
-											{recordResult.isPending ? "Recording..." : "Record Result"}
-										</GlowButton>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => cancelMatch.mutate()}
-											disabled={cancelMatch.isPending}
-											className="w-full gap-1.5 text-muted-foreground"
-										>
-											<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
-											{cancelMatch.isPending ? "Cancelling..." : "Cancel Match"}
-										</Button>
-									</div>
-								</div>
-							) : (
-								<div className="flex flex-col gap-4">
-									<div className="grid grid-cols-2 gap-4">
-										<TeamRosterCard
-											label="Home"
-											players={homePlayers}
-											emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
-											isShuffling={isShuffling}
-											expectedPlayerCount={session.teamSize}
-										/>
-										<TeamRosterCard
-											label="Away"
-											players={awayPlayers}
-											emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
-											isShuffling={isShuffling}
-											expectedPlayerCount={session.teamSize}
-										/>
-									</div>
-
-									<div className="flex flex-col gap-2">
-										<Button
-											variant="outline"
-											onClick={() => setShowPlayerDrawer(true)}
-											className="w-full gap-1.5"
-										>
-											<HugeiconsIcon icon={UserMultiple02Icon} className="size-4" />
-											Select Players
-										</Button>
-										<GlowButton
-											glowColor={glowColors.blue}
-											onClick={handleStartMatch}
-											disabled={
-												!teamsBalanced ||
-												homePlayers.length !== session.teamSize ||
-												startNextMatch.isPending
-											}
-											className="w-full gap-2"
-										>
-											<HugeiconsIcon icon={PlayIcon} className="size-4" />
-											{startNextMatch.isPending ? "Starting..." : "Start Match"}
-										</GlowButton>
-										{allMatches.some((m) => m.result !== null) && (
-											<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
-												<AlertDialogTrigger
-													render={
-														<Button
-															variant="ghost"
-															size="sm"
-															disabled={deleteLastMatch.isPending}
-															className="w-full gap-1.5 text-muted-foreground"
-														>
-															<HugeiconsIcon icon={Delete02Icon} className="size-4" />
-															{deleteLastMatch.isPending ? "Deleting..." : "Undo Last Match"}
-														</Button>
-													}
-												/>
-												<AlertDialogContent>
-													<AlertDialogHeader>
-														<AlertDialogTitle>Undo last match?</AlertDialogTitle>
-														<AlertDialogDescription>
-															This will delete the last recorded match and revert all scores and
-															stats.
-														</AlertDialogDescription>
-													</AlertDialogHeader>
-													<AlertDialogFooter>
-														<AlertDialogCancel>Cancel</AlertDialogCancel>
-														<AlertDialogAction
-															onClick={() => deleteLastMatch.mutate()}
-															disabled={deleteLastMatch.isPending}
-															className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-														>
-															{deleteLastMatch.isPending ? "Deleting..." : "Undo Match"}
-														</AlertDialogAction>
-													</AlertDialogFooter>
-												</AlertDialogContent>
-											</AlertDialog>
-										)}
-									</div>
-								</div>
-							)}
+										<div className="flex flex-col gap-2">
+											<Button
+												variant="outline"
+												onClick={() => setShowPlayerDrawer(true)}
+												className="w-full gap-1.5"
+											>
+												<HugeiconsIcon icon={UserMultiple02Icon} className="size-4" />
+												Select Players
+											</Button>
+											<GlowButton
+												glowColor={glowColors.blue}
+												onClick={handleStartMatch}
+												disabled={
+													!teamsBalanced ||
+													homePlayers.length !== session.teamSize ||
+													startNextMatch.isPending
+												}
+												className="w-full gap-2"
+											>
+												<HugeiconsIcon icon={PlayIcon} className="size-4" />
+												{startNextMatch.isPending ? "Starting..." : "Start Match"}
+											</GlowButton>
+											{allMatches.some((m) => m.result !== null) && (
+												<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
+													<AlertDialogTrigger
+														render={
+															<Button
+																variant="ghost"
+																size="sm"
+																disabled={deleteLastMatch.isPending}
+																className="w-full gap-1.5 text-muted-foreground"
+															>
+																<HugeiconsIcon icon={Delete02Icon} className="size-4" />
+																{deleteLastMatch.isPending ? "Deleting..." : "Undo Last Match"}
+															</Button>
+														}
+													/>
+													<AlertDialogContent>
+														<AlertDialogHeader>
+															<AlertDialogTitle>Undo last match?</AlertDialogTitle>
+															<AlertDialogDescription>
+																This will delete the last recorded match and revert all scores and
+																stats.
+															</AlertDialogDescription>
+														</AlertDialogHeader>
+														<AlertDialogFooter>
+															<AlertDialogCancel>Cancel</AlertDialogCancel>
+															<AlertDialogAction
+																onClick={() => deleteLastMatch.mutate()}
+																disabled={deleteLastMatch.isPending}
+																className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+															>
+																{deleteLastMatch.isPending ? "Deleting..." : "Undo Match"}
+															</AlertDialogAction>
+														</AlertDialogFooter>
+													</AlertDialogContent>
+												</AlertDialog>
+											)}
+										</div>
+									</>
+								)}
+							</div>
 						</OverviewCard>
 
 						<OverviewCard
