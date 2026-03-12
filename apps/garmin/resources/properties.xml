@@ -1,7 +1,7 @@
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
 
     <properties>
-        <property id="apiKey" type="string">sb_liveplfVOdayiGpUDJjfyFRhSvnWIsMWFJfSvNEjZLsUuZLRBBZcTEVOzslfcbDupouu</property>
+        <property id="apiKey" type="string"></property>
         <property id="serverUrl" type="string">https://scorebrawl.com</property>
     </properties>
 
