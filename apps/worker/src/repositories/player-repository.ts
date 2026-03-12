@@ -1,8 +1,9 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
 	guest,
+	leagueTeam,
 	match,
 	matchPlayer,
 	matchTeam,
@@ -10,7 +11,6 @@ import {
 	season,
 	seasonPlayer,
 	seasonTeam,
-	leagueTeam,
 } from "../db/schema/league-schema";
 
 export const getAll = async ({ db, leagueId }: { db: DrizzleDB; leagueId: string }) => {
@@ -364,9 +364,15 @@ export const getRecentMatchesWithTeams = async ({
 	}
 
 	// Determine which team is home/away for each match by checking match_player.homeTeam
+	// Constrain to the two known seasonTeamIds for each match to avoid cross-season contamination
 	const homeTeamByMatch = new Map<string, string>(); // matchId -> seasonTeamId of home team
 
 	for (const matchId of matchIds) {
+		const teams = teamsByMatch.get(matchId) || [];
+		if (teams.length !== 2) continue;
+
+		const [team1, team2] = teams;
+
 		const [homeTeamCheck] = await db
 			.select({
 				seasonTeamId: seasonTeam.id,
@@ -374,7 +380,13 @@ export const getRecentMatchesWithTeams = async ({
 			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
 			.innerJoin(seasonTeam, eq(seasonPlayer.seasonId, seasonTeam.seasonId))
-			.where(and(eq(matchPlayer.matchId, matchId), eq(matchPlayer.homeTeam, true)))
+			.where(
+				and(
+					eq(matchPlayer.matchId, matchId),
+					eq(matchPlayer.homeTeam, true),
+					or(eq(seasonTeam.id, team1.seasonTeamId), eq(seasonTeam.id, team2.seasonTeamId))
+				)
+			)
 			.limit(1);
 
 		if (homeTeamCheck) {
@@ -387,8 +399,13 @@ export const getRecentMatchesWithTeams = async ({
 		const teams = teamsByMatch.get(m.matchId) || [];
 		const homeSeasonTeamId = homeTeamByMatch.get(m.matchId);
 
-		const homeTeam = teams.find((t) => t.seasonTeamId === homeSeasonTeamId);
-		const awayTeam = teams.find((t) => t.seasonTeamId !== homeSeasonTeamId);
+		// If we know which team is home, use that; otherwise default to first team as home
+		const homeTeam = homeSeasonTeamId
+			? teams.find((t) => t.seasonTeamId === homeSeasonTeamId)
+			: teams[0];
+		const awayTeam = homeSeasonTeamId
+			? teams.find((t) => t.seasonTeamId !== homeSeasonTeamId)
+			: teams[1];
 
 		return {
 			...m,
