@@ -83,6 +83,13 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
 
+      - name: 🗑️ Delete old SCOREBRAWL_SEED_SECRET if exists
+        run: |
+          bunx wrangler secret delete SCOREBRAWL_SEED_SECRET --name "${{ steps.prepare-config.outputs.worker_name }}" --config wrangler.preview.jsonc || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: 🚀 Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         id: deploy
