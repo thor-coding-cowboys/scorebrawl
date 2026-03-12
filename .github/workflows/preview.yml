@@ -97,7 +97,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.preview.jsonc
+          command: deploy --config wrangler.preview.jsonc --var VERSION:${{ github.sha }}
 
       - name: 📋 Get preview URL
         id: get-url
