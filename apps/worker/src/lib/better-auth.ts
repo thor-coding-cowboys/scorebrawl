@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, apiKey } from "better-auth/plugins";
+import { organization, apiKey, admin } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
@@ -48,6 +48,7 @@ export function createAuth({
 	origin,
 	resendApiKey,
 	isProduction,
+	adminUserIds,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -58,6 +59,7 @@ export function createAuth({
 	origin?: string;
 	resendApiKey?: string;
 	isProduction?: boolean;
+	adminUserIds?: string[];
 }) {
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
@@ -267,6 +269,7 @@ export function createAuth({
 			},
 		},
 		plugins: [
+			admin({ adminUserIds: adminUserIds || [] }),
 			organization({
 				ac,
 				roles: {

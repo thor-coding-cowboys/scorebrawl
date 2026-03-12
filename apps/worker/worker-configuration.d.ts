@@ -18,6 +18,7 @@ declare namespace Cloudflare {
 		BETTER_AUTH_SECRET: string;
 		RESEND_API_KEY: string;
 		SCOREBRAWL_SEED_SECRET: string;
+		ADMIN_USER_IDS: string;
 		SEASON_SSE: DurableObjectNamespace<import("./src/index").SeasonSSE>;
 	}
 }

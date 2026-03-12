@@ -26,8 +26,17 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		GOOGLE_CLIENT_SECRET: googleClientSecret,
 		BETTER_AUTH_SECRET: betterAuthSecret,
 		RESEND_API_KEY: resendApiKey,
+		ADMIN_USER_IDS: adminUserIdsEnv,
 	} = c.env;
 	const db = getDb(DB);
+
+	// Parse admin user IDs from env (comma-separated list)
+	const adminUserIds = adminUserIdsEnv
+		? adminUserIdsEnv
+				.split(",")
+				.map((id) => id.trim())
+				.filter(Boolean)
+		: undefined;
 
 	// Get origin from request for passkey configuration
 	const origin =
@@ -47,6 +56,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		origin,
 		resendApiKey,
 		isProduction,
+		adminUserIds,
 	});
 	c.set("db", db);
 	c.set("betterAuth", auth);

@@ -1,48 +1,51 @@
-name: Preview Environment
+name: Preview Deployment
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_ENV: production
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy-preview:
-    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+    environment: preview
 
-      - name: 🥟 Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Dependencies
         run: bun install
 
-      - name: 🏗️ Build
-        run: bun run build
+      - name: 🔍 Check code quality
+        run: bun check
+
+      - name: 🧪 Run tests
+        run: bun test
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🗄️ Create D1 Database
-        id: create-db
-        run: bun run .github/scripts/preview/create-d1-db.ts
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 🔍 Get D1 Database ID
         id: get-db
-        run: bun run .github/scripts/preview/get-d1-db-id.ts
+        run: bun run .github/scripts/preview/create-database.ts
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: 📦 Create R2 Buckets
+      - name: 🪣 Create R2 Bucket
         id: create-r2
         run: bun run .github/scripts/preview/create-r2-bucket.ts
         env:
@@ -83,14 +86,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
 
-      - name: 🗑️ Delete old SCOREBRAWL_SEED_SECRET if exists
-        run: |
-          bunx wrangler secret delete SCOREBRAWL_SEED_SECRET --name "${{ steps.prepare-config.outputs.worker_name }}" --config wrangler.preview.jsonc || true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 🚀 Deploy to Cloudflare Workers
+      - name: 🚀 Deploy Worker (initial)
         uses: cloudflare/wrangler-action@v3
         id: deploy
         with:
@@ -105,7 +101,31 @@ jobs:
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
           echo "Preview URL: $PREVIEW_URL"
 
-      - name: 🌱 Seed Database
+      - name: 👤 Create Seed User
+        id: create-seed-user
+        run: |
+          USER_ID=$(bun run ./scripts/create-seed-user.ts)
+          echo "user_id=$USER_ID" >> $GITHUB_OUTPUT
+          echo "Created seed user with ID: $USER_ID"
+        working-directory: apps/worker
+        env:
+          PREVIEW_URL: ${{ steps.get-url.outputs.preview_url }}
+
+      - name: 🔐 Set ADMIN_USER_IDS
+        run: |
+          echo "${{ steps.create-seed-user.outputs.user_id }}" | bunx wrangler secret put ADMIN_USER_IDS --name "${{ steps.prepare-config.outputs.worker_name }}" --config wrangler.preview.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: 🚀 Redeploy Worker (with admin)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.preview.jsonc
+
+      - name: 🌱 Seed Bulk Data
         run: bun run db:seed:trigger -m 4 -M 15
         working-directory: apps/worker
         env:
@@ -119,9 +139,9 @@ jobs:
             const prNumber = context.issue.number;
             const previewUrl = '${{ steps.get-url.outputs.preview_url }}';
             const dbName = '${{ steps.get-db.outputs.database_name }}';
-
             const bucketName = '${{ steps.create-r2.outputs.bucket_name }}';
             const queueName = '${{ steps.create-queue.outputs.queue_name }}';
+
             const comment = `## 🚀 Preview Environment Deployed
 
             **Preview URL:** <a href="${previewUrl}" target="_blank">${previewUrl}</a>
@@ -142,98 +162,25 @@ jobs:
               issue_number: prNumber,
             });
 
-            const botComment = comments.find(comment =>
-              comment.user.type === 'Bot' &&
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
               comment.body.includes('Preview Environment Deployed')
             );
 
             if (botComment) {
+              // Update existing comment
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
-                body: comment
+                body: comment,
               });
             } else {
+              // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
-                body: comment
+                body: comment,
               });
             }
-
-  cleanup-preview:
-    if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
-
-      - name: 🥟 Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
-        with:
-          bun-version: latest
-
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🗑️ Remove Worker as Queue Consumer
-        continue-on-error: true
-        run: bun run .github/scripts/preview/remove-queue-consumer.ts
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 🗑️ Delete Worker
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: delete --name "scorebrawl-pr-${{ github.event.pull_request.number }}" --force
-
-      - name: 🗑️ Delete Queue
-        continue-on-error: true
-        run: bun run .github/scripts/preview/delete-queue.ts
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 🗑️ Delete D1 Database
-        continue-on-error: true
-        run: bun run .github/scripts/preview/delete-d1-db.ts
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 🗑️ Delete R2 Buckets
-        continue-on-error: true
-        run: bun run .github/scripts/preview/delete-r2-bucket.ts
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 💬 Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.issue.number;
-
-            const comment = `## 🧹 Preview Environment Cleaned Up
-
-            The preview environment, database, R2 bucket, and queue have been deleted.`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: comment
-            });
