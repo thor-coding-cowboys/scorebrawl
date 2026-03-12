@@ -2,8 +2,8 @@
 /**
  * Trigger bulk seed via Cloudflare Queue for preview environments ONLY.
  *
- * This script sends a message to the seed queue, which is processed by the Worker
- * running close to the D1 database (much faster than HTTP API seeding).
+ * This script sends a message to the seed queue using the Cloudflare API,
+ * which is processed by the Worker running close to the D1 database.
  *
  * ⚠️  PREVIEW ENVIRONMENTS ONLY - This will only seed preview databases, never production.
  *
@@ -11,8 +11,6 @@
  *   bun run scripts/trigger-seed.ts --members 100 --matches 500
  *   bun run scripts/trigger-seed.ts -m 1000 -M 5000
  */
-
-import { spawn } from "bun";
 
 const green = (text: string) => `\x1b[32m${text}\x1b[0m`;
 const red = (text: string) => `\x1b[31m${text}\x1b[0m`;
@@ -116,41 +114,90 @@ ${"─".repeat(50)}
   Matches:     ${args.matches}
 `);
 
-	const message = JSON.stringify({
+	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+	const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+	if (!accountId || !apiToken) {
+		console.error(red("Error: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set"));
+		process.exit(1);
+	}
+
+	// First, get the queue ID by name
+	console.log(cyan("Looking up queue ID..."));
+	const listQueuesResponse = await fetch(
+		`https://api.cloudflare.com/client/v4/accounts/${accountId}/queues`,
+		{
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${apiToken}`,
+				"Content-Type": "application/json",
+			},
+		}
+	);
+
+	if (!listQueuesResponse.ok) {
+		const error = await listQueuesResponse.text();
+		console.error(red("Failed to list queues:"), error);
+		process.exit(1);
+	}
+
+	const queuesData = (await listQueuesResponse.json()) as {
+		result: Array<{ queue_id: string; queue_name: string }>;
+	};
+	const queue = queuesData.result.find((q) => q.queue_name === "scorebrawl-seed-queue");
+
+	if (!queue) {
+		console.error(red("Error: Could not find queue 'scorebrawl-seed-queue'"));
+		console.error("Available queues:", queuesData.result.map((q) => q.queue_name).join(", "));
+		process.exit(1);
+	}
+
+	console.log(cyan(`Found queue ID: ${queue.queue_id}`));
+
+	// Send message to queue
+	console.log(cyan("Sending seed request to queue..."));
+
+	const message = {
 		action: "bulk-seed",
 		memberCount: args.members,
 		matchCount: args.matches,
-	});
+	};
 
-	console.log(cyan("Sending seed request to queue..."));
+	const sendResponse = await fetch(
+		`https://api.cloudflare.com/client/v4/accounts/${accountId}/queues/${queue.queue_id}/messages`,
+		{
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${apiToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				messages: [
+					{
+						body: JSON.stringify(message),
+					},
+				],
+			}),
+		}
+	);
 
-	// Send message to queue using wrangler (always sends to preview)
-	const wranglerArgs = ["queues", "send", "scorebrawl-seed-queue", message];
+	if (!sendResponse.ok) {
+		const error = await sendResponse.text();
+		console.error(red("Failed to send message to queue:"), error);
+		process.exit(1);
+	}
 
-	const proc = spawn({
-		cmd: ["bunx", "wrangler", ...wranglerArgs],
-		cwd: process.cwd(),
-		stdout: "pipe",
-		stderr: "pipe",
-	});
+	const sendData = (await sendResponse.json()) as { success: boolean };
 
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	if (exitCode === 0) {
+	if (sendData.success) {
 		console.log(green("\nSeed request sent successfully!"));
-		console.log(dim(stdout));
 		console.log(yellow("\nThe seed is processing asynchronously."));
 		console.log(`Monitor with: ${bold("bunx wrangler tail")}`);
 	} else {
-		console.log(red("\nFailed to send seed request:"));
-		console.error(stderr || stdout);
+		console.error(red("\nFailed to send seed request"));
 		process.exit(1);
 	}
 }
-
-const dim = (text: string) => `\x1b[2m${text}\x1b[0m`;
 
 main().catch((error) => {
 	console.error(red("Trigger failed:"), error);
