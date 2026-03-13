@@ -26,7 +26,6 @@
 		"db:seed": "bun --cwd apps/worker db:seed",
 		"db:migrate:prod": "bun --cwd apps/worker db:migrate:prod",
 		"db:studio": "bun --cwd apps/worker db:studio",
-		"deploy": "bun --cwd apps/worker deploy",
 		"cf-typegen": "bun --cwd apps/worker cf-typegen"
 	},
 	"dependencies": {

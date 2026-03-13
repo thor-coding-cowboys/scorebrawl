@@ -5,7 +5,7 @@
 **bun** only. Never use npm/yarn/pnpm.
 
 - Never run `bun test` always `bun run test`
-- Never run `bun deploy` always `bun run deploy`
+- Never run `bun deploy`
 
 ## Project Structure
 
