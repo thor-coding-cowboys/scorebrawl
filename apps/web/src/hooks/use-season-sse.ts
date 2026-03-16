@@ -18,32 +18,6 @@ type SessionData = {
 	session?: { id: string };
 };
 
-type ScoreUpdateData = {
-	sessionId: string;
-	sessionMatchId: string;
-	homeScore: number;
-	awayScore: number;
-};
-
-type TeamSelectionUpdateData = {
-	sessionId: string;
-	sessionMatchId: string;
-	selectedHomePlayerIds: string[];
-	selectedAwayPlayerIds: string[];
-};
-
-type ProposedLineupData = {
-	sessionId: string;
-	proposedLineup: {
-		homePlayerIds: string[];
-		awayPlayerIds: string[];
-		rotatedOut: string[];
-		coinTossNeeded: { conflictType: string; candidates: string[] } | null;
-		selectedHomePlayerIds: string[];
-		selectedAwayPlayerIds: string[];
-	};
-};
-
 type MatchData = {
 	match?: {
 		id: string;
@@ -77,17 +51,6 @@ export type SeasonSSEEvent =
 	| { type: "session:start"; user?: { id: string; name: string }; data: SessionData }
 	| { type: "session:update"; user?: { id: string; name: string }; data: SessionData }
 	| { type: "session:end"; user?: { id: string; name: string }; data: SessionData }
-	| { type: "session:score-update"; user?: { id: string; name: string }; data: ScoreUpdateData }
-	| {
-			type: "session:team-selection-update";
-			user?: { id: string; name: string };
-			data: TeamSelectionUpdateData;
-	  }
-	| {
-			type: "session:proposed-lineup-update";
-			user?: { id: string; name: string };
-			data: ProposedLineupData;
-	  }
 	| { type: "match:insert"; user?: { id: string; name: string }; data?: MatchData }
 	| { type: "match:delete"; user?: { id: string; name: string }; data?: MatchData }
 	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData };
@@ -186,46 +149,6 @@ export function useSeasonSSE({
 								queryKey: t.match.getLatest.queryKey({ seasonSlug }),
 							});
 						}
-						return;
-					}
-
-					if (parsed.type === "session:score-update") {
-						window.dispatchEvent(
-							new CustomEvent("score-update", {
-								detail: {
-									sessionId: parsed.data.sessionId,
-									sessionMatchId: parsed.data.sessionMatchId,
-									homeScore: parsed.data.homeScore,
-									awayScore: parsed.data.awayScore,
-								},
-							})
-						);
-						return;
-					}
-
-					if (parsed.type === "session:team-selection-update") {
-						window.dispatchEvent(
-							new CustomEvent("team-selection-update", {
-								detail: {
-									sessionId: parsed.data.sessionId,
-									sessionMatchId: parsed.data.sessionMatchId,
-									selectedHomePlayerIds: parsed.data.selectedHomePlayerIds,
-									selectedAwayPlayerIds: parsed.data.selectedAwayPlayerIds,
-								},
-							})
-						);
-						return;
-					}
-
-					if (parsed.type === "session:proposed-lineup-update") {
-						window.dispatchEvent(
-							new CustomEvent("proposed-lineup-update", {
-								detail: {
-									sessionId: parsed.data.sessionId,
-									proposedLineup: parsed.data.proposedLineup,
-								},
-							})
-						);
 						return;
 					}
 

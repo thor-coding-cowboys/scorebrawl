@@ -706,7 +706,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
 			const updated = await sessionRepository.updateMatchScore({
 				db: ctx.db,
@@ -714,17 +714,6 @@ export const sessionRouter = {
 				sessionMatchId: input.sessionMatchId,
 				homeScore: input.homeScore,
 				awayScore: input.awayScore,
-			});
-
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:score-update",
-				data: {
-					sessionId: input.sessionId,
-					sessionMatchId: input.sessionMatchId,
-					homeScore: input.homeScore,
-					awayScore: input.awayScore,
-				},
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 			});
 
 			return updated;
@@ -740,7 +729,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
 			const updated = await sessionRepository.updateTeamSelection({
 				db: ctx.db,
@@ -748,17 +737,6 @@ export const sessionRouter = {
 				sessionMatchId: input.sessionMatchId,
 				selectedHomePlayerIds: input.selectedHomePlayerIds,
 				selectedAwayPlayerIds: input.selectedAwayPlayerIds,
-			});
-
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:team-selection-update",
-				data: {
-					sessionId: input.sessionId,
-					sessionMatchId: input.sessionMatchId,
-					selectedHomePlayerIds: input.selectedHomePlayerIds,
-					selectedAwayPlayerIds: input.selectedAwayPlayerIds,
-				},
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 			});
 
 			return updated;
@@ -784,21 +762,12 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
 			const updated = await sessionRepository.updateProposedLineup({
 				db: ctx.db,
 				sessionId: input.sessionId,
 				proposedLineup: input.proposedLineup,
-			});
-
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:proposed-lineup-update",
-				data: {
-					sessionId: input.sessionId,
-					proposedLineup: input.proposedLineup,
-				},
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 			});
 
 			return updated;
