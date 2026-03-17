@@ -342,11 +342,13 @@ deviceRouter
 			awaySeasonPlayerIds,
 		});
 
-		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-			type: "session:update",
-			data: { sessionId: fullSession.id, match: sessionMatch },
-			user: { id: userId, name: c.get("authentication").user.name },
-		});
+		c.executionCtx.waitUntil(
+			broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+				type: "session:update",
+				data: { sessionId: fullSession.id, match: sessionMatch },
+				user: { id: userId, name: c.get("authentication").user.name },
+			})
+		);
 
 		return c.json({ success: true, matchNumber: sessionMatch.matchNumber });
 	})
@@ -506,16 +508,18 @@ deviceRouter
 			});
 
 			const userName = c.get("authentication").user.name;
-			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-				type: "session:update",
-				data: {
-					sessionId: fullSession.id,
-					match: updatedMatch,
-					players: updatedPlayers,
-					proposedLineup,
-				},
-				user: { id: userId, name: userName },
-			});
+			c.executionCtx.waitUntil(
+				broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+					type: "session:update",
+					data: {
+						sessionId: fullSession.id,
+						match: updatedMatch,
+						players: updatedPlayers,
+						proposedLineup,
+					},
+					user: { id: userId, name: userName },
+				})
+			);
 
 			const [streakPlayers, streakTeams] = await Promise.all([
 				checkStreakThresholds({
@@ -557,7 +561,9 @@ deviceRouter
 			];
 			await Promise.all(
 				streakEvents.map((event) =>
-					broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, event)
+					c.executionCtx.waitUntil(
+						broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, event)
+					)
 				)
 			);
 
@@ -678,15 +684,17 @@ deviceRouter
 			}
 
 			const userName = c.get("authentication").user.name;
-			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-				type: "session:update",
-				data: {
-					sessionId: fullSession.id,
-					resolvedCoinToss: resolved,
-					proposedLineup,
-				},
-				user: { id: userId, name: userName },
-			});
+			c.executionCtx.waitUntil(
+				broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+					type: "session:update",
+					data: {
+						sessionId: fullSession.id,
+						resolvedCoinToss: resolved,
+						proposedLineup,
+					},
+					user: { id: userId, name: userName },
+				})
+			);
 
 			const mergedSession = {
 				...fullSession,

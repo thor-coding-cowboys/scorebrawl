@@ -119,10 +119,14 @@ export function QueueList({
 	session,
 	onRemovePlayer,
 	isRemoving,
+	onRejoinPlayer,
+	isRejoining,
 }: {
 	session: { players: SessionPlayer[]; matches: SessionMatch[] };
 	onRemovePlayer?: (sessionPlayerId: string) => void;
 	isRemoving?: boolean;
+	onRejoinPlayer?: (seasonPlayerId: string) => void;
+	isRejoining?: boolean;
 }) {
 	const playing = session.players.filter((p) => p.status === "playing");
 	const waiting = session.players
@@ -185,7 +189,13 @@ export function QueueList({
 						</span>
 					</div>
 					{out.map((p) => (
-						<PlayerQueueRow key={p.id} player={p} matches={session.matches} />
+						<PlayerQueueRow
+							key={p.id}
+							player={p}
+							matches={session.matches}
+							onRejoin={onRejoinPlayer ? () => onRejoinPlayer(p.seasonPlayerId) : undefined}
+							isRejoining={isRejoining}
+						/>
 					))}
 				</>
 			)}
@@ -216,12 +226,16 @@ export function PlayerQueueRow({
 	rank,
 	onRemove,
 	isRemoving,
+	onRejoin,
+	isRejoining,
 }: {
 	player: SessionPlayer;
 	matches: SessionMatch[];
 	rank?: number;
 	onRemove?: () => void;
 	isRemoving?: boolean;
+	onRejoin?: () => void;
+	isRejoining?: boolean;
 }) {
 	// Get completed matches this player participated in, sorted by match number (most recent first)
 	const playerMatches = matches
@@ -280,6 +294,18 @@ export function PlayerQueueRow({
 					{player.gamesPlayedThisSession}g
 				</span>
 				<span className="text-sm font-semibold tabular-nums font-mono">{player.score}</span>
+				{onRejoin && (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={onRejoin}
+						disabled={isRejoining}
+						className="h-6 w-6 text-muted-foreground hover:text-primary"
+						title="Rejoin player to session"
+					>
+						<HugeiconsIcon icon={ReloadIcon} className="size-3.5" />
+					</Button>
+				)}
 				{onRemove && (
 					<Button
 						variant="ghost"

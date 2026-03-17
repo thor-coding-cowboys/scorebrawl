@@ -75,11 +75,13 @@ export const sessionRouter = {
 				seasonPlayerIds: input.seasonPlayerIds,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-				type: "session:start",
-				data: { session },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+					type: "session:start",
+					data: { session },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return session;
 		}),
@@ -163,11 +165,13 @@ export const sessionRouter = {
 				seasonPlayerId: seasonPlayerRecord.id,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, player: newPlayer },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, player: newPlayer },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return newPlayer;
 		}),
@@ -183,11 +187,13 @@ export const sessionRouter = {
 				seasonPlayerId: input.seasonPlayerId,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, player: newPlayer },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, player: newPlayer },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return newPlayer;
 		}),
@@ -239,11 +245,13 @@ export const sessionRouter = {
 				}
 			}
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, removedSessionPlayerId: input.sessionPlayerId },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, removedSessionPlayerId: input.sessionPlayerId },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 		}),
 
 	startNextMatch: leagueMemberProcedure
@@ -264,11 +272,13 @@ export const sessionRouter = {
 				awaySeasonPlayerIds: input.awaySeasonPlayerIds,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, match: sessionMatch },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, match: sessionMatch },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return sessionMatch;
 		}),
@@ -438,16 +448,18 @@ export const sessionRouter = {
 				proposedLineup,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: {
-					sessionId: input.sessionId,
-					match: updatedMatch,
-					players: updatedPlayers,
-					proposedLineup,
-				},
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: {
+						sessionId: input.sessionId,
+						match: updatedMatch,
+						players: updatedPlayers,
+						proposedLineup,
+					},
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			// Move streak checking off the critical path using waitUntil
 			const streakCheckPromise = (async () => {
@@ -584,15 +596,17 @@ export const sessionRouter = {
 				});
 			}
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: {
-					sessionId: resolved.sessionId,
-					resolvedCoinToss: resolved,
-					proposedLineup,
-				},
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: {
+						sessionId: resolved.sessionId,
+						resolvedCoinToss: resolved,
+						proposedLineup,
+					},
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return { resolved, proposedLineup };
 		}),
@@ -607,11 +621,13 @@ export const sessionRouter = {
 				sessionId: input.sessionId,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:end",
-				data: { session: ended },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:end",
+					data: { session: ended },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return ended;
 		}),
@@ -654,11 +670,13 @@ export const sessionRouter = {
 				sessionId: input.sessionId,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, players: result.players },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, players: result.players },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return result;
 		}),
@@ -681,17 +699,21 @@ export const sessionRouter = {
 				});
 			}
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "session:update",
-				data: { sessionId: input.sessionId, players: result.players },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, players: result.players },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-				type: "match:delete",
-				data: { matchId: result.deletedMatch.matchId },
-				user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "match:delete",
+					data: { matchId: result.deletedMatch.matchId },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
 
 			return result;
 		}),

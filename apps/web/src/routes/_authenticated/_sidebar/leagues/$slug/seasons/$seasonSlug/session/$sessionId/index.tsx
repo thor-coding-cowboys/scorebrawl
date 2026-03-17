@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient, useTRPC, type AnyTRPC } from "@/lib/trpc";
+import { useSession } from "@/hooks/useSession";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
@@ -63,6 +64,7 @@ function SessionLivePage() {
 	const queryClient = useQueryClient();
 	const trpc = useTRPC();
 	const client = trpcClient as AnyTRPC;
+	const { data: authSession } = useSession();
 
 	const { data: session, isLoading } = useQuery({
 		queryKey: ["session", sessionId],
@@ -84,12 +86,22 @@ function SessionLivePage() {
 				return;
 			}
 			if (detail.type === "session:update" && detail.sessionId === sessionId) {
+				// If update is from another user, reset local state to sync with server
+				const isOwnUpdate = detail.userName === authSession?.user.name;
+				if (!isOwnUpdate) {
+					localShuffleRef.current = null;
+					setProposedLineup(null);
+					setTeamAssignment([]);
+					setPendingCoinTossId(null);
+					setHomeScore(0);
+					setAwayScore(0);
+				}
 				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
 			}
 		};
 		window.addEventListener("session-event", handler);
 		return () => window.removeEventListener("session-event", handler);
-	}, [sessionId, queryClient, navigate, slug, seasonSlug]);
+	}, [sessionId, queryClient, navigate, slug, seasonSlug, authSession?.user.name]);
 
 	const [proposedLineup, setProposedLineup] = useState<ProposedLineup>(null);
 	const [pendingCoinTossId, setPendingCoinTossId] = useState<string | null>(null);
@@ -102,11 +114,12 @@ function SessionLivePage() {
 
 	const [teamAssignment, setTeamAssignment] = useState<PlayerWithTeam[]>([]);
 	const [isShuffling, setIsShuffling] = useState(false);
+	const shuffleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const waitingForMatchDataRef = useRef(false);
+	const localShuffleRef = useRef<{ homeIds: string[]; awayIds: string[] } | null>(null);
 
 	const lastLocalChangeRef = useRef<number>(0);
 	const lastLocalTeamChangeRef = useRef<number>(0);
-	const shuffleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const localShuffleRef = useRef<{ homeIds: string[]; awayIds: string[] } | null>(null);
 
 	const allMatches = session?.matches ?? [];
 	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
@@ -133,20 +146,30 @@ function SessionLivePage() {
 
 	useEffect(() => {
 		if (!session) return;
+
+		const activeMatch = session.matches.find((m) => m.result === null);
+
+		// If we were waiting for match data and it arrived (we have teams to show), stop shuffling
+		if (waitingForMatchDataRef.current && (activeMatch || session.proposedLineup)) {
+			waitingForMatchDataRef.current = false;
+			setIsShuffling(false);
+			if (shuffleTimeoutRef.current) clearTimeout(shuffleTimeoutRef.current);
+		}
+
 		setTeamAssignment((prev) => {
 			const existingIds = new Set(prev.map((p) => p.id));
-			const currentMatch = session.matches.find((m) => m.result === null);
+			const activeMatch = session.matches.find((m) => m.result === null);
 
-			if (currentMatch) {
+			if (activeMatch) {
 				// Clear local shuffle when a match is active
 				localShuffleRef.current = null;
-				const useSelected = !!currentMatch.selectedHomePlayerIds?.length;
+				const useSelected = !!activeMatch.selectedHomePlayerIds?.length;
 				const homeIds = useSelected
-					? currentMatch.selectedHomePlayerIds!
-					: currentMatch.homePlayerIds;
+					? activeMatch.selectedHomePlayerIds!
+					: activeMatch.homePlayerIds;
 				const awayIds = useSelected
-					? currentMatch.selectedAwayPlayerIds!
-					: currentMatch.awayPlayerIds;
+					? activeMatch.selectedAwayPlayerIds!
+					: activeMatch.awayPlayerIds;
 				const merged = session.players.map((p) => {
 					const existing = prev.find((e) => e.id === p.id);
 					const key = useSelected ? p.id : p.seasonPlayerId;
@@ -160,7 +183,7 @@ function SessionLivePage() {
 				return merged;
 			}
 
-			if (session.proposedLineup && !currentMatch) {
+			if (session.proposedLineup && !activeMatch) {
 				// Use local shuffle if available, otherwise use session proposedLineup
 				const homeIds = localShuffleRef.current?.homeIds?.length
 					? localShuffleRef.current.homeIds
@@ -172,18 +195,17 @@ function SessionLivePage() {
 					: session.proposedLineup.selectedAwayPlayerIds?.length
 						? session.proposedLineup.selectedAwayPlayerIds
 						: session.proposedLineup.awayPlayerIds;
-				if (homeIds.length || awayIds.length) {
-					const merged = session.players.map((p) => {
-						const existing = prev.find((e) => e.id === p.id);
-						const team: TeamAssignment = homeIds.includes(p.id)
-							? "home"
-							: awayIds.includes(p.id)
-								? "away"
-								: undefined;
-						return existing ? { ...existing, ...p, team } : { ...p, team };
-					});
-					return merged;
-				}
+				// Always update team assignment from proposed lineup (even if empty - e.g., after player removal)
+				const merged = session.players.map((p) => {
+					const existing = prev.find((e) => e.id === p.id);
+					const team: TeamAssignment = homeIds.includes(p.id)
+						? "home"
+						: awayIds.includes(p.id)
+							? "away"
+							: undefined;
+					return existing ? { ...existing, ...p, team } : { ...p, team };
+				});
+				return merged;
 			}
 
 			// Default: Just merge player data without changing teams
@@ -248,8 +270,10 @@ function SessionLivePage() {
 	}, [homeScore, awayScore, debouncedUpdateScore]);
 
 	useEffect(() => {
+		const timeoutRef = shuffleTimeoutRef;
 		return () => {
-			if (shuffleTimeoutRef.current) clearTimeout(shuffleTimeoutRef.current);
+			const timeout = timeoutRef.current;
+			if (timeout) clearTimeout(timeout);
 		};
 	}, []);
 
@@ -336,94 +360,47 @@ function SessionLivePage() {
 			setHomeScore(0);
 			setAwayScore(0);
 
-			const afterShuffle = () => {
-				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
-				});
-			};
-
 			const needsShuffle = session?.autoRandomize && res.proposedLineup;
 
-			const setupLineup = () => {
-				if (res.autoResolvedCoinToss) {
-					const { winnerNames, conflictType } = res.autoResolvedCoinToss;
-					const label = conflictType === "draw-tiebreak" ? "Draw tiebreak" : "Displacement tie";
-					toast.info(`${label} resolved: ${winnerNames.join(", ")} won the coin toss`);
-					if (session?.autoRandomize && res.proposedLineup) {
-						applyRandomizedLineup(res.proposedLineup!);
-					} else if (res.proposedLineup) {
-						setProposedLineup(res.proposedLineup);
-					} else {
-						setProposedLineup(null);
-					}
-				} else if (res.proposedLineup?.coinTossNeeded) {
-					setProposedLineup(res.proposedLineup);
-					setPendingCoinTossId(res.coinTossId);
-					setShowCoinToss(true);
-				} else if (session?.autoRandomize && res.proposedLineup) {
-					applyRandomizedLineup(res.proposedLineup!);
-				} else if (res.proposedLineup) {
-					setProposedLineup(res.proposedLineup);
-				} else {
-					setProposedLineup(null);
-				}
-			};
+			// Reset local state and wait for server data
+			localShuffleRef.current = null;
+			setProposedLineup(null);
+			setTeamAssignment([]);
+			setPendingCoinTossId(null);
 
-			if (needsShuffle) {
-				triggerShuffleAnimation(() => {
-					setupLineup();
-					afterShuffle();
-				});
-			} else {
-				setupLineup();
-				afterShuffle();
+			if (res.autoResolvedCoinToss) {
+				const { winnerNames, conflictType } = res.autoResolvedCoinToss;
+				const label = conflictType === "draw-tiebreak" ? "Draw tiebreak" : "Displacement tie";
+				toast.info(`${label} resolved: ${winnerNames.join(", ")} won the coin toss`);
 			}
+
+			if (res.proposedLineup?.coinTossNeeded) {
+				setProposedLineup(res.proposedLineup);
+				setPendingCoinTossId(res.coinTossId);
+				setShowCoinToss(true);
+			}
+
+			// Show shuffle animation while waiting for server data
+			if (needsShuffle) {
+				waitingForMatchDataRef.current = true;
+				setIsShuffling(true);
+				setTeamAssignment((prev) => prev.map((p) => ({ ...p, team: undefined })));
+			}
+
+			// Invalidate and refetch to get server-calculated teams
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
+			});
 		},
 		onError: () => toast.error("Failed to record result"),
 	});
-
-	const applyRandomizedLineup = (lineup: NonNullable<ProposedLineup>) => {
-		if (!session) return;
-		const allIds = [...lineup.homePlayerIds, ...lineup.awayPlayerIds];
-		const shuffled = fisherYatesShuffle(allIds);
-		const teamSize = session.teamSize;
-		const rawHome = shuffled.slice(0, teamSize);
-		const rawAway = shuffled.slice(teamSize, teamSize * 2);
-		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
-			rawHome,
-			rawAway,
-			session.alwaysSplitConstraints,
-			session.players
-		);
-		const homeSet = new Set(fixedHome);
-		const awaySet = new Set(fixedAway);
-		setProposedLineup({ ...lineup, homePlayerIds: fixedHome, awayPlayerIds: fixedAway });
-		setTeamAssignment((prev) =>
-			prev.map((p) => ({
-				...p,
-				team: homeSet.has(p.id) ? "home" : awaySet.has(p.id) ? "away" : undefined,
-			}))
-		);
-		// Save to ref so session refetch doesn't overwrite
-		localShuffleRef.current = { homeIds: fixedHome, awayIds: fixedAway };
-	};
-
-	const triggerShuffleAnimation = (onComplete: () => void) => {
-		if (shuffleTimeoutRef.current) clearTimeout(shuffleTimeoutRef.current);
-		setIsShuffling(true);
-		setTeamAssignment((prev) => prev.map((p) => ({ ...p, team: undefined })));
-		shuffleTimeoutRef.current = setTimeout(() => {
-			setIsShuffling(false);
-			onComplete();
-		}, 600);
-	};
 
 	const resolveCoinToss = useMutation({
 		mutationFn: (input: { coinTossId: string; resolvedWinnerIds: string[] }) =>
@@ -450,6 +427,16 @@ function SessionLivePage() {
 			setShowAddPlayer(false);
 		},
 		onError: () => toast.error("Failed to add player"),
+	});
+
+	const rejoinPlayer = useMutation({
+		mutationFn: (input: { sessionId: string; seasonPlayerId: string }) =>
+			client.session.addPlayer.mutate(input) as Promise<unknown>,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			toast.success("Player rejoined session");
+		},
+		onError: () => toast.error("Failed to rejoin player"),
 	});
 
 	const removePlayer = useMutation({
@@ -777,11 +764,15 @@ function SessionLivePage() {
 											<GlowButton
 												glowColor={glowColors.blue}
 												onClick={handleRecordResult}
-												disabled={recordResult.isPending}
+												disabled={recordResult.isPending || isShuffling}
 												className="w-full gap-2"
 											>
 												<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
-												{recordResult.isPending ? "Recording..." : "Record Result"}
+												{recordResult.isPending
+													? "Recording..."
+													: isShuffling
+														? "Loading teams..."
+														: "Record Result"}
 											</GlowButton>
 											<Button
 												variant="ghost"
@@ -892,6 +883,10 @@ function SessionLivePage() {
 									removePlayer.mutate({ sessionId, sessionPlayerId })
 								}
 								isRemoving={removePlayer.isPending}
+								onRejoinPlayer={(seasonPlayerId) =>
+									rejoinPlayer.mutate({ sessionId, seasonPlayerId })
+								}
+								isRejoining={rejoinPlayer.isPending}
 							/>
 							{session.alwaysSplitConstraints.length > 0 && (
 								<div className="mt-3 text-xs text-muted-foreground space-y-1">

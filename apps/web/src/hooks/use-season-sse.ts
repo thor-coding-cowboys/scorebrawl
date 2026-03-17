@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
@@ -72,18 +72,20 @@ export function useSeasonSSE({
 }: UseSeasonSSEOptions) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const eventSourceRef = useRef<EventSource | null>(null);
+	const wsRef = useRef<WebSocket | null>(null);
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const reconnectAttemptsRef = useRef(0);
 	const enabledRef = useRef(enabled);
 	const paramsRef = useRef({ leagueSlug, seasonSlug, seasonId, currentUserId });
+	const [connectionStatus, setConnectionStatus] = useState<
+		"connecting" | "connected" | "disconnected"
+	>("connecting");
 
-	// Store trpc and queryClient in refs so they're accessible in callbacks
 	const trpcRef = useRef(trpc);
 	const queryClientRef = useRef(queryClient);
 	trpcRef.current = trpc;
 	queryClientRef.current = queryClient;
 
-	// Update refs when params change
 	enabledRef.current = enabled;
 	paramsRef.current = { leagueSlug, seasonSlug, seasonId, currentUserId };
 
@@ -93,12 +95,21 @@ export function useSeasonSSE({
 		const connect = () => {
 			if (!enabledRef.current || !isMounted) return;
 
+			setConnectionStatus("connecting");
 			const { leagueSlug, seasonSlug, seasonId, currentUserId } = paramsRef.current;
-			const url = `/api/sse/${leagueSlug}/${seasonSlug}`;
-			const eventSource = new EventSource(url);
-			eventSourceRef.current = eventSource;
+			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+			const wsUrl = `${protocol}//${window.location.host}/api/sse/${leagueSlug}/${seasonSlug}`;
+			const ws = new WebSocket(wsUrl);
+			wsRef.current = ws;
 
-			eventSource.onmessage = (event) => {
+			ws.onopen = () => {
+				reconnectAttemptsRef.current = 0;
+				if (isMounted) {
+					setConnectionStatus("connected");
+				}
+			};
+
+			ws.onmessage = (event) => {
 				try {
 					const parsed: SeasonSSEEvent = JSON.parse(event.data);
 
@@ -138,6 +149,18 @@ export function useSeasonSSE({
 							})
 						);
 
+						// Invalidate session queries to refresh session data including current match
+						if (sessionId) {
+							// Invalidate both tRPC key and manual key used in session page
+							qc.invalidateQueries({
+								queryKey: t.session.getById.queryKey({ sessionId }),
+							});
+							qc.invalidateQueries({ queryKey: ["session", sessionId] });
+						}
+						qc.invalidateQueries({
+							queryKey: t.session.getActive.queryKey({ seasonSlug }),
+						});
+
 						if (parsed.type === "session:update" || parsed.type === "session:end") {
 							qc.invalidateQueries({
 								queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
@@ -152,8 +175,6 @@ export function useSeasonSSE({
 						return;
 					}
 
-					// Skip invalidation for own events — the mutation onSuccess already handles it.
-					// Only invalidate for events from other users.
 					if (!isOwnEvent) {
 						if (parsed.type === "match:insert" || parsed.type === "match:delete") {
 							qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
@@ -181,7 +202,6 @@ export function useSeasonSSE({
 						}
 					}
 
-					// Show toast for match events from other users
 					if (parsed.user && parsed.user.id !== currentUserId) {
 						if (parsed.type === "match:insert") {
 							toast.info(`${parsed.user.name} registered a match`);
@@ -189,18 +209,18 @@ export function useSeasonSSE({
 							toast.info(`${parsed.user.name} deleted a match`);
 						}
 					}
-				} catch (error) {
-					console.error("[SSE] Failed to parse event:", error);
+				} catch {
+					// ignore malformed events
 				}
 			};
 
-			eventSource.onerror = () => {
-				eventSource.close();
-				eventSourceRef.current = null;
-
+			ws.onclose = () => {
+				wsRef.current = null;
 				if (isMounted) {
-					// Reconnect after 3 seconds
-					reconnectTimeoutRef.current = setTimeout(connect, 3000);
+					setConnectionStatus("disconnected");
+					const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30000);
+					reconnectAttemptsRef.current++;
+					reconnectTimeoutRef.current = setTimeout(connect, delay);
 				}
 			};
 		};
@@ -209,20 +229,22 @@ export function useSeasonSSE({
 
 		return () => {
 			isMounted = false;
+			reconnectAttemptsRef.current = 0;
 			if (reconnectTimeoutRef.current) {
 				clearTimeout(reconnectTimeoutRef.current);
 			}
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close();
+			if (wsRef.current) {
+				wsRef.current.close();
 			}
 		};
 	}, [leagueSlug, seasonSlug, seasonId, enabled]);
 
 	return {
+		connectionStatus,
 		disconnect: () => {
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close();
-				eventSourceRef.current = null;
+			if (wsRef.current) {
+				wsRef.current.close();
+				wsRef.current = null;
 			}
 		},
 	};
