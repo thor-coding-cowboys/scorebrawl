@@ -707,7 +707,7 @@ deviceRouter
 		),
 		async (c) => {
 			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+			const { activeSeason } = await resolveLeagueAndMembership(c);
 			const { homeScore, awayScore } = c.req.valid("query");
 
 			if (!activeSeason) {
@@ -736,23 +736,12 @@ deviceRouter
 				awayScore,
 			});
 
-			await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-				type: "session:score-update",
-				data: {
-					sessionId: fullSession.id,
-					sessionMatchId: sessionMatch.id,
-					homeScore,
-					awayScore,
-				},
-				user: { id: userId, name: c.get("authentication").user.name },
-			});
-
 			return c.json({ success: true });
 		}
 	)
 	.post("/leagues/:leagueSlug/session/shuffle-lineup", async (c) => {
 		const db = c.get("db");
-		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+		const { activeSeason } = await resolveLeagueAndMembership(c);
 
 		if (!activeSeason) {
 			throw new HTTPException(400, { message: "No active season" });
@@ -800,19 +789,6 @@ deviceRouter
 			db,
 			sessionId: fullSession.id,
 			proposedLineup: newLineup,
-		});
-
-		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-			type: "session:proposed-lineup-update",
-			data: {
-				sessionId: fullSession.id,
-				proposedLineup: {
-					...newLineup,
-					selectedHomePlayerIds: newHomeIds,
-					selectedAwayPlayerIds: newAwayIds,
-				},
-			},
-			user: { id: userId, name: c.get("authentication").user.name },
 		});
 
 		const refreshedSession = await sessionRepository.getActiveSessionFull({
