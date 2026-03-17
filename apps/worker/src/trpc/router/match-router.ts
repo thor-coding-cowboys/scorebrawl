@@ -74,7 +74,8 @@ function buildStreakBroadcastEvents(
 	return events;
 }
 
-async function broadcastStreakEvents(
+function broadcastStreakEvents(
+	waitUntil: (promise: Promise<unknown>) => void,
 	env: Pick<Env, "SEASON_SSE">,
 	leagueSlug: string,
 	seasonSlug: string,
@@ -93,8 +94,8 @@ async function broadcastStreakEvents(
 	user: { id: string; name: string }
 ) {
 	const events = buildStreakBroadcastEvents(streakPlayers, streakTeams, user);
-	await Promise.all(
-		events.map((event) => broadcastSeasonEvent(env, leagueSlug, seasonSlug, event))
+	waitUntil(
+		Promise.all(events.map((event) => broadcastSeasonEvent(env, leagueSlug, seasonSlug, event)))
 	);
 }
 
@@ -166,17 +167,19 @@ export const matchRouter = {
 				seasonId: season.id,
 			});
 
-			await broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-				type: "match:insert",
-				data: {
-					match: createdMatch,
-					standings,
-				},
-				user: {
-					id: ctx.authentication.user.id,
-					name: ctx.authentication.user.name,
-				},
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+					type: "match:insert",
+					data: {
+						match: createdMatch,
+						standings,
+					},
+					user: {
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
+					},
+				})
+			);
 
 			const [streakPlayers, streakTeams] = await Promise.all([
 				matchRepository.checkStreakThresholds({
@@ -189,7 +192,8 @@ export const matchRouter = {
 				}),
 			]);
 
-			await broadcastStreakEvents(
+			broadcastStreakEvents(
+				ctx.waitUntil.bind(ctx),
 				ctx.env,
 				ctx.organization.slug,
 				input.seasonSlug,
@@ -284,17 +288,19 @@ export const matchRouter = {
 						seasonId: comp.id,
 					});
 
-					await broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-						type: "match:insert",
-						data: {
-							match: createdMatch,
-							standings,
-						},
-						user: {
-							id: ctx.authentication.user.id,
-							name: ctx.authentication.user.name,
-						},
-					});
+					ctx.waitUntil(
+						broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+							type: "match:insert",
+							data: {
+								match: createdMatch,
+								standings,
+							},
+							user: {
+								id: ctx.authentication.user.id,
+								name: ctx.authentication.user.name,
+							},
+						})
+					);
 
 					const [streakPlayers, streakTeams] = await Promise.all([
 						matchRepository.checkStreakThresholds({
@@ -307,7 +313,8 @@ export const matchRouter = {
 						}),
 					]);
 
-					await broadcastStreakEvents(
+					broadcastStreakEvents(
+						ctx.waitUntil.bind(ctx),
 						ctx.env,
 						ctx.organization.slug,
 						input.seasonSlug,
@@ -348,17 +355,19 @@ export const matchRouter = {
 				seasonId: ctx.season.id,
 			});
 
-			broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-				type: "match:delete",
-				data: {
-					matchId: input.matchId,
-					standings,
-				},
-				user: {
-					id: ctx.authentication.user.id,
-					name: ctx.authentication.user.name,
-				},
-			});
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
+					type: "match:delete",
+					data: {
+						matchId: input.matchId,
+						standings,
+					},
+					user: {
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
+					},
+				})
+			);
 
 			return { success: true };
 		}),

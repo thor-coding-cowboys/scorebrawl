@@ -159,6 +159,18 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 
 	// ── Rule 1: No waiters → nobody out ──
 	if (slotsToFill === 0) {
+		if (autoRandomize) {
+			const allPlaying = fisherYatesShuffle([...homePlayerIds, ...awayPlayerIds]);
+			const newHome = allPlaying.slice(0, teamSize);
+			const newAway = allPlaying.slice(teamSize, teamSize * 2);
+			const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
+			return {
+				homePlayerIds: constrained.homeIds,
+				awayPlayerIds: constrained.awayIds,
+				rotatedOut: [],
+				coinTossNeeded: null,
+			};
+		}
 		const constrained = enforceAlwaysSplit(
 			[...homePlayerIds],
 			[...awayPlayerIds],
