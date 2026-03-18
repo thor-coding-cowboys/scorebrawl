@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
 import { truncateSlug } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
@@ -63,7 +64,10 @@ function MatchesPage() {
 	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 	const [editMatch, setEditMatch] = useState<(typeof matches)[0] | null>(null);
+	const [insertAfterMatch, setInsertAfterMatch] = useState<(typeof matches)[0] | null>(null);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [isInsertDialogOpen, setIsInsertDialogOpen] = useState(false);
+	const [isEditMode, setIsEditMode] = useState(false);
 
 	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
 		queryKey: ["infinite-matches", seasonId],
@@ -93,10 +97,13 @@ function MatchesPage() {
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
+	// In edit mode, we have 2x matches - 1 items (matches + insert slots between them)
+	const virtualCount = isEditMode ? matches.length * 2 - 1 : matches.length;
+
 	const virtualizer = useVirtualizer({
-		count: matches.length,
+		count: virtualCount,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => 100,
+		estimateSize: () => (isEditMode ? 140 : 100),
 		overscan: 5,
 	});
 
@@ -132,6 +139,48 @@ function MatchesPage() {
 
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, [seasonId]);
+
+	// Reset edit mode when leaving page or when season is locked
+	useEffect(() => {
+		if (isSeasonLocked) {
+			setIsEditMode(false);
+		}
+	}, [isSeasonLocked]);
+
+	// Get match at virtual index (accounting for insert slots in edit mode)
+	const getMatchAtVirtualIndex = (virtualIndex: number): (typeof matches)[0] | null => {
+		if (!isEditMode) {
+			return matches[virtualIndex] || null;
+		}
+		// In edit mode: even indices are matches, odd indices are insert slots
+		if (virtualIndex % 2 === 1) {
+			return null; // This is an insert slot
+		}
+		return matches[virtualIndex / 2] || null;
+	};
+
+	// Check if this virtual index is an insert slot
+	const isInsertSlotAtIndex = (virtualIndex: number): boolean => {
+		if (!isEditMode) return false;
+		return virtualIndex % 2 === 1;
+	};
+
+	// Get the match that comes before an insert slot
+	const getMatchBeforeInsertSlot = (virtualIndex: number): (typeof matches)[0] | null => {
+		if (!isEditMode || virtualIndex % 2 === 0) return null;
+		const matchIndex = Math.floor(virtualIndex / 2);
+		return matches[matchIndex] || null;
+	};
+
+	const handleInsertClick = (match: (typeof matches)[0]) => {
+		setInsertAfterMatch(match);
+		setIsInsertDialogOpen(true);
+	};
+
+	const handleInsertDialogClose = () => {
+		setIsInsertDialogOpen(false);
+		setInsertAfterMatch(null);
+	};
 
 	return (
 		<>
@@ -170,8 +219,21 @@ function MatchesPage() {
 							<HugeiconsIcon icon={Award01Icon} className="size-4 text-blue-600" />
 						</CardHeader>
 						<CardContent className="relative">
-							<div className="text-2xl font-bold">{total}</div>
-							<p className="text-xs text-muted-foreground">All matches in this season</p>
+							<div className="flex items-center justify-between">
+								<div className="text-2xl font-bold">{total}</div>
+								{canEditMatches && !isSeasonLocked && (
+									<Button
+										variant={isEditMode ? "default" : "outline"}
+										size="sm"
+										onClick={() => setIsEditMode(!isEditMode)}
+										className="gap-1.5"
+									>
+										<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+										<span className="hidden sm:inline">{isEditMode ? "Done" : "Edit"}</span>
+									</Button>
+								)}
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">All matches in this season</p>
 						</CardContent>
 					</Card>
 				</div>
@@ -199,7 +261,7 @@ function MatchesPage() {
 						<div className="flex flex-col flex-1 gap-4 min-h-0">
 							<div className="flex items-center justify-between">
 								<h3 className="text-lg font-medium">Matches</h3>
-								{canDeleteMatches && !isSeasonLocked && latestMatch && (
+								{!isEditMode && canDeleteMatches && !isSeasonLocked && latestMatch && (
 									<Button
 										variant="ghost"
 										size="sm"
@@ -222,8 +284,42 @@ function MatchesPage() {
 									{virtualizer
 										.getVirtualItems()
 										.map((virtualItem: ReturnType<typeof virtualizer.getVirtualItems>[number]) => {
-											const match = matches[virtualItem.index];
+											// Check if this is an insert slot in edit mode
+											if (isInsertSlotAtIndex(virtualItem.index)) {
+												const matchBefore = getMatchBeforeInsertSlot(virtualItem.index);
+												if (!matchBefore) return null;
+
+												return (
+													<div
+														key={`insert-${matchBefore.id}`}
+														data-index={virtualItem.index}
+														ref={virtualizer.measureElement}
+														style={{
+															position: "absolute",
+															top: 0,
+															left: 0,
+															width: "100%",
+															transform: `translateY(${virtualItem.start}px)`,
+														}}
+														className="py-2"
+													>
+														<Button
+															variant="outline"
+															size="sm"
+															className="w-full h-10 border-dashed border-2 hover:border-primary hover:bg-primary/5 gap-2"
+															onClick={() => handleInsertClick(matchBefore)}
+														>
+															<HugeiconsIcon icon={Add01Icon} className="size-4" />
+															<span className="text-sm">Add match here</span>
+														</Button>
+													</div>
+												);
+											}
+
+											const match = getMatchAtVirtualIndex(virtualItem.index);
 											if (!match) return null;
+
+											const isLastMatch = virtualItem.index === virtualCount - 1;
 
 											return (
 												<div
@@ -237,34 +333,51 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden group"
+													className={cn(
+														"py-3 px-3",
+														isEditMode
+															? "bg-card border rounded-lg shadow-sm"
+															: "border-b border-border/50 last:border-b-0"
+													)}
 												>
-													<div className="flex items-center gap-2">
+													<div className="flex items-center gap-3">
 														<div className="flex-1 min-w-0">
 															<MatchRow
 																match={match}
 																seasonSlug={seasonSlug}
 																seasonId={seasonId ?? ""}
+																compact={isEditMode}
 															/>
 														</div>
-														{canEditMatches && !isSeasonLocked && (
-															<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-																<Button
-																	variant="secondary"
-																	size="sm"
-																	className="h-8 px-3 gap-1.5 text-xs shrink-0"
-																	onClick={() => {
-																		setEditMatch(match);
-																		setIsEditDialogOpen(true);
-																	}}
-																	data-testid={`edit-match-${match.id}`}
-																>
-																	<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
-																	<span className="hidden sm:inline">Edit</span>
-																</Button>
-															</div>
+														{isEditMode && (
+															<Button
+																variant="secondary"
+																size="sm"
+																className="h-9 w-9 p-0 shrink-0"
+																onClick={() => {
+																	setEditMatch(match);
+																	setIsEditDialogOpen(true);
+																}}
+																data-testid={`edit-match-${match.id}`}
+																aria-label={`Edit match ${match.homeTeam.players.map(p => p.name).join(' & ')} vs ${match.awayTeam.players.map(p => p.name).join(' & ')}`}
+															>
+																<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+															</Button>
 														)}
 													</div>
+													{isEditMode && isLastMatch && canEditMatches && !isSeasonLocked && (
+														<div className="mt-3 pt-3 border-t border-border">
+															<Button
+																variant="outline"
+																size="sm"
+																className="w-full h-10 border-dashed border-2 hover:border-primary hover:bg-primary/5 gap-2"
+																onClick={() => handleInsertClick(match)}
+															>
+																<HugeiconsIcon icon={Add01Icon} className="size-4" />
+																<span className="text-sm">Add match at the end</span>
+															</Button>
+														</div>
+													)}
 												</div>
 											);
 										})}
@@ -312,6 +425,16 @@ function MatchesPage() {
 						setIsEditDialogOpen(false);
 						setIsRemoveDialogOpen(true);
 					}}
+				/>
+			)}
+			{seasonId && insertAfterMatch && (
+				<CreateMatchDialog
+					isOpen={isInsertDialogOpen}
+					onClose={handleInsertDialogClose}
+					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+					mode="insert"
+					matchToEdit={insertAfterMatch}
 				/>
 			)}
 		</>
