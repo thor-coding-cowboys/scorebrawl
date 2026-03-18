@@ -28,6 +28,7 @@ import {
 	Tick01Icon,
 	UserMultiple02Icon,
 	Alert01Icon,
+	Delete01Icon,
 } from "@hugeicons/core-free-icons";
 
 // --- Types ---
@@ -71,6 +72,21 @@ interface CreateMatchDialogProps {
 	onClose: () => void;
 	seasonId: string;
 	seasonSlug: string;
+	// New props for edit/insert modes
+	mode?: "create" | "edit" | "insert";
+	matchToEdit?: {
+		id: string;
+		homeScore: number;
+		awayScore: number;
+		createdAt: Date;
+		homeTeam: {
+			players: { seasonPlayerId: string; name: string; image: string | null }[];
+		};
+		awayTeam: {
+			players: { seasonPlayerId: string; name: string; image: string | null }[];
+		};
+	} | null;
+	onRemove?: () => void;
 }
 
 // --- Main Component ---
@@ -80,6 +96,9 @@ export function CreateMatchDialog({
 	onClose,
 	seasonId,
 	seasonSlug,
+	mode = "create",
+	matchToEdit,
+	onRemove,
 }: CreateMatchDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -98,13 +117,6 @@ export function CreateMatchDialog({
 	const [keepPlayers, setKeepPlayers] = useState(false);
 	const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
 	const [initialized, setInitialized] = useState(false);
-
-	useEffect(() => {
-		if (isOpen && seasonPlayers && !initialized) {
-			setTeamSelection(seasonPlayers.map((p) => ({ ...p })));
-			setInitialized(true);
-		}
-	}, [isOpen, seasonPlayers, initialized]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -133,6 +145,29 @@ export function CreateMatchDialog({
 
 	const homeScore = watch("homeScore");
 	const awayScore = watch("awayScore");
+
+	useEffect(() => {
+		if (isOpen && seasonPlayers && !initialized) {
+			if (mode === "edit" && matchToEdit) {
+				// Pre-populate for edit mode
+				setTeamSelection(
+					seasonPlayers.map((p) => {
+						const isHome = matchToEdit.homeTeam.players.some((hp) => hp.seasonPlayerId === p.id);
+						const isAway = matchToEdit.awayTeam.players.some((ap) => ap.seasonPlayerId === p.id);
+						return {
+							...p,
+							team: isHome ? "home" : isAway ? "away" : undefined,
+						};
+					})
+				);
+				setValue("homeScore", matchToEdit.homeScore);
+				setValue("awayScore", matchToEdit.awayScore);
+			} else {
+				setTeamSelection(seasonPlayers.map((p) => ({ ...p })));
+			}
+			setInitialized(true);
+		}
+	}, [isOpen, seasonPlayers, initialized, mode, matchToEdit, setValue]);
 
 	const resetForm = () => {
 		setShowDuplicateWarning(false);
@@ -173,6 +208,46 @@ export function CreateMatchDialog({
 			},
 			onError: (err) => {
 				toast.error(err instanceof Error ? err.message : "Failed to create match");
+			},
+		})
+	);
+
+	const editMutation = useMutation(
+		trpc.match.edit.mutationOptions({
+			onSuccess: () => {
+				toast.success("Match updated successfully");
+				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
+				queryClient.invalidateQueries({
+					queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
+				});
+				handleClose();
+			},
+			onError: (err) => {
+				toast.error(err instanceof Error ? err.message : "Failed to update match");
+			},
+		})
+	);
+
+	const insertMutation = useMutation(
+		trpc.match.insert.mutationOptions({
+			onSuccess: () => {
+				toast.success("Match inserted successfully");
+				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({
+					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+				});
+				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
+				queryClient.invalidateQueries({
+					queryKey: trpc.season.getCountInfo.queryKey({ seasonSlug }),
+				});
+				handleClose();
+			},
+			onError: (err) => {
+				toast.error(err instanceof Error ? err.message : "Failed to insert match");
 			},
 		})
 	);
@@ -219,13 +294,34 @@ export function CreateMatchDialog({
 			return;
 		}
 		setShowDuplicateWarning(false);
-		createMutation.mutate({
-			seasonSlug,
-			homeScore: values.homeScore,
-			awayScore: values.awayScore,
-			homeTeamPlayerIds: values.homePlayers.map((p) => p.id),
-			awayTeamPlayerIds: values.awayPlayers.map((p) => p.id),
-		});
+
+		if (mode === "edit" && matchToEdit) {
+			editMutation.mutate({
+				seasonSlug,
+				matchId: matchToEdit.id,
+				homeScore: values.homeScore,
+				awayScore: values.awayScore,
+				homeTeamPlayerIds: values.homePlayers.map((p) => p.id),
+				awayTeamPlayerIds: values.awayPlayers.map((p) => p.id),
+			});
+		} else if (mode === "insert" && matchToEdit) {
+			insertMutation.mutate({
+				seasonSlug,
+				insertAfterMatchId: matchToEdit.id,
+				homeScore: values.homeScore,
+				awayScore: values.awayScore,
+				homeTeamPlayerIds: values.homePlayers.map((p) => p.id),
+				awayTeamPlayerIds: values.awayPlayers.map((p) => p.id),
+			});
+		} else {
+			createMutation.mutate({
+				seasonSlug,
+				homeScore: values.homeScore,
+				awayScore: values.awayScore,
+				homeTeamPlayerIds: values.homePlayers.map((p) => p.id),
+				awayTeamPlayerIds: values.awayPlayers.map((p) => p.id),
+			});
+		}
 	};
 
 	const handlePlayerSelection = (player: PlayerWithSelection) => {
@@ -367,9 +463,18 @@ export function CreateMatchDialog({
 
 					<DialogHeader className="relative z-10 p-4 pb-3 border-b border-border">
 						<div className="flex items-center gap-3">
-							<div className="w-1.5 h-5 bg-blue-500" />
+							<div
+								className={cn(
+									"w-1.5 h-5",
+									mode === "create" && "bg-blue-500",
+									mode === "edit" && "bg-amber-500",
+									mode === "insert" && "bg-purple-500"
+								)}
+							/>
 							<DialogTitle className="text-base font-bold font-mono tracking-tight">
-								Create Match
+								{mode === "create" && "Create Match"}
+								{mode === "edit" && "Edit Match"}
+								{mode === "insert" && "Insert Match"}
 							</DialogTitle>
 						</div>
 					</DialogHeader>
@@ -518,18 +623,51 @@ export function CreateMatchDialog({
 									>
 										Cancel
 									</Button>
+									{mode === "edit" && onRemove && (
+										<Button
+											type="button"
+											variant="outline"
+											className="font-mono border-destructive text-destructive hover:bg-destructive/10"
+											onClick={onRemove}
+											data-testid="match-remove-button"
+										>
+											<HugeiconsIcon icon={Delete01Icon} className="size-4 mr-1" />
+											Remove
+										</Button>
+									)}
 									<GlowButton
 										type="submit"
-										glowColor={showDuplicateWarning ? glowColors.red : glowColors.blue}
+										glowColor={
+											showDuplicateWarning
+												? glowColors.red
+												: mode === "edit"
+													? glowColors.amber
+													: mode === "insert"
+														? glowColors.purple
+														: glowColors.blue
+										}
 										className="flex-1 font-mono"
-										disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
+										disabled={
+											createMutation.isPending ||
+											editMutation.isPending ||
+											insertMutation.isPending ||
+											homePlayers.length !== awayPlayers.length
+										}
 										data-testid="match-submit-button"
 									>
-										{createMutation.isPending
-											? "Creating..."
+										{createMutation.isPending || editMutation.isPending || insertMutation.isPending
+											? mode === "edit"
+												? "Updating..."
+												: mode === "insert"
+													? "Inserting..."
+													: "Creating..."
 											: showDuplicateWarning
 												? "Create Anyway"
-												: "Create Match"}
+												: mode === "edit"
+													? "Save Changes"
+													: mode === "insert"
+														? "Insert Match"
+														: "Create Match"}
 									</GlowButton>
 								</div>
 							</div>
