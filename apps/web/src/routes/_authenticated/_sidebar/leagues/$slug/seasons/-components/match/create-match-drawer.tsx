@@ -216,6 +216,7 @@ export function CreateMatchDialog({
 				// Minimal invalidation for immediate UI feedback.
 				// SSE broadcasts handle the full invalidation for all connected users.
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});
@@ -241,6 +242,7 @@ export function CreateMatchDialog({
 			onSuccess: () => {
 				toast.success("Match updated successfully");
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});
@@ -261,6 +263,7 @@ export function CreateMatchDialog({
 			onSuccess: () => {
 				toast.success("Match inserted successfully");
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});
