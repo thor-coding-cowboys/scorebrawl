@@ -148,12 +148,15 @@ export function CreateMatchDialog({
 
 	useEffect(() => {
 		if (isOpen && seasonPlayers && !initialized) {
-			if (mode === "edit" && matchToEdit) {
-				// Pre-populate for edit mode
+			if ((mode === "edit" || mode === "insert") && matchToEdit) {
+				// Pre-populate for edit/insert mode
+				const homePlayerIds = matchToEdit.homeTeam.players.map((p) => p.seasonPlayerId);
+				const awayPlayerIds = matchToEdit.awayTeam.players.map((p) => p.seasonPlayerId);
+
 				setTeamSelection(
 					seasonPlayers.map((p) => {
-						const isHome = matchToEdit.homeTeam.players.some((hp) => hp.seasonPlayerId === p.id);
-						const isAway = matchToEdit.awayTeam.players.some((ap) => ap.seasonPlayerId === p.id);
+						const isHome = homePlayerIds.includes(p.id);
+						const isAway = awayPlayerIds.includes(p.id);
 						return {
 							...p,
 							team: isHome ? "home" : isAway ? "away" : undefined,
@@ -162,6 +165,14 @@ export function CreateMatchDialog({
 				);
 				setValue("homeScore", matchToEdit.homeScore);
 				setValue("awayScore", matchToEdit.awayScore);
+				setValue(
+					"homePlayers",
+					homePlayerIds.map((id) => ({ id }))
+				);
+				setValue(
+					"awayPlayers",
+					awayPlayerIds.map((id) => ({ id }))
+				);
 			} else {
 				setTeamSelection(seasonPlayers.map((p) => ({ ...p })));
 			}
@@ -565,54 +576,56 @@ export function CreateMatchDialog({
 
 							{/* Actions */}
 							<div className="flex flex-col gap-4 pt-4 border-t border-border">
-								<div className="flex items-center gap-4">
-									<button
-										type="button"
-										className="flex items-center gap-2.5 cursor-pointer group"
-										onClick={() => setKeepOpen(!keepOpen)}
-									>
-										<Checkbox
-											checked={keepOpen}
-											data-testid="match-keep-open-checkbox"
-											className={cn(
-												"size-5 rounded-sm transition-all",
-												keepOpen &&
-													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-											)}
-										/>
-										<span
-											className={cn(
-												"text-sm transition-colors",
-												keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
-											)}
+								{mode === "create" && (
+									<div className="flex items-center gap-4">
+										<button
+											type="button"
+											className="flex items-center gap-2.5 cursor-pointer group"
+											onClick={() => setKeepOpen(!keepOpen)}
 										>
-											Keep open
-										</span>
-									</button>
-									<button
-										type="button"
-										className="flex items-center gap-2.5 cursor-pointer group"
-										onClick={() => setKeepPlayers(!keepPlayers)}
-									>
-										<Checkbox
-											checked={keepPlayers}
-											data-testid="match-keep-players-checkbox"
-											className={cn(
-												"size-5 rounded-sm transition-all",
-												keepPlayers &&
-													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-											)}
-										/>
-										<span
-											className={cn(
-												"text-sm transition-colors",
-												keepPlayers ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
-											)}
+											<Checkbox
+												checked={keepOpen}
+												data-testid="match-keep-open-checkbox"
+												className={cn(
+													"size-5 rounded-sm transition-all",
+													keepOpen &&
+														"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+												)}
+											/>
+											<span
+												className={cn(
+													"text-sm transition-colors",
+													keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+												)}
+											>
+												Keep open
+											</span>
+										</button>
+										<button
+											type="button"
+											className="flex items-center gap-2.5 cursor-pointer group"
+											onClick={() => setKeepPlayers(!keepPlayers)}
 										>
-											Keep players
-										</span>
-									</button>
-								</div>
+											<Checkbox
+												checked={keepPlayers}
+												data-testid="match-keep-players-checkbox"
+												className={cn(
+													"size-5 rounded-sm transition-all",
+													keepPlayers &&
+														"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+												)}
+											/>
+											<span
+												className={cn(
+													"text-sm transition-colors",
+													keepPlayers ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+												)}
+											>
+												Keep players
+											</span>
+										</button>
+									</div>
+								)}
 								<div className="flex gap-4">
 									<Button
 										type="button"
