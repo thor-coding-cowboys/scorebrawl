@@ -1,4 +1,4 @@
-import { and, desc, eq, sql, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, sql, inArray } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import { calculateElo } from "@coding-cowboys/scorebrawl-util/elo-util";
 import type { DrizzleDB } from "../db";
@@ -721,7 +721,7 @@ export const getMatchesAfter = async ({
 			createdAt: match.createdAt,
 		})
 		.from(match)
-		.where(and(eq(match.seasonId, seasonId), sql`${match.createdAt} > ${createdAt}`))
+		.where(and(eq(match.seasonId, seasonId), gt(match.createdAt, createdAt)))
 		.orderBy(desc(match.createdAt));
 };
 
