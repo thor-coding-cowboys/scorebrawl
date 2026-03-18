@@ -703,6 +703,66 @@ export const findLatest = async ({ db, seasonId }: { db: DrizzleDB; seasonId: st
 	return m;
 };
 
+export const getMatchesAfter = async ({
+	db,
+	seasonId,
+	createdAt,
+}: {
+	db: DrizzleDB;
+	seasonId: string;
+	createdAt: Date;
+}) => {
+	return db
+		.select({
+			id: match.id,
+			seasonId: match.seasonId,
+			homeScore: match.homeScore,
+			awayScore: match.awayScore,
+			createdAt: match.createdAt,
+		})
+		.from(match)
+		.where(and(eq(match.seasonId, seasonId), sql`${match.createdAt} > ${createdAt}`))
+		.orderBy(desc(match.createdAt));
+};
+
+export const getMatchWithFullDetails = async ({
+	db,
+	matchId,
+}: {
+	db: DrizzleDB;
+	matchId: string;
+}) => {
+	const [matchData] = await db
+		.select({
+			id: match.id,
+			seasonId: match.seasonId,
+			homeScore: match.homeScore,
+			awayScore: match.awayScore,
+			createdAt: match.createdAt,
+		})
+		.from(match)
+		.where(eq(match.id, matchId))
+		.limit(1);
+
+	if (!matchData) return null;
+
+	const players = await db
+		.select({
+			id: matchPlayer.id,
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			homeTeam: matchPlayer.homeTeam,
+			scoreBefore: matchPlayer.scoreBefore,
+			scoreAfter: matchPlayer.scoreAfter,
+		})
+		.from(matchPlayer)
+		.where(eq(matchPlayer.matchId, matchId));
+
+	return {
+		...matchData,
+		players,
+	};
+};
+
 export const getBySeasonId = async ({
 	db,
 	seasonId,
