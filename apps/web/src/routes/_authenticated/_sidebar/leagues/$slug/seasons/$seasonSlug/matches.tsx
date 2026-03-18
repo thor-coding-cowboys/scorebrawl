@@ -348,38 +348,38 @@ function MatchesPage() {
 																seasonId={seasonId ?? ""}
 															/>
 														</div>
-													{canEditMatches && !isSeasonLocked && (
-														<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-															<Button
-																variant="outline"
-																size="sm"
-																className="h-8 px-2 gap-1.5 text-xs border-amber-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
-																onClick={() => {
-																	setEditMatch(match);
-																	setIsEditDialogOpen(true);
-																}}
-																data-testid={`edit-match-${match.id}`}
-															>
-																<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
-																<span className="hidden sm:inline">Edit</span>
-															</Button>
-															<Button
-																variant="outline"
-																size="sm"
-																className="h-8 px-2 gap-1.5 text-xs border-purple-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300"
-																onClick={() => handleInsertClick(match, virtualItem.index + 1)}
-																data-testid={`insert-after-match-${match.id}`}
-																disabled={skeletonPosition !== null}
-																title="Insert match below"
-															>
-																<div className="relative flex items-center">
-																	<HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
-																	<HugeiconsIcon icon={Add01Icon} className="size-3 -ml-0.5" />
-																</div>
-																<span className="hidden sm:inline">Insert</span>
-															</Button>
-														</div>
-													)}
+												{canEditMatches && !isSeasonLocked && (
+													<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+														<Button
+															variant="secondary"
+															size="sm"
+															className="h-8 px-3 gap-1.5 text-xs"
+															onClick={() => {
+																setEditMatch(match);
+																setIsEditDialogOpen(true);
+															}}
+															data-testid={`edit-match-${match.id}`}
+														>
+															<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+															<span className="hidden sm:inline">Edit</span>
+														</Button>
+														<Button
+															variant="default"
+															size="sm"
+															className="h-8 px-3 gap-1.5 text-xs"
+															onClick={() => handleInsertClick(match, virtualItem.index + 1)}
+															data-testid={`insert-after-match-${match.id}`}
+															disabled={skeletonPosition !== null}
+															title="Insert match below"
+														>
+															<div className="relative flex items-center">
+																<HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
+																<HugeiconsIcon icon={Add01Icon} className="size-3 -ml-0.5" />
+															</div>
+															<span className="hidden sm:inline">Insert</span>
+														</Button>
+													</div>
+												)}
 													</div>
 												</div>
 											);
