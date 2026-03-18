@@ -232,7 +232,7 @@ function MatchesPage() {
 						</CardContent>
 					</Card>
 				</div>
-				<div className="bg-muted/50 flex-1 flex flex-col min-h-0 -mx-4 px-0">
+				<div className="bg-muted/50 flex-1 flex flex-col min-h-0">
 					{matches.length === 0 && !isLoading ? (
 						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
@@ -254,7 +254,7 @@ function MatchesPage() {
 						</div>
 									) : (
 						<div className="flex flex-col flex-1 min-h-0">
-							<div className="flex items-center justify-between px-3 py-2">
+							<div className="flex items-center justify-between py-2">
 								<h3 className="text-sm font-medium">Matches</h3>
 								{!isEditMode && canDeleteMatches && !isSeasonLocked && latestMatch && (
 									<Button
@@ -317,8 +317,8 @@ function MatchesPage() {
 											const match = getMatchAtVirtualIndex(virtualItem.index);
 											if (!match) return null;
 
-											const MatchContent = (
-												<div className="flex items-center gap-2 px-3 py-3">
+												const MatchContent = (
+													<div className="flex items-center gap-2 py-3">
 													<div className="flex-1 min-w-0">
 														<MatchRow
 															match={match}
@@ -341,7 +341,7 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className={isEditMode ? "px-2 py-1" : ""}
+													className={isEditMode ? "py-1" : ""}
 												>
 													{isEditMode ? (
 														<button
