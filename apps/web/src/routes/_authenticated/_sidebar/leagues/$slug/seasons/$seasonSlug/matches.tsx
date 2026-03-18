@@ -7,7 +7,6 @@ import { trpcClient, useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import {
 	Add01Icon,
-	ArrowDown01Icon,
 	Award01Icon,
 	Delete01Icon,
 	PencilEdit01Icon,
@@ -19,7 +18,6 @@ import { CreateMatchDialog } from "../-components/match/create-match-drawer";
 import { RemoveMatchDialog } from "../-components/match/remove-match-dialog";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
 import { truncateSlug } from "@/lib/utils";
@@ -65,13 +63,7 @@ function MatchesPage() {
 	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 	const [editMatch, setEditMatch] = useState<(typeof matches)[0] | null>(null);
-	const [insertAfterMatch, setInsertAfterMatch] = useState<(typeof matches)[0] | null>(null);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-	const [isInsertDialogOpen, setIsInsertDialogOpen] = useState(false);
-
-	// New state for skeleton insert flow
-	const [skeletonPosition, setSkeletonPosition] = useState<number | null>(null);
-	const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
 		queryKey: ["infinite-matches", seasonId],
@@ -101,11 +93,8 @@ function MatchesPage() {
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
-	// Include skeleton in virtual count when active
-	const virtualCount = skeletonPosition !== null ? matches.length + 1 : matches.length;
-
 	const virtualizer = useVirtualizer({
-		count: virtualCount,
+		count: matches.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => 100,
 		overscan: 5,
@@ -143,59 +132,6 @@ function MatchesPage() {
 
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, [seasonId]);
-
-	// Cleanup timer on unmount
-	useEffect(() => {
-		return () => {
-			if (skeletonTimerRef.current) {
-				clearTimeout(skeletonTimerRef.current);
-			}
-		};
-	}, []);
-
-	const handleInsertClick = (match: (typeof matches)[0], position: number) => {
-		// Clear any existing timer
-		if (skeletonTimerRef.current) {
-			clearTimeout(skeletonTimerRef.current);
-		}
-
-		// Show skeleton at this position
-		setSkeletonPosition(position);
-		setInsertAfterMatch(match);
-
-		// After 3 seconds, open the dialog
-		skeletonTimerRef.current = setTimeout(() => {
-			setIsInsertDialogOpen(true);
-		}, 3000);
-	};
-
-	const handleInsertDialogClose = () => {
-		setIsInsertDialogOpen(false);
-		setInsertAfterMatch(null);
-		setSkeletonPosition(null);
-		if (skeletonTimerRef.current) {
-			clearTimeout(skeletonTimerRef.current);
-			skeletonTimerRef.current = null;
-		}
-	};
-
-	// Get match at adjusted index (accounting for skeleton)
-	const getMatchAtIndex = (index: number): (typeof matches)[0] | null => {
-		if (skeletonPosition === null) {
-			return matches[index] || null;
-		}
-		// If skeleton is before this index, adjust
-		if (index <= skeletonPosition) {
-			return matches[index] || null;
-		}
-		// After skeleton, subtract 1
-		return matches[index - 1] || null;
-	};
-
-	// Check if this index is the skeleton position
-	const isSkeletonAtIndex = (index: number): boolean => {
-		return skeletonPosition === index;
-	};
 
 	return (
 		<>
@@ -286,44 +222,7 @@ function MatchesPage() {
 									{virtualizer
 										.getVirtualItems()
 										.map((virtualItem: ReturnType<typeof virtualizer.getVirtualItems>[number]) => {
-											// Check if this is the skeleton position
-											if (isSkeletonAtIndex(virtualItem.index)) {
-												return (
-													<div
-														key="skeleton-insert"
-														data-index={virtualItem.index}
-														ref={virtualizer.measureElement}
-														style={{
-															position: "absolute",
-															top: 0,
-															left: 0,
-															width: "100%",
-															transform: `translateY(${virtualItem.start}px)`,
-														}}
-														className="border-b border-border/50 py-3 px-2 overflow-hidden"
-													>
-														<div className="flex items-center gap-3 py-2">
-															<Skeleton className="h-8 w-8 rounded-full" />
-															<div className="flex-1 space-y-2">
-																<Skeleton className="h-4 w-3/4" />
-																<Skeleton className="h-3 w-1/2" />
-															</div>
-															<div className="flex items-center gap-2">
-																<Skeleton className="h-8 w-12" />
-																<span className="text-muted-foreground">-</span>
-																<Skeleton className="h-8 w-12" />
-															</div>
-														</div>
-														<div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-															<HugeiconsIcon icon={ArrowDown01Icon} className="size-3" />
-															<span>New match will be inserted here</span>
-															<HugeiconsIcon icon={Add01Icon} className="size-3" />
-														</div>
-													</div>
-												);
-											}
-
-											const match = getMatchAtIndex(virtualItem.index);
+											const match = matches[virtualItem.index];
 											if (!match) return null;
 
 											return (
@@ -341,45 +240,30 @@ function MatchesPage() {
 													className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden group"
 												>
 													<div className="flex items-center gap-2">
-														<div className="flex-1">
+														<div className="flex-1 min-w-0">
 															<MatchRow
 																match={match}
 																seasonSlug={seasonSlug}
 																seasonId={seasonId ?? ""}
 															/>
 														</div>
-												{canEditMatches && !isSeasonLocked && (
-													<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-														<Button
-															variant="secondary"
-															size="sm"
-															className="h-8 px-3 gap-1.5 text-xs"
-															onClick={() => {
-																setEditMatch(match);
-																setIsEditDialogOpen(true);
-															}}
-															data-testid={`edit-match-${match.id}`}
-														>
-															<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
-															<span className="hidden sm:inline">Edit</span>
-														</Button>
-														<Button
-															variant="default"
-															size="sm"
-															className="h-8 px-3 gap-1.5 text-xs"
-															onClick={() => handleInsertClick(match, virtualItem.index + 1)}
-															data-testid={`insert-after-match-${match.id}`}
-															disabled={skeletonPosition !== null}
-															title="Insert match below"
-														>
-															<div className="relative flex items-center">
-																<HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
-																<HugeiconsIcon icon={Add01Icon} className="size-3 -ml-0.5" />
+														{canEditMatches && !isSeasonLocked && (
+															<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+																<Button
+																	variant="secondary"
+																	size="sm"
+																	className="h-8 px-3 gap-1.5 text-xs shrink-0"
+																	onClick={() => {
+																		setEditMatch(match);
+																		setIsEditDialogOpen(true);
+																	}}
+																	data-testid={`edit-match-${match.id}`}
+																>
+																	<HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+																	<span className="hidden sm:inline">Edit</span>
+																</Button>
 															</div>
-															<span className="hidden sm:inline">Insert</span>
-														</Button>
-													</div>
-												)}
+														)}
 													</div>
 												</div>
 											);
@@ -428,16 +312,6 @@ function MatchesPage() {
 						setIsEditDialogOpen(false);
 						setIsRemoveDialogOpen(true);
 					}}
-				/>
-			)}
-			{seasonId && insertAfterMatch && (
-				<CreateMatchDialog
-					isOpen={isInsertDialogOpen}
-					onClose={handleInsertDialogClose}
-					seasonId={seasonId}
-					seasonSlug={seasonSlug}
-					mode="insert"
-					matchToEdit={insertAfterMatch}
 				/>
 			)}
 		</>
