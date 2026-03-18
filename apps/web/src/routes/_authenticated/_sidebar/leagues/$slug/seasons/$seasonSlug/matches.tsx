@@ -20,7 +20,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug, cn } from "@/lib/utils";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
@@ -298,18 +298,22 @@ function MatchesPage() {
 														}}
 														className="h-6"
 													>
-														{isEditMode && (
-															<button
-																className="flex items-center justify-center w-full h-full hover:bg-muted/50 transition-colors cursor-pointer group"
-																onClick={() => handleInsertClick(matchBefore)}
-																aria-label="Insert match here"
-															>
-																<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-																	<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
-																	<span className="text-xs">Insert match</span>
-																</div>
-															</button>
-														)}
+														<button
+															className={cn(
+																"flex items-center justify-center w-full h-full transition-colors cursor-pointer group",
+																isEditMode ? "hover:bg-muted/50" : "pointer-events-none"
+															)}
+															onClick={() => isEditMode && handleInsertClick(matchBefore)}
+															aria-label="Insert match here"
+														>
+															<div className={cn(
+																"flex items-center gap-1 transition-colors",
+																isEditMode ? "text-muted-foreground group-hover:text-primary" : "opacity-0"
+															)}>
+																<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
+																<span className="text-xs">Insert match</span>
+															</div>
+														</button>
 													</div>
 												);
 											}
@@ -317,8 +321,8 @@ function MatchesPage() {
 											const match = getMatchAtVirtualIndex(virtualItem.index);
 											if (!match) return null;
 
-												const MatchContent = (
-													<div className="flex items-center gap-2 py-3">
+											const MatchContent = (
+												<div className="flex items-center gap-2 px-2 py-3">
 													<div className="flex-1 min-w-0">
 														<MatchRow
 															match={match}
@@ -341,23 +345,21 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className={isEditMode ? "py-1" : ""}
+													className="py-1"
 												>
-													{isEditMode ? (
-														<button
-															className="w-full border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
-															onClick={() => {
-																setEditMatch(match);
-																setIsEditDialogOpen(true);
-															}}
-															data-testid={`edit-match-${match.id}`}
-															aria-label={`Edit match`}
-														>
-															{MatchContent}
-														</button>
-													) : (
-														MatchContent
-													)}
+													<button
+														className={cn(
+															"w-full border-2 border-dashed transition-colors",
+															isEditMode
+																	? "border-muted-foreground/30 hover:border-primary hover:bg-primary/5 cursor-pointer"
+																	: "border-transparent pointer-events-none"
+														)}
+														onClick={() => isEditMode && setEditMatch(match) && setIsEditDialogOpen(true)}
+														data-testid={`edit-match-${match.id}`}
+														aria-label={`Edit match`}
+													>
+														{MatchContent}
+													</button>
 												</div>
 											);
 										})}
