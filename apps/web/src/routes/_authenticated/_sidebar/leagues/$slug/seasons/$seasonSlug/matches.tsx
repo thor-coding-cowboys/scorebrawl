@@ -338,21 +338,6 @@ function MatchesPage() {
 																seasonId={seasonId ?? ""}
 															/>
 														</div>
-														{isEditMode && (
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-8 w-8 shrink-0"
-																onClick={() => {
-																	setEditMatch(match);
-																	setIsEditDialogOpen(true);
-																}}
-																data-testid={`edit-match-${match.id}`}
-																aria-label={`Edit match`}
-															>
-																<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
-															</Button>
-														)}
 													</div>
 												</div>
 											);
