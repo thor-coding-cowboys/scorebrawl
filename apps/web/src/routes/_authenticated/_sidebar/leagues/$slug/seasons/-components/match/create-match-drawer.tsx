@@ -126,6 +126,11 @@ export function CreateMatchDialog({
 		}
 	}, [isOpen]);
 
+	// Reset initialized when mode or matchToEdit changes to ensure proper re-initialization
+	useEffect(() => {
+		setInitialized(false);
+	}, [mode, matchToEdit?.id]);
+
 	const {
 		watch,
 		setValue,
@@ -148,8 +153,8 @@ export function CreateMatchDialog({
 
 	useEffect(() => {
 		if (isOpen && seasonPlayers && !initialized) {
-			if ((mode === "edit" || mode === "insert") && matchToEdit) {
-				// Pre-populate for edit/insert mode
+			if (mode === "edit" && matchToEdit) {
+				// Pre-populate for edit mode only (insert mode starts clean)
 				const homePlayerIds = matchToEdit.homeTeam.players.map((p) => p.seasonPlayerId);
 				const awayPlayerIds = matchToEdit.awayTeam.players.map((p) => p.seasonPlayerId);
 
@@ -174,11 +179,19 @@ export function CreateMatchDialog({
 					awayPlayerIds.map((id) => ({ id }))
 				);
 			} else {
+				// Create and insert modes start with clean state
 				setTeamSelection(seasonPlayers.map((p) => ({ ...p })));
+				// Reset form to default values
+				reset({
+					homeScore: 0,
+					awayScore: 0,
+					homePlayers: [],
+					awayPlayers: [],
+				});
 			}
 			setInitialized(true);
 		}
-	}, [isOpen, seasonPlayers, initialized, mode, matchToEdit, setValue]);
+	}, [isOpen, seasonPlayers, initialized, mode, matchToEdit, setValue, reset]);
 
 	const resetForm = () => {
 		setShowDuplicateWarning(false);
