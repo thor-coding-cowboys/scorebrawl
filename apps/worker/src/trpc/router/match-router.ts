@@ -7,7 +7,7 @@ import * as matchRepository from "../../repositories/match-repository";
 import * as seasonPlayerRepository from "../../repositories/season-player-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
-import { seasonProcedure, leagueMemberProcedure } from "../trpc";
+import { seasonProcedure, leagueMemberProcedure, leagueEditorProcedure } from "../trpc";
 
 const matchIdSchema = createOptionalIdSchema("match");
 
@@ -494,6 +494,136 @@ export const matchRouter = {
 			);
 
 			return { success: true, editedMatchId: editedMatch.id };
+		}),
+
+	insert: leagueEditorProcedure
+		.input(
+			z.object({
+				seasonSlug: z.string(),
+				insertAfterMatchId: z.string(),
+				homeScore: z.number().int().min(0),
+				awayScore: z.number().int().min(0),
+				homeTeamPlayerIds: z.array(z.string()),
+				awayTeamPlayerIds: z.array(z.string()),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { db } = ctx;
+			const { insertAfterMatchId, seasonSlug } = input;
+
+			// Get the season
+			const season = await seasonRepository.getBySlug({
+				db,
+				seasonSlug,
+				leagueId: ctx.organizationId,
+			});
+
+			if (season.closed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "This season is closed",
+				});
+			}
+
+			// Get the match to insert after
+			const referenceMatch = await matchRepository.getMatchWithFullDetails({
+				db,
+				matchId: insertAfterMatchId,
+			});
+
+			if (!referenceMatch) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Reference match not found",
+				});
+			}
+
+			if (referenceMatch.seasonId !== season.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Match does not belong to this season",
+				});
+			}
+
+			// Get all matches after the reference match (ordered oldest first for replay)
+			const laterMatches = await matchRepository.getMatchesAfter({
+				db,
+				seasonId: season.id,
+				createdAt: referenceMatch.createdAt,
+			});
+
+			// Reverse to get oldest first (for sequential replay)
+			const matchesToReplay = [...laterMatches].reverse();
+
+			// Create the new match first (it will get a new timestamp)
+			await matchRepository.create({
+				db,
+				input: {
+					seasonId: season.id,
+					homeScore: input.homeScore,
+					awayScore: input.awayScore,
+					homeTeamPlayerIds: input.homeTeamPlayerIds,
+					awayTeamPlayerIds: input.awayTeamPlayerIds,
+					userId: ctx.authentication.user.id,
+				},
+			});
+
+			// Replay all subsequent matches to recalculate Elo
+			for (const subsequentMatch of matchesToReplay) {
+				const matchDetails = await matchRepository.getMatchWithFullDetails({
+					db,
+					matchId: subsequentMatch.id,
+				});
+
+				if (!matchDetails) continue;
+
+				const homePlayerIds = matchDetails.players
+					.filter((p) => p.homeTeam)
+					.map((p) => p.seasonPlayerId);
+				const awayPlayerIds = matchDetails.players
+					.filter((p) => !p.homeTeam)
+					.map((p) => p.seasonPlayerId);
+
+				// Remove the old match
+				await matchRepository.remove({
+					db,
+					matchId: subsequentMatch.id,
+					seasonId: season.id,
+				});
+
+				// Recreate with new Elo calculations
+				await matchRepository.create({
+					db,
+					input: {
+						seasonId: season.id,
+						homeScore: subsequentMatch.homeScore,
+						awayScore: subsequentMatch.awayScore,
+						homeTeamPlayerIds: homePlayerIds,
+						awayTeamPlayerIds: awayPlayerIds,
+						userId: ctx.authentication.user.id,
+					},
+				});
+			}
+
+			const standings = await seasonPlayerRepository.getStanding({
+				db,
+				seasonId: season.id,
+			});
+
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
+					type: "match:insert",
+					data: {
+						standings,
+					},
+					user: {
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
+					},
+				})
+			);
+
+			return { success: true };
 		}),
 
 	getById: seasonProcedure
