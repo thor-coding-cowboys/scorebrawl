@@ -58,6 +58,7 @@ export function RemoveMatchDialog({
 			// Minimal invalidation for immediate UI feedback.
 			// SSE broadcasts handle the full invalidation for all connected users.
 			queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+			queryClient.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
 			queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 			});
