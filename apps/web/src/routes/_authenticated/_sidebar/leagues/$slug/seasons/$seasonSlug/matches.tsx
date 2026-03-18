@@ -96,13 +96,13 @@ function MatchesPage() {
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
-	// In edit mode, we have 2x matches - 1 items (matches + insert slots between them)
-	const virtualCount = isEditMode ? matches.length * 2 - 1 : matches.length;
+	// Always render matches + insert slots to prevent layout shift when toggling edit mode
+	const virtualCount = matches.length * 2 - 1;
 
 	const virtualizer = useVirtualizer({
 		count: virtualCount,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => 80,
+		estimateSize: () => 72,
 		overscan: 5,
 	});
 
@@ -146,27 +146,23 @@ function MatchesPage() {
 		}
 	}, [isSeasonLocked]);
 
-	// Get match at virtual index (accounting for insert slots in edit mode)
+	// Get match at virtual index (even indices are matches)
 	const getMatchAtVirtualIndex = (virtualIndex: number): (typeof matches)[0] | null => {
-		if (!isEditMode) {
-			return matches[virtualIndex] || null;
-		}
-		// In edit mode: even indices are matches, odd indices are insert slots
+		// Even indices are matches, odd indices are insert slots
 		if (virtualIndex % 2 === 1) {
-			return null; // This is an insert slot
+			return null;
 		}
 		return matches[virtualIndex / 2] || null;
 	};
 
 	// Check if this virtual index is an insert slot
 	const isInsertSlotAtIndex = (virtualIndex: number): boolean => {
-		if (!isEditMode) return false;
 		return virtualIndex % 2 === 1;
 	};
 
 	// Get the match that comes before an insert slot
 	const getMatchBeforeInsertSlot = (virtualIndex: number): (typeof matches)[0] | null => {
-		if (!isEditMode || virtualIndex % 2 === 0) return null;
+		if (virtualIndex % 2 === 0) return null;
 		const matchIndex = Math.floor(virtualIndex / 2);
 		return matches[matchIndex] || null;
 	};
@@ -256,9 +252,9 @@ function MatchesPage() {
 								</GlowButton>
 							)}
 						</div>
-					) : (
+									) : (
 						<div className="flex flex-col flex-1 min-h-0">
-							<div className="flex items-center justify-between px-4 py-3 border-b bg-card">
+							<div className="flex items-center justify-between px-3 py-2">
 								<h3 className="text-sm font-medium">Matches</h3>
 								{!isEditMode && canDeleteMatches && !isSeasonLocked && latestMatch && (
 									<Button
@@ -272,7 +268,7 @@ function MatchesPage() {
 									</Button>
 								)}
 							</div>
-							<div ref={parentRef} className="flex-1 overflow-auto bg-card min-h-0">
+							<div ref={parentRef} className="flex-1 overflow-auto min-h-0">
 								<div
 									style={{
 										height: `${virtualizer.getTotalSize()}px`,
@@ -280,16 +276,16 @@ function MatchesPage() {
 										position: "relative",
 									}}
 								>
-									{virtualizer
-										.getVirtualItems()
-										.map((virtualItem: ReturnType<typeof virtualizer.getVirtualItems>[number]) => {
-											// Check if this is an insert slot in edit mode
+							{virtualizer
+									.getVirtualItems()
+									.map((virtualItem: ReturnType<typeof virtualizer.getVirtualItems>[number]) => {
+											// Check if this is an insert slot
 											if (isInsertSlotAtIndex(virtualItem.index)) {
 												const matchBefore = getMatchBeforeInsertSlot(virtualItem.index);
 												if (!matchBefore) return null;
 
 												return (
-													<button
+													<div
 														key={`insert-${matchBefore.id}`}
 														data-index={virtualItem.index}
 														ref={virtualizer.measureElement}
@@ -300,22 +296,26 @@ function MatchesPage() {
 															width: "100%",
 															transform: `translateY(${virtualItem.start}px)`,
 														}}
-														className="flex items-center justify-center h-8 hover:bg-muted/50 transition-colors border-b border-dashed border-border cursor-pointer group"
-														onClick={() => handleInsertClick(matchBefore)}
-														aria-label="Insert match here"
+														className="h-6"
 													>
-														<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-															<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
-															<span className="text-xs">Insert match</span>
-														</div>
-													</button>
+														{isEditMode && (
+															<button
+																className="flex items-center justify-center w-full h-full hover:bg-muted/50 transition-colors cursor-pointer group"
+																onClick={() => handleInsertClick(matchBefore)}
+																aria-label="Insert match here"
+															>
+																<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+																	<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
+																	<span className="text-xs">Insert match</span>
+																</div>
+															</button>
+														)}
+													</div>
 												);
 											}
 
 											const match = getMatchAtVirtualIndex(virtualItem.index);
 											if (!match) return null;
-
-											const isLastMatch = virtualItem.index === virtualCount - 1;
 
 											return (
 												<div
@@ -329,9 +329,8 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className="border-b border-border/50 last:border-b-0"
 												>
-													<div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
+													<div className="flex items-center gap-2 px-3 py-3">
 														<div className="flex-1 min-w-0">
 															<MatchRow
 																match={match}
@@ -355,18 +354,6 @@ function MatchesPage() {
 															</Button>
 														)}
 													</div>
-													{isEditMode && isLastMatch && canEditMatches && !isSeasonLocked && (
-														<button
-															className="flex items-center justify-center w-full h-8 hover:bg-muted/50 transition-colors border-b border-dashed border-border cursor-pointer group"
-															onClick={() => handleInsertClick(match)}
-															aria-label="Insert match at the end"
-														>
-															<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-																<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
-																<span className="text-xs">Insert match</span>
-															</div>
-														</button>
-													)}
 												</div>
 											);
 										})}
