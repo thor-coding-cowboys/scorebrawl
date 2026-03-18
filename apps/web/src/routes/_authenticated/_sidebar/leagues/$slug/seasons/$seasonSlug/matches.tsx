@@ -102,9 +102,14 @@ function MatchesPage() {
 	const virtualizer = useVirtualizer({
 		count: virtualCount,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => 72,
+		estimateSize: (index) => isInsertSlotAtIndex(index) ? (isEditMode ? 24 : 0) : 72,
 		overscan: 5,
 	});
+
+	// Remeasure items when edit mode changes to account for height changes
+	useEffect(() => {
+		virtualizer.measure();
+	}, [isEditMode, virtualizer]);
 
 	// Use refs to avoid stale closures in scroll handler
 	const fetchNextPageRef = useRef(fetchNextPage);
@@ -296,7 +301,10 @@ function MatchesPage() {
 															width: "100%",
 															transform: `translateY(${virtualItem.start}px)`,
 														}}
-														className="h-6"
+														className={cn(
+															"transition-all duration-300 ease-in-out overflow-hidden",
+															isEditMode ? "h-6" : "h-0"
+														)}
 													>
 														<button
 															className={cn(
@@ -345,19 +353,24 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className="py-1"
-												>
-													<button
-														className={cn(
-															"w-full border-2 border-dashed transition-colors",
-															isEditMode
-																	? "border-muted-foreground/30 hover:border-primary hover:bg-primary/5 cursor-pointer"
-																	: "border-transparent pointer-events-none"
-														)}
-														onClick={() => isEditMode && setEditMatch(match) && setIsEditDialogOpen(true)}
-														data-testid={`edit-match-${match.id}`}
-														aria-label={`Edit match`}
+														className="py-1"
 													>
+														<button
+															className={cn(
+																"w-full border-2 border-dashed transition-colors",
+																isEditMode
+																		? "border-muted-foreground/30 hover:border-primary hover:bg-primary/5 cursor-pointer"
+																		: "border-transparent pointer-events-none"
+															)}
+															onClick={() => {
+																if (isEditMode) {
+																	setEditMatch(match);
+																	setIsEditDialogOpen(true);
+																}
+															}}
+															data-testid={`edit-match-${match.id}`}
+															aria-label={`Edit match`}
+														>
 														{MatchContent}
 													</button>
 												</div>
