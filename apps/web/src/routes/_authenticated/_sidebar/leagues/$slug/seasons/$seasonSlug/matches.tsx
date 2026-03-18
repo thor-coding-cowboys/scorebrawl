@@ -254,9 +254,9 @@ function MatchesPage() {
 						</div>
 									) : (
 						<div className="flex flex-col flex-1 min-h-0">
-							<div className="flex items-center justify-between py-2">
+							<div className="flex items-center justify-between px-3 py-2">
 								<h3 className="text-sm font-medium">Matches</h3>
-								{!isEditMode && canDeleteMatches && !isSeasonLocked && latestMatch && (
+								{canDeleteMatches && !isSeasonLocked && latestMatch && (
 									<Button
 										variant="ghost"
 										size="sm"
