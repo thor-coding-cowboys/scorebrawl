@@ -107,7 +107,7 @@ function ScoreLine({
 				</div>
 				<span
 					className={cn(
-						"text-sm truncate",
+						"text-xs sm:text-sm truncate",
 						isWinner && "font-semibold text-foreground",
 						isMuted && "text-muted-foreground",
 						!isWinner && !isMuted && "text-foreground"
