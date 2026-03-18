@@ -14,8 +14,6 @@ class ScoreEntryView extends WatchUi.View {
     var _confirming as Lang.Boolean = false;
     var _submitting as Lang.Boolean = false;
     var _error as Lang.String? = null;
-    var _timer as Timer.Timer?;
-    var _lastUserChangeTime as Lang.Number = 0;
 
     function initialize(leagueSlug as Lang.String, homePlayers as Lang.Array, awayPlayers as Lang.Array, homeScore as Lang.Number, awayScore as Lang.Number) {
         View.initialize();
@@ -39,61 +37,6 @@ class ScoreEntryView extends WatchUi.View {
             }
         }
         return initials;
-    }
-
-    function onShow() as Void {
-        _timer = new Timer.Timer();
-        _timer.start(method(:fetchSessionScores), 2000, true);
-    }
-
-    function onHide() as Void {
-        if (_timer != null) {
-            _timer.stop();
-            _timer = null;
-        }
-    }
-
-    function fetchSessionScores() as Void {
-        if (_confirming || _submitting) {
-            return;
-        }
-        var now = Time.now().value();
-        if (now - _lastUserChangeTime < 3000) {
-            return;
-        }
-        ApiClient.get("/leagues/" + _leagueSlug + "/session/active", method(:onSessionResponse));
-    }
-
-    function onSessionResponse(responseCode as Lang.Number, data as Lang.Object or Null) as Void {
-        if (responseCode != 200 || !(data instanceof Lang.Dictionary) || _confirming || _submitting) {
-            return;
-        }
-        var session = (data as Lang.Dictionary)["session"] as Lang.Dictionary?;
-        if (session == null) {
-            return;
-        }
-        var currentMatch = session["currentMatch"] as Lang.Dictionary?;
-        if (currentMatch == null) {
-            return;
-        }
-        var serverHomeScore = currentMatch["homeScore"] as Lang.Number;
-        var serverAwayScore = currentMatch["awayScore"] as Lang.Number;
-        var changed = false;
-        if (serverHomeScore != _homeScore) {
-            _homeScore = serverHomeScore;
-            changed = true;
-        }
-        if (serverAwayScore != _awayScore) {
-            _awayScore = serverAwayScore;
-            changed = true;
-        }
-        if (changed) {
-            WatchUi.requestUpdate();
-        }
-    }
-
-    function markUserChange() as Void {
-        _lastUserChangeTime = Time.now().value();
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
