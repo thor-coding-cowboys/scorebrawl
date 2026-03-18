@@ -317,6 +317,18 @@ function MatchesPage() {
 											const match = getMatchAtVirtualIndex(virtualItem.index);
 											if (!match) return null;
 
+											const MatchContent = (
+												<div className="flex items-center gap-2 px-3 py-3">
+													<div className="flex-1 min-w-0">
+														<MatchRow
+															match={match}
+															seasonSlug={seasonSlug}
+															seasonId={seasonId ?? ""}
+														/>
+													</div>
+												</div>
+											);
+
 											return (
 												<div
 													key={virtualItem.key}
@@ -329,16 +341,23 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
+													className={isEditMode ? "px-2 py-1" : ""}
 												>
-													<div className="flex items-center gap-2 px-3 py-3">
-														<div className="flex-1 min-w-0">
-															<MatchRow
-																match={match}
-																seasonSlug={seasonSlug}
-																seasonId={seasonId ?? ""}
-															/>
-														</div>
-													</div>
+													{isEditMode ? (
+														<button
+															className="w-full rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+															onClick={() => {
+																setEditMatch(match);
+																setIsEditDialogOpen(true);
+															}}
+															data-testid={`edit-match-${match.id}`}
+															aria-label={`Edit match`}
+														>
+															{MatchContent}
+														</button>
+													) : (
+														MatchContent
+													)}
 												</div>
 											);
 										})}
