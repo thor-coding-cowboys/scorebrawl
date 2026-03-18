@@ -5,7 +5,7 @@ import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
-import { Add01Icon, Award01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Award01Icon, Delete01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchRow } from "../-components/match/match-row";
@@ -44,6 +44,7 @@ function MatchesPage() {
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 	const canDeleteMatches = role === "owner" || role === "editor";
+	const canEditMatches = role === "owner" || role === "editor";
 	const trpc = useTRPC();
 
 	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
@@ -56,6 +57,10 @@ function MatchesPage() {
 		navigate({ search: open ? { addMatch: true } : {} });
 	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+	const [editMatch, setEditMatch] = useState<(typeof matches)[0] | null>(null);
+	const [insertAfterMatch, setInsertAfterMatch] = useState<(typeof matches)[0] | null>(null);
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [isInsertDialogOpen, setIsInsertDialogOpen] = useState(false);
 
 	const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
 		queryKey: ["infinite-matches", seasonId],
@@ -217,27 +222,59 @@ function MatchesPage() {
 											const match = matches[virtualItem.index];
 											if (!match) return null;
 
-											return (
-												<div
-													key={virtualItem.key}
-													data-index={virtualItem.index}
-													ref={virtualizer.measureElement}
-													style={{
-														position: "absolute",
-														top: 0,
-														left: 0,
-														width: "100%",
-														transform: `translateY(${virtualItem.start}px)`,
-													}}
-													className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden"
-												>
-													<MatchRow
-														match={match}
-														seasonSlug={seasonSlug}
-														seasonId={seasonId ?? ""}
-													/>
-												</div>
-											);
+												return (
+													<div
+														key={virtualItem.key}
+														data-index={virtualItem.index}
+														ref={virtualizer.measureElement}
+														style={{
+															position: "absolute",
+															top: 0,
+															left: 0,
+															width: "100%",
+															transform: `translateY(${virtualItem.start}px)`,
+														}}
+														className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden group"
+													>
+														<div className="flex items-center gap-2">
+															<div className="flex-1">
+																<MatchRow
+																	match={match}
+																	seasonSlug={seasonSlug}
+																	seasonId={seasonId ?? ""}
+																/>
+															</div>
+															{canEditMatches && !isSeasonLocked && (
+																<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="h-8 w-8"
+																		onClick={() => {
+																			setEditMatch(match);
+																			setIsEditDialogOpen(true);
+																		}}
+																		data-testid={`edit-match-${match.id}`}
+																	>
+																		<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+																	</Button>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="h-8 w-8"
+																		onClick={() => {
+																			setInsertAfterMatch(match);
+																			setIsInsertDialogOpen(true);
+																		}}
+																		data-testid={`insert-after-match-${match.id}`}
+																	>
+																		<HugeiconsIcon icon={Add01Icon} className="size-4" />
+																	</Button>
+																</div>
+															)}
+														</div>
+													</div>
+												);
 										})}
 								</div>
 							</div>
@@ -266,6 +303,36 @@ function MatchesPage() {
 					matchInfo={latestMatch}
 					seasonSlug={seasonSlug}
 					seasonId={seasonId}
+				/>
+			)}
+			{seasonId && editMatch && (
+				<CreateMatchDialog
+					isOpen={isEditDialogOpen}
+					onClose={() => {
+						setIsEditDialogOpen(false);
+						setEditMatch(null);
+					}}
+					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+					mode="edit"
+					matchToEdit={editMatch}
+					onRemove={() => {
+						setIsEditDialogOpen(false);
+						setIsRemoveDialogOpen(true);
+					}}
+				/>
+			)}
+			{seasonId && insertAfterMatch && (
+				<CreateMatchDialog
+					isOpen={isInsertDialogOpen}
+					onClose={() => {
+						setIsInsertDialogOpen(false);
+						setInsertAfterMatch(null);
+					}}
+					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+					mode="insert"
+					matchToEdit={insertAfterMatch}
 				/>
 			)}
 		</>
