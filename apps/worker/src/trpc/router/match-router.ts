@@ -372,6 +372,130 @@ export const matchRouter = {
 			return { success: true };
 		}),
 
+	edit: seasonProcedure
+		.input(
+			z.object({
+				seasonSlug: z.string(),
+				matchId: z.string(),
+				homeScore: z.number().int().min(0),
+				awayScore: z.number().int().min(0),
+				homeTeamPlayerIds: z.array(z.string()),
+				awayTeamPlayerIds: z.array(z.string()),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { db } = ctx;
+			const { matchId, seasonSlug } = input;
+
+			// Get the match to edit
+			const matchToEdit = await matchRepository.getMatchWithFullDetails({
+				db,
+				matchId,
+			});
+
+			if (!matchToEdit) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Match not found",
+				});
+			}
+
+			if (matchToEdit.seasonId !== ctx.season.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Match does not belong to this season",
+				});
+			}
+
+			// Get all matches after this one (ordered oldest first for replay)
+			const laterMatches = await matchRepository.getMatchesAfter({
+				db,
+				seasonId: ctx.season.id,
+				createdAt: matchToEdit.createdAt,
+			});
+
+			// Reverse to get oldest first (for sequential replay)
+			const matchesToReplay = [...laterMatches].reverse();
+
+			// Remove the target match
+			await matchRepository.remove({
+				db,
+				matchId,
+				seasonId: ctx.season.id,
+			});
+
+			// Create the edited match with original timestamp
+			const editedMatch = await matchRepository.create({
+				db,
+				input: {
+					seasonId: ctx.season.id,
+					homeScore: input.homeScore,
+					awayScore: input.awayScore,
+					homeTeamPlayerIds: input.homeTeamPlayerIds,
+					awayTeamPlayerIds: input.awayTeamPlayerIds,
+					userId: ctx.authentication.user.id,
+				},
+			});
+
+			// Replay all subsequent matches
+			for (const subsequentMatch of matchesToReplay) {
+				const matchDetails = await matchRepository.getMatchWithFullDetails({
+					db,
+					matchId: subsequentMatch.id,
+				});
+
+				if (!matchDetails) continue;
+
+				const homePlayerIds = matchDetails.players
+					.filter((p) => p.homeTeam)
+					.map((p) => p.seasonPlayerId);
+				const awayPlayerIds = matchDetails.players
+					.filter((p) => !p.homeTeam)
+					.map((p) => p.seasonPlayerId);
+
+				// Remove the old match
+				await matchRepository.remove({
+					db,
+					matchId: subsequentMatch.id,
+					seasonId: ctx.season.id,
+				});
+
+				// Recreate with new Elo calculations
+				await matchRepository.create({
+					db,
+					input: {
+						seasonId: ctx.season.id,
+						homeScore: subsequentMatch.homeScore,
+						awayScore: subsequentMatch.awayScore,
+						homeTeamPlayerIds: homePlayerIds,
+						awayTeamPlayerIds: awayPlayerIds,
+						userId: ctx.authentication.user.id,
+					},
+				});
+			}
+
+			const standings = await seasonPlayerRepository.getStanding({
+				db,
+				seasonId: ctx.season.id,
+			});
+
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
+					type: "match:edit",
+					data: {
+						matchId,
+						standings,
+					},
+					user: {
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
+					},
+				})
+			);
+
+			return { success: true, editedMatchId: editedMatch.id };
+		}),
+
 	getById: seasonProcedure
 		.input(
 			z.object({
