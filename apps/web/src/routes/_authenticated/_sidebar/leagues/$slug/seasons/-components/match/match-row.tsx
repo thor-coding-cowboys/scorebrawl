@@ -27,10 +27,9 @@ interface MatchRowProps {
 	};
 	seasonSlug: string;
 	seasonId: string;
-	compact?: boolean;
 }
 
-export function MatchRow({ match, compact }: MatchRowProps) {
+export function MatchRow({ match }: MatchRowProps) {
 	const homePlayers: MatchDisplayPlayer[] = match.homeTeam.players.map((p) => ({
 		id: p.id,
 		name: p.name,
@@ -57,7 +56,6 @@ export function MatchRow({ match, compact }: MatchRowProps) {
 			createdAt={match.createdAt}
 			homePlayers={homePlayers}
 			awayPlayers={awayPlayers}
-			compact={compact}
 		/>
 	);
 }

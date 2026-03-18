@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
 import { truncateSlug } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
@@ -103,7 +102,7 @@ function MatchesPage() {
 	const virtualizer = useVirtualizer({
 		count: virtualCount,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => (isEditMode ? 140 : 100),
+		estimateSize: () => 80,
 		overscan: 5,
 	});
 
@@ -237,9 +236,9 @@ function MatchesPage() {
 						</CardContent>
 					</Card>
 				</div>
-				<div className="bg-muted/50 flex-1 flex flex-col p-6 min-h-0">
+				<div className="bg-muted/50 flex-1 flex flex-col min-h-0 -mx-4 px-0">
 					{matches.length === 0 && !isLoading ? (
-						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+						<div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
 								<HugeiconsIcon icon={Award01Icon} className="size-5" />
 							</div>
@@ -258,22 +257,22 @@ function MatchesPage() {
 							)}
 						</div>
 					) : (
-						<div className="flex flex-col flex-1 gap-4 min-h-0">
-							<div className="flex items-center justify-between">
-								<h3 className="text-lg font-medium">Matches</h3>
+						<div className="flex flex-col flex-1 min-h-0">
+							<div className="flex items-center justify-between px-4 py-3 border-b bg-card">
+								<h3 className="text-sm font-medium">Matches</h3>
 								{!isEditMode && canDeleteMatches && !isSeasonLocked && latestMatch && (
 									<Button
 										variant="ghost"
 										size="sm"
 										onClick={() => setIsRemoveDialogOpen(true)}
-										className="text-muted-foreground hover:text-destructive"
+										className="text-muted-foreground hover:text-destructive h-8 px-2"
 									>
 										<span className="hidden sm:inline">Remove Latest</span>
 										<HugeiconsIcon icon={Delete01Icon} className="sm:hidden size-4" />
 									</Button>
 								)}
 							</div>
-							<div ref={parentRef} className="flex-1 overflow-auto rounded-lg bg-card px-4 min-h-0">
+							<div ref={parentRef} className="flex-1 overflow-auto bg-card min-h-0">
 								<div
 									style={{
 										height: `${virtualizer.getTotalSize()}px`,
@@ -290,7 +289,7 @@ function MatchesPage() {
 												if (!matchBefore) return null;
 
 												return (
-													<div
+													<button
 														key={`insert-${matchBefore.id}`}
 														data-index={virtualItem.index}
 														ref={virtualizer.measureElement}
@@ -301,18 +300,15 @@ function MatchesPage() {
 															width: "100%",
 															transform: `translateY(${virtualItem.start}px)`,
 														}}
-														className="py-2"
+														className="flex items-center justify-center h-8 hover:bg-muted/50 transition-colors border-b border-dashed border-border cursor-pointer group"
+														onClick={() => handleInsertClick(matchBefore)}
+														aria-label="Insert match here"
 													>
-														<Button
-															variant="outline"
-															size="sm"
-															className="w-full h-10 border-dashed border-2 hover:border-primary hover:bg-primary/5 gap-2"
-															onClick={() => handleInsertClick(matchBefore)}
-														>
-															<HugeiconsIcon icon={Add01Icon} className="size-4" />
-															<span className="text-sm">Add match here</span>
-														</Button>
-													</div>
+														<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+															<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
+															<span className="text-xs">Insert match</span>
+														</div>
+													</button>
 												);
 											}
 
@@ -333,50 +329,43 @@ function MatchesPage() {
 														width: "100%",
 														transform: `translateY(${virtualItem.start}px)`,
 													}}
-													className={cn(
-														"py-3 px-3",
-														isEditMode
-															? "bg-card border rounded-lg shadow-sm"
-															: "border-b border-border/50 last:border-b-0"
-													)}
+													className="border-b border-border/50 last:border-b-0"
 												>
-													<div className="flex items-center gap-3">
+													<div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
 														<div className="flex-1 min-w-0">
 															<MatchRow
 																match={match}
 																seasonSlug={seasonSlug}
 																seasonId={seasonId ?? ""}
-																compact={isEditMode}
 															/>
 														</div>
 														{isEditMode && (
 															<Button
-																variant="secondary"
-																size="sm"
-																className="h-9 w-9 p-0 shrink-0"
+																variant="ghost"
+																size="icon"
+																className="h-8 w-8 shrink-0"
 																onClick={() => {
 																	setEditMatch(match);
 																	setIsEditDialogOpen(true);
 																}}
 																data-testid={`edit-match-${match.id}`}
-																aria-label={`Edit match ${match.homeTeam.players.map(p => p.name).join(' & ')} vs ${match.awayTeam.players.map(p => p.name).join(' & ')}`}
+																aria-label={`Edit match`}
 															>
 																<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
 															</Button>
 														)}
 													</div>
 													{isEditMode && isLastMatch && canEditMatches && !isSeasonLocked && (
-														<div className="mt-3 pt-3 border-t border-border">
-															<Button
-																variant="outline"
-																size="sm"
-																className="w-full h-10 border-dashed border-2 hover:border-primary hover:bg-primary/5 gap-2"
-																onClick={() => handleInsertClick(match)}
-															>
-																<HugeiconsIcon icon={Add01Icon} className="size-4" />
-																<span className="text-sm">Add match at the end</span>
-															</Button>
-														</div>
+														<button
+															className="flex items-center justify-center w-full h-8 hover:bg-muted/50 transition-colors border-b border-dashed border-border cursor-pointer group"
+															onClick={() => handleInsertClick(match)}
+															aria-label="Insert match at the end"
+														>
+															<div className="flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+																<HugeiconsIcon icon={Add01Icon} className="size-3.5" />
+																<span className="text-xs">Insert match</span>
+															</div>
+														</button>
 													)}
 												</div>
 											);
@@ -384,7 +373,7 @@ function MatchesPage() {
 								</div>
 							</div>
 							{isFetchingNextPage && (
-								<div className="flex justify-center py-4 text-sm text-muted-foreground">
+								<div className="flex justify-center py-3 text-sm text-muted-foreground border-t">
 									Loading more matches...
 								</div>
 							)}
