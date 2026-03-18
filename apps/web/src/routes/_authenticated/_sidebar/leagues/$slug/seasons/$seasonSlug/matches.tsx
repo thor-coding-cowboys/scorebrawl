@@ -345,7 +345,7 @@ function MatchesPage() {
 												>
 													{isEditMode ? (
 														<button
-															className="w-full rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+															className="w-full border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
 															onClick={() => {
 																setEditMatch(match);
 																setIsEditDialogOpen(true);
