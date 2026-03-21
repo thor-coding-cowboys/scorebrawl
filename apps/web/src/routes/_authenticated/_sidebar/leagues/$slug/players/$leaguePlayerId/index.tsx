@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
 	ArrowDown01Icon,
 	Calendar01Icon,
 	ChartIcon,
+	GitCompareIcon,
 } from "@hugeicons/core-free-icons";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from "recharts";
 import {
@@ -220,6 +221,14 @@ function PlayerProfilePage() {
 										<h1 className="text-3xl font-bold">{player?.name}</h1>
 										<div className="flex items-center gap-2 mt-1">
 											<Badge variant="secondary">{allTimeWinRate}% Win Rate</Badge>
+											<Link
+												to="/leagues/$slug/players/compare"
+												params={{ slug }}
+												className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-none border border-border bg-background hover:bg-muted transition-colors"
+											>
+												<HugeiconsIcon icon={GitCompareIcon} className="size-3.5" />
+												Compare
+											</Link>
 										</div>
 									</div>
 								</>

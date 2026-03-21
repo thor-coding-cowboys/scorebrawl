@@ -442,6 +442,54 @@ export const playerRouter = {
 			});
 		}),
 
+	comparePlayers: leagueProcedure
+		.input(z.object({ player1Id: z.string(), player2Id: z.string() }))
+		.query(async ({ input, ctx }) => {
+			// Verify both players exist in this league
+			const [player1, player2] = await Promise.all([
+				playerRepository.getById({
+					db: ctx.db,
+					playerId: input.player1Id,
+					leagueId: ctx.organizationId,
+				}),
+				playerRepository.getById({
+					db: ctx.db,
+					playerId: input.player2Id,
+					leagueId: ctx.organizationId,
+				}),
+			]);
+
+			if (!player1 || !player2) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "One or both players not found in this league",
+				});
+			}
+
+			// Get comparison stats for both players
+			const [stats1, stats2, headToHead] = await Promise.all([
+				playerRepository.getPlayerComparisonStats({
+					db: ctx.db,
+					playerId: input.player1Id,
+				}),
+				playerRepository.getPlayerComparisonStats({
+					db: ctx.db,
+					playerId: input.player2Id,
+				}),
+				playerRepository.getHeadToHeadStats({
+					db: ctx.db,
+					player1Id: input.player1Id,
+					player2Id: input.player2Id,
+				}),
+			]);
+
+			return {
+				player1: stats1,
+				player2: stats2,
+				headToHead,
+			};
+		}),
+
 	editGuestPlayer: leagueEditorProcedure
 		.input(
 			z.object({
