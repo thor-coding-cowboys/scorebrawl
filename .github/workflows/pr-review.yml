@@ -1,0 +1,269 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: get-diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          git diff origin/${{ github.event.pull_request.base.ref }}..HEAD > pr_diff.txt
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          cat pr_diff.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Read code reviewer template
+        id: read-template
+        run: |
+          CONTENT=$(cat .claude/skills/requesting-code-review/code-reviewer.md)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run OpenCode Review
+        id: opencode-review
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode-go/kimi-k2.5
+          use_github_token: true
+          prompt: |
+            ${{ steps.read-template.outputs.content }}
+
+            ## PR Information
+            - PR Number: ${{ github.event.pull_request.number }}
+            - Title: ${{ github.event.pull_request.title }}
+            - Body: ${{ github.event.pull_request.body }}
+            - Base SHA: ${{ github.event.pull_request.base.sha }}
+            - Head SHA: ${{ github.event.pull_request.head.sha }}
+
+            ## Project-Specific Requirements (Scorebrawl)
+
+            ### Query Performance (Cloudflare Workers - CRITICAL)
+            **Never N+1 queries** - Cloudflare Workers have strict CPU limits. Querying inside loops causes `Worker exceeded CPU time limit` errors.
+
+            ```typescript
+            // BAD - N+1 queries (CRITICAL ISSUE)
+            const items = await db.select().from(x).where(...);
+            await Promise.all(items.map(i => db.select().from(y).where(...)));
+
+            // GOOD - 1 query with join
+            const data = await db.select({...}).from(x).leftJoin(y, ...);
+            ```
+
+            Always use joins/subqueries. Fetch related data in single round-trip. This is a CRITICAL issue in this codebase.
+
+            ### tRPC Procedures
+            - `publicProcedure` - Public access
+            - `protectedProcedure` - Auth guaranteed (`ctx.authentication.user` always available)
+            - `activeOrgProcedure` - Auth + org guaranteed
+
+            **No redundant auth checks** - when using `protectedProcedure` or `activeOrgProcedure`, user is guaranteed:
+            ```typescript
+            // CORRECT - Access directly
+            const userId = ctx.authentication.user.id;
+
+            // WRONG - Don't check again
+            if (!ctx.authentication?.user) { ... }
+            ```
+
+            ### Hono Route Validation
+            Always validate headers, payload (body), and search params using @hono/zod-validator:
+            ```typescript
+            import { zValidator } from "@hono/zod-validator";
+            app.post("/route", zValidator("json", schema), async (c) => {
+              const data = c.req.valid("json");
+            });
+            ```
+
+            ### File Organization (TanStack Router)
+            - Route files: No prefix (e.g., `leagues/index.tsx`)
+            - Non-route files: Prefix with `-` (e.g., `-components/`)
+            - Uses co-located feature patterns
+
+            ### Code Quality
+            - No redundant comments
+            - No `@ts-expect-error` or `@ts-ignore`
+            - Well-typed code throughout
+            - Use **catalog** for workspace dependencies in package.json
+
+            ## Diff to Review
+
+            ${{ steps.get-diff.outputs.diff }}
+
+            Please review this PR following the superpowers:code-reviewer methodology. Consider ALL the project-specific requirements above, especially N+1 query detection.
+
+            ```json
+            {
+              "summary": "Brief summary of the changes and review findings",
+              "strengths": ["List of positive aspects"],
+              "issues": [
+                {
+                  "severity": "critical|important|minor",
+                  "file": "relative/path/to/file",
+                  "line": 42,
+                  "message": "Description of the issue",
+                  "suggestion": "Suggested fix or improvement"
+                }
+              ],
+              "assessment": "PASS|PASS_WITH_NOTES|NEEDS_WORK",
+              "has_critical_issues": false
+            }
+            ```
+
+            Guidelines:
+            - Use "critical" for N+1 queries, security issues, or breaking changes
+            - Use "important" for significant code quality issues
+            - Use "minor" for style suggestions or nitpicks
+            - assessment: "PASS" (no issues), "PASS_WITH_NOTES" (only minor issues), "NEEDS_WORK" (critical/important issues)
+            - has_critical_issues: true if any issue has severity "critical"
+
+      - name: Parse review response
+        id: parse-review
+        run: |
+          RESPONSE='${{ steps.opencode-review.outputs.response }}'
+
+          # Extract JSON from markdown code blocks if present
+          if echo "$RESPONSE" | grep -q '```json'; then
+            JSON=$(echo "$RESPONSE" | sed -n '/```json/,/```/p' | sed '1d;$d')
+          else
+            JSON="$RESPONSE"
+          fi
+
+          # Save to file for parsing
+          echo "$JSON" > review_output.json
+
+          # Extract fields
+          SUMMARY=$(cat review_output.json | jq -r '.summary // "No summary provided"')
+          ASSESSMENT=$(cat review_output.json | jq -r '.assessment // "NEEDS_WORK"')
+          HAS_CRITICAL=$(cat review_output.json | jq -r '.has_critical_issues // true')
+
+          # Count issues by severity
+          CRITICAL_COUNT=$(cat review_output.json | jq '[.issues[] | select(.severity == "critical")] | length')
+          IMPORTANT_COUNT=$(cat review_output.json | jq '[.issues[] | select(.severity == "important")] | length')
+          MINOR_COUNT=$(cat review_output.json | jq '[.issues[] | select(.severity == "minor")] | length')
+
+          echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          echo "assessment=$ASSESSMENT" >> $GITHUB_OUTPUT
+          echo "has_critical=$HAS_CRITICAL" >> $GITHUB_OUTPUT
+          echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+          echo "important_count=$IMPORTANT_COUNT" >> $GITHUB_OUTPUT
+          echo "minor_count=$MINOR_COUNT" >> $GITHUB_OUTPUT
+
+          # Save issues JSON for comment posting
+          cat review_output.json | jq -c '.issues' > issues.json
+          echo "issues_file=issues.json" >> $GITHUB_OUTPUT
+
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GH_AGENT_APP_ID }}
+          private-key: ${{ secrets.GH_AGENT_PRIVATE_KEY }}
+
+      - name: Post review comments
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const issues = JSON.parse(fs.readFileSync('${{ steps.parse-review.outputs.issues_file }}', 'utf8'));
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            const commitId = pullRequest.head.sha;
+
+            // Group issues by file and line
+            const comments = [];
+            for (const issue of issues) {
+              if (issue.file && issue.line) {
+                comments.push({
+                  path: issue.file,
+                  line: issue.line,
+                  body: `**${issue.severity.toUpperCase()}**: ${issue.message}\n\n**Suggestion**: ${issue.suggestion}`,
+                  commit_id: commitId
+                });
+              }
+            }
+
+            // Post review with comments
+            if (comments.length > 0) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: commitId,
+                body: `## Code Review Summary\n\n${{ steps.parse-review.outputs.summary }}\n\n- Critical Issues: ${{ steps.parse-review.outputs.critical_count }}\n- Important Issues: ${{ steps.parse-review.outputs.important_count }}\n- Minor Issues: ${{ steps.parse-review.outputs.minor_count }}\n\n**Assessment**: ${{ steps.parse-review.outputs.assessment }}`,
+                event: '${{ steps.parse-review.outputs.has_critical }}' === 'true' ? 'REQUEST_CHANGES' : 'COMMENT',
+                comments: comments
+              });
+            } else {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: commitId,
+                body: `## Code Review Summary\n\n${{ steps.parse-review.outputs.summary }}\n\nNo issues found! ✅\n\n**Assessment**: ${{ steps.parse-review.outputs.assessment }}`,
+                event: 'COMMENT'
+              });
+            }
+
+      - name: Approve PR if no critical issues
+        if: steps.parse-review.outputs.has_critical == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: '✅ Automated code review passed. No critical issues found.'
+            });
+
+      - name: Report status check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            const conclusion = '${{ steps.parse-review.outputs.has_critical }}' === 'true' ? 'failure' : 'success';
+            const assessment = '${{ steps.parse-review.outputs.assessment }}';
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'OpenCode PR Review',
+              head_sha: '${{ github.event.pull_request.head.sha }}',
+              status: 'completed',
+              conclusion: conclusion,
+              output: {
+                title: `Review: ${assessment}`,
+                summary: '${{ steps.parse-review.outputs.summary }}',
+                text: `## Review Statistics\n- Critical Issues: ${{ steps.parse-review.outputs.critical_count }}\n- Important Issues: ${{ steps.parse-review.outputs.important_count }}\n- Minor Issues: ${{ steps.parse-review.outputs.minor_count }}\n\n**Assessment**: ${assessment}`
+              }
+            });
