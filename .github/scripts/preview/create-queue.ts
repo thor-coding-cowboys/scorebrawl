@@ -17,12 +17,14 @@ if (!apiToken || !accountId) {
 	process.exit(1);
 }
 
-const queueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const achievementQueueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const seedQueueName = `scorebrawl-seed-queue-pr-${prNumber}`;
 
-try {
-	const cloudflare = new Cloudflare({ apiToken });
+const cloudflare = new Cloudflare({ apiToken });
+
+async function ensureQueue(queueName: string): Promise<void> {
 	let queueExists = false;
-	for await (const queue of cloudflare.queues.list({ account_id: accountId })) {
+	for await (const queue of cloudflare.queues.list({ account_id: accountId! })) {
 		if (queue.queue_name === queueName) {
 			queueExists = true;
 			break;
@@ -36,6 +38,11 @@ try {
 		await $`bun wrangler queues create ${queueName}`.quiet();
 		console.log(`Queue created: ${queueName}`);
 	}
+}
+
+try {
+	await ensureQueue(achievementQueueName);
+	await ensureQueue(seedQueueName);
 } catch (error) {
 	console.error("Failed to list/create queue:", error);
 	process.exit(1);
@@ -46,5 +53,8 @@ const githubOutput = process.env.GITHUB_OUTPUT;
 if (githubOutput) {
 	const file = Bun.file(githubOutput);
 	const existing = (await file.exists()) ? await file.text() : "";
-	await Bun.write(githubOutput, `${existing}queue_name=${queueName}\n`);
+	await Bun.write(
+		githubOutput,
+		`${existing}achievement_queue_name=${achievementQueueName}\nseed_queue_name=${seedQueueName}\n`
+	);
 }

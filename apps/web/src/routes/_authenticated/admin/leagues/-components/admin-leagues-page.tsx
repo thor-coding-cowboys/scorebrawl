@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
-import { trpcClient } from "@/lib/trpc";
+import { trpcClient, useTRPC } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
+import { SeedLeagueDialog } from "@/components/leagues/seed-league-dialog";
 
 const PAGE_SIZE = 25;
 
@@ -128,7 +130,11 @@ function StatCard({
 
 export function AdminLeaguesPage() {
 	const { data: session } = authClient.useSession();
+	const trpc = useTRPC();
 	const [offset, setOffset] = useState(0);
+	const [seedDialogOpen, setSeedDialogOpen] = useState(false);
+
+	const { data: seedEnabled } = useQuery(trpc.admin.seedEnabled.queryOptions());
 
 	const { data: stats, isPending: statsLoading } = useQuery<LeagueStats>({
 		queryKey: ["admin", "leagueStats"],
@@ -176,7 +182,14 @@ export function AdminLeaguesPage() {
 					</h1>
 					<p className="mt-1 text-sm text-muted-foreground">{today}</p>
 				</div>
+				{seedEnabled?.enabled && (
+					<GlowButton glowColor={glowColors.amber} onClick={() => setSeedDialogOpen(true)}>
+						Add Seeded League
+					</GlowButton>
+				)}
 			</div>
+
+			<SeedLeagueDialog isOpen={seedDialogOpen} onClose={() => setSeedDialogOpen(false)} />
 
 			{/* Stats */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-4">

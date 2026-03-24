@@ -10,6 +10,7 @@ declare namespace Cloudflare {
 		USER_ASSETS_BUCKET: R2Bucket;
 		DB: D1Database;
 		ACHIEVEMENT_QUEUE: Queue;
+		SEED_QUEUE: Queue;
 		VITE_GITHUB_CLIENT_ID: "Ov23liEHPLUdBgTj5Cxu";
 		VITE_GOOGLE_CLIENT_ID: "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com";
 		VERSION: "local";
@@ -18,6 +19,7 @@ declare namespace Cloudflare {
 		BETTER_AUTH_SECRET: string;
 		RESEND_API_KEY: string;
 		ADMIN_USER_IDS: string;
+		SEED_ALLOWED: string;
 		SEASON_SSE: DurableObjectNamespace<import("./src/index").SeasonSSE>;
 	}
 }

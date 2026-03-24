@@ -33,6 +33,10 @@
 			{
 				"binding": "ACHIEVEMENT_QUEUE",
 				"queue": "scorebrawl-achievement-calculations"
+			},
+			{
+				"binding": "SEED_QUEUE",
+				"queue": "scorebrawl-seed-queue"
 			}
 		],
 		"consumers": [
@@ -40,6 +44,11 @@
 				"queue": "scorebrawl-achievement-calculations",
 				"max_batch_size": 10,
 				"max_retries": 3
+			},
+			{
+				"queue": "scorebrawl-seed-queue",
+				"max_batch_size": 1,
+				"max_retries": 0
 			}
 		]
 	},
@@ -55,7 +64,8 @@
 	"vars": {
 		"VITE_GITHUB_CLIENT_ID": "Ov23liEHPLUdBgTj5Cxu",
 		"VITE_GOOGLE_CLIENT_ID": "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
-		"VERSION": "local"
+		"VERSION": "local",
+		"SEED_ALLOWED": "true"
 	},
 	"routes": [
 		{

@@ -17,12 +17,14 @@ if (!apiToken || !accountId) {
 	process.exit(1);
 }
 
-const queueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const achievementQueueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const seedQueueName = `scorebrawl-seed-queue-pr-${prNumber}`;
 
-try {
-	const cloudflare = new Cloudflare({ apiToken });
+const cloudflare = new Cloudflare({ apiToken });
+
+async function deleteQueue(queueName: string): Promise<void> {
 	let queueExists = false;
-	for await (const queue of cloudflare.queues.list({ account_id: accountId })) {
+	for await (const queue of cloudflare.queues.list({ account_id: accountId! })) {
 		if (queue.queue_name === queueName) {
 			queueExists = true;
 			break;
@@ -35,7 +37,12 @@ try {
 	} else {
 		console.log(`Queue not found: ${queueName}`);
 	}
+}
+
+try {
+	await deleteQueue(achievementQueueName);
+	await deleteQueue(seedQueueName);
 } catch {
-	console.log("Failed to list/delete queue, assuming queue doesn't exist");
+	console.log("Failed to list/delete queues, assuming they don't exist");
 	process.exit(0);
 }

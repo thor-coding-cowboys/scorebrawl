@@ -1,28 +1,18 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { z } from "zod";
+import { HTTPException } from "hono/http-exception";
 import type { HonoEnv } from "../middleware/context";
 
-const app = new Hono<HonoEnv>();
-
-// Validation schema for the key parameter
-const keyParamSchema = z.object({
-	key: z.string().min(1, "Key is required"),
-});
-
-// Serve any asset by key with authentication
-// URL format: /api/user-assets/{key}
-// Examples:
-//   /api/user-assets/user/abc/avatars/123.png
-//   /api/user-assets/organization/xyz/logos/456.png
-app.get("/:key{.*}", zValidator("param", keyParamSchema), async (c) => {
+export const userAssetsRouter = new Hono<HonoEnv>().get("/:key{.*}", async (c) => {
 	const auth = c.get("authentication");
 	if (!auth?.user) {
 		return c.json({ error: "Unauthorized" }, 401);
 	}
 
-	// Get validated key from params
 	const key = c.req.param("key");
+	if (!key) {
+		throw new HTTPException(400, { message: "Key is required" });
+	}
+
 	const bucket = c.get("userAssets").bucket;
 
 	// If it's an external URL (full http/https URL stored in DB), redirect to it
@@ -110,7 +100,6 @@ app.get("/:key{.*}", zValidator("param", keyParamSchema), async (c) => {
 			return c.json({ error: "Asset not found" }, 404);
 		}
 
-		// Set appropriate headers
 		const headers = new Headers();
 		object.writeHttpMetadata(headers);
 		headers.set("etag", object.httpEtag);
@@ -122,5 +111,3 @@ app.get("/:key{.*}", zValidator("param", keyParamSchema), async (c) => {
 		return c.json({ error: "Failed to serve asset" }, 500);
 	}
 });
-
-export default app;

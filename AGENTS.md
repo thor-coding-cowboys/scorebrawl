@@ -32,16 +32,12 @@ const userId = ctx.authentication.user.id;
 ### Query Performance
 
 **Never N+1 queries** - Cloudflare Workers have strict CPU limits. Querying inside loops causes `Worker exceeded CPU time limit` errors.
-
-```typescript
 // BAD - N queries
 const items = await db.select().from(x).where(...);
 await Promise.all(items.map(i => db.select().from(y).where(...)));
 
 // GOOD - 1 query with join
 const data = await db.select({...}).from(x).leftJoin(y, ...);
-```
-
 Always use joins/subqueries. Fetch related data in single round-trip.
 
 ## Hono Route Validation
@@ -79,65 +75,27 @@ Files in `apps/web/src/routes/` are automatically registered as routes unless ex
 
 ### Non-Route Files
 
-Prefix directories/files with `-` to exclude them from route generation while keeping them co-located:
-
-```text
-apps/web/src/routes/
-├── __root.tsx                # Root layout
-├── index.tsx                 # Landing (/)
-├── -components/              # Shared components (excluded from routing)
-│   ├── ui/                   # shadcn primitives (@/components/ui)
-│   ├── layout/               # Shared layout (header, etc.)
-│   ├── sidebar/              # Sidebar components
-│   ├── leagues/              # League dialogs/forms (shared across routes)
-│   ├── landing.tsx
-│   ├── theme-switcher.tsx
-│   ├── streak-flyout.tsx
-│   └── streak-avatar.tsx
-├── _auth/
-│   └── auth/
-│       ├── sign-in.tsx       # Route: /auth/sign-in
-│       └── -components/      # Co-located auth components
-├── _authenticated/
-│   ├── _sidebar/
-│   │   ├── profile.tsx       # Route: /profile
-│   │   ├── -components/      # Co-located profile/devices components
-│   │   └── leagues/$slug/
-│   │       └── seasons/
-│   │           ├── index.tsx  # Route: /leagues/:slug/seasons
-│   │           ├── -components/  # Co-located season/match components
-│   │           │   ├── season/
-│   │           │   ├── match/
-│   │           │   └── seasons/
-│   │           └── $seasonSlug/
-│   │               ├── index.tsx
-│   │               └── matches.tsx
-│   └── leagues/
-│       └── index.tsx
-```
+Prefix directories/files with `-` to exclude them from route generation while keeping them co-located.
 
 ### Path Aliases
 
 Explicit aliases in `tsconfig.json` and `vite.config.ts`:
 
-| Alias            | Resolves to                         |
-| ---------------- | ----------------------------------- |
-| `@/components/*` | `apps/web/src/routes/-components/*` |
-| `@/lib/*`        | `apps/web/src/lib/*`                |
-| `@/hooks/*`      | `apps/web/src/hooks/*`              |
+- `@/components/*` → `apps/web/src/routes/-components/*`
+- `@/lib/*` → `apps/web/src/lib/*`
+- `@/hooks/*` → `apps/web/src/hooks/*`
 
-Use `@/components/` for shared UI (`@/components/ui/button`, `@/components/layout/header`). Use **relative imports** for co-located feature components (`./-components/...`).
+Use `@/components/` for shared UI. Use relative imports (`./-components/...`) for co-located feature components.
 
-### Shared Code
+### Shared Code Location
 
-- `apps/web/src/routes/-components/` — Shared UI components (`@/components`)
-- `apps/web/src/hooks/` — Shared React hooks (`@/hooks`)
-- `apps/web/src/lib/` — Utilities and API client (`@/lib`)
+- UI components: `apps/web/src/routes/-components/` (`@/components`)
+- Hooks: `apps/web/src/hooks/` (`@/hooks`)
+- Utilities/API: `apps/web/src/lib/` (`@/lib`)
 
 ## Testing
 
 Create integration tests for new tRPC routes. Reference `apps/worker/src/test/trpc/`.
-
 Pattern: `createTRPCTestClient({ sessionToken })` with helpers from `apps/worker/src/test/setup/`. Uses Vitest + Cloudflare framework. Migrations auto-apply.
 
 ## Database
@@ -155,17 +113,13 @@ Other: `bun db:studio` (inspect), `bun db:reset` (clean + reapply)
 
 ## Post-Change Commands
 
-```bash
-bun oxc
-bun typecheck
-```
+After making a change to TypeScript files always run `bun oxc` and `bun typecheck`
 
-Full verification: `bun check && bun test`
+When asked for full verification: `bun check && bun run test`
 
 ## React Router
 
 Run `bun dev` after creating new routes for TanStack Router code generation.
-
 **Route file structure**: Use directory structure, never dot notation. `leagues/index.tsx` and `leagues/create.tsx`, NOT `leagues.tsx` and `leagues.create.tsx`.
 
 ## State Management
