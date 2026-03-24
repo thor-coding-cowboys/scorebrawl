@@ -4,9 +4,14 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       id-token: write
       contents: read
@@ -17,12 +22,45 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check PR size
+        id: check-size
+        run: |
+          # Get total lines changed
+          TOTAL_LINES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" | \
+            jq '.additions + .deletions')
+
+          echo "total_lines=$TOTAL_LINES" >> $GITHUB_OUTPUT
+
+          if [ "$TOTAL_LINES" -gt 500 ]; then
+            echo "skip_review=true" >> $GITHUB_OUTPUT
+            echo "::warning::PR has $TOTAL_LINES lines changed (>500). Skipping automated review."
+          else
+            echo "skip_review=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post skip comment
+        if: steps.check-size.outputs.skip_review == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🤖 PR Review Skipped\n\nThis PR has **${{ steps.check-size.outputs.total_lines }} lines changed** which exceeds the limit of 500 lines for automated review.\n\nPlease consider breaking large PRs into smaller chunks for better review quality.`
+            });
+
       - name: Setup git identity
+        if: steps.check-size.outputs.skip_review != 'true'
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
       - uses: anomalyco/opencode/github@latest
+        if: steps.check-size.outputs.skip_review != 'true'
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,3 +77,16 @@ jobs:
             - Verify TanStack Router file organization (routes without prefix, non-routes with - prefix)
             - Ensure no @ts-expect-error or @ts-ignore
             - Check for catalog usage in workspace dependencies
+
+      - name: Report review failure
+        if: failure() && steps.check-size.outputs.skip_review != 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ⚠️ PR Review Failed\n\nThe automated code review encountered an error. Please check the [workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`
+            });
