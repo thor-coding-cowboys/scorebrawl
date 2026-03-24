@@ -10,7 +10,7 @@ import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
 import { deviceRouter } from "./routes/device-router";
 import { sseRouter } from "./routes/sse-router";
-import userAssetsRouter from "./routes/user-assets-router";
+import { userAssetsRouter } from "./routes/user-assets-router";
 import {
 	calculateAchievements,
 	type AchievementQueueMessage,

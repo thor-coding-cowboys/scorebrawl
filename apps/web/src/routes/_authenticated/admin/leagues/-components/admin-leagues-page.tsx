@@ -184,7 +184,7 @@ export function AdminLeaguesPage() {
 				</div>
 				{seedEnabled?.enabled && (
 					<GlowButton glowColor={glowColors.amber} onClick={() => setSeedDialogOpen(true)}>
-						Add Seeded Organization
+						Add Seeded League
 					</GlowButton>
 				)}
 			</div>

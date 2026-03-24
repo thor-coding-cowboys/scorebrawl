@@ -1,7 +1,6 @@
-import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import type { Context } from "hono";
+import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { league, member, player, season, seasonPlayer, user } from "../db/schema";
@@ -22,134 +21,31 @@ import type { AuthType } from "../middleware/context";
  * Keys are user-scoped, so devices can access any league the user is a member of.
  * Key management is handled by Better Auth's built-in API key endpoints.
  */
-const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
-	.use("*", async (c, next) => {
-		const betterAuth = c.get("betterAuth");
-		const apiKey = c.req.header("x-api-key");
 
-		if (!apiKey) {
-			throw new HTTPException(401, { message: "Missing API key" });
-		}
+type LeagueData = { id: string; name: string; slug: string };
+type ActiveSeason = {
+	id: string;
+	name: string;
+	slug: string;
+	closed: boolean;
+	archived: boolean;
+} | null;
 
-		let session;
-		try {
-			session = await betterAuth.api.getSession({
-				headers: new Headers({ "x-api-key": apiKey }),
-			});
-		} catch {
-			throw new HTTPException(401, { message: "Invalid API key" });
-		}
+type LeagueEnv = EnforcedAuthHonoEnv & {
+	Variables: {
+		leagueData: LeagueData;
+		activeSeason: ActiveSeason;
+	};
+};
 
-		if (!session) {
-			throw new HTTPException(401, { message: "Invalid API key" });
-		}
-
-		c.set("authentication", session as AuthType);
-
-		await next();
-	})
-	.get("/leagues", async (c) => {
-		const db = c.get("db");
-		const userId = c.get("authentication").user.id;
-
-		const userLeagues = await db
-			.select({
-				id: league.id,
-				name: league.name,
-				slug: league.slug,
-				logo: league.logo,
-			})
-			.from(member)
-			.innerJoin(league, eq(member.organizationId, league.id))
-			.where(eq(member.userId, userId));
-
-		return c.json({ leagues: userLeagues });
-	})
-	.get("/leagues/:leagueSlug/context", async (c: Context<EnforcedAuthHonoEnv>) => {
-		const db = c.get("db");
-		const userId = c.get("authentication").user.id;
-		const { leagueSlug } = c.req.param();
-
-		// Verify user is a member of this league
-		const leagueData = await db
-			.select({ id: league.id, name: league.name, slug: league.slug })
-			.from(league)
-			.where(eq(league.slug, leagueSlug))
-			.get();
-
-		if (!leagueData) {
-			return c.json({ error: "League not found" }, 404);
-		}
-
-		const memberData = await db
-			.select({ id: member.id })
-			.from(member)
-			.where(and(eq(member.organizationId, leagueData.id), eq(member.userId, userId)))
-			.get();
-
-		if (!memberData) {
-			return c.json({ error: "Not a member of this league" }, 403);
-		}
-
-		const seasons = await db
-			.select({
-				id: season.id,
-				name: season.name,
-				slug: season.slug,
-				closed: season.closed,
-				archived: season.archived,
-			})
-			.from(season)
-			.where(and(eq(season.leagueId, leagueData.id), eq(season.archived, false)));
-
-		const activeSeason = seasons.find((s) => !s.closed) ?? null;
-
-		if (!activeSeason) {
-			return c.json({
-				league: {
-					id: leagueData.id,
-					name: leagueData.name,
-					slug: leagueData.slug,
-				},
-				season: null,
-				players: [],
-			});
-		}
-
-		const players = await db
-			.select({
-				id: seasonPlayer.id,
-				name: user.name,
-				score: seasonPlayer.score,
-			})
-			.from(seasonPlayer)
-			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-			.innerJoin(user, eq(player.userId, user.id))
-			.where(and(eq(seasonPlayer.seasonId, activeSeason.id), eq(seasonPlayer.disabled, false)));
-
-		return c.json({
-			league: {
-				id: leagueData.id,
-				name: leagueData.name,
-				slug: leagueData.slug,
-			},
-			season: {
-				id: activeSeason.id,
-				name: activeSeason.name,
-				slug: activeSeason.slug,
-			},
-			players: players.map((p) => ({
-				id: p.id,
-				name: p.name,
-				score: p.score,
-			})),
-		});
-	});
-
-async function resolveLeagueAndMembership(c: Context<EnforcedAuthHonoEnv>) {
+const leagueMemberMiddleware = createMiddleware<LeagueEnv>(async (c, next) => {
 	const db = c.get("db");
 	const userId = c.get("authentication").user.id;
 	const leagueSlug = c.req.param("leagueSlug");
+
+	if (!leagueSlug) {
+		throw new HTTPException(400, { message: "leagueSlug is required" });
+	}
 
 	const leagueData = await db
 		.select({ id: league.id, name: league.name, slug: league.slug })
@@ -184,8 +80,11 @@ async function resolveLeagueAndMembership(c: Context<EnforcedAuthHonoEnv>) {
 
 	const activeSeason = seasons.find((s) => !s.closed) ?? null;
 
-	return { leagueData, activeSeason, userId };
-}
+	c.set("leagueData", leagueData);
+	c.set("activeSeason", activeSeason);
+
+	await next();
+});
 
 function formatSessionState(
 	fullSession: NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>,
@@ -280,11 +179,47 @@ function formatSessionState(
 	};
 }
 
-// Session endpoints
-deviceRouter
-	.get("/leagues/:leagueSlug/session/active", async (c) => {
+const createMatchSchema = z.object({
+	seasonSlug: z.string().min(1),
+	homePlayerNames: z.array(z.string()).min(1),
+	awayPlayerNames: z.array(z.string()).min(1),
+	homeScore: z.number().int().min(0),
+	awayScore: z.number().int().min(0),
+});
+
+// Sub-router for all league-scoped endpoints. E is fixed to LeagueEnv at
+// construction time, keeping chain type inference shallow.
+const leagueRouter = new Hono<LeagueEnv>()
+	.use("*", leagueMemberMiddleware)
+	.get("/context", async (c) => {
 		const db = c.get("db");
-		const { activeSeason } = await resolveLeagueAndMembership(c);
+		const leagueData = c.get("leagueData");
+		const activeSeason = c.get("activeSeason");
+
+		if (!activeSeason) {
+			return c.json({
+				league: { id: leagueData.id, name: leagueData.name, slug: leagueData.slug },
+				season: null,
+				players: [],
+			});
+		}
+
+		const players = await db
+			.select({ id: seasonPlayer.id, name: user.name, score: seasonPlayer.score })
+			.from(seasonPlayer)
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.innerJoin(user, eq(player.userId, user.id))
+			.where(and(eq(seasonPlayer.seasonId, activeSeason.id), eq(seasonPlayer.disabled, false)));
+
+		return c.json({
+			league: { id: leagueData.id, name: leagueData.name, slug: leagueData.slug },
+			season: { id: activeSeason.id, name: activeSeason.name, slug: activeSeason.slug },
+			players: players.map((p) => ({ id: p.id, name: p.name, score: p.score })),
+		});
+	})
+	.get("/session/active", async (c) => {
+		const db = c.get("db");
+		const activeSeason = c.get("activeSeason");
 
 		if (!activeSeason) {
 			return c.json({ session: null });
@@ -301,9 +236,11 @@ deviceRouter
 
 		return c.json(formatSessionState(fullSession, activeSeason.slug));
 	})
-	.post("/leagues/:leagueSlug/session/start-match", async (c) => {
+	.post("/session/start-match", async (c) => {
 		const db = c.get("db");
-		const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
+		const userId = c.get("authentication").user.id;
+		const leagueData = c.get("leagueData");
+		const activeSeason = c.get("activeSeason");
 
 		if (!activeSeason) {
 			throw new HTTPException(400, { message: "No active season" });
@@ -352,305 +289,126 @@ deviceRouter
 
 		return c.json({ success: true, matchNumber: sessionMatch.matchNumber });
 	})
-	.post(
-		"/leagues/:leagueSlug/session/record-result",
-		zValidator(
-			"query",
-			z.object({
+	.post("/session/record-result", async (c) => {
+		const db = c.get("db");
+		const userId = c.get("authentication").user.id;
+		const leagueData = c.get("leagueData");
+		const activeSeason = c.get("activeSeason");
+		const scoreParsed = z
+			.object({
 				homeScore: z.coerce.number().int().min(0).max(99),
 				awayScore: z.coerce.number().int().min(0).max(99),
 			})
-		),
-		async (c) => {
-			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
-			const { homeScore, awayScore } = c.req.valid("query");
+			.safeParse(c.req.query());
+		if (!scoreParsed.success) {
+			throw new HTTPException(400, { message: "Invalid query params" });
+		}
+		const { homeScore, awayScore } = scoreParsed.data;
 
-			if (!activeSeason) {
-				throw new HTTPException(400, { message: "No active season" });
-			}
+		if (!activeSeason) {
+			throw new HTTPException(400, { message: "No active season" });
+		}
 
-			const fullSession = await sessionRepository.getActiveSessionFull({
-				db,
+		const fullSession = await sessionRepository.getActiveSessionFull({
+			db,
+			seasonId: activeSeason.id,
+		});
+
+		if (!fullSession) {
+			throw new HTTPException(400, { message: "No active session" });
+		}
+
+		const sessionMatch = fullSession.matches.find((m) => m.result === null);
+		if (!sessionMatch) {
+			throw new HTTPException(400, { message: "No match in progress" });
+		}
+
+		const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
+		const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
+
+		const result: "home" | "away" | "draw" =
+			homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : "draw";
+
+		const createdMatch = await createMatch({
+			db,
+			input: {
 				seasonId: activeSeason.id,
-			});
+				homeScore,
+				awayScore,
+				homeTeamPlayerIds: homeSeasonPlayerIds,
+				awayTeamPlayerIds: awaySeasonPlayerIds,
+				userId,
+			},
+		});
 
-			if (!fullSession) {
-				throw new HTTPException(400, { message: "No active session" });
-			}
+		await c.env.ACHIEVEMENT_QUEUE.send({
+			seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+		} satisfies AchievementQueueMessage);
 
-			const sessionMatch = fullSession.matches.find((m) => m.result === null);
-			if (!sessionMatch) {
-				throw new HTTPException(400, { message: "No match in progress" });
-			}
-
-			const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
-			const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
-
-			const result: "home" | "away" | "draw" =
-				homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : "draw";
-
-			const createdMatch = await createMatch({
+		const { match: updatedMatch, players: updatedPlayers } =
+			await sessionRepository.recordMatchResult({
 				db,
-				input: {
-					seasonId: activeSeason.id,
-					homeScore,
-					awayScore,
-					homeTeamPlayerIds: homeSeasonPlayerIds,
-					awayTeamPlayerIds: awaySeasonPlayerIds,
-					userId,
-				},
+				sessionId: fullSession.id,
+				sessionMatchId: sessionMatch.id,
+				result,
+				matchId: createdMatch.id,
 			});
 
-			await c.env.ACHIEVEMENT_QUEUE.send({
-				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
-			} satisfies AchievementQueueMessage);
+		const homeSessionPlayerIds = updatedPlayers
+			.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
+			.map((p) => p.id);
+		const awaySessionPlayerIds = updatedPlayers
+			.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
+			.map((p) => p.id);
 
-			const { match: updatedMatch, players: updatedPlayers } =
-				await sessionRepository.recordMatchResult({
+		let proposedLineup = computeNextLineup({
+			mode: fullSession.rotationMode,
+			teamSize: fullSession.teamSize,
+			maxConsecutiveGames: fullSession.maxConsecutiveGames,
+			autoRandomize: fullSession.autoRandomize,
+			alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+			players: updatedPlayers.map((p) => ({
+				id: p.id,
+				seasonPlayerId: p.seasonPlayerId,
+				status: p.status,
+				queuePosition: p.queuePosition,
+				gamesPlayedThisSession: p.gamesPlayedThisSession,
+				consecutiveGames: p.consecutiveGames,
+			})),
+			lastResult: result,
+			homePlayerIds: homeSessionPlayerIds,
+			awayPlayerIds: awaySessionPlayerIds,
+		});
+
+		if (proposedLineup.coinTossNeeded) {
+			const { conflictType, candidates } = proposedLineup.coinTossNeeded;
+
+			if (fullSession.autoCoinToss) {
+				let resolvedWinnerIds: string[];
+				if (conflictType === "draw-tiebreak") {
+					resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
+				} else {
+					const shuffled = [...candidates];
+					for (let i = shuffled.length - 1; i > 0; i--) {
+						const j = Math.floor(Math.random() * (i + 1));
+						[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+					}
+					const winnerCount = Math.ceil(candidates.length / 2);
+					resolvedWinnerIds = shuffled.slice(0, winnerCount);
+				}
+
+				const coinToss = await sessionRepository.createCoinToss({
 					db,
 					sessionId: fullSession.id,
 					sessionMatchId: sessionMatch.id,
-					result,
-					matchId: createdMatch.id,
+					conflictType,
+					candidates,
 				});
-
-			const homeSessionPlayerIds = updatedPlayers
-				.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-			const awaySessionPlayerIds = updatedPlayers
-				.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-
-			let proposedLineup = computeNextLineup({
-				mode: fullSession.rotationMode,
-				teamSize: fullSession.teamSize,
-				maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				autoRandomize: fullSession.autoRandomize,
-				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-				players: updatedPlayers.map((p) => ({
-					id: p.id,
-					seasonPlayerId: p.seasonPlayerId,
-					status: p.status,
-					queuePosition: p.queuePosition,
-					gamesPlayedThisSession: p.gamesPlayedThisSession,
-					consecutiveGames: p.consecutiveGames,
-				})),
-				lastResult: result,
-				homePlayerIds: homeSessionPlayerIds,
-				awayPlayerIds: awaySessionPlayerIds,
-			});
-
-			if (proposedLineup.coinTossNeeded) {
-				const { conflictType, candidates } = proposedLineup.coinTossNeeded;
-
-				if (fullSession.autoCoinToss) {
-					let resolvedWinnerIds: string[];
-					if (conflictType === "draw-tiebreak") {
-						resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
-					} else {
-						const shuffled = [...candidates];
-						for (let i = shuffled.length - 1; i > 0; i--) {
-							const j = Math.floor(Math.random() * (i + 1));
-							[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-						}
-						const winnerCount = Math.ceil(candidates.length / 2);
-						resolvedWinnerIds = shuffled.slice(0, winnerCount);
-					}
-
-					const coinToss = await sessionRepository.createCoinToss({
-						db,
-						sessionId: fullSession.id,
-						sessionMatchId: sessionMatch.id,
-						conflictType,
-						candidates,
-					});
-					await sessionRepository.resolveCoinToss({
-						db,
-						coinTossId: coinToss.id,
-						resolvedWinnerIds,
-					});
-
-					proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						autoRandomize: fullSession.autoRandomize,
-						players: updatedPlayers.map((p) => ({
-							id: p.id,
-							seasonPlayerId: p.seasonPlayerId,
-							status: p.status,
-							queuePosition: p.queuePosition,
-							gamesPlayedThisSession: p.gamesPlayedThisSession,
-							consecutiveGames: p.consecutiveGames,
-						})),
-						lastResult: result,
-						homePlayerIds: homeSessionPlayerIds,
-						awayPlayerIds: awaySeasonPlayerIds,
-						resolvedCoinTossWinnerIds: resolvedWinnerIds,
-					});
-				} else {
-					await sessionRepository.createCoinToss({
-						db,
-						sessionId: fullSession.id,
-						sessionMatchId: sessionMatch.id,
-						conflictType,
-						candidates,
-					});
-				}
-			}
-
-			await sessionRepository.updateProposedLineup({
-				db,
-				sessionId: fullSession.id,
-				proposedLineup,
-			});
-
-			const userName = c.get("authentication").user.name;
-			c.executionCtx.waitUntil(
-				broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-					type: "session:update",
-					data: {
-						sessionId: fullSession.id,
-						match: updatedMatch,
-						players: updatedPlayers,
-						proposedLineup,
-					},
-					user: { id: userId, name: userName },
-				})
-			);
-
-			const [streakPlayers, streakTeams] = await Promise.all([
-				checkStreakThresholds({
+				await sessionRepository.resolveCoinToss({
 					db,
-					seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
-				}),
-				checkTeamStreakThresholds({
-					db,
-					matchId: createdMatch.id,
-				}),
-			]);
-
-			const userInfo = { id: userId, name: userName };
-			const timestamp = Date.now();
-			const streakEvents = [
-				...streakPlayers.map((p) => ({
-					type: "streak" as const,
-					data: {
-						playerId: p.playerId,
-						playerName: p.playerName,
-						playerImage: p.playerImage,
-						streak: p.streak,
-						timestamp,
-					},
-					user: userInfo,
-				})),
-				...streakTeams.map((t) => ({
-					type: "streak" as const,
-					data: {
-						playerId: t.seasonTeamId,
-						playerName: t.teamName,
-						playerImage: t.teamLogo,
-						streak: t.streak,
-						timestamp,
-						isTeam: true,
-					},
-					user: userInfo,
-				})),
-			];
-			await Promise.all(
-				streakEvents.map((event) =>
-					c.executionCtx.waitUntil(
-						broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, event)
-					)
-				)
-			);
-
-			const mergedSession = {
-				...fullSession,
-				players: updatedPlayers.map((p) => ({
-					...p,
-					displayName: fullSession.players.find((fp) => fp.id === p.id)?.displayName ?? "Unknown",
-					playerImage: fullSession.players.find((fp) => fp.id === p.id)?.playerImage ?? null,
-					score: fullSession.players.find((fp) => fp.id === p.id)?.score ?? 0,
-					userId: fullSession.players.find((fp) => fp.id === p.id)?.userId ?? null,
-				})),
-				matches: fullSession.matches.map((m) =>
-					m.id === updatedMatch.id
-						? {
-								...m,
-								...updatedMatch,
-								homePlayerIds: sessionRepository.parseStringArray(updatedMatch.homePlayerIds),
-								awayPlayerIds: sessionRepository.parseStringArray(updatedMatch.awayPlayerIds),
-								selectedHomePlayerIds: sessionRepository.parseStringArray(
-									updatedMatch.selectedHomePlayerIds
-								),
-								selectedAwayPlayerIds: sessionRepository.parseStringArray(
-									updatedMatch.selectedAwayPlayerIds
-								),
-							}
-						: m
-				),
-				proposedLineup,
-			};
-			return c.json(formatSessionState(mergedSession, activeSeason.slug));
-		}
-	)
-	.post(
-		"/leagues/:leagueSlug/session/resolve-coin-toss",
-		zValidator("query", z.object({ coinTossId: z.string(), winnerIds: z.string().min(1) })),
-		async (c) => {
-			const db = c.get("db");
-			const { leagueData, activeSeason, userId } = await resolveLeagueAndMembership(c);
-			const { coinTossId, winnerIds: winnerIdsRaw } = c.req.valid("query");
-			const winnerIds = winnerIdsRaw.split(",");
-
-			if (!activeSeason) {
-				throw new HTTPException(400, { message: "No active season" });
-			}
-
-			const fullSession = await sessionRepository.getActiveSessionFull({
-				db,
-				seasonId: activeSeason.id,
-			});
-
-			if (!fullSession) {
-				throw new HTTPException(400, { message: "No active session" });
-			}
-
-			const coinToss = fullSession.pendingCoinTosses.find((ct) => ct.id === coinTossId);
-
-			if (!coinToss) {
-				throw new HTTPException(404, { message: "Coin toss not found" });
-			}
-
-			if (!winnerIds.every((id) => coinToss.candidates.includes(id))) {
-				throw new HTTPException(400, { message: "Invalid winner IDs" });
-			}
-
-			const resolved = await sessionRepository.resolveCoinToss({
-				db,
-				coinTossId,
-				resolvedWinnerIds: winnerIds,
-			});
-
-			if (!resolved) {
-				throw new HTTPException(404, { message: "Coin toss not found" });
-			}
-
-			const resolvedWinnerIds = resolved.resolvedWinnerIds
-				? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
-				: [];
-
-			const triggeringMatch = resolved.sessionMatchId
-				? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
-				: null;
-
-			let proposedLineup = null;
-			if (triggeringMatch?.result) {
-				const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
-				const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
+					coinTossId: coinToss.id,
+					resolvedWinnerIds,
+				});
 
 				proposedLineup = computeNextLineup({
 					mode: fullSession.rotationMode,
@@ -658,7 +416,7 @@ deviceRouter
 					maxConsecutiveGames: fullSession.maxConsecutiveGames,
 					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 					autoRandomize: fullSession.autoRandomize,
-					players: fullSession.players.map((p) => ({
+					players: updatedPlayers.map((p) => ({
 						id: p.id,
 						seasonPlayerId: p.seasonPlayerId,
 						status: p.status,
@@ -666,90 +424,280 @@ deviceRouter
 						gamesPlayedThisSession: p.gamesPlayedThisSession,
 						consecutiveGames: p.consecutiveGames,
 					})),
-					lastResult: triggeringMatch.result,
-					homePlayerIds: fullSession.players
-						.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
-					awayPlayerIds: fullSession.players
-						.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
+					lastResult: result,
+					homePlayerIds: homeSessionPlayerIds,
+					awayPlayerIds: awaySessionPlayerIds,
 					resolvedCoinTossWinnerIds: resolvedWinnerIds,
 				});
-
-				await sessionRepository.updateProposedLineup({
+			} else {
+				await sessionRepository.createCoinToss({
 					db,
 					sessionId: fullSession.id,
-					proposedLineup,
+					sessionMatchId: sessionMatch.id,
+					conflictType,
+					candidates,
 				});
 			}
-
-			const userName = c.get("authentication").user.name;
-			c.executionCtx.waitUntil(
-				broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
-					type: "session:update",
-					data: {
-						sessionId: fullSession.id,
-						resolvedCoinToss: resolved,
-						proposedLineup,
-					},
-					user: { id: userId, name: userName },
-				})
-			);
-
-			const mergedSession = {
-				...fullSession,
-				pendingCoinTosses: fullSession.pendingCoinTosses.filter((ct) => ct.id !== resolved.id),
-				proposedLineup,
-			};
-			return c.json(formatSessionState(mergedSession, activeSeason.slug));
 		}
-	)
-	.post(
-		"/leagues/:leagueSlug/session/update-score",
-		zValidator(
-			"query",
-			z.object({
+
+		await sessionRepository.updateProposedLineup({
+			db,
+			sessionId: fullSession.id,
+			proposedLineup,
+		});
+
+		const userName = c.get("authentication").user.name;
+		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+			type: "session:update",
+			data: {
+				sessionId: fullSession.id,
+				match: updatedMatch,
+				players: updatedPlayers,
+				proposedLineup,
+			},
+			user: { id: userId, name: userName },
+		});
+
+		const [streakPlayers, streakTeams] = await Promise.all([
+			checkStreakThresholds({
+				db,
+				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+			}),
+			checkTeamStreakThresholds({
+				db,
+				matchId: createdMatch.id,
+			}),
+		]);
+
+		const userInfo = { id: userId, name: userName };
+		const timestamp = Date.now();
+		const streakEvents = [
+			...streakPlayers.map((p) => ({
+				type: "streak" as const,
+				data: {
+					playerId: p.playerId,
+					playerName: p.playerName,
+					playerImage: p.playerImage,
+					streak: p.streak,
+					timestamp,
+				},
+				user: userInfo,
+			})),
+			...streakTeams.map((t) => ({
+				type: "streak" as const,
+				data: {
+					playerId: t.seasonTeamId,
+					playerName: t.teamName,
+					playerImage: t.teamLogo,
+					streak: t.streak,
+					timestamp,
+					isTeam: true,
+				},
+				user: userInfo,
+			})),
+		];
+		await Promise.all(
+			streakEvents.map((event) =>
+				broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, event)
+			)
+		);
+
+		const mergedSession = {
+			...fullSession,
+			players: updatedPlayers.map((p) => ({
+				...p,
+				displayName: fullSession.players.find((fp) => fp.id === p.id)?.displayName ?? "Unknown",
+				playerImage: fullSession.players.find((fp) => fp.id === p.id)?.playerImage ?? null,
+				score: fullSession.players.find((fp) => fp.id === p.id)?.score ?? 0,
+				userId: fullSession.players.find((fp) => fp.id === p.id)?.userId ?? null,
+			})),
+			matches: fullSession.matches.map((m) =>
+				m.id === updatedMatch.id
+					? {
+							...m,
+							...updatedMatch,
+							homePlayerIds: sessionRepository.parseStringArray(updatedMatch.homePlayerIds),
+							awayPlayerIds: sessionRepository.parseStringArray(updatedMatch.awayPlayerIds),
+							selectedHomePlayerIds: sessionRepository.parseStringArray(
+								updatedMatch.selectedHomePlayerIds
+							),
+							selectedAwayPlayerIds: sessionRepository.parseStringArray(
+								updatedMatch.selectedAwayPlayerIds
+							),
+						}
+					: m
+			),
+			proposedLineup,
+		};
+		return c.json(formatSessionState(mergedSession, activeSeason.slug));
+	})
+	.post("/session/resolve-coin-toss", async (c) => {
+		const db = c.get("db");
+		const userId = c.get("authentication").user.id;
+		const leagueData = c.get("leagueData");
+		const activeSeason = c.get("activeSeason");
+		const queryParsed = z
+			.object({ coinTossId: z.string(), winnerIds: z.string().min(1) })
+			.safeParse(c.req.query());
+		if (!queryParsed.success) {
+			throw new HTTPException(400, { message: "Invalid query params" });
+		}
+		const { coinTossId, winnerIds: winnerIdsRaw } = queryParsed.data;
+		const winnerIds = winnerIdsRaw.split(",");
+
+		if (!activeSeason) {
+			throw new HTTPException(400, { message: "No active season" });
+		}
+
+		const fullSession = await sessionRepository.getActiveSessionFull({
+			db,
+			seasonId: activeSeason.id,
+		});
+
+		if (!fullSession) {
+			throw new HTTPException(400, { message: "No active session" });
+		}
+
+		const coinToss = fullSession.pendingCoinTosses.find((ct) => ct.id === coinTossId);
+
+		if (!coinToss) {
+			throw new HTTPException(404, { message: "Coin toss not found" });
+		}
+
+		if (!winnerIds.every((id) => coinToss.candidates.includes(id))) {
+			throw new HTTPException(400, { message: "Invalid winner IDs" });
+		}
+
+		const resolved = await sessionRepository.resolveCoinToss({
+			db,
+			coinTossId,
+			resolvedWinnerIds: winnerIds,
+		});
+
+		if (!resolved) {
+			throw new HTTPException(404, { message: "Coin toss not found" });
+		}
+
+		const resolvedWinnerIds = resolved.resolvedWinnerIds
+			? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
+			: [];
+
+		const triggeringMatch = resolved.sessionMatchId
+			? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
+			: null;
+
+		let proposedLineup = null;
+		if (triggeringMatch?.result) {
+			const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
+			const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
+
+			proposedLineup = computeNextLineup({
+				mode: fullSession.rotationMode,
+				teamSize: fullSession.teamSize,
+				maxConsecutiveGames: fullSession.maxConsecutiveGames,
+				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+				autoRandomize: fullSession.autoRandomize,
+				players: fullSession.players.map((p) => ({
+					id: p.id,
+					seasonPlayerId: p.seasonPlayerId,
+					status: p.status,
+					queuePosition: p.queuePosition,
+					gamesPlayedThisSession: p.gamesPlayedThisSession,
+					consecutiveGames: p.consecutiveGames,
+				})),
+				lastResult: triggeringMatch.result,
+				homePlayerIds: fullSession.players
+					.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
+					.map((p) => p.id),
+				awayPlayerIds: fullSession.players
+					.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
+					.map((p) => p.id),
+				resolvedCoinTossWinnerIds: resolvedWinnerIds,
+			});
+
+			await sessionRepository.updateProposedLineup({
+				db,
+				sessionId: fullSession.id,
+				proposedLineup,
+			});
+		}
+
+		const userName = c.get("authentication").user.name;
+		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+			type: "session:update",
+			data: {
+				sessionId: fullSession.id,
+				resolvedCoinToss: resolved,
+				proposedLineup,
+			},
+			user: { id: userId, name: userName },
+		});
+
+		const mergedSession = {
+			...fullSession,
+			pendingCoinTosses: fullSession.pendingCoinTosses.filter((ct) => ct.id !== resolved.id),
+			proposedLineup,
+		};
+		return c.json(formatSessionState(mergedSession, activeSeason.slug));
+	})
+	.post("/session/update-score", async (c) => {
+		const db = c.get("db");
+		const userId = c.get("authentication").user.id;
+		const leagueData = c.get("leagueData");
+		const activeSeason = c.get("activeSeason");
+		const scoreParsed = z
+			.object({
 				homeScore: z.coerce.number().int().min(0).max(99),
 				awayScore: z.coerce.number().int().min(0).max(99),
 			})
-		),
-		async (c) => {
-			const db = c.get("db");
-			const { activeSeason } = await resolveLeagueAndMembership(c);
-			const { homeScore, awayScore } = c.req.valid("query");
+			.safeParse(c.req.query());
+		if (!scoreParsed.success) {
+			throw new HTTPException(400, { message: "Invalid query params" });
+		}
+		const { homeScore, awayScore } = scoreParsed.data;
 
-			if (!activeSeason) {
-				throw new HTTPException(400, { message: "No active season" });
-			}
+		if (!activeSeason) {
+			throw new HTTPException(400, { message: "No active season" });
+		}
 
-			const fullSession = await sessionRepository.getActiveSessionFull({
-				db,
-				seasonId: activeSeason.id,
-			});
+		const fullSession = await sessionRepository.getActiveSessionFull({
+			db,
+			seasonId: activeSeason.id,
+		});
 
-			if (!fullSession) {
-				throw new HTTPException(400, { message: "No active session" });
-			}
+		if (!fullSession) {
+			throw new HTTPException(400, { message: "No active session" });
+		}
 
-			const sessionMatch = fullSession.matches.find((m) => m.result === null);
-			if (!sessionMatch) {
-				throw new HTTPException(400, { message: "No match in progress" });
-			}
+		const sessionMatch = fullSession.matches.find((m) => m.result === null);
+		if (!sessionMatch) {
+			throw new HTTPException(400, { message: "No match in progress" });
+		}
 
-			await sessionRepository.updateMatchScore({
-				db,
+		await sessionRepository.updateMatchScore({
+			db,
+			sessionId: fullSession.id,
+			sessionMatchId: sessionMatch.id,
+			homeScore,
+			awayScore,
+		});
+
+		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
+			type: "session:score-update",
+			data: {
 				sessionId: fullSession.id,
 				sessionMatchId: sessionMatch.id,
 				homeScore,
 				awayScore,
-			});
+			},
+			user: { id: userId, name: c.get("authentication").user.name },
+		});
 
-			return c.json({ success: true });
-		}
-	)
-	.post("/leagues/:leagueSlug/session/shuffle-lineup", async (c) => {
+		return c.json({ success: true });
+	})
+	.post("/session/shuffle-lineup", async (c) => {
 		const db = c.get("db");
-		const { activeSeason } = await resolveLeagueAndMembership(c);
+		const activeSeason = c.get("activeSeason");
 
 		if (!activeSeason) {
 			throw new HTTPException(400, { message: "No active season" });
@@ -809,47 +757,16 @@ deviceRouter
 		}
 
 		return c.json(formatSessionState(refreshedSession, activeSeason.slug));
-	});
-
-const createMatchSchema = z.object({
-	seasonSlug: z.string().min(1),
-	homePlayerNames: z.array(z.string()).min(1),
-	awayPlayerNames: z.array(z.string()).min(1),
-	homeScore: z.number().int().min(0),
-	awayScore: z.number().int().min(0),
-});
-
-deviceRouter.post(
-	"/leagues/:leagueSlug/matches",
-	zValidator("json", createMatchSchema),
-	async (c) => {
+	})
+	.post("/matches", async (c) => {
 		const db = c.get("db");
 		const userId = c.get("authentication").user.id;
-		const { leagueSlug } = c.req.param();
-
-		// Verify user is a member of this league
-		const leagueData = await db
-			.select({ id: league.id })
-			.from(league)
-			.where(eq(league.slug, leagueSlug))
-			.get();
-
-		if (!leagueData) {
-			return c.json({ error: "League not found" }, 404);
+		const leagueData = c.get("leagueData");
+		const bodyParsed = createMatchSchema.safeParse(await c.req.json());
+		if (!bodyParsed.success) {
+			throw new HTTPException(400, { message: "Invalid request body" });
 		}
-
-		const memberData = await db
-			.select({ id: member.id })
-			.from(member)
-			.where(and(eq(member.organizationId, leagueData.id), eq(member.userId, userId)))
-			.get();
-
-		if (!memberData) {
-			return c.json({ error: "Not a member of this league" }, 403);
-		}
-
-		const { seasonSlug, homePlayerNames, awayPlayerNames, homeScore, awayScore } =
-			c.req.valid("json");
+		const { seasonSlug, homePlayerNames, awayPlayerNames, homeScore, awayScore } = bodyParsed.data;
 
 		const seasonData = await db
 			.select({ id: season.id, closed: season.closed })
@@ -865,18 +782,13 @@ deviceRouter.post(
 			return c.json({ error: "Season is closed" }, 400);
 		}
 
-		// Get all active players in the season for name matching
 		const players = await db
-			.select({
-				id: seasonPlayer.id,
-				name: user.name,
-			})
+			.select({ id: seasonPlayer.id, name: user.name })
 			.from(seasonPlayer)
 			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
 			.innerJoin(user, eq(player.userId, user.id))
 			.where(and(eq(seasonPlayer.seasonId, seasonData.id), eq(seasonPlayer.disabled, false)));
 
-		// Match player names to season player IDs (voice input may be fuzzy)
 		const matchPlayersByName = (names: string[]) => {
 			const matched: { id: string; name: string; originalName: string }[] = [];
 			const unmatched: string[] = [];
@@ -936,7 +848,6 @@ deviceRouter.post(
 			return c.json({ error: "Teams must have equal number of players" }, 400);
 		}
 
-		// Uses shared match-repository.create - same logic as tRPC match.create
 		const match = await createMatch({
 			db,
 			input: {
@@ -949,7 +860,6 @@ deviceRouter.post(
 			},
 		});
 
-		// Dispatch achievement calculation
 		const seasonPlayerIds = [...homeTeamPlayerIds, ...awayTeamPlayerIds];
 		await c.env.ACHIEVEMENT_QUEUE.send({
 			seasonPlayerIds,
@@ -966,7 +876,51 @@ deviceRouter.post(
 				createdAt: match.createdAt.toISOString(),
 			},
 		});
-	}
-);
+	});
+
+const deviceRouter = new Hono<EnforcedAuthHonoEnv>()
+	.use("*", async (c, next) => {
+		const betterAuth = c.get("betterAuth");
+		const apiKey = c.req.header("x-api-key");
+
+		if (!apiKey) {
+			throw new HTTPException(401, { message: "Missing API key" });
+		}
+
+		let session;
+		try {
+			session = await betterAuth.api.getSession({
+				headers: new Headers({ "x-api-key": apiKey }),
+			});
+		} catch {
+			throw new HTTPException(401, { message: "Invalid API key" });
+		}
+
+		if (!session) {
+			throw new HTTPException(401, { message: "Invalid API key" });
+		}
+
+		c.set("authentication", session as AuthType);
+
+		await next();
+	})
+	.get("/leagues", async (c) => {
+		const db = c.get("db");
+		const userId = c.get("authentication").user.id;
+
+		const userLeagues = await db
+			.select({
+				id: league.id,
+				name: league.name,
+				slug: league.slug,
+				logo: league.logo,
+			})
+			.from(member)
+			.innerJoin(league, eq(member.organizationId, league.id))
+			.where(eq(member.userId, userId));
+
+		return c.json({ leagues: userLeagues });
+	})
+	.route("/leagues/:leagueSlug", leagueRouter);
 
 export { deviceRouter };
