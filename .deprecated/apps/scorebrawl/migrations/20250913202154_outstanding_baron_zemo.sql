@@ -1,1 +1,0 @@
-ALTER TABLE "season" ADD COLUMN "closed" boolean DEFAULT false NOT NULL;
