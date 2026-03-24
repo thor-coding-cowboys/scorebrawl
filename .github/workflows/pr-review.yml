@@ -25,6 +25,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          model: openai/gpt-4o-mini
           use_github_token: true
           prompt: |
             Review this pull request:
