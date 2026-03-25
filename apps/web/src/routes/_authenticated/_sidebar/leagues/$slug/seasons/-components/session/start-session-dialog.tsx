@@ -36,7 +36,7 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "round-robin" | "manual";
+type RotationMode = "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
 
 interface DialogState {
 	rotationMode: RotationMode;
@@ -219,13 +219,16 @@ export function StartSessionDialog({
 						<SelectValue>
 							{state.rotationMode === "winner-stays"
 								? "Winner Stays"
-								: state.rotationMode === "round-robin"
-									? "Round Robin"
-									: "Manual"}
+								: state.rotationMode === "winner-stays-hard"
+									? "Winner Stays (Hard)"
+									: state.rotationMode === "round-robin"
+										? "Round Robin"
+										: "Manual"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="winner-stays">Winner Stays</SelectItem>
+						<SelectItem value="winner-stays-hard">Winner Stays (Hard)</SelectItem>
 						<SelectItem value="round-robin">Round Robin</SelectItem>
 						<SelectItem value="manual">Manual</SelectItem>
 					</SelectContent>

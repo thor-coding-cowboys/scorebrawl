@@ -24,6 +24,8 @@ export function rotationLabel(mode: string): string {
 	switch (mode) {
 		case "winner-stays":
 			return "Winner Stays";
+		case "winner-stays-hard":
+			return "Winner Stays (Hard)";
 		case "round-robin":
 			return "Round Robin";
 		case "manual":

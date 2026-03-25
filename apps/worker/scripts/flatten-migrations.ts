@@ -12,26 +12,27 @@ const getMigrationsDir = () => {
 };
 
 const migrationsDir = getMigrationsDir();
-// Get all migration folders (sorted by timestamp)
 const folders = readdirSync(migrationsDir, { withFileTypes: true })
 	.filter((dirent) => dirent.isDirectory())
 	.map((dirent) => dirent.name)
 	.sort();
 
-console.log(`Found ${folders.length} migration folders`);
+const validMigrations = folders.filter((f) => existsSync(join(migrationsDir, f, "migration.sql")));
 
-// Flatten each migration
-folders.forEach((folder, index) => {
+console.log(
+	`Found ${folders.length} migration folders (${validMigrations.length} with migration.sql)`
+);
+
+validMigrations.forEach((folder, index) => {
 	const sqlPath = join(migrationsDir, folder, "migration.sql");
-
-	if (!existsSync(sqlPath)) {
-		console.log(`⚠️  Skipping ${folder} - no migration.sql found`);
-		return;
-	}
-
 	const sql = readFileSync(sqlPath, "utf-8");
 	const paddedIndex = String(index).padStart(4, "0");
 	const outputPath = join(migrationsDir, `${paddedIndex}_${folder}.sql`);
+
+	if (existsSync(outputPath)) {
+		console.log(`⏭️  Skipped ${outputPath} - already exists`);
+		return;
+	}
 
 	writeFileSync(outputPath, sql);
 	console.log(`✅ Created ${outputPath}`);

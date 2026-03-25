@@ -114,7 +114,7 @@ export const createSession = async ({
 	db: DrizzleDB;
 	seasonId: string;
 	createdBy: string;
-	rotationMode: "winner-stays" | "round-robin" | "manual";
+	rotationMode: "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
 	teamSize: number;
 	maxConsecutiveGames: number | null;
 	alwaysSplitConstraints: [string, string][];
