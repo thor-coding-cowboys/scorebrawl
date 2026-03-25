@@ -1,4 +1,4 @@
-export type RotationMode = "winner-stays" | "round-robin" | "manual";
+export type RotationMode = "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
 
 export interface SessionPlayerState {
 	id: string;
@@ -228,8 +228,8 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 
 	const winnersOnHome = homePlayerIds.includes(winnerIds[0] ?? "");
 
-	// ── Special: waiters >= playing → all rotate out ──
-	if (slotsToFill >= totalPlaying) {
+	// ── Special: waiters >= playing → all rotate out (winner-stays-hard uses different logic) ──
+	if (slotsToFill >= totalPlaying && mode !== "winner-stays-hard") {
 		const incoming = autoRandomize
 			? fisherYatesShuffle(waitingQueue.slice(0, teamSize * 2).map((p) => p.id))
 			: waitingQueue.slice(0, teamSize * 2).map((p) => p.id);
@@ -241,6 +241,45 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 			homePlayerIds: constrained.homeIds,
 			awayPlayerIds: constrained.awayIds,
 			rotatedOut: allPlayingIds,
+			coinTossNeeded: null,
+		};
+	}
+
+	// ── winner-stays-hard: winners stay, losers rotate out, queue fills ──
+	if (mode === "winner-stays-hard" && slotsToFill >= totalPlaying) {
+		const incoming = autoRandomize
+			? fisherYatesShuffle(waitingQueue.slice(0, totalPlaying).map((p) => p.id))
+			: waitingQueue.slice(0, totalPlaying).map((p) => p.id);
+
+		const winnerTeam = winnersOnHome
+			? [...winnerIds]
+			: incoming.slice(0, Math.min(winnerIds.length, totalPlaying));
+		const loserTeam = winnersOnHome
+			? incoming.slice(0, Math.min(loserIds.length, totalPlaying))
+			: [...loserIds];
+
+		const rotatedOut = loserIds;
+
+		if (autoRandomize) {
+			const allFilling = fisherYatesShuffle([...winnerTeam, ...loserTeam]);
+			const newHome = allFilling.slice(0, teamSize);
+			const newAway = allFilling.slice(teamSize, teamSize * 2);
+			const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
+			return {
+				homePlayerIds: constrained.homeIds,
+				awayPlayerIds: constrained.awayIds,
+				rotatedOut,
+				coinTossNeeded: null,
+			};
+		}
+
+		const finalHome = winnersOnHome ? winnerTeam : loserTeam;
+		const finalAway = winnersOnHome ? loserTeam : winnerTeam;
+		const constrained = enforceAlwaysSplit(finalHome, finalAway, alwaysSplitConstraints, players);
+		return {
+			homePlayerIds: constrained.homeIds,
+			awayPlayerIds: constrained.awayIds,
+			rotatedOut,
 			coinTossNeeded: null,
 		};
 	}
