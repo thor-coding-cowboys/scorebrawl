@@ -277,7 +277,6 @@ export const gameSession = sqliteTable(
 		rotationMode: text("rotation_mode", {
 			enum: ["winner-stays", "winner-stays-hard", "round-robin", "manual"],
 		}).notNull(),
-		asdf: integer("asdf"),
 		teamSize: integer("team_size").notNull(),
 		maxConsecutiveGames: integer("max_consecutive_games"),
 		alwaysSplitConstraints: text("always_split_constraints"),
