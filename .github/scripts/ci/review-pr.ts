@@ -23,109 +23,44 @@ async function getPrDiff(): Promise<string> {
 	}
 }
 
-const REVIEW_PROMPT = `Review this PR diff and provide structured feedback.
+const REVIEW_PROMPT = `Review this PR diff for a Cloudflare Worker + TanStack Router monorepo (Bun runtime).
 
-## What to Review
-
-**Block merge for:**
-- Bugs that will cause runtime failures
-- Security vulnerabilities
-- Data loss or corruption risks
-- Logic errors producing incorrect results
-- N+1 queries (critical for Cloudflare Workers)
-- Missing tRPC procedure auth checks when they should exist
-- Missing Hono route validation with @hono/zod-validator
-- TanStack Router file organization issues (routes without prefix, non-routes with - prefix)
+## Block merge for
+- Runtime bugs, security vulnerabilities, data loss risks, logic errors
+- N+1 queries — Cloudflare Workers have strict CPU limits; always use joins/subqueries
+- Redundant auth checks in tRPC: protectedProcedure/activeOrgProcedure already guarantee user — never re-check
+- Missing @hono/zod-validator validation on Hono routes (json/query/header/param)
 - @ts-expect-error or @ts-ignore usage
-- Missing catalog usage for workspace dependencies
+- Workspace dependencies not using catalog (must be "catalog:" in package.json)
+- TanStack Router violations: non-route files in routes/ without "-" prefix, or route files incorrectly prefixed
+- Using npm/yarn/pnpm instead of bun; running \`bun test\` instead of \`bun run test\`; running \`bun deploy\`
 
-**Flag but don't block:**
+## Flag but don't block
 - Missing error handling for likely cases
-- Test coverage gaps
-- Performance concerns
+- Test coverage gaps for new tRPC routes
+- Performance concerns outside CPU-limit risk
 
-**Skip entirely:**
-- Style nitpicks (leave to linters)
-- Subjective preferences
-- Theoretical edge cases
+## Skip entirely
+- Style/formatting (leave to oxlint/oxfmt)
+- Subjective preferences, theoretical edge cases
 
-## Review Checklist
+## Comment style
+Write like a helpful colleague. One sentence max. Question format for suggestions.
+- Good: "Is this leftover?" / "Should this be async?" / "Read from env?"
+- Bad: multi-paragraph, severity tags, restating what code does before critiquing
+- Never flag dollar-sign backtick as incorrect — that is valid Bun shell syntax
 
-**Code Quality:**
-- Clean separation of concerns?
-- Proper error handling?
-- Type safety (if applicable)?
-- DRY principle followed?
-- Edge cases handled?
-
-**Architecture:**
-- Sound design decisions?
-- Scalability considerations?
-- Performance implications?
-- Security concerns?
-
-**Testing:**
-- Tests actually test logic (not mocks)?
-- Edge cases covered?
-- Integration tests where needed?
-- All tests passing?
-
-**Requirements:**
-- All plan requirements met?
-- Implementation matches spec?
-- No scope creep?
-- Breaking changes documented?
-
-**Production Readiness:**
-- Migration strategy (if schema changes)?
-- Backward compatibility considered?
-- Documentation complete?
-- No obvious bugs?
-
-## Comment Style
-
-Write like a helpful colleague, not a linter. Keep comments brief.
-
-Good examples:
-- Is this leftover?
-- Read from env?
-- Should this be async?
-- No need for this if X.
-
-Bad examples:
-- Multi-paragraph explanations
-- **[SEVERITY]** Title format
-- Restating what the code does before critiquing
-
-Rules:
-- One sentence max for simple issues
-- Question format when suggesting: Should this be X?
-- No severity tags
-- Ask, don't tell when it's not a clear bug
-
-## Critical Rules
-
-**DO:**
-- Categorize by actual severity (not everything is Critical)
-- Be specific (file:line, not vague)
-- Explain WHY issues matter
-- Acknowledge strengths
-- Give clear verdict
-
-**DON'T:**
-- Say "looks good" without checking
-- Mark nitpicks as Critical
-- Give feedback on code you didn't review
-- Be vague ("improve error handling")
-- Avoid giving a clear verdict
-- Flag shell template literal syntax as incorrect - dollar-sign followed by backtick is valid Bun syntax for shell execution
+## Rules
+- Be specific (file:line)
+- Only give a verdict on code you actually reviewed
+- Not everything is blocking — categorize honestly
 
 PR Diff:
 \`\`\`diff
 {{DIFF}}
 \`\`\`
 
-Provide your review as JSON matching the schema. For comments, use the line number from the new version of the file (the + lines in the diff).`;
+Respond as JSON matching the schema. Use line numbers from the new file version (the + lines).`;
 
 async function main() {
 	try {

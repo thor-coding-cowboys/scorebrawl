@@ -30,7 +30,8 @@ try {
 		const output = `should_review=${shouldReview}\n`;
 		await Bun.write(process.env.GITHUB_OUTPUT, output);
 	}
-} catch {
+} catch (e) {
+	console.error("Failed to check review status, defaulting to should_review=true:", e);
 	console.log("should_review=true");
 	if (process.env.GITHUB_OUTPUT) {
 		await Bun.write(process.env.GITHUB_OUTPUT, "should_review=true\n");
