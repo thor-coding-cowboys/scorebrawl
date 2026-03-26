@@ -24,6 +24,10 @@ class SessionView extends WatchUi.View {
     }
 
     function onHide() as Void {
+        stopTimer();
+    }
+
+    function stopTimer() as Void {
         if (_timer != null) {
             _timer.stop();
             _timer = null;
