@@ -1,0 +1,75 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-slim
+    continue-on-error: true
+
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: 🔐 Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ secrets.GH_AGENT_APP_ID }}
+          private-key: ${{ secrets.GH_AGENT_PRIVATE_KEY }}
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: 🔍 Check review status
+        id: check
+        if: github.event.action == 'synchronize'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: bun run .github/scripts/ci/check-review-status.ts ${{ github.event.pull_request.number }}
+
+      - name: 📦 Install dependencies
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: 🔧 Install OpenCode CLI
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: 🤖 Review PR
+        id: opencode
+        if: github.event.action != 'synchronize' || steps.check.outputs.should_review == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: bun run .github/scripts/ci/review-pr.ts ${{ github.event.pull_request.number }}
+
+      - name: 📝 Submit review
+        if: steps.opencode.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          STRUCTURED_OUTPUT: ${{ steps.opencode.outputs.structured_output }}
+        run: |
+          echo "$STRUCTURED_OUTPUT" > /tmp/review-output.json
+          bun run .github/scripts/ci/submit-pr-review.ts /tmp/review-output.json
