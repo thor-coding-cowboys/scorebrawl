@@ -17,10 +17,11 @@ if (!apiToken || !accountId) {
 	process.exit(1);
 }
 
-const queueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const achievementQueueName = `scorebrawl-achievement-calculations-pr-${prNumber}`;
+const seedQueueName = `scorebrawl-seed-queue-pr-${prNumber}`;
 const workerName = `scorebrawl-pr-${prNumber}`;
 
-try {
+async function removeConsumer(queueName: string): Promise<void> {
 	const cloudflare = new Cloudflare({ apiToken });
 
 	// Check if queue exists
@@ -39,6 +40,11 @@ try {
 	} else {
 		console.log(`Queue not found: ${queueName}`);
 	}
+}
+
+try {
+	await removeConsumer(achievementQueueName);
+	await removeConsumer(seedQueueName);
 } catch (error) {
 	console.log("Failed to remove queue consumer:", error);
 	process.exit(0);
