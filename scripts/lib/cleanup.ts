@@ -64,8 +64,8 @@ async function listQueues(): Promise<string[]> {
 		// Format: │ id │ name │ created_on │ modified_on │ producers │ consumers │
 		const queues: string[] = [];
 		for (const line of output.split("\n")) {
-			// Skip header, footer, and separator lines
-			if (!line.includes("│") || (line.includes("id") && line.includes("name"))) {
+			// Skip lines without table separators
+			if (!line.includes("│")) {
 				continue;
 			}
 
@@ -76,10 +76,7 @@ async function listQueues(): Promise<string[]> {
 				.filter((p) => p.length > 0);
 			if (parts.length >= 2) {
 				const queueName = parts[1];
-				// Only include actual queue names (not headers)
-				if (queueName && !queueName.includes("-") && !queueName.includes("name")) {
-					queues.push(queueName);
-				}
+				// Include scorebrawl queue names (preview queues have dashes)
 				if (queueName?.startsWith("scorebrawl")) {
 					queues.push(queueName);
 				}
@@ -96,6 +93,7 @@ async function listQueues(): Promise<string[]> {
 
 /**
  * List R2 buckets using wrangler CLI
+ * Parses output format: name: <bucket-name>
  */
 async function listR2Buckets(): Promise<string[]> {
 	try {
@@ -104,10 +102,20 @@ async function listR2Buckets(): Promise<string[]> {
 		debug("R2 buckets list output:", output);
 
 		// Parse bucket names from output
-		return output
-			.split("\n")
-			.map((line) => line.trim())
-			.filter((line) => line.length > 0);
+		// Format: name:           scorebrawl-user-assets
+		const buckets: string[] = [];
+		for (const line of output.split("\n")) {
+			const trimmed = line.trim();
+			if (trimmed.startsWith("name:")) {
+				const bucketName = trimmed.replace(/^name:\s*/, "").trim();
+				if (bucketName) {
+					buckets.push(bucketName);
+				}
+			}
+		}
+
+		debug("Parsed buckets:", buckets);
+		return buckets;
 	} catch (error) {
 		debug("Error listing R2 buckets:", error);
 		return [];
@@ -218,7 +226,7 @@ export async function deleteQueue(queueName: string): Promise<CleanupResult> {
 
 		if (queueExists) {
 			debug(`Deleting queue ${queueName}...`);
-			const cmd = $`bun wrangler queues delete ${queueName}`;
+			const cmd = $`bun wrangler queues delete ${queueName} --force`;
 			if (!debugMode) {
 				cmd.quiet();
 			}
