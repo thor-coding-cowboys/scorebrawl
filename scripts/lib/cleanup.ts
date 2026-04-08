@@ -172,14 +172,12 @@ export function validateSafetyCheck(
 	];
 	if (achievementQueueName && mainQueues.includes(achievementQueueName)) {
 		throw new Error(
-			`SAFETY CHECK FAILED: Cannot delete the main '${achievementQueueName}' queue! " +
-				"This script is for preview environments only (scorebrawl-*-pr-{N})`
+			`SAFETY CHECK FAILED: Cannot delete the main '${achievementQueueName}' queue! This script is for preview environments only (scorebrawl-*-pr-{N})`
 		);
 	}
 	if (seedQueueName && mainQueues.includes(seedQueueName)) {
 		throw new Error(
-			`SAFETY CHECK FAILED: Cannot delete the main '${seedQueueName}' queue! " +
-				"This script is for preview environments only (scorebrawl-*-pr-{N})`
+			`SAFETY CHECK FAILED: Cannot delete the main '${seedQueueName}' queue! This script is for preview environments only (scorebrawl-*-pr-{N})`
 		);
 	}
 }
