@@ -137,12 +137,49 @@ export function getResourceNames(prNumber: string) {
 
 /**
  * SAFETY CHECK: Validate that we're not trying to delete production resources
+ * Only preview resources (ending with -pr-{number}) can be deleted
  */
-export function validateSafetyCheck(workerName: string): void {
+export function validateSafetyCheck(
+	workerName: string,
+	bucketName?: string,
+	dbName?: string,
+	achievementQueueName?: string,
+	seedQueueName?: string
+): void {
 	if (workerName === "scorebrawl") {
 		throw new Error(
 			"SAFETY CHECK FAILED: Cannot delete the main 'scorebrawl' worker! " +
 				"This script is for preview environments only (scorebrawl-pr-{N})"
+		);
+	}
+	if (bucketName === "scorebrawl-user-assets") {
+		throw new Error(
+			"SAFETY CHECK FAILED: Cannot delete the main 'scorebrawl-user-assets' bucket! " +
+				"This script is for preview environments only (scorebrawl-user-assets-pr-{N})"
+		);
+	}
+	if (dbName === "scorebrawl") {
+		throw new Error(
+			"SAFETY CHECK FAILED: Cannot delete the main 'scorebrawl' database! " +
+				"This script is for preview environments only (scorebrawl-db-pr-{N})"
+		);
+	}
+	// Check for main queues (not preview ones)
+	const mainQueues = [
+		"achievement-calculations",
+		"scorebrawl-achievement-calculations",
+		"scorebrawl-seed-queue",
+	];
+	if (achievementQueueName && mainQueues.includes(achievementQueueName)) {
+		throw new Error(
+			`SAFETY CHECK FAILED: Cannot delete the main '${achievementQueueName}' queue! " +
+				"This script is for preview environments only (scorebrawl-*-pr-{N})`
+		);
+	}
+	if (seedQueueName && mainQueues.includes(seedQueueName)) {
+		throw new Error(
+			`SAFETY CHECK FAILED: Cannot delete the main '${seedQueueName}' queue! " +
+				"This script is for preview environments only (scorebrawl-*-pr-{N})`
 		);
 	}
 }
@@ -331,8 +368,14 @@ export async function runCleanup(config: CleanupConfig): Promise<CleanupResult[]
 	const names = getResourceNames(prNumber);
 	const results: CleanupResult[] = [];
 
-	// Safety check
-	validateSafetyCheck(names.workerName);
+	// Safety check - validate all resource names to prevent deletion of production resources
+	validateSafetyCheck(
+		names.workerName,
+		names.bucketName,
+		names.dbName,
+		names.achievementQueueName,
+		names.seedQueueName
+	);
 
 	// For logging purposes, show account info if we can get it
 	const accountId = config.accountId ?? (await getAccountIdFromWrangler());
