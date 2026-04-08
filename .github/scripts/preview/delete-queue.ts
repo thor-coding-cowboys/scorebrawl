@@ -20,7 +20,7 @@ try {
 	console.log(`${result1.step}: ${result1.status === "success" ? "Deleted" : result1.message}`);
 
 	const result2 = await deleteQueue(names.seedQueueName);
-	console.log(`${result2.step}: ${result2.status === "success" ? "Deleted" : result1.message}`);
+	console.log(`${result2.step}: ${result2.status === "success" ? "Deleted" : result2.message}`);
 } catch {
 	console.log("Failed to delete queues, assuming they don't exist");
 }

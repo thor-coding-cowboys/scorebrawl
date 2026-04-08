@@ -37,7 +37,9 @@ const prNumber = prNumberArg;
 console.log(`🧹 Cleaning up preview environment for PR #${prNumber}`);
 console.log(`   Worker: scorebrawl-pr-${prNumber}`);
 console.log(`   Database: scorebrawl-db-pr-${prNumber}`);
-console.log(`   Queues: scorebrawl-achievement-calculations-pr-${prNumber}, scorebrawl-seed-queue-pr-${prNumber}`);
+console.log(
+	`   Queues: scorebrawl-achievement-calculations-pr-${prNumber}, scorebrawl-seed-queue-pr-${prNumber}`
+);
 console.log(`   R2 Bucket: scorebrawl-user-assets-pr-${prNumber}`);
 console.log("");
 

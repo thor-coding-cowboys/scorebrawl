@@ -65,12 +65,15 @@ async function listQueues(): Promise<string[]> {
 		const queues: string[] = [];
 		for (const line of output.split("\n")) {
 			// Skip header, footer, and separator lines
-			if (!line.includes("│") || line.includes("id") && line.includes("name")) {
+			if (!line.includes("│") || (line.includes("id") && line.includes("name"))) {
 				continue;
 			}
 
 			// Split by │ and extract the name (second column)
-			const parts = line.split("│").map((p) => p.trim()).filter((p) => p.length > 0);
+			const parts = line
+				.split("│")
+				.map((p) => p.trim())
+				.filter((p) => p.length > 0);
 			if (parts.length >= 2) {
 				const queueName = parts[1];
 				// Only include actual queue names (not headers)
