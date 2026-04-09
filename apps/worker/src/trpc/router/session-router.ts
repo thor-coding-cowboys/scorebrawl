@@ -223,17 +223,22 @@ export const sessionRouter = {
 			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
 				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
 				if (lastMatch?.result) {
-					let proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						autoRandomize: fullSession.autoRandomize,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						players: fullSession.players,
-						lastResult: lastMatch.result,
-						homePlayerIds: lastMatch.homePlayerIds,
-						awayPlayerIds: lastMatch.awayPlayerIds,
-					});
+				let proposedLineup = computeNextLineup({
+					mode: fullSession.rotationMode,
+					teamSize: fullSession.teamSize,
+					maxConsecutiveGames: fullSession.maxConsecutiveGames,
+					autoRandomize: fullSession.autoRandomize,
+					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+					players: fullSession.players,
+					lastResult: lastMatch.result,
+					homePlayerIds: lastMatch.homePlayerIds,
+					awayPlayerIds: lastMatch.awayPlayerIds,
+					randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+					matchHistory: fullSession.matches.map((m) => ({
+						homePlayerIds: m.homePlayerIds,
+						awayPlayerIds: m.awayPlayerIds,
+					})),
+				});
 
 					if (fullSession.proposedLineup) {
 						const removedSessionPlayerId = removedPlayer.id;
@@ -409,6 +414,11 @@ export const sessionRouter = {
 				lastResult: result,
 				homePlayerIds: homeSessionPlayerIds,
 				awayPlayerIds: awaySessionPlayerIds,
+				randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+				matchHistory: fullSession.matches.map((m) => ({
+					homePlayerIds: m.homePlayerIds,
+					awayPlayerIds: m.awayPlayerIds,
+				})),
 			});
 
 			let coinTossId: string | null = null;
@@ -467,6 +477,11 @@ export const sessionRouter = {
 						homePlayerIds: homeSessionPlayerIds,
 						awayPlayerIds: awaySessionPlayerIds,
 						resolvedCoinTossWinnerIds: resolvedWinnerIds,
+						randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+						matchHistory: fullSession.matches.map((m) => ({
+							homePlayerIds: m.homePlayerIds,
+							awayPlayerIds: m.awayPlayerIds,
+						})),
 					});
 
 					const winnerNames = resolvedWinnerIds
@@ -640,6 +655,11 @@ export const sessionRouter = {
 						.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
 						.map((p) => p.id),
 					resolvedCoinTossWinnerIds: resolvedWinnerIds,
+					randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+					matchHistory: fullSession.matches.map((m) => ({
+						homePlayerIds: m.homePlayerIds,
+						awayPlayerIds: m.awayPlayerIds,
+					})),
 				});
 			}
 

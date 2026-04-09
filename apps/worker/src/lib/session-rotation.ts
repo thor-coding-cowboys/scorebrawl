@@ -24,6 +24,8 @@ export interface RotationInput {
 	homePlayerIds: string[];
 	awayPlayerIds: string[];
 	resolvedCoinTossWinnerIds?: string[];
+	randomizerType?: "fisher-yates" | "diversity";
+	matchHistory?: Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }>;
 }
 
 export interface CoinTossNeeded {
@@ -49,6 +51,28 @@ export function fisherYatesShuffle<T>(arr: T[]): T[] {
 		[result[i]!, result[j]!] = [result[j]!, result[i]!];
 	}
 	return result;
+}
+
+function diversityShuffleWithHistory(
+	playerIds: string[],
+	matchHistory: Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }>
+): string[] {
+	const pairWeights = new Map<string, number>();
+
+	for (const match of matchHistory) {
+		const allPlayers = [...match.homePlayerIds, ...match.awayPlayerIds];
+		for (let i = 0; i < allPlayers.length; i++) {
+			for (let j = i + 1; j < allPlayers.length; j++) {
+				const key = [allPlayers[i]!, allPlayers[j]!].sort().join("|");
+				pairWeights.set(key, (pairWeights.get(key) || 0) + 1);
+			}
+		}
+	}
+
+	return diversityShuffle(playerIds, pairWeights, (a, b) => {
+		const key = [a, b].sort().join("|");
+		return pairWeights.get(key) || 0;
+	});
 }
 
 export function diversityShuffle<T>(
@@ -246,7 +270,10 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 
 	if (waiting.length === 0) {
 		if (autoRandomize) {
-			const allPlaying = fisherYatesShuffle([...homePlayerIds, ...awayPlayerIds]);
+			const allPlaying =
+				input.randomizerType === "diversity" && input.matchHistory
+					? diversityShuffleWithHistory([...homePlayerIds, ...awayPlayerIds], input.matchHistory)
+					: fisherYatesShuffle([...homePlayerIds, ...awayPlayerIds]);
 			const newHome = allPlaying.slice(0, teamSize);
 			const newAway = allPlaying.slice(teamSize, teamSize * 2);
 			const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
@@ -281,7 +308,10 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 	let newAway: string[];
 
 	if (autoRandomize) {
-		const shuffled = fisherYatesShuffle(selected);
+		const shuffled =
+			input.randomizerType === "diversity" && input.matchHistory
+				? diversityShuffleWithHistory(selected, input.matchHistory)
+				: fisherYatesShuffle(selected);
 		newHome = shuffled.slice(0, teamSize);
 		newAway = shuffled.slice(teamSize, teamSize * 2);
 	} else {
