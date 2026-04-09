@@ -284,7 +284,9 @@ export const gameSession = sqliteTable(
 		autoCoinToss: integer("auto_coin_toss", { mode: "boolean" }).default(false).notNull(),
 		randomizerType: text("randomizer_type", {
 			enum: ["fisher-yates", "diversity"],
-		}).default("fisher-yates").notNull(),
+		})
+			.default("fisher-yates")
+			.notNull(),
 		winnersTakePriority: integer("winners_take_priority", { mode: "boolean" })
 			.default(false)
 			.notNull(),

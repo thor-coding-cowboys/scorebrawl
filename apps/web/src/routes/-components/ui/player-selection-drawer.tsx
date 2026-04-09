@@ -12,7 +12,12 @@ import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Separator } from "@/components/ui/separator";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowReloadHorizontalIcon, BalanceScaleIcon, Tick01Icon, SortingAZ01Icon } from "@hugeicons/core-free-icons";
+import {
+	ArrowReloadHorizontalIcon,
+	BalanceScaleIcon,
+	Tick01Icon,
+	SortingAZ01Icon,
+} from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 
 export interface PlayerSelectItem {
@@ -63,9 +68,7 @@ export function PlayerSelectionDrawer({
 			<DrawerContent className="max-h-[85vh]" data-testid="player-selection-drawer">
 				<div className="mx-auto w-full max-w-xl">
 					<DrawerHeader className="border-b border-border pb-3">
-						<DrawerTitle className="text-sm font-bold font-mono text-center">
-							{title}
-						</DrawerTitle>
+						<DrawerTitle className="text-sm font-bold font-mono text-center">{title}</DrawerTitle>
 					</DrawerHeader>
 
 					<div className="grid grid-cols-2 gap-0 max-h-[55vh] overflow-y-auto">
@@ -75,7 +78,12 @@ export function PlayerSelectionDrawer({
 									Home
 								</span>
 							</div>
-							<PlayerList team="home" players={players} onSelect={onPlayerSelect} emptyMessage={emptyMessage} />
+							<PlayerList
+								team="home"
+								players={players}
+								onSelect={onPlayerSelect}
+								emptyMessage={emptyMessage}
+							/>
 						</div>
 
 						<div data-testid="player-selection-away-column">
@@ -84,7 +92,12 @@ export function PlayerSelectionDrawer({
 									Away
 								</span>
 							</div>
-							<PlayerList team="away" players={players} onSelect={onPlayerSelect} emptyMessage={emptyMessage} />
+							<PlayerList
+								team="away"
+								players={players}
+								onSelect={onPlayerSelect}
+								emptyMessage={emptyMessage}
+							/>
 						</div>
 					</div>
 
