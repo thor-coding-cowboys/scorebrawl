@@ -443,7 +443,11 @@ const leagueRouter = new Hono<LeagueEnv>()
 		await sessionRepository.updateProposedLineup({
 			db,
 			sessionId: fullSession.id,
-			proposedLineup,
+			proposedLineup: {
+				...proposedLineup,
+				selectedHomePlayerIds: proposedLineup.homePlayerIds,
+				selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+			},
 		});
 
 		const userName = c.get("authentication").user.name;
@@ -618,7 +622,11 @@ const leagueRouter = new Hono<LeagueEnv>()
 			await sessionRepository.updateProposedLineup({
 				db,
 				sessionId: fullSession.id,
-				proposedLineup,
+				proposedLineup: {
+					...proposedLineup,
+					selectedHomePlayerIds: proposedLineup.homePlayerIds,
+					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+				},
 			});
 		}
 
@@ -739,6 +747,8 @@ const leagueRouter = new Hono<LeagueEnv>()
 			awayPlayerIds: newAwayIds,
 			rotatedOut: lineup.rotatedOut,
 			coinTossNeeded: lineup.coinTossNeeded,
+			selectedHomePlayerIds: newHomeIds,
+			selectedAwayPlayerIds: newAwayIds,
 		};
 
 		await sessionRepository.updateProposedLineup({

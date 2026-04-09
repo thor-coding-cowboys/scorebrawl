@@ -16,6 +16,7 @@ import {
 	match,
 	matchPlayer,
 } from "../db/schema/league-schema";
+import { enforceAlwaysSplit } from "../lib/session-rotation";
 
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
@@ -110,17 +111,21 @@ export const createSession = async ({
 	autoRandomize,
 	autoCoinToss,
 	seasonPlayerIds,
+	winnersTakePriority,
+	maxConsecutiveEnabled,
 }: {
 	db: DrizzleDB;
 	seasonId: string;
 	createdBy: string;
-	rotationMode: "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
+	rotationMode: "winner-stays" | "round-robin" | "manual";
 	teamSize: number;
 	maxConsecutiveGames: number | null;
 	alwaysSplitConstraints: [string, string][];
 	autoRandomize: boolean;
 	autoCoinToss: boolean;
 	seasonPlayerIds: string[];
+	winnersTakePriority: boolean;
+	maxConsecutiveEnabled: boolean;
 }) => {
 	return withTransaction(db, async (tx) => {
 		const now = new Date();
@@ -137,6 +142,8 @@ export const createSession = async ({
 			alwaysSplitConstraints: JSON.stringify(alwaysSplitConstraints),
 			autoRandomize,
 			autoCoinToss,
+			winnersTakePriority,
+			maxConsecutiveEnabled,
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -161,16 +168,32 @@ export const createSession = async ({
 			const homePlayerIds = shuffled.slice(0, teamSize).map((p) => p.id);
 			const awayPlayerIds = shuffled.slice(teamSize, teamSize * 2).map((p) => p.id);
 
+			const playerStates = players.map((p) => ({
+				id: p.id,
+				seasonPlayerId: p.seasonPlayerId,
+				status: p.status,
+				queuePosition: p.queuePosition,
+				gamesPlayedThisSession: p.gamesPlayedThisSession,
+				consecutiveGames: p.consecutiveGames,
+			}));
+
+			const constrained = enforceAlwaysSplit(
+				homePlayerIds,
+				awayPlayerIds,
+				alwaysSplitConstraints,
+				playerStates
+			);
+
 			await tx
 				.update(gameSession)
 				.set({
 					proposedLineup: JSON.stringify({
-						homePlayerIds: [],
-						awayPlayerIds: [],
+						homePlayerIds: constrained.homeIds,
+						awayPlayerIds: constrained.awayIds,
 						rotatedOut: [],
 						coinTossNeeded: null,
-						selectedHomePlayerIds: homePlayerIds,
-						selectedAwayPlayerIds: awayPlayerIds,
+						selectedHomePlayerIds: constrained.homeIds,
+						selectedAwayPlayerIds: constrained.awayIds,
 					}),
 				})
 				.where(eq(gameSession.id, sessionId));
@@ -617,12 +640,18 @@ export const recordMatchResult = async ({
 	sessionMatchId,
 	result,
 	matchId,
+	winnersTakePriority = false,
+	maxConsecutiveEnabled,
+	maxConsecutiveGames,
 }: {
 	db: DrizzleDB;
 	sessionId: string;
 	sessionMatchId: string;
 	result: "home" | "away" | "draw";
 	matchId: string;
+	winnersTakePriority?: boolean;
+	maxConsecutiveEnabled?: boolean;
+	maxConsecutiveGames?: number | null;
 }) => {
 	return withTransaction(db, async (tx) => {
 		const now = new Date();
@@ -656,26 +685,112 @@ export const recordMatchResult = async ({
 				)
 			);
 
-		const allSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
-
 		const [maxWaitingPos] = await tx
 			.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
 			.from(sessionPlayer)
 			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
 
-		const baseQueuePos = (maxWaitingPos?.max ?? -1) + 1;
+		const [waitingCountResult] = await tx
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(sessionPlayer)
+			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
 
-		if (allSessionPlayerIds.length > 0) {
-			// All players who participated in the match increment their consecutive games counter
-			// This tracks how many games in a row they've played, regardless of win/loss
-			const consecutiveCaseParts = allSessionPlayerIds
+		const playingSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
+
+		if (playingSessionPlayerIds.length > 0) {
+			const winnerSeasonPlayerIds =
+				result === "draw" ? [] : result === "home" ? homePlayerIds : awayPlayerIds;
+			const loserSeasonPlayerIds =
+				result === "draw" ? allPlayingIds : result === "home" ? awayPlayerIds : homePlayerIds;
+
+			const winnerSessionPlayers = playingSessionPlayers.filter((p) =>
+				winnerSeasonPlayerIds.includes(p.seasonPlayerId)
+			);
+			const loserSessionPlayers = playingSessionPlayers.filter((p) =>
+				loserSeasonPlayerIds.includes(p.seasonPlayerId)
+			);
+
+			const isOverride = (p: (typeof playingSessionPlayers)[number]) => {
+				// Check if player will exceed max AFTER this game (cg + 1 >= max)
+				const cgAfterThisGame = p.consecutiveGames + 1;
+				return (
+					maxConsecutiveEnabled &&
+					maxConsecutiveGames != null &&
+					cgAfterThisGame >= maxConsecutiveGames
+				);
+			};
+
+			const overridePlayers = playingSessionPlayers.filter(isOverride);
+			const overrideIds = new Set(overridePlayers.map((p) => p.id));
+
+			const sortByConsecutiveThenQueue = (
+				a: (typeof playingSessionPlayers)[number],
+				b: (typeof playingSessionPlayers)[number]
+			) =>
+				a.consecutiveGames !== b.consecutiveGames
+					? a.consecutiveGames - b.consecutiveGames
+					: a.queuePosition - b.queuePosition;
+
+			const orderedWinners = winnerSessionPlayers
+				.filter((p) => !overrideIds.has(p.id))
+				.sort(sortByConsecutiveThenQueue);
+			const orderedLosers = loserSessionPlayers
+				.filter((p) => !overrideIds.has(p.id))
+				.sort(sortByConsecutiveThenQueue);
+			const orderedOverrides = overridePlayers.sort((a, b) =>
+				a.consecutiveGames !== b.consecutiveGames
+					? a.consecutiveGames - b.consecutiveGames // Fewer games first = higher queue pos
+					: a.queuePosition - b.queuePosition
+			);
+
+			const maxWaiting = maxWaitingPos?.max ?? -1;
+			let queueAssignments: Array<{ id: string; pos: number }>;
+
+			if (winnersTakePriority) {
+				const winnerCount = orderedWinners.length;
+				const waitingPlayerCount = waitingCountResult?.count ?? 0;
+
+				if (winnerCount > 0 && waitingPlayerCount > 0) {
+					await tx
+						.update(sessionPlayer)
+						.set({
+							queuePosition: sql`${sessionPlayer.queuePosition} + ${winnerCount}`,
+							updatedAt: now,
+						})
+						.where(
+							and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting"))
+						);
+				}
+
+				// After shifting, re-query to find where waiting players now end
+				// Losers go after waiting players, overrides go to absolute bottom
+				const [newMaxWaitingPos] = await tx
+					.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
+					.from(sessionPlayer)
+					.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+
+				const baseForLosers = (newMaxWaitingPos?.max ?? -1) + 1;
+				const baseForOverrides = baseForLosers + orderedLosers.length;
+				queueAssignments = [
+					...orderedWinners.map((p, i) => ({ id: p.id, pos: i })),
+					...orderedLosers.map((p, i) => ({ id: p.id, pos: baseForLosers + i })),
+					...orderedOverrides.map((p, i) => ({ id: p.id, pos: baseForOverrides + i })),
+				];
+			} else {
+				const base = maxWaiting + 1;
+				queueAssignments = [...orderedWinners, ...orderedLosers, ...orderedOverrides].map(
+					(p, i) => ({ id: p.id, pos: base + i })
+				);
+			}
+
+			const consecutiveCaseParts = playingSessionPlayerIds
 				.map(
 					(id) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`
 				)
 				.reduce((acc, part) => sql`${acc} ${part}`);
 
-			const queuePosCaseParts = allSessionPlayerIds
-				.map((id, i) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${baseQueuePos + i}`)
+			const queuePosCaseParts = queueAssignments
+				.map(({ id, pos }) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${pos}`)
 				.reduce((acc, part) => sql`${acc} ${part}`);
 
 			await tx
@@ -687,7 +802,7 @@ export const recordMatchResult = async ({
 					status: "waiting",
 					updatedAt: now,
 				})
-				.where(inArray(sessionPlayer.id, allSessionPlayerIds));
+				.where(inArray(sessionPlayer.id, playingSessionPlayerIds));
 		}
 
 		const allPlayers = await tx
@@ -716,6 +831,35 @@ export const cancelCurrentMatch = async ({
 
 		if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "No active match to cancel" });
 
+		const homePlayerIds = parseStringArray(current.homePlayerIds);
+		const awayPlayerIds = parseStringArray(current.awayPlayerIds);
+
+		const homeSessionPlayers = await tx
+			.select({ id: sessionPlayer.id })
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, homePlayerIds)
+				)
+			);
+		const awaySessionPlayers = await tx
+			.select({ id: sessionPlayer.id })
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, awayPlayerIds)
+				)
+			);
+
+		const restoredProposedLineup = {
+			homePlayerIds: homeSessionPlayers.map((p) => p.id),
+			awayPlayerIds: awaySessionPlayers.map((p) => p.id),
+			rotatedOut: [] as string[],
+			coinTossNeeded: null,
+		};
+
 		await tx.delete(sessionMatch).where(eq(sessionMatch.id, current.id));
 
 		const now = new Date();
@@ -732,7 +876,12 @@ export const cancelCurrentMatch = async ({
 			.where(eq(sessionPlayer.sessionId, sessionId))
 			.orderBy(asc(sessionPlayer.queuePosition));
 
-		return { deletedMatch: current, players };
+		await tx
+			.update(gameSession)
+			.set({ proposedLineup: JSON.stringify(restoredProposedLineup) })
+			.where(eq(gameSession.id, sessionId));
+
+		return { deletedMatch: current, players, restoredProposedLineup };
 	});
 };
 
@@ -792,6 +941,7 @@ export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessio
 		await tx.delete(sessionMatch).where(eq(sessionMatch.id, lastMatch.id));
 
 		await recalcConsecutiveGames(tx, sessionId);
+		await recalcQueuePositions(tx, sessionId);
 
 		const players = await tx
 			.select()
@@ -799,7 +949,86 @@ export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessio
 			.where(eq(sessionPlayer.sessionId, sessionId))
 			.orderBy(asc(sessionPlayer.queuePosition));
 
-		return { deletedMatch: lastMatch, players };
+		let restoredProposedLineup: {
+			homePlayerIds: string[];
+			awayPlayerIds: string[];
+			selectedHomePlayerIds: string[];
+			selectedAwayPlayerIds: string[];
+			rotatedOut: string[];
+			coinTossNeeded: null;
+		} | null = null;
+
+		const [previousMatch] = await tx
+			.select()
+			.from(sessionMatch)
+			.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
+			.orderBy(desc(sessionMatch.matchNumber))
+			.limit(1);
+
+		if (previousMatch) {
+			const prevHomeIds = parseStringArray(previousMatch.homePlayerIds);
+			const prevAwayIds = parseStringArray(previousMatch.awayPlayerIds);
+			const prevSelectedHomeIds = parseStringArray(previousMatch.selectedHomePlayerIds);
+			const prevSelectedAwayIds = parseStringArray(previousMatch.selectedAwayPlayerIds);
+
+			const prevHomeSessionPlayers = await tx
+				.select({ id: sessionPlayer.id })
+				.from(sessionPlayer)
+				.where(
+					and(
+						eq(sessionPlayer.sessionId, sessionId),
+						inArray(sessionPlayer.seasonPlayerId, prevHomeIds)
+					)
+				);
+			const prevAwaySessionPlayers = await tx
+				.select({ id: sessionPlayer.id })
+				.from(sessionPlayer)
+				.where(
+					and(
+						eq(sessionPlayer.sessionId, sessionId),
+						inArray(sessionPlayer.seasonPlayerId, prevAwayIds)
+					)
+				);
+
+			const prevSelectedHomeSessionPlayers = prevSelectedHomeIds.length
+				? await tx
+						.select({ id: sessionPlayer.id })
+						.from(sessionPlayer)
+						.where(
+							and(
+								eq(sessionPlayer.sessionId, sessionId),
+								inArray(sessionPlayer.seasonPlayerId, prevSelectedHomeIds)
+							)
+						)
+				: [];
+			const prevSelectedAwaySessionPlayers = prevSelectedAwayIds.length
+				? await tx
+						.select({ id: sessionPlayer.id })
+						.from(sessionPlayer)
+						.where(
+							and(
+								eq(sessionPlayer.sessionId, sessionId),
+								inArray(sessionPlayer.seasonPlayerId, prevSelectedAwayIds)
+							)
+						)
+				: [];
+
+			restoredProposedLineup = {
+				homePlayerIds: prevHomeSessionPlayers.map((p) => p.id),
+				awayPlayerIds: prevAwaySessionPlayers.map((p) => p.id),
+				selectedHomePlayerIds: prevSelectedHomeSessionPlayers.map((p) => p.id),
+				selectedAwayPlayerIds: prevSelectedAwaySessionPlayers.map((p) => p.id),
+				rotatedOut: [],
+				coinTossNeeded: null,
+			};
+
+			await tx
+				.update(gameSession)
+				.set({ proposedLineup: JSON.stringify(restoredProposedLineup) })
+				.where(eq(gameSession.id, sessionId));
+		}
+
+		return { deletedMatch: lastMatch, players, restoredProposedLineup };
 	});
 };
 
@@ -977,6 +1206,117 @@ async function recalcConsecutiveGames(db: DrizzleDB | TransactionClient, session
 
 	if (updatePromises.length > 0) {
 		await Promise.all(updatePromises);
+	}
+}
+
+async function recalcQueuePositions(db: DrizzleDB | TransactionClient, sessionId: string) {
+	const [session] = await db
+		.select({
+			rotationMode: gameSession.rotationMode,
+			winnersTakePriority: gameSession.winnersTakePriority,
+			maxConsecutiveEnabled: gameSession.maxConsecutiveEnabled,
+			maxConsecutiveGames: gameSession.maxConsecutiveGames,
+		})
+		.from(gameSession)
+		.where(eq(gameSession.id, sessionId))
+		.limit(1);
+
+	if (!session) return;
+
+	const completedMatches = await db
+		.select({
+			matchNumber: sessionMatch.matchNumber,
+			homePlayerIds: sessionMatch.homePlayerIds,
+			awayPlayerIds: sessionMatch.awayPlayerIds,
+			result: sessionMatch.result,
+		})
+		.from(sessionMatch)
+		.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
+		.orderBy(asc(sessionMatch.matchNumber));
+
+	if (completedMatches.length === 0) return;
+
+	const allPlayers = await db
+		.select({
+			id: sessionPlayer.id,
+			seasonPlayerId: sessionPlayer.seasonPlayerId,
+			queuePosition: sessionPlayer.queuePosition,
+			joinedAt: sessionPlayer.joinedAt,
+		})
+		.from(sessionPlayer)
+		.where(eq(sessionPlayer.sessionId, sessionId))
+		.orderBy(asc(sessionPlayer.joinedAt));
+
+	if (allPlayers.length === 0) return;
+
+	let queue: string[] = allPlayers.map((p) => p.seasonPlayerId);
+	const playerMap = new Map(allPlayers.map((p) => [p.seasonPlayerId, p.id]));
+
+	const consecutiveGames = new Map<string, number>(allPlayers.map((p) => [p.seasonPlayerId, 0]));
+
+	for (const match of completedMatches) {
+		const home = parseStringArray(match.homePlayerIds);
+		const away = parseStringArray(match.awayPlayerIds);
+		const allPlaying = new Set([...home, ...away]);
+		const matchResult = match.result;
+
+		const winnerSPIds = matchResult === "draw" ? [] : matchResult === "home" ? home : away;
+		const loserSPIds =
+			matchResult === "draw" ? [...allPlaying] : matchResult === "home" ? away : home;
+
+		const cgFor = (spId: string) => consecutiveGames.get(spId) ?? 0;
+
+		const isOverride = (spId: string) =>
+			!!session.maxConsecutiveEnabled &&
+			session.maxConsecutiveGames !== null &&
+			cgFor(spId) >= session.maxConsecutiveGames;
+
+		const sortByConsecutiveThenQueuePos = (a: string, b: string) => {
+			if (cgFor(a) !== cgFor(b)) return cgFor(a) - cgFor(b);
+			return queue.indexOf(a) - queue.indexOf(b);
+		};
+
+		const overrides = [...allPlaying].filter(isOverride);
+		const overrideSet = new Set(overrides);
+
+		const orderedWinners = winnerSPIds
+			.filter((id) => !overrideSet.has(id))
+			.sort(sortByConsecutiveThenQueuePos);
+		const orderedLosers = loserSPIds
+			.filter((id) => !overrideSet.has(id))
+			.sort(sortByConsecutiveThenQueuePos);
+		const orderedOverrides = overrides.sort((a, b) => {
+			if (cgFor(a) !== cgFor(b)) return cgFor(a) - cgFor(b); // Fewer games first = lower in queue
+			return queue.indexOf(a) - queue.indexOf(b);
+		});
+
+		queue = queue.filter((id) => !allPlaying.has(id));
+
+		if (session.winnersTakePriority && orderedWinners.length > 0) {
+			queue = [...orderedWinners, ...queue, ...orderedLosers, ...orderedOverrides];
+		} else {
+			queue = [...queue, ...orderedWinners, ...orderedLosers, ...orderedOverrides];
+		}
+
+		for (const p of allPlayers) {
+			if (allPlaying.has(p.seasonPlayerId)) {
+				consecutiveGames.set(p.seasonPlayerId, cgFor(p.seasonPlayerId) + 1);
+			} else {
+				consecutiveGames.set(p.seasonPlayerId, 0);
+			}
+		}
+	}
+
+	const now = new Date();
+	for (let index = 0; index < queue.length; index++) {
+		const seasonPlayerId = queue[index]!;
+		const playerId = playerMap.get(seasonPlayerId);
+		if (playerId) {
+			await db
+				.update(sessionPlayer)
+				.set({ queuePosition: index, updatedAt: now })
+				.where(eq(sessionPlayer.id, playerId));
+		}
 	}
 }
 
