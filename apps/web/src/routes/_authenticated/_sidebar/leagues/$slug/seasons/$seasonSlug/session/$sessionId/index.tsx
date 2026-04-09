@@ -41,7 +41,6 @@ import {
 	ScoreStepper,
 	TeamRosterCard,
 	QueueList,
-	PlayerSelectionDrawer,
 	CoinTossDialog,
 	AddPlayerDialog,
 	SessionStandings,
@@ -51,6 +50,7 @@ import {
 	type PlayerWithTeam,
 	type SessionPlayer,
 } from "./-components";
+import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-drawer";
 
 export const Route = createFileRoute(
 	"/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/"
@@ -489,13 +489,11 @@ function SessionLivePage() {
 		onError: () => toast.error("Failed to delete last match"),
 	});
 
-	const handlePlayerSelect = (player: PlayerWithTeam, team: "home" | "away") => {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const handlePlayerSelect = (player: any) => {
 		lastLocalTeamChangeRef.current = Date.now();
 		setTeamAssignment((prev) =>
-			prev.map((p) => {
-				if (p.id !== player.id) return p;
-				return { ...p, team: p.team === team ? undefined : team };
-			})
+			prev.map((p) => (p.id === player.id ? { ...p, team: player.team } : p))
 		);
 	};
 
@@ -518,6 +516,29 @@ function SessionLivePage() {
 			prev.map((p) => ({
 				...p,
 				team: homeSet.has(p.id) ? "home" : awaySet.has(p.id) ? "away" : undefined,
+			}))
+		);
+	};
+
+	const handleShuffleSelected = () => {
+		if (!session) return;
+		lastLocalTeamChangeRef.current = Date.now();
+		const selected = teamAssignment.filter((p) => p.team);
+		const shuffled = fisherYatesShuffle(selected);
+		const rawHome = shuffled.slice(0, session.teamSize).map((p) => p.id);
+		const rawAway = shuffled.slice(session.teamSize, session.teamSize * 2).map((p) => p.id);
+		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
+			rawHome,
+			rawAway,
+			session.alwaysSplitConstraints,
+			session.players
+		);
+		const homeSet = new Set(fixedHome);
+		const awaySet = new Set(fixedAway);
+		setTeamAssignment((prev) =>
+			prev.map((p) => ({
+				...p,
+				team: homeSet.has(p.id) ? "home" : awaySet.has(p.id) ? "away" : p.team,
 			}))
 		);
 	};
@@ -923,14 +944,19 @@ function SessionLivePage() {
 						saveTeamSelection();
 						setShowPlayerDrawer(false);
 					}}
-					session={session}
-					teamAssignment={teamAssignment}
-					onSelect={handlePlayerSelect}
+					players={teamAssignment.map((p) => ({
+						id: p.id,
+						name: p.displayName,
+						image: p.playerImage,
+						score: p.score,
+						team: p.team,
+					}))}
+					onPlayerSelect={handlePlayerSelect}
 					onShuffle={handleShuffle}
+					onShuffleSelected={handleShuffleSelected}
 					onEven={handleEven}
-					onRotation={handleRotation}
+					onRotation={allMatches.length === 0 ? handleRotation : undefined}
 					canReorder={canReorder}
-					isFirstMatch={allMatches.length === 0}
 				/>
 			)}
 
