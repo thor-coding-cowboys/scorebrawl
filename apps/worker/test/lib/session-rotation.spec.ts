@@ -3,6 +3,8 @@ import {
 	type RotationInput,
 	type SessionPlayerState,
 	computeNextLineup,
+	diversityShuffle,
+	fisherYatesShuffle,
 } from "../../src/lib/session-rotation";
 
 function makePlayer(id: string, overrides: Partial<SessionPlayerState> = {}): SessionPlayerState {
@@ -220,5 +222,37 @@ describe("Draw handling", () => {
 			})
 		);
 		expect(result.coinTossNeeded?.conflictType).toBe("draw-tiebreak");
+	});
+});
+
+describe("diversityShuffle", () => {
+	it("produces different distribution than fisherYates", () => {
+		const items = ["a", "b", "c", "d"];
+
+		const fisherPairs = new Map<string, number>();
+		for (let i = 0; i < 1000; i++) {
+			const shuffled = fisherYatesShuffle([...items]);
+			for (let j = 0; j < shuffled.length - 1; j++) {
+				const pair = [shuffled[j], shuffled[j + 1]].sort().join("|");
+				fisherPairs.set(pair, (fisherPairs.get(pair) || 0) + 1);
+			}
+		}
+
+		const pairWeights = new Map<string, number>();
+		const diversityPairs = new Map<string, number>();
+		for (let i = 0; i < 1000; i++) {
+			const shuffled = diversityShuffle([...items], pairWeights, (a, b) => {
+				const key = [a, b].sort().join("|");
+				return pairWeights.get(key) || 0;
+			});
+			for (let j = 0; j < shuffled.length - 1; j++) {
+				const pair = [shuffled[j], shuffled[j + 1]].sort().join("|");
+				diversityPairs.set(pair, (diversityPairs.get(pair) || 0) + 1);
+			}
+		}
+
+		const fisherMax = Math.max(...fisherPairs.values());
+		const diversityMax = Math.max(...diversityPairs.values());
+		expect(diversityMax).toBeLessThan(fisherMax);
 	});
 });
