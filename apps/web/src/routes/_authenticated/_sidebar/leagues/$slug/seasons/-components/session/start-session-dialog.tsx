@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { SettingsRow } from "@/routes/-components/ui/settings-row";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Add01Icon,
@@ -44,7 +45,7 @@ interface DialogState {
 	maxConsecutiveEnabled: boolean;
 	maxConsecutiveGames: number;
 	winnersTakePriority: boolean;
-	autoRandomize: boolean;
+	randomizerType: "off" | "fisher-yates" | "diversity";
 	autoCoinToss: boolean;
 	selectedPlayerIds: string[];
 	alwaysSplitPairs: [string, string][];
@@ -60,7 +61,7 @@ const initialState: DialogState = {
 	maxConsecutiveEnabled: true,
 	maxConsecutiveGames: 3,
 	winnersTakePriority: false,
-	autoRandomize: true,
+	randomizerType: "fisher-yates",
 	autoCoinToss: true,
 	selectedPlayerIds: [],
 	alwaysSplitPairs: [],
@@ -76,7 +77,7 @@ type Action =
 	| { type: "SET_MAX_CONSECUTIVE_ENABLED"; value: boolean }
 	| { type: "SET_MAX_CONSECUTIVE_GAMES"; value: number }
 	| { type: "SET_WINNERS_TAKE_PRIORITY"; value: boolean }
-	| { type: "SET_AUTO_RANDOMIZE"; value: boolean }
+	| { type: "SET_RANDOMIZER_TYPE"; value: "off" | "fisher-yates" | "diversity" }
 	| { type: "SET_AUTO_COIN_TOSS"; value: boolean }
 	| { type: "TOGGLE_PLAYER"; id: string }
 	| { type: "ADD_SPLIT_PAIR" }
@@ -99,8 +100,8 @@ function reducer(state: DialogState, action: Action): DialogState {
 			return { ...state, maxConsecutiveGames: action.value };
 		case "SET_WINNERS_TAKE_PRIORITY":
 			return { ...state, winnersTakePriority: action.value };
-		case "SET_AUTO_RANDOMIZE":
-			return { ...state, autoRandomize: action.value };
+		case "SET_RANDOMIZER_TYPE":
+			return { ...state, randomizerType: action.value };
 		case "SET_AUTO_COIN_TOSS":
 			return { ...state, autoCoinToss: action.value };
 		case "TOGGLE_PLAYER": {
@@ -176,6 +177,7 @@ export function StartSessionDialog({
 			seasonPlayerIds: string[];
 			alwaysSplitConstraints: [string, string][];
 			autoRandomize: boolean;
+			randomizerType?: "fisher-yates" | "diversity";
 			autoCoinToss: boolean;
 		}) => client.session.create.mutate(input) as Promise<{ id: string }>,
 		onSuccess: (session) => {
@@ -197,7 +199,7 @@ export function StartSessionDialog({
 			toast.error(`Select at least ${state.teamSize * 2} players`);
 			return;
 		}
-		createSession.mutate({
+		const mutationInput = {
 			seasonSlug,
 			rotationMode: state.rotationMode,
 			teamSize: state.teamSize,
@@ -206,9 +208,14 @@ export function StartSessionDialog({
 			winnersTakePriority: state.winnersTakePriority,
 			seasonPlayerIds: state.selectedPlayerIds,
 			alwaysSplitConstraints: state.alwaysSplitPairs,
-			autoRandomize: state.autoRandomize,
+			autoRandomize: state.randomizerType !== "off",
 			autoCoinToss: state.autoCoinToss,
-		});
+		};
+		if (state.randomizerType !== "off") {
+			createSession.mutate({ ...mutationInput, randomizerType: state.randomizerType });
+		} else {
+			createSession.mutate(mutationInput);
+		}
 	};
 
 	const handleClose = () => {
@@ -259,72 +266,85 @@ export function StartSessionDialog({
 
 			{state.rotationMode === "winner-stays" && (
 				<>
-					<div className="flex flex-col gap-3">
-						<div className="flex items-center justify-between">
-							<div className="flex flex-col gap-0.5">
-								<Label>Winners Take Priority</Label>
-								<span className="text-xs text-muted-foreground">
-									When ON, winners go to absolute top; when OFF, winners above losers
-								</span>
-							</div>
-							<Switch
-								checked={state.winnersTakePriority}
-								onCheckedChange={(v) => dispatch({ type: "SET_WINNERS_TAKE_PRIORITY", value: v })}
-							/>
-						</div>
-					</div>
+					<SettingsRow
+						label="Winners Take Priority"
+						description={["ON: winners go to top of queue", "OFF: winners placed above losers"]}
+					>
+						<Switch
+							checked={state.winnersTakePriority}
+							onCheckedChange={(v) => dispatch({ type: "SET_WINNERS_TAKE_PRIORITY", value: v })}
+						/>
+					</SettingsRow>
 
-					<div className="flex flex-col gap-3">
-						<div className="flex items-center justify-between">
-							<div className="flex flex-col gap-0.5">
-								<Label>Max Consecutive Games</Label>
-								<span className="text-xs text-muted-foreground">Limit how many games in a row</span>
-							</div>
-							<Switch
-								checked={state.maxConsecutiveEnabled}
-								onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
-							/>
-						</div>
-						{state.maxConsecutiveEnabled && (
-							<Input
-								type="number"
-								min={1}
-								max={20}
-								value={state.maxConsecutiveGames}
-								onChange={(e) =>
-									dispatch({
-										type: "SET_MAX_CONSECUTIVE_GAMES",
-										value: Math.min(20, Math.max(1, Number(e.target.value))),
-									})
-								}
-								className="w-24"
-							/>
-						)}
-					</div>
+					<SettingsRow
+						label="Max Consecutive Games"
+						description="Limit how many games in a row"
+					>
+						<Switch
+							checked={state.maxConsecutiveEnabled}
+							onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
+						/>
+					</SettingsRow>
+					{state.maxConsecutiveEnabled && (
+						<Input
+							type="number"
+							min={1}
+							max={20}
+							value={state.maxConsecutiveGames}
+							onChange={(e) =>
+								dispatch({
+									type: "SET_MAX_CONSECUTIVE_GAMES",
+									value: Math.min(20, Math.max(1, Number(e.target.value))),
+								})
+							}
+							className="w-24"
+						/>
+					)}
 				</>
 			)}
 
-			<div className="flex items-center justify-between">
-				<div className="flex flex-col gap-0.5">
-					<Label>Auto Randomize</Label>
-					<span className="text-xs text-muted-foreground">Shuffle teams on new lineup</span>
-				</div>
-				<Switch
-					checked={state.autoRandomize}
-					onCheckedChange={(v) => dispatch({ type: "SET_AUTO_RANDOMIZE", value: v })}
-				/>
-			</div>
+			<SettingsRow
+				label="Auto Randomize"
+				description={
+					state.randomizerType === "off"
+						? "No auto-shuffle - teams stay as manually arranged"
+						: state.randomizerType === "fisher-yates"
+							? "Pure random shuffle - every pairing equally likely"
+							: "Prefer pairing players who haven't played together recently"
+				}
+			>
+				<Select
+					value={state.randomizerType}
+					onValueChange={(v) =>
+						dispatch({
+							type: "SET_RANDOMIZER_TYPE",
+							value: v as "off" | "fisher-yates" | "diversity",
+						})
+					}
+				>
+					<SelectTrigger className="w-32">
+						<SelectValue>
+							{state.randomizerType === "off"
+								? "Off"
+								: state.randomizerType === "fisher-yates"
+									? "Fisher-Yates"
+									: "Diversity"}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="off">Off</SelectItem>
+						<SelectItem value="fisher-yates">Fisher-Yates</SelectItem>
+						<SelectItem value="diversity">Diversity</SelectItem>
+					</SelectContent>
+				</Select>
+			</SettingsRow>
 
-			<div className="flex items-center justify-between">
-				<div className="flex flex-col gap-0.5">
-					<Label>Auto Coin Toss</Label>
-					<span className="text-xs text-muted-foreground">Auto-resolve coin tosses</span>
-				</div>
+			<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
 				<Switch
 					checked={state.autoCoinToss}
 					onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
 				/>
-			</div>
+			</SettingsRow>
 		</div>
 	);
 
