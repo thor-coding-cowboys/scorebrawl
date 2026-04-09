@@ -275,13 +275,19 @@ export const gameSession = sqliteTable(
 			.notNull()
 			.default("active"),
 		rotationMode: text("rotation_mode", {
-			enum: ["winner-stays", "winner-stays-hard", "round-robin", "manual"],
+			enum: ["winner-stays", "round-robin", "manual"],
 		}).notNull(),
 		teamSize: integer("team_size").notNull(),
 		maxConsecutiveGames: integer("max_consecutive_games"),
 		alwaysSplitConstraints: text("always_split_constraints"),
 		autoRandomize: integer("auto_randomize", { mode: "boolean" }).default(false).notNull(),
 		autoCoinToss: integer("auto_coin_toss", { mode: "boolean" }).default(false).notNull(),
+		winnersTakePriority: integer("winners_take_priority", { mode: "boolean" })
+			.default(false)
+			.notNull(),
+		maxConsecutiveEnabled: integer("max_consecutive_enabled", { mode: "boolean" })
+			.default(false)
+			.notNull(),
 		proposedLineup: text("proposed_lineup"),
 		endedAt: integer("ended_at", { mode: "timestamp" }),
 		...timestampAuditFields,

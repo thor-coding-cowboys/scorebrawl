@@ -44,7 +44,9 @@ export type GameSession = {
 	id: string;
 	seasonId: string;
 	status: "active" | "ended";
-	rotationMode: "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
+	rotationMode: "winner-stays" | "round-robin" | "manual";
+	winnersTakePriority: boolean;
+	maxConsecutiveEnabled: boolean;
 	teamSize: number;
 	maxConsecutiveGames: number | null;
 	autoRandomize: boolean;

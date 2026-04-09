@@ -36,13 +36,14 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
+type RotationMode = "winner-stays" | "round-robin" | "manual";
 
 interface DialogState {
 	rotationMode: RotationMode;
 	teamSize: number;
 	maxConsecutiveEnabled: boolean;
 	maxConsecutiveGames: number;
+	winnersTakePriority: boolean;
 	autoRandomize: boolean;
 	autoCoinToss: boolean;
 	selectedPlayerIds: string[];
@@ -58,6 +59,7 @@ const initialState: DialogState = {
 	teamSize: 2,
 	maxConsecutiveEnabled: true,
 	maxConsecutiveGames: 3,
+	winnersTakePriority: false,
 	autoRandomize: true,
 	autoCoinToss: true,
 	selectedPlayerIds: [],
@@ -73,6 +75,7 @@ type Action =
 	| { type: "SET_TEAM_SIZE"; value: number }
 	| { type: "SET_MAX_CONSECUTIVE_ENABLED"; value: boolean }
 	| { type: "SET_MAX_CONSECUTIVE_GAMES"; value: number }
+	| { type: "SET_WINNERS_TAKE_PRIORITY"; value: boolean }
 	| { type: "SET_AUTO_RANDOMIZE"; value: boolean }
 	| { type: "SET_AUTO_COIN_TOSS"; value: boolean }
 	| { type: "TOGGLE_PLAYER"; id: string }
@@ -94,6 +97,8 @@ function reducer(state: DialogState, action: Action): DialogState {
 			return { ...state, maxConsecutiveEnabled: action.value };
 		case "SET_MAX_CONSECUTIVE_GAMES":
 			return { ...state, maxConsecutiveGames: action.value };
+		case "SET_WINNERS_TAKE_PRIORITY":
+			return { ...state, winnersTakePriority: action.value };
 		case "SET_AUTO_RANDOMIZE":
 			return { ...state, autoRandomize: action.value };
 		case "SET_AUTO_COIN_TOSS":
@@ -166,6 +171,8 @@ export function StartSessionDialog({
 			rotationMode: RotationMode;
 			teamSize: number;
 			maxConsecutiveGames: number | null;
+			maxConsecutiveEnabled: boolean;
+			winnersTakePriority: boolean;
 			seasonPlayerIds: string[];
 			alwaysSplitConstraints: [string, string][];
 			autoRandomize: boolean;
@@ -194,7 +201,9 @@ export function StartSessionDialog({
 			seasonSlug,
 			rotationMode: state.rotationMode,
 			teamSize: state.teamSize,
+			maxConsecutiveEnabled: state.maxConsecutiveEnabled,
 			maxConsecutiveGames: state.maxConsecutiveEnabled ? state.maxConsecutiveGames : null,
+			winnersTakePriority: state.winnersTakePriority,
 			seasonPlayerIds: state.selectedPlayerIds,
 			alwaysSplitConstraints: state.alwaysSplitPairs,
 			autoRandomize: state.autoRandomize,
@@ -219,16 +228,13 @@ export function StartSessionDialog({
 						<SelectValue>
 							{state.rotationMode === "winner-stays"
 								? "Winner Stays"
-								: state.rotationMode === "winner-stays-hard"
-									? "Winner Stays (Hard)"
-									: state.rotationMode === "round-robin"
-										? "Round Robin"
-										: "Manual"}
+								: state.rotationMode === "round-robin"
+									? "Round Robin"
+									: "Manual"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="winner-stays">Winner Stays</SelectItem>
-						<SelectItem value="winner-stays-hard">Winner Stays (Hard)</SelectItem>
 						<SelectItem value="round-robin">Round Robin</SelectItem>
 						<SelectItem value="manual">Manual</SelectItem>
 					</SelectContent>
@@ -251,33 +257,52 @@ export function StartSessionDialog({
 				/>
 			</div>
 
-			<div className="flex flex-col gap-3">
-				<div className="flex items-center justify-between">
-					<div className="flex flex-col gap-0.5">
-						<Label>Max Consecutive Games</Label>
-						<span className="text-xs text-muted-foreground">Limit how many games in a row</span>
+			{state.rotationMode === "winner-stays" && (
+				<>
+					<div className="flex flex-col gap-3">
+						<div className="flex items-center justify-between">
+							<div className="flex flex-col gap-0.5">
+								<Label>Winners Take Priority</Label>
+								<span className="text-xs text-muted-foreground">
+									When ON, winners go to absolute top; when OFF, winners above losers
+								</span>
+							</div>
+							<Switch
+								checked={state.winnersTakePriority}
+								onCheckedChange={(v) => dispatch({ type: "SET_WINNERS_TAKE_PRIORITY", value: v })}
+							/>
+						</div>
 					</div>
-					<Switch
-						checked={state.maxConsecutiveEnabled}
-						onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
-					/>
-				</div>
-				{state.maxConsecutiveEnabled && (
-					<Input
-						type="number"
-						min={1}
-						max={20}
-						value={state.maxConsecutiveGames}
-						onChange={(e) =>
-							dispatch({
-								type: "SET_MAX_CONSECUTIVE_GAMES",
-								value: Math.min(20, Math.max(1, Number(e.target.value))),
-							})
-						}
-						className="w-24"
-					/>
-				)}
-			</div>
+
+					<div className="flex flex-col gap-3">
+						<div className="flex items-center justify-between">
+							<div className="flex flex-col gap-0.5">
+								<Label>Max Consecutive Games</Label>
+								<span className="text-xs text-muted-foreground">Limit how many games in a row</span>
+							</div>
+							<Switch
+								checked={state.maxConsecutiveEnabled}
+								onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
+							/>
+						</div>
+						{state.maxConsecutiveEnabled && (
+							<Input
+								type="number"
+								min={1}
+								max={20}
+								value={state.maxConsecutiveGames}
+								onChange={(e) =>
+									dispatch({
+										type: "SET_MAX_CONSECUTIVE_GAMES",
+										value: Math.min(20, Math.max(1, Number(e.target.value))),
+									})
+								}
+								className="w-24"
+							/>
+						)}
+					</div>
+				</>
+			)}
 
 			<div className="flex items-center justify-between">
 				<div className="flex flex-col gap-0.5">

@@ -41,13 +41,15 @@ export const sessionRouter = {
 		.input(
 			z.object({
 				seasonSlug: z.string(),
-				rotationMode: z.enum(["winner-stays", "winner-stays-hard", "round-robin", "manual"]),
+				rotationMode: z.enum(["winner-stays", "round-robin", "manual"]),
 				teamSize: z.number().int().min(1).max(6),
 				maxConsecutiveGames: z.number().int().min(1).nullable(),
 				seasonPlayerIds: z.array(z.string()).min(2),
 				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).default([]),
 				autoRandomize: z.boolean().default(false),
 				autoCoinToss: z.boolean().default(false),
+				winnersTakePriority: z.boolean().default(false),
+				maxConsecutiveEnabled: z.boolean().default(false),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -73,6 +75,8 @@ export const sessionRouter = {
 				autoRandomize: input.autoRandomize,
 				autoCoinToss: input.autoCoinToss,
 				seasonPlayerIds: input.seasonPlayerIds,
+				winnersTakePriority: input.winnersTakePriority,
+				maxConsecutiveEnabled: input.maxConsecutiveEnabled,
 			});
 
 			ctx.waitUntil(
@@ -209,14 +213,6 @@ export const sessionRouter = {
 				sessionPlayerId: input.sessionPlayerId,
 			});
 
-			if (removedPlayer.status === "playing") {
-				await sessionRepository.handlePlayerRemovalFromMatch({
-					db: ctx.db,
-					sessionId: input.sessionId,
-					sessionPlayerId: input.sessionPlayerId,
-				});
-			}
-
 			const fullSession = await sessionRepository.getSessionById({
 				db: ctx.db,
 				sessionId: input.sessionId,
@@ -225,7 +221,7 @@ export const sessionRouter = {
 			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
 				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
 				if (lastMatch?.result) {
-					const proposedLineup = computeNextLineup({
+					let proposedLineup = computeNextLineup({
 						mode: fullSession.rotationMode,
 						teamSize: fullSession.teamSize,
 						maxConsecutiveGames: fullSession.maxConsecutiveGames,
@@ -237,10 +233,48 @@ export const sessionRouter = {
 						awayPlayerIds: lastMatch.awayPlayerIds,
 					});
 
+					if (fullSession.proposedLineup) {
+						const removedSessionPlayerId = removedPlayer.id;
+						const homeInProposed =
+							fullSession.proposedLineup.homePlayerIds.includes(removedSessionPlayerId);
+						const awayInProposed =
+							fullSession.proposedLineup.awayPlayerIds.includes(removedSessionPlayerId);
+
+						if (homeInProposed || awayInProposed) {
+							const waitingPlayers = fullSession.players
+								.filter((p) => p.status === "waiting")
+								.sort((a, b) => a.queuePosition - b.queuePosition);
+
+							if (waitingPlayers.length > 0) {
+								const replacement = waitingPlayers[0]!;
+								const newHomeIds = homeInProposed
+									? fullSession.proposedLineup.homePlayerIds.map((id) =>
+											id === removedSessionPlayerId ? replacement.id : id
+										)
+									: fullSession.proposedLineup.homePlayerIds;
+								const newAwayIds = awayInProposed
+									? fullSession.proposedLineup.awayPlayerIds.map((id) =>
+											id === removedSessionPlayerId ? replacement.id : id
+										)
+									: fullSession.proposedLineup.awayPlayerIds;
+
+								proposedLineup = {
+									...proposedLineup,
+									homePlayerIds: newHomeIds,
+									awayPlayerIds: newAwayIds,
+								};
+							}
+						}
+					}
+
 					await sessionRepository.updateProposedLineup({
 						db: ctx.db,
 						sessionId: input.sessionId,
-						proposedLineup,
+						proposedLineup: {
+							...proposedLineup,
+							selectedHomePlayerIds: proposedLineup.homePlayerIds,
+							selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+						},
 					});
 				}
 			}
@@ -342,6 +376,9 @@ export const sessionRouter = {
 					sessionMatchId: input.sessionMatchId,
 					result,
 					matchId: createdMatch.id,
+					winnersTakePriority: fullSession.winnersTakePriority,
+					maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
+					maxConsecutiveGames: fullSession.maxConsecutiveGames,
 				});
 
 			const homeSessionPlayerIds = updatedPlayers
@@ -355,6 +392,8 @@ export const sessionRouter = {
 				mode: fullSession.rotationMode,
 				teamSize: fullSession.teamSize,
 				maxConsecutiveGames: fullSession.maxConsecutiveGames,
+				maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
+				winnersTakePriority: fullSession.winnersTakePriority,
 				autoRandomize: fullSession.autoRandomize,
 				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 				players: updatedPlayers.map((p) => ({
@@ -410,6 +449,8 @@ export const sessionRouter = {
 						mode: fullSession.rotationMode,
 						teamSize: fullSession.teamSize,
 						maxConsecutiveGames: fullSession.maxConsecutiveGames,
+						maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
+						winnersTakePriority: fullSession.winnersTakePriority,
 						autoRandomize: fullSession.autoRandomize,
 						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
 						players: updatedPlayers.map((p) => ({
@@ -445,7 +486,11 @@ export const sessionRouter = {
 			await sessionRepository.updateProposedLineup({
 				db: ctx.db,
 				sessionId: input.sessionId,
-				proposedLineup,
+				proposedLineup: {
+					...proposedLineup,
+					selectedHomePlayerIds: proposedLineup.homePlayerIds,
+					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+				},
 			});
 
 			ctx.waitUntil(
