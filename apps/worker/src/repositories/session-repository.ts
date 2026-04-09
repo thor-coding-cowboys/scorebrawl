@@ -113,6 +113,7 @@ export const createSession = async ({
 	seasonPlayerIds,
 	winnersTakePriority,
 	maxConsecutiveEnabled,
+	randomizerType,
 }: {
 	db: DrizzleDB;
 	seasonId: string;
@@ -126,6 +127,7 @@ export const createSession = async ({
 	seasonPlayerIds: string[];
 	winnersTakePriority: boolean;
 	maxConsecutiveEnabled: boolean;
+	randomizerType?: "fisher-yates" | "diversity";
 }) => {
 	return withTransaction(db, async (tx) => {
 		const now = new Date();
@@ -144,6 +146,7 @@ export const createSession = async ({
 			autoCoinToss,
 			winnersTakePriority,
 			maxConsecutiveEnabled,
+			randomizerType: randomizerType ?? "fisher-yates",
 			createdAt: now,
 			updatedAt: now,
 		});

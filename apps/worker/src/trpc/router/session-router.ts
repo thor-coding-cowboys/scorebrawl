@@ -50,6 +50,7 @@ export const sessionRouter = {
 				autoCoinToss: z.boolean().default(false),
 				winnersTakePriority: z.boolean().default(false),
 				maxConsecutiveEnabled: z.boolean().default(false),
+				randomizerType: z.enum(["fisher-yates", "diversity"]).default("fisher-yates"),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -77,6 +78,7 @@ export const sessionRouter = {
 				seasonPlayerIds: input.seasonPlayerIds,
 				winnersTakePriority: input.winnersTakePriority,
 				maxConsecutiveEnabled: input.maxConsecutiveEnabled,
+				randomizerType: input.randomizerType,
 			});
 
 			ctx.waitUntil(
