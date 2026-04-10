@@ -275,8 +275,9 @@ export const gameSession = sqliteTable(
 			.notNull()
 			.default("active"),
 		rotationMode: text("rotation_mode", {
-			enum: ["winner-stays", "sequential", "manual"],
+			enum: ["winner-stays", "manual"],
 		}).notNull(),
+		modeSettings: text("mode_settings"),
 		teamSize: integer("team_size").notNull(),
 		maxConsecutiveGames: integer("max_consecutive_games"),
 		alwaysSplitConstraints: text("always_split_constraints"),
