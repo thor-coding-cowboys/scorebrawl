@@ -229,4 +229,4 @@ apps/garmin/developer_key.pem
 apps/garmin/developer_key.der
 
 
-.superpowers
+.superpowers.worktrees/
