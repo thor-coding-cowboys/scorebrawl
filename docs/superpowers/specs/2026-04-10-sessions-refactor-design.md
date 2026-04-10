@@ -188,13 +188,17 @@ routes/session/$sessionId/
 function SessionPage() {
   const session = useSessionQuery(sessionId)
 
-  switch (session.rotationMode) {
+  if (!session.modeSettings) {
+    return <LegacySessionFallback session={session} />
+  }
+
+  switch (session.modeSettings.mode) {
     case "winner-stays":
       return <WinnerStaysSession session={session} />
     case "manual":
       return <ManualSession session={session} />
     default:
-      exhaustiveCheck(session.rotationMode)
+      exhaustiveCheck(session.modeSettings.mode)
   }
 }
 ```
