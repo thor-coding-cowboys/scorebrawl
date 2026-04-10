@@ -41,7 +41,7 @@ export const sessionRouter = {
 		.input(
 			z.object({
 				seasonSlug: z.string(),
-				rotationMode: z.enum(["winner-stays", "round-robin", "manual"]),
+				rotationMode: z.enum(["winner-stays", "sequential", "manual"]),
 				teamSize: z.number().int().min(1).max(6),
 				maxConsecutiveGames: z.number().int().min(1).nullable(),
 				seasonPlayerIds: z.array(z.string()).min(2),

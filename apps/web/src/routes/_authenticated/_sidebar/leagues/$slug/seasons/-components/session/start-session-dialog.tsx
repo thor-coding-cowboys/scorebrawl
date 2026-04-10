@@ -37,7 +37,7 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "round-robin" | "manual";
+type RotationMode = "winner-stays" | "sequential" | "manual";
 
 interface DialogState {
 	rotationMode: RotationMode;
@@ -235,14 +235,14 @@ export function StartSessionDialog({
 						<SelectValue>
 							{state.rotationMode === "winner-stays"
 								? "Winner Stays"
-								: state.rotationMode === "round-robin"
-									? "Round Robin"
+								: state.rotationMode === "sequential"
+									? "Sequential"
 									: "Manual"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="winner-stays">Winner Stays</SelectItem>
-						<SelectItem value="round-robin">Round Robin</SelectItem>
+						<SelectItem value="sequential">Sequential</SelectItem>
 						<SelectItem value="manual">Manual</SelectItem>
 					</SelectContent>
 				</Select>
@@ -303,48 +303,52 @@ export function StartSessionDialog({
 				</>
 			)}
 
-			<SettingsRow
-				label="Auto Randomize"
-				description={
-					state.randomizerType === "off"
-						? "No auto-shuffle - teams stay as manually arranged"
-						: state.randomizerType === "fisher-yates"
-							? "Pure random shuffle - every pairing equally likely"
-							: "Prefer pairing players who haven't played together recently"
-				}
-			>
-				<Select
-					value={state.randomizerType}
-					onValueChange={(v) =>
-						dispatch({
-							type: "SET_RANDOMIZER_TYPE",
-							value: v as "off" | "fisher-yates" | "diversity",
-						})
+			{state.rotationMode !== "manual" && (
+				<SettingsRow
+					label="Auto Randomize"
+					description={
+						state.randomizerType === "off"
+							? "No auto-shuffle - teams stay as manually arranged"
+							: state.randomizerType === "fisher-yates"
+								? "Pure random shuffle - every pairing equally likely"
+								: "Prefer pairing players who haven't played together recently"
 					}
 				>
-					<SelectTrigger className="w-32">
-						<SelectValue>
-							{state.randomizerType === "off"
-								? "Off"
-								: state.randomizerType === "fisher-yates"
-									? "Fisher-Yates"
-									: "Diversity"}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="off">Off</SelectItem>
-						<SelectItem value="fisher-yates">Fisher-Yates</SelectItem>
-						<SelectItem value="diversity">Diversity</SelectItem>
-					</SelectContent>
-				</Select>
-			</SettingsRow>
+					<Select
+						value={state.randomizerType}
+						onValueChange={(v) =>
+							dispatch({
+								type: "SET_RANDOMIZER_TYPE",
+								value: v as "off" | "fisher-yates" | "diversity",
+							})
+						}
+					>
+						<SelectTrigger className="w-32">
+							<SelectValue>
+								{state.randomizerType === "off"
+									? "Off"
+									: state.randomizerType === "fisher-yates"
+										? "Fisher-Yates"
+										: "Diversity"}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="off">Off</SelectItem>
+							<SelectItem value="fisher-yates">Fisher-Yates</SelectItem>
+							<SelectItem value="diversity">Diversity</SelectItem>
+						</SelectContent>
+					</Select>
+				</SettingsRow>
+			)}
 
-			<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
-				<Switch
-					checked={state.autoCoinToss}
-					onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
-				/>
-			</SettingsRow>
+			{state.rotationMode !== "manual" && (
+				<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
+					<Switch
+						checked={state.autoCoinToss}
+						onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
+					/>
+				</SettingsRow>
+			)}
 		</div>
 	);
 

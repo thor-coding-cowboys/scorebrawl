@@ -1,4 +1,4 @@
-export type RotationMode = "winner-stays" | "round-robin" | "manual";
+export type RotationMode = "winner-stays" | "sequential" | "manual";
 
 export interface SessionPlayerState {
 	id: string;
@@ -223,7 +223,7 @@ export function computeNextLineup(input: RotationInput): ProposedLineup {
 	const waiting = allEligible.filter((p) => p.status === "waiting" && !playingIds.has(p.id));
 	const playing = allEligible.filter((p) => playingIds.has(p.id));
 
-	if (mode === "round-robin") {
+	if (mode === "sequential") {
 		const sorted = [...allEligible].sort((a, b) => {
 			if (a.consecutiveGames !== b.consecutiveGames) return a.consecutiveGames - b.consecutiveGames;
 			return a.queuePosition - b.queuePosition;
