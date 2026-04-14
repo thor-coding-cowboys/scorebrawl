@@ -4,7 +4,7 @@ import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";
 import { seasonPlayer, player, sessionPlayer } from "../../db/schema/league-schema";
 import { leagueMemberProcedure } from "../trpc";
-import * as sessionRepository from "../../repositories/session-repository";
+import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
