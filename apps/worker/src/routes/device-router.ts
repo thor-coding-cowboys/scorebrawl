@@ -10,7 +10,7 @@ import {
 	checkStreakThresholds,
 	checkTeamStreakThresholds,
 } from "../repositories/match-repository";
-import * as sessionRepository from "../repositories/session-repository";
+import * as sessionRepository from "../repositories/session";
 import { computeNextLineup } from "../lib/session-rotation";
 import { broadcastSeasonEvent } from "./sse-router";
 import type { AchievementQueueMessage } from "../services/achievement-calculation";
