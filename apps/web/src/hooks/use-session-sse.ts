@@ -29,5 +29,9 @@ export function useSessionSSE({ sessionId, onSessionEnd, onSessionUpdate }: UseS
 		return () => window.removeEventListener("session-event", handler);
 	}, [sessionId, queryClient, onSessionEnd, onSessionUpdate]);
 
-	return { setAuthSession: (session: typeof authSessionRef.current) => { authSessionRef.current = session; } };
+	return {
+		setAuthSession: (session: typeof authSessionRef.current) => {
+			authSessionRef.current = session;
+		},
+	};
 }

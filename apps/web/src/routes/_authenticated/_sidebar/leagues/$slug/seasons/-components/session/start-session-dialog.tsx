@@ -232,14 +232,14 @@ export function StartSessionDialog({
 					onValueChange={(v) => dispatch({ type: "SET_ROTATION_MODE", value: v as RotationMode })}
 				>
 					<SelectTrigger>
-				<SelectValue>
-						{state.rotationMode === "winner-stays" ? "Winner Stays" : "Manual"}
-					</SelectValue>
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="winner-stays">Winner Stays</SelectItem>
-					<SelectItem value="manual">Manual</SelectItem>
-				</SelectContent>
+						<SelectValue>
+							{state.rotationMode === "winner-stays" ? "Winner Stays" : "Manual"}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="winner-stays">Winner Stays</SelectItem>
+						<SelectItem value="manual">Manual</SelectItem>
+					</SelectContent>
 				</Select>
 			</div>
 
@@ -271,10 +271,7 @@ export function StartSessionDialog({
 						/>
 					</SettingsRow>
 
-					<SettingsRow
-						label="Max Consecutive Games"
-						description="Limit how many games in a row"
-					>
+					<SettingsRow label="Max Consecutive Games" description="Limit how many games in a row">
 						<Switch
 							checked={state.maxConsecutiveEnabled}
 							onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}

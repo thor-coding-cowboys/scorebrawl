@@ -226,18 +226,28 @@ export const sessionRouter = {
 					const modeSettings = sessionService.parseModeSettings(fullSession.modeSettings);
 					const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
 
-					let proposedLineup: { homePlayerIds: string[]; awayPlayerIds: string[]; rotatedOut: string[]; coinTossNeeded: { conflictType: string; candidates: string[] } | null } | null = null;
+					let proposedLineup: {
+						homePlayerIds: string[];
+						awayPlayerIds: string[];
+						rotatedOut: string[];
+						coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+					} | null = null;
 
 					if (effectiveMode === "winner-stays") {
-						const settings: sessionService.WinnerStaysSettings = modeSettings?.mode === "winner-stays" ? modeSettings : {
-							mode: "winner-stays",
-							maxConsecutiveGames: fullSession.maxConsecutiveEnabled ? fullSession.maxConsecutiveGames : null,
-							winnersTakePriority: fullSession.winnersTakePriority,
-							autoRandomize: fullSession.autoRandomize,
-							randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-							autoCoinToss: fullSession.autoCoinToss,
-							alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						};
+						const settings: sessionService.WinnerStaysSettings =
+							modeSettings?.mode === "winner-stays"
+								? modeSettings
+								: {
+										mode: "winner-stays",
+										maxConsecutiveGames: fullSession.maxConsecutiveEnabled
+											? fullSession.maxConsecutiveGames
+											: null,
+										winnersTakePriority: fullSession.winnersTakePriority,
+										autoRandomize: fullSession.autoRandomize,
+										randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+										autoCoinToss: fullSession.autoCoinToss,
+										alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+									};
 
 						proposedLineup = computeWinnerStaysLineup({
 							settings,
@@ -459,7 +469,11 @@ export const sessionRouter = {
 				resolvedWinnerIds: input.resolvedWinnerIds,
 			});
 
-			const sessionInfo = await getSessionForOrg(ctx.db, result.resolved.sessionId, ctx.organizationId);
+			const sessionInfo = await getSessionForOrg(
+				ctx.db,
+				result.resolved.sessionId,
+				ctx.organizationId
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {

@@ -3,7 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { debounce } from "@/lib/utils";
 
-export function useScoreSync(sessionId: string, currentMatchRef: { current: { id: string } | null }) {
+export function useScoreSync(
+	sessionId: string,
+	currentMatchRef: { current: { id: string } | null }
+) {
 	const updateMatchScore = useMutation({
 		mutationFn: (input: {
 			sessionId: string;

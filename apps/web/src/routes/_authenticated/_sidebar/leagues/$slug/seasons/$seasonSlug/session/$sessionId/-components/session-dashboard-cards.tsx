@@ -238,12 +238,7 @@ function SessionInfoCard({
 	playerCount: number;
 	rotationMode: string;
 }) {
-	const modeLabel =
-		rotationMode === "winner-stays"
-			? "Winner stays"
-			: rotationMode === "round-robin"
-				? "Round robin"
-				: "Manual";
+	const modeLabel = rotationMode === "winner-stays" ? "Winner stays" : "Manual";
 
 	return (
 		<DashboardCard

@@ -32,12 +32,7 @@ import { getPlayerBySeasonId } from "../session-utils";
 import { SessionDashboardCards } from "../session-dashboard-cards";
 import { ScoreStepper, TeamRosterCard } from "../score-stepper";
 import { SessionStandings } from "../session-standings";
-import type {
-	GameSession,
-	PlayerWithTeam,
-	SessionPlayer,
-	TeamAssignment,
-} from "../session-types";
+import type { GameSession, PlayerWithTeam, SessionPlayer, TeamAssignment } from "../session-types";
 import { TeamPicker } from "./team-picker";
 
 interface ManualSessionProps {
@@ -138,15 +133,16 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		});
 	}, [session]);
 
-	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch } =
-		useSessionMutations(sessionId, seasonSlug, { slug, seasonSlug });
+	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch } = useSessionMutations(
+		sessionId,
+		seasonSlug,
+		{ slug, seasonSlug }
+	);
 
 	const homePlayers = teamAssignment.filter((p) => p.team === "home");
 	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
 	const teamsBalanced =
-		homePlayers.length === awayPlayers.length &&
-		homePlayers.length > 0 &&
-		session
+		homePlayers.length === awayPlayers.length && homePlayers.length > 0 && session
 			? homePlayers.length === session.teamSize
 			: false;
 
@@ -303,7 +299,8 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 													<AlertDialogHeader>
 														<AlertDialogTitle>Undo last match?</AlertDialogTitle>
 														<AlertDialogDescription>
-															This will delete the last recorded match and revert all scores and stats.
+															This will delete the last recorded match and revert all scores and
+															stats.
 														</AlertDialogDescription>
 													</AlertDialogHeader>
 													<AlertDialogFooter>

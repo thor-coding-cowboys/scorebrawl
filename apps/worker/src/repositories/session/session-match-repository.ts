@@ -419,7 +419,12 @@ export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessio
 			const prevSelectedHomeIds = parseStringArray(previousMatch.selectedHomePlayerIds);
 			const prevSelectedAwayIds = parseStringArray(previousMatch.selectedAwayPlayerIds);
 
-			const allPrevIds = [...prevHomeIds, ...prevAwayIds, ...prevSelectedHomeIds, ...prevSelectedAwayIds];
+			const allPrevIds = [
+				...prevHomeIds,
+				...prevAwayIds,
+				...prevSelectedHomeIds,
+				...prevSelectedAwayIds,
+			];
 			const uniquePrevIds = [...new Set(allPrevIds)];
 
 			const prevSessionPlayers = await tx

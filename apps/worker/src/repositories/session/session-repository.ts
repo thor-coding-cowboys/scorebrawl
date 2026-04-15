@@ -16,7 +16,6 @@ import {
 import { enforceAlwaysSplit } from "../../services/session/strategies/winner-stays";
 import { fisherYatesShuffle } from "../../lib/shuffle";
 
-
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
 	try {

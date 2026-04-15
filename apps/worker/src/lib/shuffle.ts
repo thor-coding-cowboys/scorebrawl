@@ -7,10 +7,7 @@ export function fisherYatesShuffle<T>(arr: T[]): T[] {
 	return shuffled;
 }
 
-export function diversityShuffle<T>(
-	items: T[],
-	pairWeights: Map<string, number>,
-): T[] {
+export function diversityShuffle<T>(items: T[], pairWeights: Map<string, number>): T[] {
 	const result: T[] = [];
 	const remaining = [...items];
 
@@ -45,7 +42,7 @@ export function diversityShuffle<T>(
 
 export function diversityShuffleWithHistory(
 	playerIds: string[],
-	matchHistory: Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }>,
+	matchHistory: Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }>
 ): string[] {
 	const pairWeights = new Map<string, number>();
 

@@ -130,7 +130,16 @@ export function enforceAlwaysSplit(
 }
 
 export function computeWinnerStaysLineup(input: WinnerStaysRotationInput): WinnerStaysLineup {
-	const { settings, players, teamSize, lastMatchResult, lastMatchHome, lastMatchAway, matchHistory, resolvedCoinTossWinnerIds } = input;
+	const {
+		settings,
+		players,
+		teamSize,
+		lastMatchResult,
+		lastMatchHome,
+		lastMatchAway,
+		matchHistory,
+		resolvedCoinTossWinnerIds,
+	} = input;
 	const { autoRandomize, alwaysSplitConstraints, randomizerType } = settings;
 
 	const playingIds = new Set([...lastMatchHome, ...lastMatchAway]);

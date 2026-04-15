@@ -3,11 +3,7 @@ import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import { TRPCError } from "@trpc/server";
 import type { DrizzleDB, TransactionClient } from "../../db";
 import { withTransaction } from "../../db";
-import {
-	gameSession,
-	sessionPlayer,
-	sessionMatch,
-} from "../../db/schema/league-schema";
+import { gameSession, sessionPlayer, sessionMatch } from "../../db/schema/league-schema";
 import { parseStringArray } from "./session-repository";
 
 export const addPlayerToSession = async ({

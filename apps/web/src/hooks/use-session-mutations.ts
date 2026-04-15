@@ -4,7 +4,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 import type { ProposedLineup } from "@/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/-components/session-types";
 
-export function useSessionMutations(sessionId: string, seasonSlug: string, params: { slug: string; seasonSlug: string }) {
+export function useSessionMutations(
+	sessionId: string,
+	seasonSlug: string,
+	params: { slug: string; seasonSlug: string }
+) {
 	const queryClient = useQueryClient();
 	const trpc = useTRPC();
 	const navigate = useNavigate();
@@ -113,7 +117,10 @@ export function useSessionMutations(sessionId: string, seasonSlug: string, param
 
 	const resolveCoinToss = useMutation({
 		mutationFn: (input: { coinTossId: string; resolvedWinnerIds: string[] }) =>
-			trpcClient.session.resolveCoinToss.mutate(input) as Promise<{ resolved: unknown; proposedLineup: ProposedLineup }>,
+			trpcClient.session.resolveCoinToss.mutate(input) as Promise<{
+				resolved: unknown;
+				proposedLineup: ProposedLineup;
+			}>,
 		onSuccess: (res) => {
 			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
 			void res;

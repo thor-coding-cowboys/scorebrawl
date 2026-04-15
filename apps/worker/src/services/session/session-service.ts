@@ -123,8 +123,7 @@ export async function recordResult(
 				if (settings.autoCoinToss) {
 					let resolvedWinnerIds: string[];
 					if (conflictType === "draw-tiebreak") {
-						resolvedWinnerIds =
-							Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
+						resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
 					} else {
 						const shuffled = [...candidates];
 						for (let i = shuffled.length - 1; i > 0; i--) {

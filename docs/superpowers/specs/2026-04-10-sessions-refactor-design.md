@@ -56,35 +56,35 @@ apps/worker/src/
 
 ```typescript
 type WinnerStaysSettings = {
-  mode: "winner-stays"
-  maxConsecutiveGames: number | null  // null = disabled
-  winnersTakePriority: boolean
-  autoRandomize: boolean
-  randomizerType: "fisher-yates" | "diversity"
-  autoCoinToss: boolean
-  alwaysSplitConstraints: [string, string][]
-}
+	mode: "winner-stays";
+	maxConsecutiveGames: number | null; // null = disabled
+	winnersTakePriority: boolean;
+	autoRandomize: boolean;
+	randomizerType: "fisher-yates" | "diversity";
+	autoCoinToss: boolean;
+	alwaysSplitConstraints: [string, string][];
+};
 
 type ManualSettings = {
-  mode: "manual"
-}
+	mode: "manual";
+};
 
-type ModeSettings = WinnerStaysSettings | ManualSettings
+type ModeSettings = WinnerStaysSettings | ManualSettings;
 ```
 
 ### Strategy Dispatch (no interfaces)
 
 ```typescript
 function computeNextLineup(session: GameSession, ...args) {
-  const settings = session.modeSettings
-  switch (settings.mode) {
-    case "winner-stays":
-      return winnerStaysRotation(settings, ...args) // TypeScript narrows to WinnerStaysSettings
-    case "manual":
-      return null
-    default:
-      exhaustiveCheck(settings.mode)
-  }
+	const settings = session.modeSettings;
+	switch (settings.mode) {
+		case "winner-stays":
+			return winnerStaysRotation(settings, ...args); // TypeScript narrows to WinnerStaysSettings
+		case "manual":
+			return null;
+		default:
+			exhaustiveCheck(settings.mode);
+	}
 }
 ```
 
@@ -95,24 +95,26 @@ Each strategy file exports pure functions. The service calls them via switch on 
 Exported as individual functions, not a namespace object.
 
 ```typescript
-export function createSession(db, input): Promise<GameSession>
-export function recordResult(db, input): Promise<RecordResultOutput>
-export function startNextMatch(db, sessionId): Promise<SessionMatch>
-export function resolveCoinToss(db, input): Promise<ResolveCoinTossOutput>
-export function addPlayer(db, sessionId, seasonPlayerId): Promise<void>
-export function removePlayer(db, sessionId, seasonPlayerId): Promise<RemovePlayerOutput>
-export function cancelMatch(db, sessionId): Promise<void>
-export function deleteLastMatch(db, sessionId): Promise<void>
-export function endSession(db, sessionId): Promise<void>
+export function createSession(db, input): Promise<GameSession>;
+export function recordResult(db, input): Promise<RecordResultOutput>;
+export function startNextMatch(db, sessionId): Promise<SessionMatch>;
+export function resolveCoinToss(db, input): Promise<ResolveCoinTossOutput>;
+export function addPlayer(db, sessionId, seasonPlayerId): Promise<void>;
+export function removePlayer(db, sessionId, seasonPlayerId): Promise<RemovePlayerOutput>;
+export function cancelMatch(db, sessionId): Promise<void>;
+export function deleteLastMatch(db, sessionId): Promise<void>;
+export function endSession(db, sessionId): Promise<void>;
 ```
 
 **Moves into service:**
+
 - `recordResult` orchestration (~260 lines currently duplicated): record -> compute lineup -> handle coin toss -> persist
 - `removePlayer` lineup recomputation (currently in tRPC router only)
 - `resolveCoinToss` -> recompute lineup flow
 - Match creation via `matchRepository.create`
 
 **Stays in routers:**
+
 - Input validation (zod / zValidator)
 - Auth/authorization
 - SSE broadcast
@@ -245,6 +247,7 @@ function SessionPage() {
 Integration tests through tRPC client with real D1 database. Pattern: `createTRPCTestClient({ sessionToken })`.
 
 **Test flows:**
+
 1. Create winner-stays session -> start match -> record result -> verify next lineup
 2. Create winner-stays session -> record draw -> verify coin toss created -> resolve -> verify lineup
 3. Create manual session -> start match -> record result -> verify no auto-rotation
@@ -259,6 +262,7 @@ Each test exercises full stack: router -> service -> repository -> D1 -> respons
 ## Round-Robin Readiness
 
 Architecture supports future round-robin without structural changes:
+
 - Add `RoundRobinSettings` to `ModeSettings` union
 - Add `"round-robin"` to `rotationMode` enum
 - Add `strategies/round-robin.ts` with fixture generation logic
