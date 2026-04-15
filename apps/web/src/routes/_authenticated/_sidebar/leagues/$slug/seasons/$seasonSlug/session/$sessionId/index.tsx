@@ -360,7 +360,7 @@ function SessionLivePage() {
 			setHomeScore(0);
 			setAwayScore(0);
 
-			const needsShuffle = session?.autoRandomize && res.proposedLineup;
+			const needsShuffle = session?.modeSettings?.autoRandomize && res.proposedLineup;
 
 			// Reset local state and wait for server data
 			localShuffleRef.current = null;
@@ -507,7 +507,7 @@ function SessionLivePage() {
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.alwaysSplitConstraints,
+			session.modeSettings?.alwaysSplitConstraints ?? [],
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -530,7 +530,7 @@ function SessionLivePage() {
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.alwaysSplitConstraints,
+			session.modeSettings?.alwaysSplitConstraints ?? [],
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -564,7 +564,7 @@ function SessionLivePage() {
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.alwaysSplitConstraints,
+			session.modeSettings?.alwaysSplitConstraints ?? [],
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -601,7 +601,7 @@ function SessionLivePage() {
 			const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 				rawHome,
 				rawAway,
-				session.alwaysSplitConstraints,
+				session.modeSettings?.alwaysSplitConstraints ?? [],
 				session.players
 			);
 			const homeSet = new Set(fixedHome);
@@ -909,10 +909,10 @@ function SessionLivePage() {
 								}
 								isRejoining={rejoinPlayer.isPending}
 							/>
-							{session.alwaysSplitConstraints.length > 0 && (
+							{(session.modeSettings?.alwaysSplitConstraints?.length ?? 0) > 0 && (
 								<div className="mt-3 text-xs text-muted-foreground space-y-1">
 									<span className="font-medium text-foreground text-sm">Always Split</span>
-									{session.alwaysSplitConstraints.map(([a, b]) => {
+									{session.modeSettings?.alwaysSplitConstraints?.map(([a, b]: [string, string]) => {
 										const pA = session.players.find((p) => p.seasonPlayerId === a);
 										const pB = session.players.find((p) => p.seasonPlayerId === b);
 										if (!pA || !pB) return null;
