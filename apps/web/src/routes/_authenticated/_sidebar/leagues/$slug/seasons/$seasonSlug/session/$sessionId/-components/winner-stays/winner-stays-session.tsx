@@ -727,13 +727,7 @@ function QueueCard({
 }) {
 	return (
 	<Card className="p-4">
-		<div className="flex items-center justify-between mb-4">
-			<h2 className="text-sm font-bold font-mono">Queue</h2>
-			<Badge variant="secondary" className="text-xs">
-				{session.players.length}
-			</Badge>
-		</div>
-			<QueuePanel
+		<QueuePanel
 				session={session}
 				onRemovePlayer={(sessionPlayerId) =>
 					removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
