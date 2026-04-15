@@ -43,7 +43,6 @@ import type {
 	SessionMatch,
 } from "../session-types";
 import { QueuePanel } from "./queue-panel";
-import { RotationControls } from "./rotation-controls";
 import { CoinTossDialog } from "./coin-toss-dialog";
 import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-drawer";
 
@@ -447,13 +446,8 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 						deleteLastMatch={deleteLastMatch}
 						recordResult={recordResult}
 						startNextMatch={startNextMatch}
-						setShowPlayerDrawer={setShowPlayerDrawer}
-						teamAssignment={teamAssignment}
-						handleShuffle={handleShuffle}
-						handleShuffleSelected={handleShuffleSelected}
-						handleEven={handleEven}
-						handleRotation={handleRotation}
-					/>
+					setShowPlayerDrawer={setShowPlayerDrawer}
+				/>
 
 					<QueueCard session={session} removePlayer={removePlayer} />
 				</div>
@@ -527,11 +521,6 @@ function MatchCard({
 	recordResult,
 	startNextMatch,
 	setShowPlayerDrawer,
-	teamAssignment,
-	handleShuffle,
-	handleShuffleSelected,
-	handleEven,
-	handleRotation,
 }: {
 	currentMatch: SessionMatch | null;
 	homeScore: number;
@@ -555,11 +544,6 @@ function MatchCard({
 	recordResult: ReturnType<typeof useSessionMutations>["recordResult"];
 	startNextMatch: ReturnType<typeof useSessionMutations>["startNextMatch"];
 	setShowPlayerDrawer: (open: boolean) => void;
-	teamAssignment: PlayerWithTeam[];
-	handleShuffle: () => void;
-	handleShuffleSelected: () => void;
-	handleEven: () => void;
-	handleRotation: () => void;
 }) {
 	return (
 		<div className="rounded-lg border bg-card p-4">
@@ -677,14 +661,6 @@ function MatchCard({
 								<HugeiconsIcon icon={UserMultiple02Icon} className="size-4" />
 								Select Players
 							</Button>
-							<RotationControls
-								teamAssignment={teamAssignment}
-								onShuffle={handleShuffle}
-								onShuffleSelected={handleShuffleSelected}
-								onEven={handleEven}
-								onRotation={handleRotation}
-								isShuffling={isShuffling}
-							/>
 							<GlowButton
 								glowColor={glowColors.blue}
 								onClick={handleStartMatch}
