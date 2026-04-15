@@ -40,18 +40,29 @@ export type ProposedLineup = {
 	selectedAwayPlayerIds?: string[];
 } | null;
 
+export type ModeSettings = {
+	mode: "winner-stays";
+	maxConsecutiveGames: number | null;
+	winnersTakePriority: boolean;
+	autoRandomize: boolean;
+	autoCoinToss: boolean;
+	alwaysSplitConstraints: [string, string][];
+} | {
+	mode: "manual";
+	maxConsecutiveGames?: undefined;
+	winnersTakePriority?: undefined;
+	autoRandomize?: undefined;
+	autoCoinToss?: undefined;
+	alwaysSplitConstraints?: undefined;
+};
+
 export type GameSession = {
 	id: string;
 	seasonId: string;
 	status: "active" | "ended";
-	rotationMode: "winner-stays" | "round-robin" | "manual";
-	winnersTakePriority: boolean;
-	maxConsecutiveEnabled: boolean;
+	rotationMode: "winner-stays" | "manual";
+	modeSettings: ModeSettings | null;
 	teamSize: number;
-	maxConsecutiveGames: number | null;
-	autoRandomize: boolean;
-	autoCoinToss: boolean;
-	alwaysSplitConstraints: [string, string][];
 	proposedLineup: ProposedLineup;
 	players: SessionPlayer[];
 	matches: SessionMatch[];
