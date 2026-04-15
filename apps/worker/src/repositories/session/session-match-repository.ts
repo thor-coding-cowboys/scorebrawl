@@ -397,81 +397,53 @@ export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessio
 			.where(eq(sessionPlayer.sessionId, sessionId))
 			.orderBy(asc(sessionPlayer.queuePosition));
 
-		let restoredProposedLineup: {
-			homePlayerIds: string[];
-			awayPlayerIds: string[];
-			selectedHomePlayerIds: string[];
-			selectedAwayPlayerIds: string[];
-			rotatedOut: string[];
-			coinTossNeeded: null;
-		} | null = null;
+		const deletedHomeIds = parseStringArray(lastMatch.homePlayerIds);
+		const deletedAwayIds = parseStringArray(lastMatch.awayPlayerIds);
+		const deletedSelectedHomeIds = parseStringArray(lastMatch.selectedHomePlayerIds);
+		const deletedSelectedAwayIds = parseStringArray(lastMatch.selectedAwayPlayerIds);
 
-		const [previousMatch] = await tx
-			.select()
-			.from(sessionMatch)
-			.where(and(eq(sessionMatch.sessionId, sessionId), isNotNull(sessionMatch.result)))
-			.orderBy(desc(sessionMatch.matchNumber))
-			.limit(1);
+		const allDeletedIds = [
+			...deletedHomeIds,
+			...deletedAwayIds,
+			...deletedSelectedHomeIds,
+			...deletedSelectedAwayIds,
+		];
+		const uniqueDeletedIds = [...new Set(allDeletedIds)];
 
-		if (previousMatch) {
-			const prevHomeIds = parseStringArray(previousMatch.homePlayerIds);
-			const prevAwayIds = parseStringArray(previousMatch.awayPlayerIds);
-			const prevSelectedHomeIds = parseStringArray(previousMatch.selectedHomePlayerIds);
-			const prevSelectedAwayIds = parseStringArray(previousMatch.selectedAwayPlayerIds);
-
-			const allPrevIds = [
-				...prevHomeIds,
-				...prevAwayIds,
-				...prevSelectedHomeIds,
-				...prevSelectedAwayIds,
-			];
-			const uniquePrevIds = [...new Set(allPrevIds)];
-
-			const prevSessionPlayers = await tx
-				.select({ id: sessionPlayer.id, seasonPlayerId: sessionPlayer.seasonPlayerId })
-				.from(sessionPlayer)
-				.where(
-					and(
-						eq(sessionPlayer.sessionId, sessionId),
-						inArray(sessionPlayer.seasonPlayerId, uniquePrevIds)
-					)
-				);
-
-			const spIdToSessionPlayerId = new Map(
-				prevSessionPlayers.map((p) => [p.seasonPlayerId, p.id])
+		const deletedSessionPlayers = await tx
+			.select({ id: sessionPlayer.id, seasonPlayerId: sessionPlayer.seasonPlayerId })
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, uniqueDeletedIds)
+				)
 			);
 
-			const prevHomeSessionPlayers = prevHomeIds
-				.map((id) => spIdToSessionPlayerId.get(id))
-				.filter(Boolean)
-				.map((id) => ({ id: id! }));
-			const prevAwaySessionPlayers = prevAwayIds
-				.map((id) => spIdToSessionPlayerId.get(id))
-				.filter(Boolean)
-				.map((id) => ({ id: id! }));
-			const prevSelectedHomeSessionPlayers = prevSelectedHomeIds
-				.map((id) => spIdToSessionPlayerId.get(id))
-				.filter(Boolean)
-				.map((id) => ({ id: id! }));
-			const prevSelectedAwaySessionPlayers = prevSelectedAwayIds
-				.map((id) => spIdToSessionPlayerId.get(id))
-				.filter(Boolean)
-				.map((id) => ({ id: id! }));
+		const spIdToSessionPlayerId = new Map(
+			deletedSessionPlayers.map((p) => [p.seasonPlayerId, p.id])
+		);
 
-			restoredProposedLineup = {
-				homePlayerIds: prevHomeSessionPlayers.map((p) => p.id),
-				awayPlayerIds: prevAwaySessionPlayers.map((p) => p.id),
-				selectedHomePlayerIds: prevSelectedHomeSessionPlayers.map((p) => p.id),
-				selectedAwayPlayerIds: prevSelectedAwaySessionPlayers.map((p) => p.id),
-				rotatedOut: [],
-				coinTossNeeded: null,
-			};
+		const toSessionPlayerIds = (seasonPlayerIds: string[]) =>
+			seasonPlayerIds.map((id) => spIdToSessionPlayerId.get(id)).filter((id): id is string => id !== undefined);
 
-			await tx
-				.update(gameSession)
-				.set({ proposedLineup: JSON.stringify(restoredProposedLineup) })
-				.where(eq(gameSession.id, sessionId));
-		}
+		const restoredProposedLineup = {
+			homePlayerIds: toSessionPlayerIds(deletedHomeIds),
+			awayPlayerIds: toSessionPlayerIds(deletedAwayIds),
+			selectedHomePlayerIds: toSessionPlayerIds(
+				deletedSelectedHomeIds.length > 0 ? deletedSelectedHomeIds : deletedHomeIds
+			),
+			selectedAwayPlayerIds: toSessionPlayerIds(
+				deletedSelectedAwayIds.length > 0 ? deletedSelectedAwayIds : deletedAwayIds
+			),
+			rotatedOut: [],
+			coinTossNeeded: null,
+		};
+
+		await tx
+			.update(gameSession)
+			.set({ proposedLineup: JSON.stringify(restoredProposedLineup) })
+			.where(eq(gameSession.id, sessionId));
 
 		return { deletedMatch: lastMatch, players, restoredProposedLineup };
 	});
