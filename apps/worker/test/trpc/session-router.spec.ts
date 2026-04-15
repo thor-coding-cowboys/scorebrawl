@@ -21,6 +21,23 @@ async function setupSeasonWithPlayers(count = 4) {
 	return { ctx, client, season, seasonPlayers };
 }
 
+function winnerStaysSettings(overrides = {}) {
+	return {
+		mode: "winner-stays" as const,
+		maxConsecutiveGames: null,
+		winnersTakePriority: false,
+		autoRandomize: false,
+		randomizerType: "fisher-yates" as const,
+		autoCoinToss: false,
+		alwaysSplitConstraints: [] as [string, string][],
+		...overrides,
+	};
+}
+
+function manualSettings() {
+	return { mode: "manual" as const };
+}
+
 describe("session router", () => {
 	describe("create", () => {
 		it("creates a session with players", async () => {
@@ -30,8 +47,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			expect(session.id).toBeDefined();
@@ -47,19 +64,36 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await expect(
 				client.session.create.mutate({
 					seasonSlug: season.slug,
-					rotationMode: "sequential",
+					rotationMode: "winner-stays",
 					teamSize: 1,
-					maxConsecutiveGames: null,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
+					modeSettings: winnerStaysSettings(),
+					playerSeasonIds: seasonPlayers.map((p) => p.id),
 				})
 			).rejects.toThrow("active session");
+		});
+
+		it("creates a manual session", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "manual",
+				teamSize: 2,
+				modeSettings: manualSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
+			});
+
+			expect(session.id).toBeDefined();
+			expect(session.status).toBe("active");
+			expect(session.rotationMode).toBe("manual");
+			expect(session.teamSize).toBe(2);
 		});
 	});
 
@@ -77,8 +111,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const active = await client.session.getActive.query({ seasonSlug: season.slug });
@@ -94,8 +128,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const session = await client.session.getById.query({ sessionId: created.id });
@@ -121,8 +155,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.slice(0, 3).map((p) => p.id),
 			});
 
 			await client.session.addPlayer.mutate({
@@ -143,31 +177,30 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			await client.session.startNextMatch.mutate({
+			const match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
 
-			const withMatch = await client.session.getById.query({ sessionId: session.id });
-			const currentMatch = withMatch.matches.find((m) => m.result === null);
-			expect(currentMatch).toBeDefined();
-			expect(currentMatch?.homePlayerIds).toHaveLength(2);
-			expect(currentMatch?.awayPlayerIds).toHaveLength(2);
+			expect(match.result).toBeNull();
+			expect(match.homePlayerIds).toHaveLength(2);
+			expect(match.awayPlayerIds).toHaveLength(2);
 
-			const result = await client.session.recordResult.mutate({
+			await client.session.recordResult.mutate({
 				sessionId: session.id,
-				sessionMatchId: currentMatch!.id,
+				sessionMatchId: match.id,
 				homeScore: 3,
 				awayScore: 1,
 			});
 
-			expect(result.match.result).toBe("home");
-			expect(result.proposedLineup).toBeDefined();
+			const withResult = await client.session.getById.query({ sessionId: session.id });
+			const recordedMatch = withResult.matches.find((m) => m.id === match.id);
+			expect(recordedMatch?.result).toBe("home");
 		});
 
 		it("records a draw result correctly", async () => {
@@ -175,29 +208,28 @@ describe("session router", () => {
 
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
-				rotationMode: "sequential",
+				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			await client.session.startNextMatch.mutate({
+			const match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
 
-			const withMatch = await client.session.getById.query({ sessionId: session.id });
-			const match = withMatch.matches.find((m) => m.result === null)!;
-
-			const result = await client.session.recordResult.mutate({
+			await client.session.recordResult.mutate({
 				sessionId: session.id,
 				sessionMatchId: match.id,
 				homeScore: 1,
 				awayScore: 1,
 			});
 
-			expect(result.match.result).toBe("draw");
+			const withResult = await client.session.getById.query({ sessionId: session.id });
+			const recordedMatch = withResult.matches.find((m) => m.id === match.id);
+			expect(recordedMatch?.result).toBe("draw");
 		});
 	});
 
@@ -209,8 +241,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const ended = await client.session.end.mutate({ sessionId: session.id });
@@ -229,18 +261,15 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			await client.session.startNextMatch.mutate({
+			const match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
-
-			const withMatch = await client.session.getById.query({ sessionId: session.id });
-			const match = withMatch.matches.find((m) => m.result === null)!;
 
 			await client.session.recordResult.mutate({
 				sessionId: session.id,
@@ -267,8 +296,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const fullSession = await client.session.getById.query({ sessionId: session.id });
@@ -294,8 +323,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const fullSession = await client.session.getById.query({ sessionId: session.id });
@@ -309,7 +338,6 @@ describe("session router", () => {
 			const updated = await client.session.getById.query({ sessionId: session.id });
 			const waitingPlayers = updated.players.filter((p) => p.status === "waiting");
 			const positions = waitingPlayers.map((p) => p.queuePosition).sort((a, b) => a - b);
-			// Verify contiguous positions starting from 0: [0, 1, 2, ...]
 			for (let i = 0; i < positions.length; i++) {
 				expect(positions[i]).toBe(i);
 			}
@@ -324,8 +352,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await client.session.startNextMatch.mutate({
@@ -337,8 +365,7 @@ describe("session router", () => {
 			const beforeCancel = await client.session.getById.query({ sessionId: session.id });
 			expect(beforeCancel.matches.filter((m) => m.result === null)).toHaveLength(1);
 
-			const result = await client.session.cancelMatch.mutate({ sessionId: session.id });
-			expect(result.players).toBeDefined();
+			await client.session.cancelMatch.mutate({ sessionId: session.id });
 
 			const afterCancel = await client.session.getById.query({ sessionId: session.id });
 			expect(afterCancel.matches.filter((m) => m.result === null)).toHaveLength(0);
@@ -351,8 +378,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await client.session.startNextMatch.mutate({
@@ -376,18 +403,15 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			await client.session.startNextMatch.mutate({
+			const match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
-
-			const withMatch = await client.session.getById.query({ sessionId: session.id });
-			const match = withMatch.matches.find((m) => m.result === null)!;
 
 			await client.session.recordResult.mutate({
 				sessionId: session.id,
@@ -416,39 +440,32 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			// Play two matches
-			await client.session.startNextMatch.mutate({
+			let match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
 
-			let s = await client.session.getById.query({ sessionId: session.id });
-			let m = s.matches.find((m) => m.result === null)!;
-
 			await client.session.recordResult.mutate({
 				sessionId: session.id,
-				sessionMatchId: m.id,
+				sessionMatchId: match.id,
 				homeScore: 2,
 				awayScore: 0,
 			});
 
-			await client.session.startNextMatch.mutate({
+			match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
 
-			s = await client.session.getById.query({ sessionId: session.id });
-			m = s.matches.find((m) => m.result === null)!;
-
 			await client.session.recordResult.mutate({
 				sessionId: session.id,
-				sessionMatchId: m.id,
+				sessionMatchId: match.id,
 				homeScore: 1,
 				awayScore: 3,
 			});
@@ -477,18 +494,15 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			await client.session.startNextMatch.mutate({
+			const match = await client.session.startNextMatch.mutate({
 				sessionId: session.id,
 				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
 				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
 			});
-
-			const withMatch = await client.session.getById.query({ sessionId: session.id });
-			const match = withMatch.matches.find((m) => m.result === null)!;
 
 			await client.session.recordResult.mutate({
 				sessionId: session.id,
@@ -516,8 +530,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 3,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await client.session.startNextMatch.mutate({
@@ -535,21 +549,18 @@ describe("session router", () => {
 		it("allows authenticated season player to join active session", async () => {
 			const { ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
-			// Find which season player belongs to the authenticated user
 			const authUserSeasonPlayerIndex = seasonPlayers.findIndex((p) => p.userId === ctx.user.id);
 			expect(authUserSeasonPlayerIndex).toBeGreaterThanOrEqual(0);
 
-			// Get the other 3 players (not the auth user)
 			const otherPlayers = seasonPlayers.filter((_, i) => i !== authUserSeasonPlayerIndex);
 			expect(otherPlayers.length).toBe(3);
 
-			// Create session with the other 3 players so auth user can join
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: otherPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: otherPlayers.map((p) => p.id),
 			});
 
 			const newPlayer = await client.session.joinSelf.mutate({
@@ -557,7 +568,6 @@ describe("session router", () => {
 			});
 
 			expect(newPlayer.id).toBeDefined();
-			// Authenticated user's season player
 			expect(newPlayer.seasonPlayerId).toBe(seasonPlayers[authUserSeasonPlayerIndex].id);
 
 			const updated = await client.session.getById.query({ sessionId: session.id });
@@ -575,8 +585,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.slice(0, 3).map((p) => p.id),
 			});
 
 			const otherUserCtx = await createAuthContext();
@@ -592,29 +602,24 @@ describe("session router", () => {
 		it("rejects joining twice with CONFLICT error", async () => {
 			const { ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
-			// Find which season player belongs to the authenticated user
 			const authUserSeasonPlayerIndex = seasonPlayers.findIndex((p) => p.userId === ctx.user.id);
 			expect(authUserSeasonPlayerIndex).toBeGreaterThanOrEqual(0);
 
-			// Get the other 3 players (not the auth user)
 			const otherPlayers = seasonPlayers.filter((_, i) => i !== authUserSeasonPlayerIndex);
 			expect(otherPlayers.length).toBe(3);
 
-			// Create session with the other 3 players so auth user can join
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: otherPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: otherPlayers.map((p) => p.id),
 			});
 
-			// First join should succeed (auth user is not in session yet)
 			await client.session.joinSelf.mutate({
 				sessionId: session.id,
 			});
 
-			// Second join should fail
 			await expect(
 				client.session.joinSelf.mutate({
 					sessionId: session.id,
@@ -639,8 +644,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.slice(0, 3).map((p) => p.id),
 			});
 
 			await client.session.end.mutate({ sessionId: session.id });
@@ -661,8 +666,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.slice(0, 3).map((p) => p.id),
 			});
 
 			await client.session.addPlayer.mutate({
@@ -685,8 +690,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await client.session.startNextMatch.mutate({
@@ -715,8 +720,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 1,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await expect(
@@ -731,8 +736,8 @@ describe("session router", () => {
 				seasonSlug: season.slug,
 				rotationMode: "winner-stays",
 				teamSize: 2,
-				maxConsecutiveGames: null,
-				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
 			await client.session.startNextMatch.mutate({
@@ -745,355 +750,267 @@ describe("session router", () => {
 				client.session.deleteLastMatch.mutate({ sessionId: session.id })
 			).rejects.toThrow();
 		});
+	});
 
-		describe("queue position assignment after result", () => {
-			it("consecutiveGames increments for all playing players regardless of winnersTakePriority", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: null,
-					winnersTakePriority: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				const withMatch = await client.session.getById.query({ sessionId: session.id });
-				const match = withMatch.matches.find((m) => m.result === null)!;
+	describe("winner-stays session flow", () => {
+		it("creates session, starts match, records result, verifies next lineup", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: match.id,
-					homeScore: 2,
-					awayScore: 0,
-				});
-
-				const playing = result.players.filter((p) =>
-					[...match.homePlayerIds, ...match.awayPlayerIds].includes(p.id)
-				);
-				for (const p of playing) {
-					expect(p.consecutiveGames).toBe(1);
-				}
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			it("winnersTakePriority: false — winner gets lower queuePosition than loser", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(3);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: null,
-					winnersTakePriority: false,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				const withMatch = await client.session.getById.query({ sessionId: session.id });
-				const match = withMatch.matches.find((m) => m.result === null)!;
+			expect(session.rotationMode).toBe("winner-stays");
 
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: match.id,
-					homeScore: 2,
-					awayScore: 0,
-				});
-
-				const winner = result.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
-				const loser = result.players.find((p) => p.seasonPlayerId === seasonPlayers[1].id)!;
-				expect(winner.queuePosition).toBeLessThan(loser.queuePosition);
+			await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[1].id],
 			});
 
-			it("winnersTakePriority: true — winner gets lower queuePosition than all waiting players", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: null,
-					winnersTakePriority: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				const withMatch = await client.session.getById.query({ sessionId: session.id });
-				const match = withMatch.matches.find((m) => m.result === null)!;
+			let s = await client.session.getById.query({ sessionId: session.id });
+			expect(s.players.filter((p) => p.status === "playing")).toHaveLength(2);
 
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: match.id,
-					homeScore: 2,
-					awayScore: 0,
-				});
-
-				const winner = result.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
-				const waiters = result.players.filter(
-					(p) =>
-						p.seasonPlayerId !== seasonPlayers[0].id && p.seasonPlayerId !== seasonPlayers[1].id
-				);
-				for (const w of waiters) {
-					expect(winner.queuePosition).toBeLessThan(w.queuePosition);
-				}
+			const match = s.matches.find((x) => x.result === null)!;
+			await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 2,
+				awayScore: 0,
 			});
 
-			it("maxConsecutiveEnabled — player at/above limit gets highest queuePosition", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: 2,
-					winnersTakePriority: false,
-					maxConsecutiveEnabled: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
+			s = await client.session.getById.query({ sessionId: session.id });
+			const updatedMatch = s.matches.find((m) => m.id === match.id);
+			expect(updatedMatch?.result).toBe("home");
+			expect(s.proposedLineup).toBeDefined();
+		});
 
-				// Game 1: p0 vs p1, p0 wins → p0 gets cg=1 (not override yet: 1 < 2)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				let s = await client.session.getById.query({ sessionId: session.id });
-				let m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
+		it("handles draw with coin toss", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
-				// Game 2: p0 plays again with cg=1, after game will be cg=2 >= maxConsecutiveGames=2 → should get override position
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[2].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				const p0 = result.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
-				const others = result.players.filter((p) => p.seasonPlayerId !== seasonPlayers[0].id);
-				for (const other of others) {
-					expect(p0.queuePosition).toBeGreaterThan(other.queuePosition);
-				}
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings({ autoCoinToss: false }),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			it("maxConsecutiveEnabled with winnersTakePriority: true — override player goes to bottom even if winner", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
+			const match = await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[1].id],
+			});
+
+			const result = await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 1,
+				awayScore: 1,
+			});
+
+			expect(result.coinTossId).toBeDefined();
+
+			const s = await client.session.getById.query({ sessionId: session.id });
+			const recordedMatch = s.matches.find((m) => m.id === match.id);
+			expect(recordedMatch?.result).toBe("draw");
+
+			const coinToss = await client.session.resolveCoinToss.mutate({
+				coinTossId: result.coinTossId!,
+				resolvedWinnerIds: [seasonPlayers[0].id],
+			});
+
+			expect(coinToss.resolved).toBeDefined();
+			expect(coinToss.proposedLineup).toBeDefined();
+		});
+
+		it("enforces max consecutive games", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings({
 					maxConsecutiveGames: 2,
 					winnersTakePriority: true,
-					maxConsecutiveEnabled: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-
-				// Game 1: p0 vs p1, p0 wins → p0 gets cg=1 (not override yet)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				let s = await client.session.getById.query({ sessionId: session.id });
-				let m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Game 2: p0 plays again with cg=1, after game will be cg=2 >= maxConsecutiveGames=2
-				// Even though p0 wins AND winnersTakePriority is true,
-				// maxConsecutive override should send p0 to bottom
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[2].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// p0 should have highest queuePosition (at the bottom) due to override
-				const p0 = result.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
-				const others = result.players.filter((p) => p.seasonPlayerId !== seasonPlayers[0].id);
-				for (const other of others) {
-					expect(p0.queuePosition).toBeGreaterThan(other.queuePosition);
-				}
+				}),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
 			});
 
-			it("player with 3 consecutive games and maxConsecutiveGames=3 is not selected for next game", async () => {
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(5);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: 3,
-					winnersTakePriority: true,
-					maxConsecutiveEnabled: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-
-				// Play 3 games with p0 winning each time
-				// Game 1: p0 vs p1, p0 wins → p0 gets cg=1 (not override: 1 < 3)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[1].id],
-				});
-				let s = await client.session.getById.query({ sessionId: session.id });
-				let m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Game 2: p0 vs p2, p0 wins → p0 gets cg=2 (not override: 2 < 3)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[2].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Game 3: p0 vs p3, p0 wins → p0 will have cg=3 (IS override: 3 >= 3)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[3].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				const result = await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// After Game 3, p0 has cg=3 which is >= maxConsecutiveGames=3
-				// p0 should have the highest queuePosition (at absolute bottom)
-				const p0 = result.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
-
-				// Verify p0 is at the bottom
-				const others = result.players.filter((p) => p.seasonPlayerId !== seasonPlayers[0].id);
-				for (const other of others) {
-					expect(p0.queuePosition).toBeGreaterThan(other.queuePosition);
-				}
-
-				// Now check the proposed lineup for the NEXT game
-				// p0 should NOT be selected because they're at the bottom
-				s = await client.session.getById.query({ sessionId: session.id });
-				const proposedLineup = s.proposedLineup;
-				if (proposedLineup) {
-					const allPlaying = [...proposedLineup.homePlayerIds, ...proposedLineup.awayPlayerIds];
-					const p0SessionPlayer = result.players.find(
-						(p) => p.seasonPlayerId === seasonPlayers[0].id
-					)!;
-					expect(allPlaying).not.toContain(p0SessionPlayer.id);
-				}
+			let match = await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[1].id],
 			});
 
-			it("when two players exceed maxConsecutiveGames, the one with more games goes lower", async () => {
-				// This test verifies that among override players (those exceeding maxConsecutiveGames),
-				// the one with MORE consecutive games gets a HIGHER queuePosition (goes lower in queue)
-				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(5);
-				const session = await client.session.create.mutate({
-					seasonSlug: season.slug,
-					rotationMode: "winner-stays",
-					teamSize: 1,
-					maxConsecutiveGames: 2, // Low limit so players become overrides quickly
-					winnersTakePriority: true,
-					maxConsecutiveEnabled: true,
-					seasonPlayerIds: seasonPlayers.map((p) => p.id),
-				});
-
-				// Play games to build up different consecutive game counts
-				// p0 will exceed first and play more games as an override
-
-				// Game 1: p0 vs p2, p0 wins → p0 cg=1
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[2].id],
-				});
-				let s = await client.session.getById.query({ sessionId: session.id });
-				let m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Game 2: p0 vs p3, p0 wins → p0 cg=2 (at limit, now an override)
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[0].id],
-					awaySeasonPlayerIds: [seasonPlayers[3].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Game 3: p1 vs p4, p1 wins → p1 cg=1
-				await client.session.startNextMatch.mutate({
-					sessionId: session.id,
-					homeSeasonPlayerIds: [seasonPlayers[1].id],
-					awaySeasonPlayerIds: [seasonPlayers[4].id],
-				});
-				s = await client.session.getById.query({ sessionId: session.id });
-				m = s.matches.find((x) => x.result === null)!;
-				await client.session.recordResult.mutate({
-					sessionId: session.id,
-					sessionMatchId: m.id,
-					homeScore: 1,
-					awayScore: 0,
-				});
-
-				// Note: Testing the tie-breaker between two override players is complex because
-				// once a player becomes an override, they get sent to the bottom and won't be
-				// selected for subsequent games. The key behavior (higher cg = lower queue position)
-				// is implicitly tested by the maxConsecutiveEnabled tests above.
+			await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 1,
+				awayScore: 0,
 			});
+
+			match = await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[2].id],
+			});
+
+			await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 1,
+				awayScore: 0,
+			});
+
+			const s = await client.session.getById.query({ sessionId: session.id });
+			const p0 = s.players.find((p) => p.seasonPlayerId === seasonPlayers[0].id)!;
+			expect(p0.consecutiveGames).toBe(2);
+		});
+
+		it("enforces always-split constraints", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings({
+					alwaysSplitConstraints: [[seasonPlayers[0].id, seasonPlayers[1].id]],
+				}),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const match = await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[2].id],
+			});
+
+			await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 1,
+				awayScore: 0,
+			});
+
+			const s = await client.session.getById.query({ sessionId: session.id });
+			const proposed = s.proposedLineup;
+			if (proposed) {
+				const homeIds = proposed.homePlayerIds;
+				const awayIds = proposed.awayPlayerIds;
+				const p0Home = homeIds.includes(seasonPlayers[0].id);
+				const p1Home = homeIds.includes(seasonPlayers[1].id);
+				const p0Away = awayIds.includes(seasonPlayers[0].id);
+				const p1Away = awayIds.includes(seasonPlayers[1].id);
+				const splitViolated =
+					(p0Home && p1Home) || (p0Away && p1Away) || (p0Home && p1Away) || (p0Away && p1Home);
+				expect(splitViolated).toBe(false);
+			}
+		});
+	});
+
+	describe("manual session flow", () => {
+		it("creates session, starts match, records result, no auto-rotation", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "manual",
+				teamSize: 2,
+				modeSettings: manualSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
+			});
+
+			expect(session.rotationMode).toBe("manual");
+
+			await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+			});
+
+			let s = await client.session.getById.query({ sessionId: session.id });
+			expect(s.players.filter((p) => p.status === "playing")).toHaveLength(4);
+
+			const match = s.matches.find((x) => x.result === null)!;
+			const result = await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 3,
+				awayScore: 1,
+			});
+
+			expect(result.proposedLineup).toBeNull();
+		});
+	});
+
+	describe("player management", () => {
+		it("adds player mid-session, updates queue", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.slice(0, 3).map((p) => p.id),
+			});
+
+			await client.session.addPlayer.mutate({
+				sessionId: session.id,
+				seasonPlayerId: seasonPlayers[3].id,
+			});
+
+			const updated = await client.session.getById.query({ sessionId: session.id });
+			expect(updated.players).toHaveLength(4);
+			const newPlayer = updated.players.find((p) => p.seasonPlayerId === seasonPlayers[3].id);
+			expect(newPlayer?.status).toBe("waiting");
+		});
+
+		it("removes player from proposed lineup, recomputes", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				modeSettings: winnerStaysSettings(),
+				playerSeasonIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const match = await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[1].id],
+			});
+
+			await client.session.recordResult.mutate({
+				sessionId: session.id,
+				sessionMatchId: match.id,
+				homeScore: 1,
+				awayScore: 0,
+			});
+
+			const s = await client.session.getById.query({ sessionId: session.id });
+			const proposedBefore = s.proposedLineup;
+			const playerToRemove =
+				proposedBefore?.homePlayerIds[0] || proposedBefore?.awayPlayerIds[0];
+			expect(playerToRemove).toBeDefined();
+
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: playerToRemove!,
+			});
+
+			const afterRemove = await client.session.getById.query({ sessionId: session.id });
+			const removed = afterRemove.players.find((p) => p.id === playerToRemove);
+			expect(removed?.status).toBe("out");
 		});
 	});
 });
