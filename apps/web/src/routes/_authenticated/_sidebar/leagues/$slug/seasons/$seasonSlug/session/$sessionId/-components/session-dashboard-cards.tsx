@@ -39,7 +39,7 @@ export function SessionDashboardCards({ session }: { session: GameSession }) {
 			key="info"
 			matchCount={completedMatches.length}
 			playerCount={activePlayers.length}
-			rotationMode={session.rotationMode}
+			rotationMode={session.modeSettings?.mode ?? "manual"}
 		/>,
 	];
 

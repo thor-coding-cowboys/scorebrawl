@@ -1,12 +1,12 @@
 export * from "./session-types";
 export * from "./session-utils";
 export { ScoreStepper, TeamRosterCard, QueueList } from "./score-stepper";
-export { PlayerSelectionDrawer } from "./player-selection-drawer";
 export { CoinTossDialog } from "./coin-toss-dialog";
 export { AddPlayerDialog } from "./add-player-dialog";
 export { SessionStandings } from "./session-standings";
 export { SessionDashboardCards } from "./session-dashboard-cards";
 export { ManualSession } from "./manual/manual-session";
+export { WinnerStaysSession } from "./winner-stays/winner-stays-session";
 export { TeamPicker } from "./manual/team-picker";
 export * from "./shared/score-stepper";
 export * from "./shared/team-roster-card";

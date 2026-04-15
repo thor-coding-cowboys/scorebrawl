@@ -29,6 +29,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { ModeSettings } from "../../$seasonSlug/session/$sessionId/-components/session-types";
 
 interface StartSessionDialogProps {
 	isOpen: boolean;
@@ -37,34 +38,38 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "sequential" | "manual";
+type RotationMode = "winner-stays" | "manual";
 
-interface DialogState {
+type DialogState = {
 	rotationMode: RotationMode;
 	teamSize: number;
-	maxConsecutiveEnabled: boolean;
-	maxConsecutiveGames: number;
-	winnersTakePriority: boolean;
-	randomizerType: "off" | "fisher-yates" | "diversity";
-	autoCoinToss: boolean;
+	winnerStays: {
+		maxConsecutiveEnabled: boolean;
+		maxConsecutiveGames: number;
+		winnersTakePriority: boolean;
+		randomizerType: "off" | "fisher-yates" | "diversity";
+		autoCoinToss: boolean;
+		alwaysSplitPairs: [string, string][];
+	};
 	selectedPlayerIds: string[];
-	alwaysSplitPairs: [string, string][];
 	splitPickA: string;
 	splitPickB: string;
 	playerSearch: string;
 	mobileStep: number;
-}
+};
 
 const initialState: DialogState = {
 	rotationMode: "winner-stays",
 	teamSize: 2,
-	maxConsecutiveEnabled: true,
-	maxConsecutiveGames: 3,
-	winnersTakePriority: false,
-	randomizerType: "fisher-yates",
-	autoCoinToss: true,
+	winnerStays: {
+		maxConsecutiveEnabled: true,
+		maxConsecutiveGames: 3,
+		winnersTakePriority: false,
+		randomizerType: "fisher-yates",
+		autoCoinToss: true,
+		alwaysSplitPairs: [],
+	},
 	selectedPlayerIds: [],
-	alwaysSplitPairs: [],
 	splitPickA: "",
 	splitPickB: "",
 	playerSearch: "",
@@ -74,11 +79,7 @@ const initialState: DialogState = {
 type Action =
 	| { type: "SET_ROTATION_MODE"; value: RotationMode }
 	| { type: "SET_TEAM_SIZE"; value: number }
-	| { type: "SET_MAX_CONSECUTIVE_ENABLED"; value: boolean }
-	| { type: "SET_MAX_CONSECUTIVE_GAMES"; value: number }
-	| { type: "SET_WINNERS_TAKE_PRIORITY"; value: boolean }
-	| { type: "SET_RANDOMIZER_TYPE"; value: "off" | "fisher-yates" | "diversity" }
-	| { type: "SET_AUTO_COIN_TOSS"; value: boolean }
+	| { type: "SET_WINNER_STAYS"; update: Partial<DialogState["winnerStays"]> }
 	| { type: "TOGGLE_PLAYER"; id: string }
 	| { type: "ADD_SPLIT_PAIR" }
 	| { type: "REMOVE_SPLIT_PAIR"; a: string; b: string }
@@ -94,22 +95,17 @@ function reducer(state: DialogState, action: Action): DialogState {
 			return { ...state, rotationMode: action.value };
 		case "SET_TEAM_SIZE":
 			return { ...state, teamSize: action.value };
-		case "SET_MAX_CONSECUTIVE_ENABLED":
-			return { ...state, maxConsecutiveEnabled: action.value };
-		case "SET_MAX_CONSECUTIVE_GAMES":
-			return { ...state, maxConsecutiveGames: action.value };
-		case "SET_WINNERS_TAKE_PRIORITY":
-			return { ...state, winnersTakePriority: action.value };
-		case "SET_RANDOMIZER_TYPE":
-			return { ...state, randomizerType: action.value };
-		case "SET_AUTO_COIN_TOSS":
-			return { ...state, autoCoinToss: action.value };
+		case "SET_WINNER_STAYS":
+			return { ...state, winnerStays: { ...state.winnerStays, ...action.update } };
 		case "TOGGLE_PLAYER": {
 			const isRemoving = state.selectedPlayerIds.includes(action.id);
 			if (isRemoving) {
 				return {
 					...state,
-					alwaysSplitPairs: state.alwaysSplitPairs.filter((p) => !p.includes(action.id)),
+					winnerStays: {
+						...state.winnerStays,
+						alwaysSplitPairs: state.winnerStays.alwaysSplitPairs.filter((p) => !p.includes(action.id)),
+					},
 					selectedPlayerIds: state.selectedPlayerIds.filter((id) => id !== action.id),
 				};
 			}
@@ -118,13 +114,16 @@ function reducer(state: DialogState, action: Action): DialogState {
 		case "ADD_SPLIT_PAIR": {
 			const { splitPickA: a, splitPickB: b } = state;
 			if (!a || !b || a === b) return state;
-			const already = state.alwaysSplitPairs.some(
+			const already = state.winnerStays.alwaysSplitPairs.some(
 				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
 			);
 			if (already) return state;
 			return {
 				...state,
-				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
+				winnerStays: {
+					...state.winnerStays,
+					alwaysSplitPairs: [...state.winnerStays.alwaysSplitPairs, [a, b]],
+				},
 				splitPickA: "",
 				splitPickB: "",
 			};
@@ -132,9 +131,12 @@ function reducer(state: DialogState, action: Action): DialogState {
 		case "REMOVE_SPLIT_PAIR":
 			return {
 				...state,
-				alwaysSplitPairs: state.alwaysSplitPairs.filter(
-					([pa, pb]) => !(pa === action.a && pb === action.b)
-				),
+				winnerStays: {
+					...state.winnerStays,
+					alwaysSplitPairs: state.winnerStays.alwaysSplitPairs.filter(
+						([pa, pb]) => !(pa === action.a && pb === action.b)
+					),
+				},
 			};
 		case "SET_SPLIT_PICK_A":
 			return { ...state, splitPickA: action.value };
@@ -171,14 +173,8 @@ export function StartSessionDialog({
 			seasonSlug: string;
 			rotationMode: RotationMode;
 			teamSize: number;
-			maxConsecutiveGames: number | null;
-			maxConsecutiveEnabled: boolean;
-			winnersTakePriority: boolean;
-			seasonPlayerIds: string[];
-			alwaysSplitConstraints: [string, string][];
-			autoRandomize: boolean;
-			randomizerType?: "fisher-yates" | "diversity";
-			autoCoinToss: boolean;
+			modeSettings: ModeSettings;
+			playerSeasonIds: string[];
 		}) => client.session.create.mutate(input) as Promise<{ id: string }>,
 		onSuccess: (session) => {
 			void queryClient.invalidateQueries({ queryKey: ["session.active", seasonSlug] });
@@ -199,23 +195,29 @@ export function StartSessionDialog({
 			toast.error(`Select at least ${state.teamSize * 2} players`);
 			return;
 		}
-		const mutationInput = {
+		const modeSettings: ModeSettings =
+			state.rotationMode === "manual"
+				? { mode: "manual" }
+				: {
+						mode: "winner-stays",
+						maxConsecutiveGames: state.winnerStays.maxConsecutiveEnabled
+							? state.winnerStays.maxConsecutiveGames
+							: null,
+						winnersTakePriority: state.winnerStays.winnersTakePriority,
+						autoRandomize: state.winnerStays.randomizerType !== "off",
+						randomizerType: state.winnerStays.randomizerType === "off"
+							? "fisher-yates"
+							: state.winnerStays.randomizerType,
+						autoCoinToss: state.winnerStays.autoCoinToss,
+						alwaysSplitConstraints: state.winnerStays.alwaysSplitPairs,
+					};
+		createSession.mutate({
 			seasonSlug,
 			rotationMode: state.rotationMode,
 			teamSize: state.teamSize,
-			maxConsecutiveEnabled: state.maxConsecutiveEnabled,
-			maxConsecutiveGames: state.maxConsecutiveEnabled ? state.maxConsecutiveGames : null,
-			winnersTakePriority: state.winnersTakePriority,
-			seasonPlayerIds: state.selectedPlayerIds,
-			alwaysSplitConstraints: state.alwaysSplitPairs,
-			autoRandomize: state.randomizerType !== "off",
-			autoCoinToss: state.autoCoinToss,
-		};
-		if (state.randomizerType !== "off") {
-			createSession.mutate({ ...mutationInput, randomizerType: state.randomizerType });
-		} else {
-			createSession.mutate(mutationInput);
-		}
+			modeSettings,
+			playerSeasonIds: state.selectedPlayerIds,
+		});
 	};
 
 	const handleClose = () => {
@@ -233,16 +235,11 @@ export function StartSessionDialog({
 				>
 					<SelectTrigger>
 						<SelectValue>
-							{state.rotationMode === "winner-stays"
-								? "Winner Stays"
-								: state.rotationMode === "sequential"
-									? "Sequential"
-									: "Manual"}
+							{state.rotationMode === "winner-stays" ? "Winner Stays" : "Manual"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="winner-stays">Winner Stays</SelectItem>
-						<SelectItem value="sequential">Sequential</SelectItem>
 						<SelectItem value="manual">Manual</SelectItem>
 					</SelectContent>
 				</Select>
@@ -271,8 +268,8 @@ export function StartSessionDialog({
 						description={["ON: winners go to top of queue", "OFF: winners placed above losers"]}
 					>
 						<Switch
-							checked={state.winnersTakePriority}
-							onCheckedChange={(v) => dispatch({ type: "SET_WINNERS_TAKE_PRIORITY", value: v })}
+							checked={state.winnerStays.winnersTakePriority}
+							onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { winnersTakePriority: v } })}
 						/>
 					</SettingsRow>
 
@@ -281,20 +278,20 @@ export function StartSessionDialog({
 						description="Limit how many games in a row"
 					>
 						<Switch
-							checked={state.maxConsecutiveEnabled}
-							onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
+							checked={state.winnerStays.maxConsecutiveEnabled}
+							onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { maxConsecutiveEnabled: v } })}
 						/>
 					</SettingsRow>
-					{state.maxConsecutiveEnabled && (
+					{state.winnerStays.maxConsecutiveEnabled && (
 						<Input
 							type="number"
 							min={1}
 							max={20}
-							value={state.maxConsecutiveGames}
+							value={state.winnerStays.maxConsecutiveGames}
 							onChange={(e) =>
 								dispatch({
-									type: "SET_MAX_CONSECUTIVE_GAMES",
-									value: Math.min(20, Math.max(1, Number(e.target.value))),
+									type: "SET_WINNER_STAYS",
+									update: { maxConsecutiveGames: Math.min(20, Math.max(1, Number(e.target.value))) },
 								})
 							}
 							className="w-24"
@@ -303,31 +300,31 @@ export function StartSessionDialog({
 				</>
 			)}
 
-			{state.rotationMode !== "manual" && (
+			{state.rotationMode === "winner-stays" && (
 				<SettingsRow
 					label="Auto Randomize"
 					description={
-						state.randomizerType === "off"
+						state.winnerStays.randomizerType === "off"
 							? "No auto-shuffle - teams stay as manually arranged"
-							: state.randomizerType === "fisher-yates"
+							: state.winnerStays.randomizerType === "fisher-yates"
 								? "Pure random shuffle - every pairing equally likely"
 								: "Prefer pairing players who haven't played together recently"
 					}
 				>
 					<Select
-						value={state.randomizerType}
+						value={state.winnerStays.randomizerType}
 						onValueChange={(v) =>
 							dispatch({
-								type: "SET_RANDOMIZER_TYPE",
-								value: v as "off" | "fisher-yates" | "diversity",
+								type: "SET_WINNER_STAYS",
+								update: { randomizerType: v as "off" | "fisher-yates" | "diversity" },
 							})
 						}
 					>
 						<SelectTrigger className="w-32">
 							<SelectValue>
-								{state.randomizerType === "off"
+								{state.winnerStays.randomizerType === "off"
 									? "Off"
-									: state.randomizerType === "fisher-yates"
+									: state.winnerStays.randomizerType === "fisher-yates"
 										? "Fisher-Yates"
 										: "Diversity"}
 							</SelectValue>
@@ -341,11 +338,11 @@ export function StartSessionDialog({
 				</SettingsRow>
 			)}
 
-			{state.rotationMode !== "manual" && (
+			{state.rotationMode === "winner-stays" && (
 				<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
 					<Switch
-						checked={state.autoCoinToss}
-						onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
+						checked={state.winnerStays.autoCoinToss}
+						onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { autoCoinToss: v } })}
 					/>
 				</SettingsRow>
 			)}
@@ -490,9 +487,9 @@ export function StartSessionDialog({
 							<HugeiconsIcon icon={Add01Icon} className="size-4" />
 						</Button>
 					</div>
-					{state.alwaysSplitPairs.length > 0 && (
+					{state.winnerStays.alwaysSplitPairs.length > 0 && (
 						<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
-							{state.alwaysSplitPairs.map(([a, b]) => {
+							{state.winnerStays.alwaysSplitPairs.map(([a, b]) => {
 								const playerA = seasonPlayers.find((p) => p.id === a);
 								const playerB = seasonPlayers.find((p) => p.id === b);
 								return (
