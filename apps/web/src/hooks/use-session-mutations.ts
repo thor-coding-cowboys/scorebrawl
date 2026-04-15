@@ -82,6 +82,16 @@ export function useSessionMutations(
 		onError: () => toast.error("Failed to add player"),
 	});
 
+	const rejoinPlayer = useMutation({
+		mutationFn: (input: { sessionId: string; seasonPlayerId: string }) =>
+			trpcClient.session.addPlayer.mutate(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			toast.success("Player rejoined queue");
+		},
+		onError: () => toast.error("Failed to rejoin player"),
+	});
+
 	const removePlayer = useMutation({
 		mutationFn: (input: { sessionId: string; sessionPlayerId: string }) =>
 			trpcClient.session.removePlayer.mutate(input),
@@ -145,6 +155,7 @@ export function useSessionMutations(
 		cancelMatch,
 		deleteLastMatch,
 		addPlayer,
+		rejoinPlayer,
 		removePlayer,
 		updateTeamSelection,
 		updateProposedLineup,

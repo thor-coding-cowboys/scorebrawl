@@ -228,6 +228,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		cancelMatch,
 		deleteLastMatch,
 		removePlayer,
+		rejoinPlayer,
 		updateTeamSelection,
 		updateProposedLineup,
 		resolveCoinToss,
@@ -450,7 +451,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 					setShowPlayerDrawer={setShowPlayerDrawer}
 				/>
 
-					<QueueCard session={session} removePlayer={removePlayer} />
+					<QueueCard session={session} removePlayer={removePlayer} rejoinPlayer={rejoinPlayer} />
 				</div>
 
 				<div className="flex flex-col gap-4">
@@ -721,9 +722,11 @@ function MatchCard({
 function QueueCard({
 	session,
 	removePlayer,
+	rejoinPlayer,
 }: {
 	session: GameSession;
 	removePlayer: ReturnType<typeof useSessionMutations>["removePlayer"];
+	rejoinPlayer: ReturnType<typeof useSessionMutations>["rejoinPlayer"];
 }) {
 	return (
 	<Card className="p-4">
@@ -733,8 +736,10 @@ function QueueCard({
 					removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
 				}
 				isRemoving={removePlayer.isPending}
-				onRejoinPlayer={() => {}}
-				isRejoining={false}
+				onRejoinPlayer={(seasonPlayerId) =>
+					rejoinPlayer.mutate({ sessionId: session.id, seasonPlayerId })
+				}
+				isRejoining={rejoinPlayer.isPending}
 			/>
 			{(session.modeSettings?.alwaysSplitConstraints?.length ?? 0) > 0 && (
 				<div className="mt-3 text-xs text-muted-foreground space-y-1">
