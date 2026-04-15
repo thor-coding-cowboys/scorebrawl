@@ -1,22 +1,26 @@
 import type { DrizzleDB } from "../../db";
 import * as matchRepository from "../../repositories/match-repository";
 import * as sessionRepository from "../../repositories/session-repository";
-import { computeNextLineup } from "../../lib/session-rotation";
-import type { ProposedLineup } from "../../lib/session-rotation";
+import { computeWinnerStaysLineup } from "./strategies/winner-stays";
+import { computeManualLineup } from "./strategies/manual";
+import { parseModeSettings } from "./strategies/types";
+import type { WinnerStaysLineup } from "./strategies/winner-stays";
 
 export interface CreateSessionInput {
 	seasonId: string;
 	createdBy: string;
 	teamSize: number;
 	rotationMode: "winner-stays" | "manual";
-	modeSettings: {
-		maxConsecutiveGames: number | null;
-		winnersTakePriority: boolean;
-		autoRandomize: boolean;
-		randomizerType?: "fisher-yates" | "diversity";
-		autoCoinToss: boolean;
-		alwaysSplitConstraints: [string, string][];
-	};
+	modeSettings:
+		| {
+				maxConsecutiveGames: number | null;
+				winnersTakePriority: boolean;
+				autoRandomize: boolean;
+				randomizerType?: "fisher-yates" | "diversity";
+				autoCoinToss: boolean;
+				alwaysSplitConstraints: [string, string][];
+		  }
+		| undefined;
 	playerSeasonIds: string[];
 }
 
@@ -32,7 +36,7 @@ export interface RecordResultInput {
 
 export interface RecordResultOutput {
 	match: { id: string };
-	proposedLineup: ProposedLineup | null;
+	proposedLineup: WinnerStaysLineup | null;
 	coinToss: { id: string } | null;
 	streakData: {
 		matchId: string;
@@ -62,14 +66,8 @@ export async function createSession(
 		createdBy: input.createdBy,
 		rotationMode: input.rotationMode,
 		teamSize: input.teamSize,
-		maxConsecutiveGames: input.modeSettings.maxConsecutiveGames,
-		alwaysSplitConstraints: input.modeSettings.alwaysSplitConstraints,
-		autoRandomize: input.modeSettings.autoRandomize,
-		autoCoinToss: input.modeSettings.autoCoinToss,
+		modeSettings: input.modeSettings,
 		seasonPlayerIds: input.playerSeasonIds,
-		winnersTakePriority: input.modeSettings.winnersTakePriority,
-		maxConsecutiveEnabled: input.modeSettings.maxConsecutiveGames !== null,
-		randomizerType: input.modeSettings.randomizerType,
 	});
 }
 
@@ -125,111 +123,94 @@ export async function recordResult(
 		.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
 		.map((p) => p.id);
 
-	let proposedLineup = computeNextLineup({
-		mode: fullSession.rotationMode,
-		teamSize: fullSession.teamSize,
-		maxConsecutiveGames: fullSession.maxConsecutiveGames,
-		maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-		winnersTakePriority: fullSession.winnersTakePriority,
-		autoRandomize: fullSession.autoRandomize,
-		alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-		players: updatedPlayers.map((p) => ({
-			id: p.id,
-			seasonPlayerId: p.seasonPlayerId,
-			status: p.status,
-			queuePosition: p.queuePosition,
-			gamesPlayedThisSession: p.gamesPlayedThisSession,
-			consecutiveGames: p.consecutiveGames,
-		})),
-		lastResult: input.result,
-		homePlayerIds: homeSessionPlayerIds,
-		awayPlayerIds: awaySessionPlayerIds,
-		randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-		matchHistory: fullSession.matches.map((m) => ({
-			homePlayerIds: m.homePlayerIds,
-			awayPlayerIds: m.awayPlayerIds,
-		})),
-	});
+	const modeSettings = parseModeSettings(fullSession.modeSettings);
 
+	let proposedLineup: WinnerStaysLineup | null = null;
 	let coinTossId: string | null = null;
 
-	if (proposedLineup.coinTossNeeded) {
-		const { conflictType, candidates } = proposedLineup.coinTossNeeded;
+	if (modeSettings?.mode === "winner-stays") {
+		const winnerStaysInput = {
+			settings: modeSettings,
+			players: updatedPlayers.map((p) => ({
+				id: p.id,
+				seasonPlayerId: p.seasonPlayerId,
+				status: p.status,
+				queuePosition: p.queuePosition,
+				consecutiveGames: p.consecutiveGames,
+			})),
+			teamSize: fullSession.teamSize,
+			lastMatchResult: input.result,
+			lastMatchHome: homeSessionPlayerIds,
+			lastMatchAway: awaySessionPlayerIds,
+			matchHistory: fullSession.matches.map((m) => ({
+				homePlayerIds: m.homePlayerIds,
+				awayPlayerIds: m.awayPlayerIds,
+			})),
+			resolvedCoinTossWinnerIds: null,
+		};
 
-		if (fullSession.autoCoinToss) {
-			let resolvedWinnerIds: string[];
-			if (conflictType === "draw-tiebreak") {
-				resolvedWinnerIds =
-					Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
-			} else {
-				const shuffled = [...candidates];
-				for (let i = shuffled.length - 1; i > 0; i--) {
-					const j = Math.floor(Math.random() * (i + 1));
-					[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]!];
+		proposedLineup = computeWinnerStaysLineup(winnerStaysInput);
+
+		if (proposedLineup.coinTossNeeded) {
+			const { conflictType, candidates } = proposedLineup.coinTossNeeded;
+
+			if (modeSettings.autoCoinToss) {
+				let resolvedWinnerIds: string[];
+				if (conflictType === "draw-tiebreak") {
+					resolvedWinnerIds =
+						Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
+				} else {
+					const shuffled = [...candidates];
+					for (let i = shuffled.length - 1; i > 0; i--) {
+						const j = Math.floor(Math.random() * (i + 1));
+						[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]!];
+					}
+					const winnerCount = Math.ceil(candidates.length / 2);
+					resolvedWinnerIds = shuffled.slice(0, winnerCount);
 				}
-				const winnerCount = Math.ceil(candidates.length / 2);
-				resolvedWinnerIds = shuffled.slice(0, winnerCount);
+
+				const coinToss = await sessionRepository.createCoinToss({
+					db,
+					sessionId: input.sessionId,
+					sessionMatchId: input.sessionMatchId,
+					conflictType,
+					candidates,
+				});
+				await sessionRepository.resolveCoinToss({
+					db,
+					coinTossId: coinToss.id,
+					resolvedWinnerIds,
+				});
+
+				proposedLineup = computeWinnerStaysLineup({
+					...winnerStaysInput,
+					resolvedCoinTossWinnerIds: resolvedWinnerIds,
+				});
+			} else {
+				const coinToss = await sessionRepository.createCoinToss({
+					db,
+					sessionId: input.sessionId,
+					sessionMatchId: input.sessionMatchId,
+					conflictType,
+					candidates,
+				});
+				coinTossId = coinToss.id;
 			}
-
-			const coinToss = await sessionRepository.createCoinToss({
-				db,
-				sessionId: input.sessionId,
-				sessionMatchId: input.sessionMatchId,
-				conflictType,
-				candidates,
-			});
-			await sessionRepository.resolveCoinToss({
-				db,
-				coinTossId: coinToss.id,
-				resolvedWinnerIds,
-			});
-
-			proposedLineup = computeNextLineup({
-				mode: fullSession.rotationMode,
-				teamSize: fullSession.teamSize,
-				maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-				winnersTakePriority: fullSession.winnersTakePriority,
-				autoRandomize: fullSession.autoRandomize,
-				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-				players: updatedPlayers.map((p) => ({
-					id: p.id,
-					seasonPlayerId: p.seasonPlayerId,
-					status: p.status,
-					queuePosition: p.queuePosition,
-					gamesPlayedThisSession: p.gamesPlayedThisSession,
-					consecutiveGames: p.consecutiveGames,
-				})),
-				lastResult: input.result,
-				homePlayerIds: homeSessionPlayerIds,
-				awayPlayerIds: awaySessionPlayerIds,
-				resolvedCoinTossWinnerIds: resolvedWinnerIds,
-				randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-				matchHistory: fullSession.matches.map((m) => ({
-					homePlayerIds: m.homePlayerIds,
-					awayPlayerIds: m.awayPlayerIds,
-				})),
-			});
-		} else {
-			const coinToss = await sessionRepository.createCoinToss({
-				db,
-				sessionId: input.sessionId,
-				sessionMatchId: input.sessionMatchId,
-				conflictType,
-				candidates,
-			});
-			coinTossId = coinToss.id;
 		}
+	} else if (modeSettings?.mode === "manual") {
+		proposedLineup = computeManualLineup();
 	}
 
 	await sessionRepository.updateProposedLineup({
 		db,
 		sessionId: input.sessionId,
-		proposedLineup: {
-			...proposedLineup,
-			selectedHomePlayerIds: proposedLineup.homePlayerIds,
-			selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-		},
+		proposedLineup: proposedLineup
+			? {
+					...proposedLineup,
+					selectedHomePlayerIds: proposedLineup.homePlayerIds,
+					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+				}
+			: null,
 	});
 
 	return {
@@ -292,41 +273,38 @@ export async function resolveCoinToss(
 		? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
 		: null;
 
-	let proposedLineup: ProposedLineup | null = null;
+	let proposedLineup: WinnerStaysLineup | null = null;
 	if (triggeringMatch?.result) {
 		const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
 		const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
 
-		proposedLineup = computeNextLineup({
-			mode: fullSession.rotationMode,
-			teamSize: fullSession.teamSize,
-			maxConsecutiveGames: fullSession.maxConsecutiveGames,
-			maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-			winnersTakePriority: fullSession.winnersTakePriority,
-			autoRandomize: fullSession.autoRandomize,
-			alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-			players: fullSession.players.map((p) => ({
-				id: p.id,
-				seasonPlayerId: p.seasonPlayerId,
-				status: p.status,
-				queuePosition: p.queuePosition,
-				gamesPlayedThisSession: p.gamesPlayedThisSession,
-				consecutiveGames: p.consecutiveGames,
-			})),
-			lastResult: triggeringMatch.result,
-			homePlayerIds: fullSession.players
-				.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id),
-			awayPlayerIds: fullSession.players
-				.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id),
-			resolvedCoinTossWinnerIds: resolvedWinnerIds,
-			randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-			matchHistory: fullSession.matches.map((m) => ({
-				homePlayerIds: m.homePlayerIds,
-				awayPlayerIds: m.awayPlayerIds,
-			})),
-		});
+		const modeSettings = parseModeSettings(fullSession.modeSettings);
+
+		if (modeSettings?.mode === "winner-stays") {
+			proposedLineup = computeWinnerStaysLineup({
+				settings: modeSettings,
+				players: fullSession.players.map((p) => ({
+					id: p.id,
+					seasonPlayerId: p.seasonPlayerId,
+					status: p.status,
+					queuePosition: p.queuePosition,
+					consecutiveGames: p.consecutiveGames,
+				})),
+				teamSize: fullSession.teamSize,
+				lastMatchResult: triggeringMatch.result,
+				lastMatchHome: fullSession.players
+					.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
+					.map((p) => p.id),
+				lastMatchAway: fullSession.players
+					.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
+					.map((p) => p.id),
+				resolvedCoinTossWinnerIds: resolvedWinnerIds,
+				matchHistory: fullSession.matches.map((m) => ({
+					homePlayerIds: m.homePlayerIds,
+					awayPlayerIds: m.awayPlayerIds,
+				})),
+			});
+		}
 	}
 
 	return { resolved, proposedLineup };

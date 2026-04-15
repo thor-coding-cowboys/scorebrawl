@@ -9,10 +9,7 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { truncateSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import type { SessionEventDetail } from "@/lib/event-types";
-import {
-	SessionDashboardCards,
-	type GameSession,
-} from "./-components";
+import { type GameSession } from "./-components";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";
 import {
@@ -45,7 +42,7 @@ function LoadingState() {
 	);
 }
 
-function LegacySessionFallback({ session }: { session: GameSession }) {
+function LegacySessionFallback({ session: _session }: { session: GameSession }) {
 	const { slug, seasonSlug } = Route.useParams();
 	const navigate = useNavigate();
 
@@ -97,7 +94,7 @@ function LegacySessionFallback({ session }: { session: GameSession }) {
 				}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-				<SessionDashboardCards session={session} />
+				<p className="text-muted-foreground">Legacy session view</p>
 			</div>
 		</>
 	);

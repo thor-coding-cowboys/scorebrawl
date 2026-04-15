@@ -16,7 +16,7 @@ import {
 	match,
 	matchPlayer,
 } from "../db/schema/league-schema";
-import { enforceAlwaysSplit } from "../lib/session-rotation";
+import { enforceAlwaysSplit } from "../services/session/strategies/winner-stays";
 
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
@@ -106,29 +106,25 @@ export const createSession = async ({
 	createdBy,
 	rotationMode,
 	teamSize,
-	maxConsecutiveGames,
-	alwaysSplitConstraints,
-	autoRandomize,
-	autoCoinToss,
+	modeSettings,
 	seasonPlayerIds,
-	winnersTakePriority,
-	maxConsecutiveEnabled,
-	randomizerType,
 }: {
 	db: DrizzleDB;
 	seasonId: string;
 	createdBy: string;
 	rotationMode: "winner-stays" | "manual";
 	teamSize: number;
-	maxConsecutiveGames: number | null;
-	alwaysSplitConstraints: [string, string][];
-	autoRandomize: boolean;
-	autoCoinToss: boolean;
+	modeSettings: { maxConsecutiveGames: number | null; winnersTakePriority: boolean; autoRandomize: boolean; randomizerType?: "fisher-yates" | "diversity"; autoCoinToss: boolean; alwaysSplitConstraints: [string, string][] } | undefined;
 	seasonPlayerIds: string[];
-	winnersTakePriority: boolean;
-	maxConsecutiveEnabled: boolean;
-	randomizerType?: "fisher-yates" | "diversity";
 }) => {
+	const maxConsecutiveGames = modeSettings?.maxConsecutiveGames ?? null;
+	const winnersTakePriority = modeSettings?.winnersTakePriority ?? false;
+	const autoRandomize = modeSettings?.autoRandomize ?? false;
+	const autoCoinToss = modeSettings?.autoCoinToss ?? false;
+	const alwaysSplitConstraints = modeSettings?.alwaysSplitConstraints ?? [];
+	const randomizerType = modeSettings?.randomizerType ?? "fisher-yates";
+	const maxConsecutiveEnabled = maxConsecutiveGames !== null;
+
 	return withTransaction(db, async (tx) => {
 		const now = new Date();
 		const sessionId = newId("gameSession");
@@ -146,7 +142,8 @@ export const createSession = async ({
 			autoCoinToss,
 			winnersTakePriority,
 			maxConsecutiveEnabled,
-			randomizerType: randomizerType ?? "fisher-yates",
+			randomizerType,
+			modeSettings: modeSettings ? JSON.stringify(modeSettings) : null,
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -176,7 +173,6 @@ export const createSession = async ({
 				seasonPlayerId: p.seasonPlayerId,
 				status: p.status,
 				queuePosition: p.queuePosition,
-				gamesPlayedThisSession: p.gamesPlayedThisSession,
 				consecutiveGames: p.consecutiveGames,
 			}));
 
