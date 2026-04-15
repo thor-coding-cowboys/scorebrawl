@@ -29,20 +29,19 @@ export const addPlayerToSession = async ({
 		throw new TRPCError({ code: "CONFLICT", message: "Player already in session" });
 	}
 
-	await db
-		.update(sessionPlayer)
-		.set({
-			queuePosition: sql`${sessionPlayer.queuePosition} + 1`,
-			updatedAt: now,
-		})
+	const [{ maxPos }] = await db
+		.select({ maxPos: sql<number>`COALESCE(MAX(${sessionPlayer.queuePosition}), -1)` })
+		.from(sessionPlayer)
 		.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+
+	const bottomPosition = maxPos + 1;
 
 	if (existing && existing.status === "out") {
 		const [reactivatedPlayer] = await db
 			.update(sessionPlayer)
 			.set({
 				status: "waiting",
-				queuePosition: 0,
+				queuePosition: bottomPosition,
 				gamesPlayedThisSession: 0,
 				consecutiveGames: 0,
 				updatedAt: now,
@@ -59,7 +58,7 @@ export const addPlayerToSession = async ({
 			sessionId,
 			seasonPlayerId,
 			status: "waiting",
-			queuePosition: 0,
+			queuePosition: bottomPosition,
 			gamesPlayedThisSession: 0,
 			consecutiveGames: 0,
 			joinedAt: now,
