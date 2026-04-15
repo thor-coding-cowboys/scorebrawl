@@ -11,7 +11,8 @@ import {
 	checkTeamStreakThresholds,
 } from "../repositories/match-repository";
 import * as sessionRepository from "../repositories/session-repository";
-import { computeNextLineup } from "../lib/session-rotation";
+import * as sessionService from "../services/session";
+
 import { broadcastSeasonEvent } from "./sse-router";
 import type { AchievementQueueMessage } from "../services/achievement-calculation";
 import type { AuthType } from "../middleware/context";
@@ -272,12 +273,12 @@ const leagueRouter = new Hono<LeagueEnv>()
 		const homeSeasonPlayerIds = homeSessionPlayerIds.map((id) => playerMap.get(id)!);
 		const awaySeasonPlayerIds = awaySessionPlayerIds.map((id) => playerMap.get(id)!);
 
-		const sessionMatch = await sessionRepository.startNextMatch({
+		const sessionMatch = await sessionService.startNextMatch(
 			db,
-			sessionId: fullSession.id,
+			fullSession.id,
 			homeSeasonPlayerIds,
-			awaySeasonPlayerIds,
-		});
+			awaySeasonPlayerIds
+		);
 
 		c.executionCtx.waitUntil(
 			broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
@@ -323,141 +324,34 @@ const leagueRouter = new Hono<LeagueEnv>()
 			throw new HTTPException(400, { message: "No match in progress" });
 		}
 
-		const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
-		const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
-
 		const result: "home" | "away" | "draw" =
 			homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : "draw";
 
-		const createdMatch = await createMatch({
-			db,
-			input: {
-				seasonId: activeSeason.id,
-				homeScore,
-				awayScore,
-				homeTeamPlayerIds: homeSeasonPlayerIds,
-				awayTeamPlayerIds: awaySeasonPlayerIds,
-				userId,
-			},
+		const serviceResult = await sessionService.recordResult(db, {
+			sessionId: fullSession.id,
+			sessionMatchId: sessionMatch.id,
+			result,
+			homeScore,
+			awayScore,
+			seasonId: activeSeason.id,
+			leagueId: leagueData.id,
 		});
 
 		await c.env.ACHIEVEMENT_QUEUE.send({
-			seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+			seasonPlayerIds: [
+				...serviceResult.streakData.homePlayerIds,
+				...serviceResult.streakData.awayPlayerIds,
+			],
 		} satisfies AchievementQueueMessage);
-
-		const { match: updatedMatch, players: updatedPlayers } =
-			await sessionRepository.recordMatchResult({
-				db,
-				sessionId: fullSession.id,
-				sessionMatchId: sessionMatch.id,
-				result,
-				matchId: createdMatch.id,
-			});
-
-		const homeSessionPlayerIds = updatedPlayers
-			.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-			.map((p) => p.id);
-		const awaySessionPlayerIds = updatedPlayers
-			.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-			.map((p) => p.id);
-
-		let proposedLineup = computeNextLineup({
-			mode: fullSession.rotationMode,
-			teamSize: fullSession.teamSize,
-			maxConsecutiveGames: fullSession.maxConsecutiveGames,
-			autoRandomize: fullSession.autoRandomize,
-			alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-			players: updatedPlayers.map((p) => ({
-				id: p.id,
-				seasonPlayerId: p.seasonPlayerId,
-				status: p.status,
-				queuePosition: p.queuePosition,
-				gamesPlayedThisSession: p.gamesPlayedThisSession,
-				consecutiveGames: p.consecutiveGames,
-			})),
-			lastResult: result,
-			homePlayerIds: homeSessionPlayerIds,
-			awayPlayerIds: awaySessionPlayerIds,
-		});
-
-		if (proposedLineup.coinTossNeeded) {
-			const { conflictType, candidates } = proposedLineup.coinTossNeeded;
-
-			if (fullSession.autoCoinToss) {
-				let resolvedWinnerIds: string[];
-				if (conflictType === "draw-tiebreak") {
-					resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
-				} else {
-					const shuffled = [...candidates];
-					for (let i = shuffled.length - 1; i > 0; i--) {
-						const j = Math.floor(Math.random() * (i + 1));
-						[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-					}
-					const winnerCount = Math.ceil(candidates.length / 2);
-					resolvedWinnerIds = shuffled.slice(0, winnerCount);
-				}
-
-				const coinToss = await sessionRepository.createCoinToss({
-					db,
-					sessionId: fullSession.id,
-					sessionMatchId: sessionMatch.id,
-					conflictType,
-					candidates,
-				});
-				await sessionRepository.resolveCoinToss({
-					db,
-					coinTossId: coinToss.id,
-					resolvedWinnerIds,
-				});
-
-				proposedLineup = computeNextLineup({
-					mode: fullSession.rotationMode,
-					teamSize: fullSession.teamSize,
-					maxConsecutiveGames: fullSession.maxConsecutiveGames,
-					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-					autoRandomize: fullSession.autoRandomize,
-					players: updatedPlayers.map((p) => ({
-						id: p.id,
-						seasonPlayerId: p.seasonPlayerId,
-						status: p.status,
-						queuePosition: p.queuePosition,
-						gamesPlayedThisSession: p.gamesPlayedThisSession,
-						consecutiveGames: p.consecutiveGames,
-					})),
-					lastResult: result,
-					homePlayerIds: homeSessionPlayerIds,
-					awayPlayerIds: awaySessionPlayerIds,
-					resolvedCoinTossWinnerIds: resolvedWinnerIds,
-				});
-			} else {
-				await sessionRepository.createCoinToss({
-					db,
-					sessionId: fullSession.id,
-					sessionMatchId: sessionMatch.id,
-					conflictType,
-					candidates,
-				});
-			}
-		}
-
-		await sessionRepository.updateProposedLineup({
-			db,
-			sessionId: fullSession.id,
-			proposedLineup: {
-				...proposedLineup,
-				selectedHomePlayerIds: proposedLineup.homePlayerIds,
-				selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-			},
-		});
 
 		const userName = c.get("authentication").user.name;
 		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 			type: "session:update",
 			data: {
 				sessionId: fullSession.id,
-				match: updatedMatch,
-				players: updatedPlayers,
-				proposedLineup,
+				match: { id: serviceResult.match.id },
+				players: [],
+				proposedLineup: serviceResult.proposedLineup,
 			},
 			user: { id: userId, name: userName },
 		});
@@ -465,11 +359,14 @@ const leagueRouter = new Hono<LeagueEnv>()
 		const [streakPlayers, streakTeams] = await Promise.all([
 			checkStreakThresholds({
 				db,
-				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+				seasonPlayerIds: [
+					...serviceResult.streakData.homePlayerIds,
+					...serviceResult.streakData.awayPlayerIds,
+				],
 			}),
 			checkTeamStreakThresholds({
 				db,
-				matchId: createdMatch.id,
+				matchId: serviceResult.streakData.matchId,
 			}),
 		]);
 
@@ -506,34 +403,14 @@ const leagueRouter = new Hono<LeagueEnv>()
 			)
 		);
 
-		const mergedSession = {
-			...fullSession,
-			players: updatedPlayers.map((p) => ({
-				...p,
-				displayName: fullSession.players.find((fp) => fp.id === p.id)?.displayName ?? "Unknown",
-				playerImage: fullSession.players.find((fp) => fp.id === p.id)?.playerImage ?? null,
-				score: fullSession.players.find((fp) => fp.id === p.id)?.score ?? 0,
-				userId: fullSession.players.find((fp) => fp.id === p.id)?.userId ?? null,
-			})),
-			matches: fullSession.matches.map((m) =>
-				m.id === updatedMatch.id
-					? {
-							...m,
-							...updatedMatch,
-							homePlayerIds: sessionRepository.parseStringArray(updatedMatch.homePlayerIds),
-							awayPlayerIds: sessionRepository.parseStringArray(updatedMatch.awayPlayerIds),
-							selectedHomePlayerIds: sessionRepository.parseStringArray(
-								updatedMatch.selectedHomePlayerIds
-							),
-							selectedAwayPlayerIds: sessionRepository.parseStringArray(
-								updatedMatch.selectedAwayPlayerIds
-							),
-						}
-					: m
-			),
-			proposedLineup,
-		};
-		return c.json(formatSessionState(mergedSession, activeSeason.slug));
+		const refreshedSession = await sessionRepository.getActiveSessionFull({
+			db,
+			seasonId: activeSeason.id,
+		});
+		if (!refreshedSession) {
+			throw new HTTPException(500, { message: "Failed to reload session" });
+		}
+		return c.json(formatSessionState(refreshedSession, activeSeason.slug));
 	})
 	.post("/session/resolve-coin-toss", async (c) => {
 		const db = c.get("db");
@@ -572,81 +449,31 @@ const leagueRouter = new Hono<LeagueEnv>()
 			throw new HTTPException(400, { message: "Invalid winner IDs" });
 		}
 
-		const resolved = await sessionRepository.resolveCoinToss({
-			db,
+		const serviceResult = await sessionService.resolveCoinToss(db, {
+			sessionId: fullSession.id,
 			coinTossId,
-			resolvedWinnerIds: winnerIds,
+			winnerIds,
 		});
-
-		if (!resolved) {
-			throw new HTTPException(404, { message: "Coin toss not found" });
-		}
-
-		const resolvedWinnerIds = resolved.resolvedWinnerIds
-			? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
-			: [];
-
-		const triggeringMatch = resolved.sessionMatchId
-			? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
-			: null;
-
-		let proposedLineup = null;
-		if (triggeringMatch?.result) {
-			const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
-			const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
-
-			proposedLineup = computeNextLineup({
-				mode: fullSession.rotationMode,
-				teamSize: fullSession.teamSize,
-				maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-				autoRandomize: fullSession.autoRandomize,
-				players: fullSession.players.map((p) => ({
-					id: p.id,
-					seasonPlayerId: p.seasonPlayerId,
-					status: p.status,
-					queuePosition: p.queuePosition,
-					gamesPlayedThisSession: p.gamesPlayedThisSession,
-					consecutiveGames: p.consecutiveGames,
-				})),
-				lastResult: triggeringMatch.result,
-				homePlayerIds: fullSession.players
-					.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-					.map((p) => p.id),
-				awayPlayerIds: fullSession.players
-					.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-					.map((p) => p.id),
-				resolvedCoinTossWinnerIds: resolvedWinnerIds,
-			});
-
-			await sessionRepository.updateProposedLineup({
-				db,
-				sessionId: fullSession.id,
-				proposedLineup: {
-					...proposedLineup,
-					selectedHomePlayerIds: proposedLineup.homePlayerIds,
-					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-				},
-			});
-		}
 
 		const userName = c.get("authentication").user.name;
 		await broadcastSeasonEvent(c.env, leagueData.slug, activeSeason.slug, {
 			type: "session:update",
 			data: {
 				sessionId: fullSession.id,
-				resolvedCoinToss: resolved,
-				proposedLineup,
+				resolvedCoinToss: serviceResult.resolved,
+				proposedLineup: serviceResult.proposedLineup,
 			},
 			user: { id: userId, name: userName },
 		});
 
-		const mergedSession = {
-			...fullSession,
-			pendingCoinTosses: fullSession.pendingCoinTosses.filter((ct) => ct.id !== resolved.id),
-			proposedLineup,
-		};
-		return c.json(formatSessionState(mergedSession, activeSeason.slug));
+		const refreshedSession = await sessionRepository.getActiveSessionFull({
+			db,
+			seasonId: activeSeason.id,
+		});
+		if (!refreshedSession) {
+			throw new HTTPException(500, { message: "Failed to reload session" });
+		}
+		return c.json(formatSessionState(refreshedSession, activeSeason.slug));
 	})
 	.post("/session/update-score", async (c) => {
 		const db = c.get("db");
@@ -682,8 +509,7 @@ const leagueRouter = new Hono<LeagueEnv>()
 			throw new HTTPException(400, { message: "No match in progress" });
 		}
 
-		await sessionRepository.updateMatchScore({
-			db,
+		await sessionService.updateMatchScore(db, {
 			sessionId: fullSession.id,
 			sessionMatchId: sessionMatch.id,
 			homeScore,
