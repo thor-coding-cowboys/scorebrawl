@@ -167,7 +167,8 @@ export const createSession = async ({
 			updatedAt: now,
 		});
 
-		const players = seasonPlayerIds.map((seasonPlayerId, index) => ({
+		const shuffledSeasonPlayerIds = fisherYatesShuffle([...seasonPlayerIds]);
+		const players = shuffledSeasonPlayerIds.map((seasonPlayerId, index) => ({
 			id: newId("sessionPlayer"),
 			sessionId,
 			seasonPlayerId,
@@ -183,9 +184,8 @@ export const createSession = async ({
 		await tx.insert(sessionPlayer).values(players);
 
 		if (players.length >= teamSize * 2) {
-			const shuffled = fisherYatesShuffle(players);
-			const homePlayerIds = shuffled.slice(0, teamSize).map((p) => p.id);
-			const awayPlayerIds = shuffled.slice(teamSize, teamSize * 2).map((p) => p.id);
+			const homePlayerIds = players.slice(0, teamSize).map((p) => p.id);
+			const awayPlayerIds = players.slice(teamSize, teamSize * 2).map((p) => p.id);
 
 			const playerStates = players.map((p) => ({
 				id: p.id,
