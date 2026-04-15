@@ -8,8 +8,8 @@ import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
-import { sessionCoinToss } from "../../db/schema/league-schema";
-import { computeNextLineup } from "../../lib/session-rotation";
+import * as sessionService from "../../services/session";
+import { computeWinnerStaysLineup } from "../../services/session/strategies/winner-stays";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
@@ -223,24 +223,44 @@ export const sessionRouter = {
 			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
 				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
 				if (lastMatch?.result) {
-					let proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						autoRandomize: fullSession.autoRandomize,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						players: fullSession.players,
-						lastResult: lastMatch.result,
-						homePlayerIds: lastMatch.homePlayerIds,
-						awayPlayerIds: lastMatch.awayPlayerIds,
-						randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-						matchHistory: fullSession.matches.map((m) => ({
-							homePlayerIds: m.homePlayerIds,
-							awayPlayerIds: m.awayPlayerIds,
-						})),
-					});
+					const modeSettings = sessionService.parseModeSettings(fullSession.modeSettings);
+					const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
 
-					if (fullSession.proposedLineup) {
+					let proposedLineup: { homePlayerIds: string[]; awayPlayerIds: string[]; rotatedOut: string[]; coinTossNeeded: { conflictType: string; candidates: string[] } | null } | null = null;
+
+					if (effectiveMode === "winner-stays") {
+						const settings: sessionService.WinnerStaysSettings = modeSettings?.mode === "winner-stays" ? modeSettings : {
+							mode: "winner-stays",
+							maxConsecutiveGames: fullSession.maxConsecutiveEnabled ? fullSession.maxConsecutiveGames : null,
+							winnersTakePriority: fullSession.winnersTakePriority,
+							autoRandomize: fullSession.autoRandomize,
+							randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
+							autoCoinToss: fullSession.autoCoinToss,
+							alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
+						};
+
+						proposedLineup = computeWinnerStaysLineup({
+							settings,
+							players: fullSession.players.map((p) => ({
+								id: p.id,
+								seasonPlayerId: p.seasonPlayerId,
+								status: p.status,
+								queuePosition: p.queuePosition,
+								consecutiveGames: p.consecutiveGames,
+							})),
+							teamSize: fullSession.teamSize,
+							lastMatchResult: lastMatch.result,
+							lastMatchHome: lastMatch.homePlayerIds,
+							lastMatchAway: lastMatch.awayPlayerIds,
+							matchHistory: fullSession.matches.map((m) => ({
+								homePlayerIds: m.homePlayerIds,
+								awayPlayerIds: m.awayPlayerIds,
+							})),
+							resolvedCoinTossWinnerIds: null,
+						});
+					}
+
+					if (proposedLineup && fullSession.proposedLineup) {
 						const removedSessionPlayerId = removedPlayer.id;
 						const homeInProposed =
 							fullSession.proposedLineup.homePlayerIds.includes(removedSessionPlayerId);
@@ -274,15 +294,17 @@ export const sessionRouter = {
 						}
 					}
 
-					await sessionRepository.updateProposedLineup({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						proposedLineup: {
-							...proposedLineup,
-							selectedHomePlayerIds: proposedLineup.homePlayerIds,
-							selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-						},
-					});
+					if (proposedLineup) {
+						await sessionRepository.updateProposedLineup({
+							db: ctx.db,
+							sessionId: input.sessionId,
+							proposedLineup: {
+								...proposedLineup,
+								selectedHomePlayerIds: proposedLineup.homePlayerIds,
+								selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+							},
+						});
+					}
 				}
 			}
 
@@ -336,203 +358,47 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
+			const result = await sessionService.recordResult(ctx.db, {
 				sessionId: input.sessionId,
-			});
-
-			if (!fullSession) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-			}
-
-			const sessionMatch = fullSession.matches.find((m) => m.id === input.sessionMatchId);
-			if (!sessionMatch) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
-			}
-
-			const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
-			const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
-
-			const result: "home" | "away" | "draw" =
-				input.homeScore > input.awayScore
-					? "home"
-					: input.awayScore > input.homeScore
-						? "away"
-						: "draw";
-
-			const createdMatch = await matchRepository.create({
-				db: ctx.db,
-				input: {
-					seasonId: sessionInfo.sessionSeasonId,
-					homeScore: input.homeScore,
-					awayScore: input.awayScore,
-					homeTeamPlayerIds: homeSeasonPlayerIds,
-					awayTeamPlayerIds: awaySeasonPlayerIds,
-					userId: ctx.authentication.user.id,
-				},
+				sessionMatchId: input.sessionMatchId,
+				homeScore: input.homeScore,
+				awayScore: input.awayScore,
+				seasonId: sessionInfo.sessionSeasonId,
+				userId: ctx.authentication.user.id,
 			});
 
 			await ctx.env.ACHIEVEMENT_QUEUE.send({
-				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+				seasonPlayerIds: [
+					...result.streakData.homeSeasonPlayerIds,
+					...result.streakData.awaySeasonPlayerIds,
+				],
 			} satisfies AchievementQueueMessage);
-
-			const { match: updatedMatch, players: updatedPlayers } =
-				await sessionRepository.recordMatchResult({
-					db: ctx.db,
-					sessionId: input.sessionId,
-					sessionMatchId: input.sessionMatchId,
-					result,
-					matchId: createdMatch.id,
-					winnersTakePriority: fullSession.winnersTakePriority,
-					maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-					maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				});
-
-			const homeSessionPlayerIds = updatedPlayers
-				.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-			const awaySessionPlayerIds = updatedPlayers
-				.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-
-			let proposedLineup = computeNextLineup({
-				mode: fullSession.rotationMode,
-				teamSize: fullSession.teamSize,
-				maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-				winnersTakePriority: fullSession.winnersTakePriority,
-				autoRandomize: fullSession.autoRandomize,
-				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-				players: updatedPlayers.map((p) => ({
-					id: p.id,
-					seasonPlayerId: p.seasonPlayerId,
-					status: p.status,
-					queuePosition: p.queuePosition,
-					gamesPlayedThisSession: p.gamesPlayedThisSession,
-					consecutiveGames: p.consecutiveGames,
-				})),
-				lastResult: result,
-				homePlayerIds: homeSessionPlayerIds,
-				awayPlayerIds: awaySessionPlayerIds,
-				randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-				matchHistory: fullSession.matches.map((m) => ({
-					homePlayerIds: m.homePlayerIds,
-					awayPlayerIds: m.awayPlayerIds,
-				})),
-			});
-
-			let coinTossId: string | null = null;
-			let autoResolvedCoinToss: {
-				winnerNames: string[];
-				conflictType: string;
-			} | null = null;
-
-			if (proposedLineup.coinTossNeeded) {
-				const { conflictType, candidates } = proposedLineup.coinTossNeeded;
-
-				if (fullSession.autoCoinToss) {
-					let resolvedWinnerIds: string[];
-					if (conflictType === "draw-tiebreak") {
-						resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
-					} else {
-						const shuffled = [...candidates];
-						for (let i = shuffled.length - 1; i > 0; i--) {
-							const j = Math.floor(Math.random() * (i + 1));
-							[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-						}
-						const winnerCount = Math.ceil(candidates.length / 2);
-						resolvedWinnerIds = shuffled.slice(0, winnerCount);
-					}
-
-					const coinToss = await sessionRepository.createCoinToss({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						sessionMatchId: input.sessionMatchId,
-						conflictType,
-						candidates,
-					});
-					await sessionRepository.resolveCoinToss({
-						db: ctx.db,
-						coinTossId: coinToss.id,
-						resolvedWinnerIds,
-					});
-
-					proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-						winnersTakePriority: fullSession.winnersTakePriority,
-						autoRandomize: fullSession.autoRandomize,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						players: updatedPlayers.map((p) => ({
-							id: p.id,
-							seasonPlayerId: p.seasonPlayerId,
-							status: p.status,
-							queuePosition: p.queuePosition,
-							gamesPlayedThisSession: p.gamesPlayedThisSession,
-							consecutiveGames: p.consecutiveGames,
-						})),
-						lastResult: result,
-						homePlayerIds: homeSessionPlayerIds,
-						awayPlayerIds: awaySessionPlayerIds,
-						resolvedCoinTossWinnerIds: resolvedWinnerIds,
-						randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-						matchHistory: fullSession.matches.map((m) => ({
-							homePlayerIds: m.homePlayerIds,
-							awayPlayerIds: m.awayPlayerIds,
-						})),
-					});
-
-					const winnerNames = resolvedWinnerIds
-						.map((id) => fullSession.players.find((p) => p.id === id)?.displayName)
-						.filter(Boolean) as string[];
-					autoResolvedCoinToss = { winnerNames, conflictType };
-				} else {
-					const coinToss = await sessionRepository.createCoinToss({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						sessionMatchId: input.sessionMatchId,
-						conflictType,
-						candidates,
-					});
-					coinTossId = coinToss.id;
-				}
-			}
-
-			await sessionRepository.updateProposedLineup({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				proposedLineup: {
-					...proposedLineup,
-					selectedHomePlayerIds: proposedLineup.homePlayerIds,
-					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-				},
-			});
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 					type: "session:update",
 					data: {
 						sessionId: input.sessionId,
-						match: updatedMatch,
-						players: updatedPlayers,
-						proposedLineup,
+						match: result.match,
+						players: result.players,
+						proposedLineup: result.proposedLineup,
 					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 				})
 			);
 
-			// Move streak checking off the critical path using waitUntil
 			const streakCheckPromise = (async () => {
 				const [streakPlayers, streakTeams] = await Promise.all([
 					matchRepository.checkStreakThresholds({
 						db: ctx.db,
-						seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+						seasonPlayerIds: [
+							...result.streakData.homeSeasonPlayerIds,
+							...result.streakData.awaySeasonPlayerIds,
+						],
 					}),
 					matchRepository.checkTeamStreakThresholds({
 						db: ctx.db,
-						matchId: createdMatch.id,
+						matchId: result.streakData.createdMatchId,
 					}),
 				]);
 
@@ -570,7 +436,6 @@ export const sessionRouter = {
 				);
 			})();
 
-			// Wait for it if not in production, otherwise let it run in background
 			if (process.env.NODE_ENV === "development") {
 				await streakCheckPromise;
 			} else {
@@ -578,104 +443,37 @@ export const sessionRouter = {
 			}
 
 			return {
-				match: updatedMatch,
-				players: updatedPlayers,
-				proposedLineup,
-				coinTossId,
-				autoResolvedCoinToss,
+				match: result.match,
+				players: result.players,
+				proposedLineup: result.proposedLineup,
+				coinTossId: result.coinTossId,
+				autoResolvedCoinToss: result.autoResolvedCoinToss,
 			};
 		}),
 
 	resolveCoinToss: leagueMemberProcedure
 		.input(z.object({ coinTossId: z.string(), resolvedWinnerIds: z.array(z.string()) }))
 		.mutation(async ({ ctx, input }) => {
-			const [coinToss] = await ctx.db
-				.select()
-				.from(sessionCoinToss)
-				.where(eq(sessionCoinToss.id, input.coinTossId))
-				.limit(1);
-
-			if (!coinToss) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Coin toss not found" });
-			}
-
-			const sessionInfo = await getSessionForOrg(ctx.db, coinToss.sessionId, ctx.organizationId);
-
-			const resolved = await sessionRepository.resolveCoinToss({
-				db: ctx.db,
+			const result = await sessionService.resolveCoinToss(ctx.db, {
 				coinTossId: input.coinTossId,
 				resolvedWinnerIds: input.resolvedWinnerIds,
 			});
 
-			if (!resolved) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Coin toss not found" });
-			}
-
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
-				sessionId: resolved.sessionId,
-			});
-
-			if (!fullSession) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-			}
-
-			const resolvedWinnerIds = resolved.resolvedWinnerIds
-				? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
-				: [];
-
-			const triggeringMatch = resolved.sessionMatchId
-				? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
-				: null;
-
-			let proposedLineup = null;
-			if (triggeringMatch?.result) {
-				const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
-				const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
-
-				proposedLineup = computeNextLineup({
-					mode: fullSession.rotationMode,
-					teamSize: fullSession.teamSize,
-					maxConsecutiveGames: fullSession.maxConsecutiveGames,
-					autoRandomize: fullSession.autoRandomize,
-					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-					players: fullSession.players.map((p) => ({
-						id: p.id,
-						seasonPlayerId: p.seasonPlayerId,
-						status: p.status,
-						queuePosition: p.queuePosition,
-						gamesPlayedThisSession: p.gamesPlayedThisSession,
-						consecutiveGames: p.consecutiveGames,
-					})),
-					lastResult: triggeringMatch.result,
-					homePlayerIds: fullSession.players
-						.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
-					awayPlayerIds: fullSession.players
-						.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
-					resolvedCoinTossWinnerIds: resolvedWinnerIds,
-					randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-					matchHistory: fullSession.matches.map((m) => ({
-						homePlayerIds: m.homePlayerIds,
-						awayPlayerIds: m.awayPlayerIds,
-					})),
-				});
-			}
+			const sessionInfo = await getSessionForOrg(ctx.db, result.resolved.sessionId, ctx.organizationId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 					type: "session:update",
 					data: {
-						sessionId: resolved.sessionId,
-						resolvedCoinToss: resolved,
-						proposedLineup,
+						sessionId: result.resolved.sessionId,
+						resolvedCoinToss: result.resolved,
+						proposedLineup: result.proposedLineup,
 					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 				})
 			);
 
-			return { resolved, proposedLineup };
+			return { resolved: result.resolved, proposedLineup: result.proposedLineup };
 		}),
 
 	end: leagueMemberProcedure

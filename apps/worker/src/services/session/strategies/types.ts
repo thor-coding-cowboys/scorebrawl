@@ -13,3 +13,16 @@ export type ManualSettings = {
 };
 
 export type ModeSettings = WinnerStaysSettings | ManualSettings;
+
+export function exhaustiveCheck(value: never): never {
+	throw new Error(`Unhandled mode: ${String(value)}`);
+}
+
+export function parseModeSettings(json: string | null | undefined): ModeSettings | null {
+	if (!json) return null;
+	try {
+		return JSON.parse(json) as ModeSettings;
+	} catch {
+		return null;
+	}
+}
