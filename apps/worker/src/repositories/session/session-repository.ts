@@ -13,7 +13,9 @@ import {
 	player,
 	guest,
 } from "../../db/schema/league-schema";
-import { enforceAlwaysSplit } from "../../lib/session-rotation";
+import { enforceAlwaysSplit } from "../../services/session/strategies/winner-stays";
+import { fisherYatesShuffle } from "../../lib/shuffle";
+
 
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
@@ -26,15 +28,6 @@ export function parseStringArray(json: string | null | undefined): string[] {
 	} catch {
 		return [];
 	}
-}
-
-function fisherYatesShuffle<T>(arr: T[]): T[] {
-	const result = [...arr];
-	for (let i = result.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[result[i], result[j]] = [result[j], result[i]];
-	}
-	return result;
 }
 
 export function parseProposedLineup(json: string | null | undefined): {
