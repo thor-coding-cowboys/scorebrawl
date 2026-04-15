@@ -448,8 +448,8 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 						deleteLastMatch={deleteLastMatch}
 						recordResult={recordResult}
 						startNextMatch={startNextMatch}
-					setShowPlayerDrawer={setShowPlayerDrawer}
-				/>
+						setShowPlayerDrawer={setShowPlayerDrawer}
+					/>
 
 					<QueueCard session={session} removePlayer={removePlayer} rejoinPlayer={rejoinPlayer} />
 				</div>
@@ -548,30 +548,30 @@ function MatchCard({
 	setShowPlayerDrawer: (open: boolean) => void;
 }) {
 	return (
-	<Card className="p-4">
-		<div className="flex items-center justify-between mb-4">
-			<h2 className="text-sm font-bold font-mono">
-				{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
-			</h2>
-			<div className="flex items-center gap-2">
-				{currentMatch && (
-					<Badge variant="secondary" className="text-xs">
-						In Progress
-					</Badge>
-				)}
-				{!currentMatch && (
-					<span className="text-xs text-muted-foreground">
-						{allMatches.filter((m) => m.result !== null).length} played
-					</span>
-				)}
-				{coinTossActive && !currentMatch && (
-					<Button size="sm" onClick={() => setShowCoinToss(true)} className="gap-1.5">
-						<HugeiconsIcon icon={CoinsIcon} className="size-4" />
-						Coin Toss
-					</Button>
-				)}
+		<Card className="p-4">
+			<div className="flex items-center justify-between mb-4">
+				<h2 className="text-sm font-bold font-mono">
+					{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
+				</h2>
+				<div className="flex items-center gap-2">
+					{currentMatch && (
+						<Badge variant="secondary" className="text-xs">
+							In Progress
+						</Badge>
+					)}
+					{!currentMatch && (
+						<span className="text-xs text-muted-foreground">
+							{allMatches.filter((m) => m.result !== null).length} played
+						</span>
+					)}
+					{coinTossActive && !currentMatch && (
+						<Button size="sm" onClick={() => setShowCoinToss(true)} className="gap-1.5">
+							<HugeiconsIcon icon={CoinsIcon} className="size-4" />
+							Coin Toss
+						</Button>
+					)}
+				</div>
 			</div>
-		</div>
 
 			<div className="flex flex-col gap-4">
 				<div className="bg-muted/30">
@@ -714,8 +714,8 @@ function MatchCard({
 						</div>
 					</>
 				)}
-		</div>
-	</Card>
+			</div>
+		</Card>
 	);
 }
 
@@ -729,8 +729,8 @@ function QueueCard({
 	rejoinPlayer: ReturnType<typeof useSessionMutations>["rejoinPlayer"];
 }) {
 	return (
-	<Card className="p-4">
-		<QueuePanel
+		<Card className="p-4">
+			<QueuePanel
 				session={session}
 				onRemovePlayer={(sessionPlayerId) =>
 					removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
@@ -755,7 +755,7 @@ function QueueCard({
 						);
 					})}
 				</div>
-		)}
-	</Card>
+			)}
+		</Card>
 	);
 }

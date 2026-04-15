@@ -425,7 +425,9 @@ export const deleteLastMatch = async ({ db, sessionId }: { db: DrizzleDB; sessio
 		);
 
 		const toSessionPlayerIds = (seasonPlayerIds: string[]) =>
-			seasonPlayerIds.map((id) => spIdToSessionPlayerId.get(id)).filter((id): id is string => id !== undefined);
+			seasonPlayerIds
+				.map((id) => spIdToSessionPlayerId.get(id))
+				.filter((id): id is string => id !== undefined);
 
 		const restoredProposedLineup = {
 			homePlayerIds: toSessionPlayerIds(deletedHomeIds),

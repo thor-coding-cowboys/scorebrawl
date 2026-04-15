@@ -24,6 +24,9 @@ export function QueuePanel({
 		.sort((a, b) => a.queuePosition - b.queuePosition);
 	const out = session.players.filter((p) => p.status === "out");
 
+	const hasActiveMatch = session.matches.some((m) => m.result === null);
+	const canRemove = !hasActiveMatch ? onRemovePlayer : undefined;
+
 	if (session.players.length === 0) {
 		return (
 			<div className="flex h-16 items-center justify-center text-sm text-muted-foreground">
@@ -46,7 +49,7 @@ export function QueuePanel({
 							key={p.id}
 							player={p}
 							matches={session.matches}
-							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							onRemove={canRemove ? () => canRemove(p.id) : undefined}
 							isRemoving={isRemoving}
 						/>
 					))}
@@ -65,7 +68,7 @@ export function QueuePanel({
 							player={p}
 							matches={session.matches}
 							rank={i + 1}
-							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							onRemove={canRemove ? () => canRemove(p.id) : undefined}
 							isRemoving={isRemoving}
 						/>
 					))}

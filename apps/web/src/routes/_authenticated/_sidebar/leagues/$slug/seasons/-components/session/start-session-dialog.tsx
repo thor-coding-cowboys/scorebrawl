@@ -406,110 +406,112 @@ export function StartSessionDialog({
 				</div>
 			)}
 
-			{state.selectedPlayerIds.length >= 2 && seasonPlayers && state.rotationMode === "winner-stays" && (
-				<div className="flex flex-col gap-3 shrink-0">
-					<div className="flex flex-col gap-0.5">
-						<Label>Always Split</Label>
-						<span className="text-xs text-muted-foreground">
-							Pairs that must always be on opposite teams
-						</span>
-					</div>
-					<div className="flex gap-2 items-center">
-						<Select
-							value={state.splitPickA}
-							onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_A", value: v ?? "" })}
-						>
-							<SelectTrigger className="flex-1 min-w-0">
-								<SelectValue>
-									{state.splitPickA ? (
-										<span className="truncate">
-											{seasonPlayers.find((p) => p.id === state.splitPickA)?.name}
-										</span>
-									) : (
-										<span className="text-muted-foreground">Player A</span>
-									)}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{seasonPlayers
-									.filter(
-										(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickB
-									)
-									.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-							</SelectContent>
-						</Select>
-						<Select
-							value={state.splitPickB}
-							onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_B", value: v ?? "" })}
-						>
-							<SelectTrigger className="flex-1 min-w-0">
-								<SelectValue>
-									{state.splitPickB ? (
-										<span className="truncate">
-											{seasonPlayers.find((p) => p.id === state.splitPickB)?.name}
-										</span>
-									) : (
-										<span className="text-muted-foreground">Player B</span>
-									)}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{seasonPlayers
-									.filter(
-										(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickA
-									)
-									.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-							</SelectContent>
-						</Select>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={() => dispatch({ type: "ADD_SPLIT_PAIR" })}
-							disabled={
-								!state.splitPickA || !state.splitPickB || state.splitPickA === state.splitPickB
-							}
-							className="shrink-0"
-						>
-							<HugeiconsIcon icon={Add01Icon} className="size-4" />
-						</Button>
-					</div>
-					{state.alwaysSplitPairs.length > 0 && (
-						<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
-							{state.alwaysSplitPairs.map(([a, b]) => {
-								const playerA = seasonPlayers.find((p) => p.id === a);
-								const playerB = seasonPlayers.find((p) => p.id === b);
-								return (
-									<div
-										key={`${a}-${b}`}
-										className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-1.5 px-3 py-2"
-									>
-										<span className="text-sm truncate">{playerA?.name}</span>
-										<span className="text-xs text-muted-foreground">vs</span>
-										<span className="text-sm truncate">{playerB?.name}</span>
-										<Button
-											type="button"
-											size="sm"
-											variant="ghost"
-											onClick={() => dispatch({ type: "REMOVE_SPLIT_PAIR", a, b })}
-										>
-											<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
-										</Button>
-									</div>
-								);
-							})}
+			{state.selectedPlayerIds.length >= 2 &&
+				seasonPlayers &&
+				state.rotationMode === "winner-stays" && (
+					<div className="flex flex-col gap-3 shrink-0">
+						<div className="flex flex-col gap-0.5">
+							<Label>Always Split</Label>
+							<span className="text-xs text-muted-foreground">
+								Pairs that must always be on opposite teams
+							</span>
 						</div>
-					)}
-				</div>
-			)}
+						<div className="flex gap-2 items-center">
+							<Select
+								value={state.splitPickA}
+								onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_A", value: v ?? "" })}
+							>
+								<SelectTrigger className="flex-1 min-w-0">
+									<SelectValue>
+										{state.splitPickA ? (
+											<span className="truncate">
+												{seasonPlayers.find((p) => p.id === state.splitPickA)?.name}
+											</span>
+										) : (
+											<span className="text-muted-foreground">Player A</span>
+										)}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									{seasonPlayers
+										.filter(
+											(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickB
+										)
+										.map((p) => (
+											<SelectItem key={p.id} value={p.id}>
+												{p.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={state.splitPickB}
+								onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_B", value: v ?? "" })}
+							>
+								<SelectTrigger className="flex-1 min-w-0">
+									<SelectValue>
+										{state.splitPickB ? (
+											<span className="truncate">
+												{seasonPlayers.find((p) => p.id === state.splitPickB)?.name}
+											</span>
+										) : (
+											<span className="text-muted-foreground">Player B</span>
+										)}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									{seasonPlayers
+										.filter(
+											(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickA
+										)
+										.map((p) => (
+											<SelectItem key={p.id} value={p.id}>
+												{p.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() => dispatch({ type: "ADD_SPLIT_PAIR" })}
+								disabled={
+									!state.splitPickA || !state.splitPickB || state.splitPickA === state.splitPickB
+								}
+								className="shrink-0"
+							>
+								<HugeiconsIcon icon={Add01Icon} className="size-4" />
+							</Button>
+						</div>
+						{state.alwaysSplitPairs.length > 0 && (
+							<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
+								{state.alwaysSplitPairs.map(([a, b]) => {
+									const playerA = seasonPlayers.find((p) => p.id === a);
+									const playerB = seasonPlayers.find((p) => p.id === b);
+									return (
+										<div
+											key={`${a}-${b}`}
+											className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-1.5 px-3 py-2"
+										>
+											<span className="text-sm truncate">{playerA?.name}</span>
+											<span className="text-xs text-muted-foreground">vs</span>
+											<span className="text-sm truncate">{playerB?.name}</span>
+											<Button
+												type="button"
+												size="sm"
+												variant="ghost"
+												onClick={() => dispatch({ type: "REMOVE_SPLIT_PAIR", a, b })}
+											>
+												<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
+											</Button>
+										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				)}
 		</div>
 	);
 

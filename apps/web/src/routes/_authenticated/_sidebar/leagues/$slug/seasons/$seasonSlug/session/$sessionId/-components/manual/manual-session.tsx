@@ -187,10 +187,10 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 
 			<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 				<div className="flex flex-col gap-4">
-				<Card className="p-4">
-					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-sm font-bold font-mono">
-							{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
+					<Card className="p-4">
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-sm font-bold font-mono">
+								{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
 							</h2>
 							<div className="flex items-center gap-2">
 								{currentMatch && (
@@ -321,11 +321,11 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 								</>
 							)}
 						</div>
-				</Card>
-			</div>
+					</Card>
+				</div>
 
-			<div className="flex flex-col gap-4">
-				<SessionStandings
+				<div className="flex flex-col gap-4">
+					<SessionStandings
 						seasonSlug={seasonSlug}
 						leagueSlug={slug}
 						sessionPlayers={session.players}
