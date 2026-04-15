@@ -6,6 +6,7 @@ import { useSessionMutations } from "@/hooks/use-session-mutations";
 import { useScoreSync } from "@/hooks/use-score-sync";
 import { useSessionSSE } from "@/hooks/use-session-sse";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -546,30 +547,30 @@ function MatchCard({
 	setShowPlayerDrawer: (open: boolean) => void;
 }) {
 	return (
-	<div className="border bg-card p-4">
+	<Card className="p-4">
 		<div className="flex items-center justify-between mb-4">
 			<h2 className="text-sm font-bold font-mono">
 				{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
-				</h2>
-				<div className="flex items-center gap-2">
-					{currentMatch && (
-						<Badge variant="secondary" className="text-xs">
-							In Progress
-						</Badge>
-					)}
-					{!currentMatch && (
-						<span className="text-xs text-muted-foreground">
-							{allMatches.filter((m) => m.result !== null).length} played
-						</span>
-					)}
-					{coinTossActive && !currentMatch && (
-						<Button size="sm" onClick={() => setShowCoinToss(true)} className="gap-1.5">
-							<HugeiconsIcon icon={CoinsIcon} className="size-4" />
-							Coin Toss
-						</Button>
-					)}
-				</div>
+			</h2>
+			<div className="flex items-center gap-2">
+				{currentMatch && (
+					<Badge variant="secondary" className="text-xs">
+						In Progress
+					</Badge>
+				)}
+				{!currentMatch && (
+					<span className="text-xs text-muted-foreground">
+						{allMatches.filter((m) => m.result !== null).length} played
+					</span>
+				)}
+				{coinTossActive && !currentMatch && (
+					<Button size="sm" onClick={() => setShowCoinToss(true)} className="gap-1.5">
+						<HugeiconsIcon icon={CoinsIcon} className="size-4" />
+						Coin Toss
+					</Button>
+				)}
 			</div>
+		</div>
 
 			<div className="flex flex-col gap-4">
 				<div className="bg-muted/30">
@@ -712,8 +713,8 @@ function MatchCard({
 						</div>
 					</>
 				)}
-			</div>
 		</div>
+	</Card>
 	);
 }
 
@@ -725,13 +726,13 @@ function QueueCard({
 	removePlayer: ReturnType<typeof useSessionMutations>["removePlayer"];
 }) {
 	return (
-	<div className="border bg-card p-4">
+	<Card className="p-4">
 		<div className="flex items-center justify-between mb-4">
 			<h2 className="text-sm font-bold font-mono">Queue</h2>
-				<Badge variant="secondary" className="text-xs">
-					{session.players.length}
-				</Badge>
-			</div>
+			<Badge variant="secondary" className="text-xs">
+				{session.players.length}
+			</Badge>
+		</div>
 			<QueuePanel
 				session={session}
 				onRemovePlayer={(sessionPlayerId) =>
@@ -755,7 +756,7 @@ function QueueCard({
 						);
 					})}
 				</div>
-			)}
-		</div>
+		)}
+	</Card>
 	);
 }

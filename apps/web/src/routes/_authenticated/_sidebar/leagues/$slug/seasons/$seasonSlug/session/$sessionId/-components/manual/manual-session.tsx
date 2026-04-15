@@ -6,6 +6,7 @@ import { useSessionMutations } from "@/hooks/use-session-mutations";
 import { useScoreSync } from "@/hooks/use-score-sync";
 import { useSessionSSE } from "@/hooks/use-session-sse";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -186,7 +187,7 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 
 			<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 				<div className="flex flex-col gap-4">
-				<div className="border bg-card p-4">
+				<Card className="p-4">
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-sm font-bold font-mono">
 							{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
@@ -320,11 +321,11 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 								</>
 							)}
 						</div>
-					</div>
-				</div>
+				</Card>
+			</div>
 
-				<div className="flex flex-col gap-4">
-					<SessionStandings
+			<div className="flex flex-col gap-4">
+				<SessionStandings
 						seasonSlug={seasonSlug}
 						leagueSlug={slug}
 						sessionPlayers={session.players}
