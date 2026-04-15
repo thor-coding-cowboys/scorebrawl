@@ -406,7 +406,7 @@ export function StartSessionDialog({
 				</div>
 			)}
 
-			{state.selectedPlayerIds.length >= 2 && seasonPlayers && (
+			{state.selectedPlayerIds.length >= 2 && seasonPlayers && state.rotationMode === "winner-stays" && (
 				<div className="flex flex-col gap-3 shrink-0">
 					<div className="flex flex-col gap-0.5">
 						<Label>Always Split</Label>
