@@ -186,10 +186,10 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 
 			<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 				<div className="flex flex-col gap-4">
-					<div className="rounded-lg border bg-card p-4">
-						<div className="flex items-center justify-between mb-4">
-							<h2 className="text-sm font-bold font-mono">
-								{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
+				<div className="border bg-card p-4">
+					<div className="flex items-center justify-between mb-4">
+						<h2 className="text-sm font-bold font-mono">
+							{currentMatch ? `Match #${currentMatch.matchNumber}` : "Next Match"}
 							</h2>
 							<div className="flex items-center gap-2">
 								{currentMatch && (
@@ -206,7 +206,7 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 						</div>
 
 						<div className="flex flex-col gap-4">
-							<div className="bg-muted/30 rounded-lg">
+							<div className="bg-muted/30">
 								<div className="grid grid-cols-2">
 									<ScoreStepper
 										label="Home"
