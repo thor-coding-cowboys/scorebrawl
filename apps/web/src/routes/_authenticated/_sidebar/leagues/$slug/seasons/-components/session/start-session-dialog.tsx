@@ -37,7 +37,7 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "sequential" | "manual";
+type RotationMode = "winner-stays" | "manual";
 
 interface DialogState {
 	rotationMode: RotationMode;
@@ -232,19 +232,14 @@ export function StartSessionDialog({
 					onValueChange={(v) => dispatch({ type: "SET_ROTATION_MODE", value: v as RotationMode })}
 				>
 					<SelectTrigger>
-						<SelectValue>
-							{state.rotationMode === "winner-stays"
-								? "Winner Stays"
-								: state.rotationMode === "sequential"
-									? "Sequential"
-									: "Manual"}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="winner-stays">Winner Stays</SelectItem>
-						<SelectItem value="sequential">Sequential</SelectItem>
-						<SelectItem value="manual">Manual</SelectItem>
-					</SelectContent>
+				<SelectValue>
+						{state.rotationMode === "winner-stays" ? "Winner Stays" : "Manual"}
+					</SelectValue>
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="winner-stays">Winner Stays</SelectItem>
+					<SelectItem value="manual">Manual</SelectItem>
+				</SelectContent>
 				</Select>
 			</div>
 
