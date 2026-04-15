@@ -1,20 +1,17 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and, sql } from "drizzle-orm";
-import { seasonPlayer, player, sessionPlayer } from "../../db/schema/league-schema";
+import { eq } from "drizzle-orm";
+import { seasonPlayer, player, sessionPlayer, sessionCoinToss } from "../../db/schema/league-schema";
 import { leagueMemberProcedure } from "../trpc";
 import * as sessionRepository from "../../repositories/session-repository";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
-import { sessionCoinToss } from "../../db/schema/league-schema";
-import { computeNextLineup } from "../../lib/session-rotation";
+import * as sessionService from "../../services/session";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 
-type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
-
-async function getSeasonBySlug(db: SessionDb, seasonSlug: string, organizationId: string) {
+async function getSeasonBySlug(db: Parameters<typeof seasonRepository.getBySlug>[0]["db"], seasonSlug: string, organizationId: string) {
 	try {
 		return await seasonRepository.getBySlug({ db, seasonSlug, leagueId: organizationId });
 	} catch (error) {
@@ -25,7 +22,7 @@ async function getSeasonBySlug(db: SessionDb, seasonSlug: string, organizationId
 	}
 }
 
-async function getSessionForOrg(db: SessionDb, sessionId: string, organizationId: string) {
+async function getSessionForOrg(db: Parameters<typeof sessionRepository.getSessionWithSeason>[0]["db"], sessionId: string, organizationId: string) {
 	const info = await sessionRepository.getSessionWithSeason({ db, sessionId });
 	if (!info) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
@@ -41,44 +38,63 @@ export const sessionRouter = {
 		.input(
 			z.object({
 				seasonSlug: z.string(),
-				rotationMode: z.enum(["winner-stays", "manual"]),
 				teamSize: z.number().int().min(1).max(6),
-				maxConsecutiveGames: z.number().int().min(1).nullable(),
-				seasonPlayerIds: z.array(z.string()).min(2),
-				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).default([]),
-				autoRandomize: z.boolean().default(false),
-				autoCoinToss: z.boolean().default(false),
-				winnersTakePriority: z.boolean().default(false),
-				maxConsecutiveEnabled: z.boolean().default(false),
-				randomizerType: z.enum(["fisher-yates", "diversity"]).default("fisher-yates"),
+				rotationMode: z.enum(["winner-stays", "manual"]),
+				modeSettings: z.union([
+					z.object({
+						mode: z.literal("winner-stays"),
+						maxConsecutiveGames: z.number().int().min(1).nullable(),
+						winnersTakePriority: z.boolean(),
+						autoRandomize: z.boolean(),
+						randomizerType: z.enum(["fisher-yates", "diversity"]),
+						autoCoinToss: z.boolean(),
+						alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])),
+					}),
+					z.object({
+						mode: z.literal("manual"),
+					}),
+				]),
+				playerSeasonIds: z.array(z.string()),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
+			const season = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
 
 			const active = await sessionRepository.getActiveSession({
 				db: ctx.db,
-				seasonId: s.id,
+				seasonId: season.id,
 			});
 
 			if (active) {
 				throw new TRPCError({ code: "CONFLICT", message: "An active session already exists" });
 			}
 
-			const session = await sessionRepository.createSession({
-				db: ctx.db,
-				seasonId: s.id,
+			const modeSettings =
+				input.modeSettings.mode === "manual"
+					? {
+							maxConsecutiveGames: null,
+							winnersTakePriority: false,
+							autoRandomize: false,
+							randomizerType: "fisher-yates" as const,
+							autoCoinToss: false,
+							alwaysSplitConstraints: [] as [string, string][],
+						}
+					: {
+							maxConsecutiveGames: input.modeSettings.maxConsecutiveGames,
+							winnersTakePriority: input.modeSettings.winnersTakePriority,
+							autoRandomize: input.modeSettings.autoRandomize,
+							randomizerType: input.modeSettings.randomizerType,
+							autoCoinToss: input.modeSettings.autoCoinToss,
+							alwaysSplitConstraints: input.modeSettings.alwaysSplitConstraints,
+						};
+
+			const session = await sessionService.createSession(ctx.db, {
+				seasonId: season.id,
 				createdBy: ctx.authentication.user.id,
-				rotationMode: input.rotationMode,
 				teamSize: input.teamSize,
-				maxConsecutiveGames: input.maxConsecutiveGames,
-				alwaysSplitConstraints: input.alwaysSplitConstraints,
-				autoRandomize: input.autoRandomize,
-				autoCoinToss: input.autoCoinToss,
-				seasonPlayerIds: input.seasonPlayerIds,
-				winnersTakePriority: input.winnersTakePriority,
-				maxConsecutiveEnabled: input.maxConsecutiveEnabled,
-				randomizerType: input.randomizerType,
+				rotationMode: input.rotationMode,
+				modeSettings,
+				playerSeasonIds: input.playerSeasonIds,
 			});
 
 			ctx.waitUntil(
@@ -103,16 +119,13 @@ export const sessionRouter = {
 		.input(z.object({ sessionId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
 			const session = await sessionRepository.getSessionById({
 				db: ctx.db,
 				sessionId: input.sessionId,
 			});
-
 			if (!session) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 			}
-
 			return session;
 		}),
 
@@ -133,22 +146,10 @@ export const sessionRouter = {
 			}
 
 			const [seasonPlayerRecord] = await ctx.db
-				.select({
-					id: seasonPlayer.id,
-					alreadyInSession: sql<boolean>`EXISTS(
-					SELECT 1 FROM ${sessionPlayer}
-					WHERE ${sessionPlayer.sessionId} = ${input.sessionId}
-					AND ${sessionPlayer.seasonPlayerId} = ${seasonPlayer.id}
-				)`.as("already_in_session"),
-				})
+				.select({ id: seasonPlayer.id })
 				.from(seasonPlayer)
 				.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-				.where(
-					and(
-						eq(seasonPlayer.seasonId, sessionInfo.sessionSeasonId),
-						eq(player.userId, ctx.authentication.user.id)
-					)
-				)
+				.where(eq(player.userId, ctx.authentication.user.id))
 				.limit(1);
 
 			if (!seasonPlayerRecord) {
@@ -158,18 +159,20 @@ export const sessionRouter = {
 				});
 			}
 
-			if (seasonPlayerRecord.alreadyInSession) {
+			const existingInSession = await ctx.db
+				.select({ id: sessionPlayer.id })
+				.from(sessionPlayer)
+				.where(eq(sessionPlayer.sessionId, input.sessionId))
+				.limit(1);
+
+			if (existingInSession.length > 0) {
 				throw new TRPCError({
 					code: "CONFLICT",
 					message: "You are already in this session",
 				});
 			}
 
-			const newPlayer = await sessionRepository.addPlayerToSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				seasonPlayerId: seasonPlayerRecord.id,
-			});
+			const newPlayer = await sessionService.addPlayer(ctx.db, input.sessionId, seasonPlayerRecord.id);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -187,11 +190,7 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const newPlayer = await sessionRepository.addPlayerToSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				seasonPlayerId: input.seasonPlayerId,
-			});
+			const newPlayer = await sessionService.addPlayer(ctx.db, input.sessionId, input.seasonPlayerId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -209,82 +208,7 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const removedPlayer = await sessionRepository.removePlayerFromSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				sessionPlayerId: input.sessionPlayerId,
-			});
-
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
-				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
-				if (lastMatch?.result) {
-					let proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						autoRandomize: fullSession.autoRandomize,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						players: fullSession.players,
-						lastResult: lastMatch.result,
-						homePlayerIds: lastMatch.homePlayerIds,
-						awayPlayerIds: lastMatch.awayPlayerIds,
-						randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-						matchHistory: fullSession.matches.map((m) => ({
-							homePlayerIds: m.homePlayerIds,
-							awayPlayerIds: m.awayPlayerIds,
-						})),
-					});
-
-					if (fullSession.proposedLineup) {
-						const removedSessionPlayerId = removedPlayer.id;
-						const homeInProposed =
-							fullSession.proposedLineup.homePlayerIds.includes(removedSessionPlayerId);
-						const awayInProposed =
-							fullSession.proposedLineup.awayPlayerIds.includes(removedSessionPlayerId);
-
-						if (homeInProposed || awayInProposed) {
-							const waitingPlayers = fullSession.players
-								.filter((p) => p.status === "waiting")
-								.sort((a, b) => a.queuePosition - b.queuePosition);
-
-							if (waitingPlayers.length > 0) {
-								const replacement = waitingPlayers[0]!;
-								const newHomeIds = homeInProposed
-									? fullSession.proposedLineup.homePlayerIds.map((id) =>
-											id === removedSessionPlayerId ? replacement.id : id
-										)
-									: fullSession.proposedLineup.homePlayerIds;
-								const newAwayIds = awayInProposed
-									? fullSession.proposedLineup.awayPlayerIds.map((id) =>
-											id === removedSessionPlayerId ? replacement.id : id
-										)
-									: fullSession.proposedLineup.awayPlayerIds;
-
-								proposedLineup = {
-									...proposedLineup,
-									homePlayerIds: newHomeIds,
-									awayPlayerIds: newAwayIds,
-								};
-							}
-						}
-					}
-
-					await sessionRepository.updateProposedLineup({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						proposedLineup: {
-							...proposedLineup,
-							selectedHomePlayerIds: proposedLineup.homePlayerIds,
-							selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-						},
-					});
-				}
-			}
+			const result = await sessionService.removePlayer(ctx.db, input.sessionId, input.sessionPlayerId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -293,6 +217,8 @@ export const sessionRouter = {
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 				})
 			);
+
+			return result;
 		}),
 
 	startNextMatch: leagueMemberProcedure
@@ -306,12 +232,12 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const sessionMatch = await sessionRepository.startNextMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				homeSeasonPlayerIds: input.homeSeasonPlayerIds,
-				awaySeasonPlayerIds: input.awaySeasonPlayerIds,
-			});
+			const sessionMatch = await sessionService.startNextMatch(
+				ctx.db,
+				input.sessionId,
+				input.homeSeasonPlayerIds,
+				input.awaySeasonPlayerIds
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -336,203 +262,48 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			if (!fullSession) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-			}
-
-			const sessionMatch = fullSession.matches.find((m) => m.id === input.sessionMatchId);
-			if (!sessionMatch) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
-			}
-
-			const homeSeasonPlayerIds: string[] = sessionMatch.homePlayerIds;
-			const awaySeasonPlayerIds: string[] = sessionMatch.awayPlayerIds;
-
 			const result: "home" | "away" | "draw" =
-				input.homeScore > input.awayScore
-					? "home"
-					: input.awayScore > input.homeScore
-						? "away"
-						: "draw";
+				input.homeScore > input.awayScore ? "home" : input.awayScore > input.homeScore ? "away" : "draw";
 
-			const createdMatch = await matchRepository.create({
-				db: ctx.db,
-				input: {
-					seasonId: sessionInfo.sessionSeasonId,
-					homeScore: input.homeScore,
-					awayScore: input.awayScore,
-					homeTeamPlayerIds: homeSeasonPlayerIds,
-					awayTeamPlayerIds: awaySeasonPlayerIds,
-					userId: ctx.authentication.user.id,
-				},
+			const serviceResult = await sessionService.recordResult(ctx.db, {
+				sessionId: input.sessionId,
+				sessionMatchId: input.sessionMatchId,
+				result,
+				homeScore: input.homeScore,
+				awayScore: input.awayScore,
+				seasonId: sessionInfo.sessionSeasonId,
+				leagueId: ctx.organizationId,
 			});
 
 			await ctx.env.ACHIEVEMENT_QUEUE.send({
-				seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+				seasonPlayerIds: serviceResult.streakData.homePlayerIds.concat(
+					serviceResult.streakData.awayPlayerIds
+				),
 			} satisfies AchievementQueueMessage);
-
-			const { match: updatedMatch, players: updatedPlayers } =
-				await sessionRepository.recordMatchResult({
-					db: ctx.db,
-					sessionId: input.sessionId,
-					sessionMatchId: input.sessionMatchId,
-					result,
-					matchId: createdMatch.id,
-					winnersTakePriority: fullSession.winnersTakePriority,
-					maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-					maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				});
-
-			const homeSessionPlayerIds = updatedPlayers
-				.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-			const awaySessionPlayerIds = updatedPlayers
-				.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-				.map((p) => p.id);
-
-			let proposedLineup = computeNextLineup({
-				mode: fullSession.rotationMode,
-				teamSize: fullSession.teamSize,
-				maxConsecutiveGames: fullSession.maxConsecutiveGames,
-				maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-				winnersTakePriority: fullSession.winnersTakePriority,
-				autoRandomize: fullSession.autoRandomize,
-				alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-				players: updatedPlayers.map((p) => ({
-					id: p.id,
-					seasonPlayerId: p.seasonPlayerId,
-					status: p.status,
-					queuePosition: p.queuePosition,
-					gamesPlayedThisSession: p.gamesPlayedThisSession,
-					consecutiveGames: p.consecutiveGames,
-				})),
-				lastResult: result,
-				homePlayerIds: homeSessionPlayerIds,
-				awayPlayerIds: awaySessionPlayerIds,
-				randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-				matchHistory: fullSession.matches.map((m) => ({
-					homePlayerIds: m.homePlayerIds,
-					awayPlayerIds: m.awayPlayerIds,
-				})),
-			});
-
-			let coinTossId: string | null = null;
-			let autoResolvedCoinToss: {
-				winnerNames: string[];
-				conflictType: string;
-			} | null = null;
-
-			if (proposedLineup.coinTossNeeded) {
-				const { conflictType, candidates } = proposedLineup.coinTossNeeded;
-
-				if (fullSession.autoCoinToss) {
-					let resolvedWinnerIds: string[];
-					if (conflictType === "draw-tiebreak") {
-						resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
-					} else {
-						const shuffled = [...candidates];
-						for (let i = shuffled.length - 1; i > 0; i--) {
-							const j = Math.floor(Math.random() * (i + 1));
-							[shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-						}
-						const winnerCount = Math.ceil(candidates.length / 2);
-						resolvedWinnerIds = shuffled.slice(0, winnerCount);
-					}
-
-					const coinToss = await sessionRepository.createCoinToss({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						sessionMatchId: input.sessionMatchId,
-						conflictType,
-						candidates,
-					});
-					await sessionRepository.resolveCoinToss({
-						db: ctx.db,
-						coinTossId: coinToss.id,
-						resolvedWinnerIds,
-					});
-
-					proposedLineup = computeNextLineup({
-						mode: fullSession.rotationMode,
-						teamSize: fullSession.teamSize,
-						maxConsecutiveGames: fullSession.maxConsecutiveGames,
-						maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-						winnersTakePriority: fullSession.winnersTakePriority,
-						autoRandomize: fullSession.autoRandomize,
-						alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-						players: updatedPlayers.map((p) => ({
-							id: p.id,
-							seasonPlayerId: p.seasonPlayerId,
-							status: p.status,
-							queuePosition: p.queuePosition,
-							gamesPlayedThisSession: p.gamesPlayedThisSession,
-							consecutiveGames: p.consecutiveGames,
-						})),
-						lastResult: result,
-						homePlayerIds: homeSessionPlayerIds,
-						awayPlayerIds: awaySessionPlayerIds,
-						resolvedCoinTossWinnerIds: resolvedWinnerIds,
-						randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-						matchHistory: fullSession.matches.map((m) => ({
-							homePlayerIds: m.homePlayerIds,
-							awayPlayerIds: m.awayPlayerIds,
-						})),
-					});
-
-					const winnerNames = resolvedWinnerIds
-						.map((id) => fullSession.players.find((p) => p.id === id)?.displayName)
-						.filter(Boolean) as string[];
-					autoResolvedCoinToss = { winnerNames, conflictType };
-				} else {
-					const coinToss = await sessionRepository.createCoinToss({
-						db: ctx.db,
-						sessionId: input.sessionId,
-						sessionMatchId: input.sessionMatchId,
-						conflictType,
-						candidates,
-					});
-					coinTossId = coinToss.id;
-				}
-			}
-
-			await sessionRepository.updateProposedLineup({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				proposedLineup: {
-					...proposedLineup,
-					selectedHomePlayerIds: proposedLineup.homePlayerIds,
-					selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-				},
-			});
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 					type: "session:update",
 					data: {
 						sessionId: input.sessionId,
-						match: updatedMatch,
-						players: updatedPlayers,
-						proposedLineup,
+						match: serviceResult.match,
+						proposedLineup: serviceResult.proposedLineup,
 					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 				})
 			);
 
-			// Move streak checking off the critical path using waitUntil
 			const streakCheckPromise = (async () => {
 				const [streakPlayers, streakTeams] = await Promise.all([
 					matchRepository.checkStreakThresholds({
 						db: ctx.db,
-						seasonPlayerIds: [...homeSeasonPlayerIds, ...awaySeasonPlayerIds],
+						seasonPlayerIds: serviceResult.streakData.homePlayerIds.concat(
+							serviceResult.streakData.awayPlayerIds
+						),
 					}),
 					matchRepository.checkTeamStreakThresholds({
 						db: ctx.db,
-						matchId: createdMatch.id,
+						matchId: serviceResult.streakData.matchId,
 					}),
 				]);
 
@@ -570,7 +341,6 @@ export const sessionRouter = {
 				);
 			})();
 
-			// Wait for it if not in production, otherwise let it run in background
 			if (process.env.NODE_ENV === "development") {
 				await streakCheckPromise;
 			} else {
@@ -578,11 +348,9 @@ export const sessionRouter = {
 			}
 
 			return {
-				match: updatedMatch,
-				players: updatedPlayers,
-				proposedLineup,
-				coinTossId,
-				autoResolvedCoinToss,
+				match: serviceResult.match,
+				proposedLineup: serviceResult.proposedLineup,
+				coinTossId: serviceResult.coinToss?.id ?? null,
 			};
 		}),
 
@@ -601,81 +369,25 @@ export const sessionRouter = {
 
 			const sessionInfo = await getSessionForOrg(ctx.db, coinToss.sessionId, ctx.organizationId);
 
-			const resolved = await sessionRepository.resolveCoinToss({
-				db: ctx.db,
+			const serviceResult = await sessionService.resolveCoinToss(ctx.db, {
+				sessionId: coinToss.sessionId,
 				coinTossId: input.coinTossId,
-				resolvedWinnerIds: input.resolvedWinnerIds,
+				winnerIds: input.resolvedWinnerIds,
 			});
-
-			if (!resolved) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Coin toss not found" });
-			}
-
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
-				sessionId: resolved.sessionId,
-			});
-
-			if (!fullSession) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-			}
-
-			const resolvedWinnerIds = resolved.resolvedWinnerIds
-				? sessionRepository.parseStringArray(resolved.resolvedWinnerIds)
-				: [];
-
-			const triggeringMatch = resolved.sessionMatchId
-				? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
-				: null;
-
-			let proposedLineup = null;
-			if (triggeringMatch?.result) {
-				const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
-				const awaySeasonPlayerIds: string[] = triggeringMatch.awayPlayerIds;
-
-				proposedLineup = computeNextLineup({
-					mode: fullSession.rotationMode,
-					teamSize: fullSession.teamSize,
-					maxConsecutiveGames: fullSession.maxConsecutiveGames,
-					autoRandomize: fullSession.autoRandomize,
-					alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-					players: fullSession.players.map((p) => ({
-						id: p.id,
-						seasonPlayerId: p.seasonPlayerId,
-						status: p.status,
-						queuePosition: p.queuePosition,
-						gamesPlayedThisSession: p.gamesPlayedThisSession,
-						consecutiveGames: p.consecutiveGames,
-					})),
-					lastResult: triggeringMatch.result,
-					homePlayerIds: fullSession.players
-						.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
-					awayPlayerIds: fullSession.players
-						.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
-						.map((p) => p.id),
-					resolvedCoinTossWinnerIds: resolvedWinnerIds,
-					randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-					matchHistory: fullSession.matches.map((m) => ({
-						homePlayerIds: m.homePlayerIds,
-						awayPlayerIds: m.awayPlayerIds,
-					})),
-				});
-			}
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 					type: "session:update",
 					data: {
-						sessionId: resolved.sessionId,
-						resolvedCoinToss: resolved,
-						proposedLineup,
+						sessionId: coinToss.sessionId,
+						resolvedCoinToss: serviceResult.resolved,
+						proposedLineup: serviceResult.proposedLineup,
 					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 				})
 			);
 
-			return { resolved, proposedLineup };
+			return serviceResult;
 		}),
 
 	end: leagueMemberProcedure
@@ -683,10 +395,7 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const ended = await sessionRepository.endSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
+			const ended = await sessionService.endSession(ctx.db, input.sessionId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -700,7 +409,12 @@ export const sessionRouter = {
 		}),
 
 	listEnded: leagueMemberProcedure
-		.input(z.object({ seasonSlug: z.string(), limit: z.number().min(1).max(50).optional() }))
+		.input(
+			z.object({
+				seasonSlug: z.string(),
+				limit: z.number().min(1).max(50).optional(),
+			})
+		)
 		.query(async ({ ctx, input }) => {
 			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
 			return sessionRepository.listEndedSessions({
@@ -714,16 +428,13 @@ export const sessionRouter = {
 		.input(z.object({ sessionId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
 			const summary = await sessionRepository.getSessionSummary({
 				db: ctx.db,
 				sessionId: input.sessionId,
 			});
-
 			if (!summary) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 			}
-
 			return summary;
 		}),
 
@@ -732,10 +443,7 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const result = await sessionRepository.cancelCurrentMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
+			const result = await sessionService.cancelMatch(ctx.db, input.sessionId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -753,10 +461,7 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const result = await sessionRepository.deleteLastMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
+			const result = await sessionService.deleteLastMatch(ctx.db, input.sessionId);
 
 			if (result.deletedMatch.matchId) {
 				await matchRepository.remove({
@@ -796,16 +501,12 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateMatchScore({
-				db: ctx.db,
+			return sessionService.updateMatchScore(ctx.db, {
 				sessionId: input.sessionId,
 				sessionMatchId: input.sessionMatchId,
 				homeScore: input.homeScore,
 				awayScore: input.awayScore,
 			});
-
-			return updated;
 		}),
 
 	updateTeamSelection: leagueMemberProcedure
@@ -819,16 +520,12 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateTeamSelection({
-				db: ctx.db,
+			return sessionService.updateTeamSelection(ctx.db, {
 				sessionId: input.sessionId,
 				sessionMatchId: input.sessionMatchId,
 				selectedHomePlayerIds: input.selectedHomePlayerIds,
 				selectedAwayPlayerIds: input.selectedAwayPlayerIds,
 			});
-
-			return updated;
 		}),
 
 	updateProposedLineup: leagueMemberProcedure
@@ -852,13 +549,9 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateProposedLineup({
-				db: ctx.db,
+			return sessionService.updateProposedLineup(ctx.db, {
 				sessionId: input.sessionId,
 				proposedLineup: input.proposedLineup,
 			});
-
-			return updated;
 		}),
 } satisfies TRPCRouterRecord;
