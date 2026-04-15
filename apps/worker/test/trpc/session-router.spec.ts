@@ -54,7 +54,7 @@ describe("session router", () => {
 			await expect(
 				client.session.create.mutate({
 					seasonSlug: season.slug,
-					rotationMode: "sequential",
+					rotationMode: "winner-stays",
 					teamSize: 1,
 					maxConsecutiveGames: null,
 					seasonPlayerIds: seasonPlayers.map((p) => p.id),
@@ -175,7 +175,7 @@ describe("session router", () => {
 
 			const session = await client.session.create.mutate({
 				seasonSlug: season.slug,
-				rotationMode: "sequential",
+				rotationMode: "winner-stays",
 				teamSize: 2,
 				maxConsecutiveGames: null,
 				seasonPlayerIds: seasonPlayers.map((p) => p.id),
