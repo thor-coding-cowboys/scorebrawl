@@ -4,6 +4,7 @@ import * as sessionRepository from "../../repositories/session-repository";
 import { computeWinnerStaysLineup } from "./strategies/winner-stays";
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings } from "./strategies/types";
+import type { ModeSettings } from "./strategies/types";
 import type { WinnerStaysLineup } from "./strategies/winner-stays";
 
 export interface CreateSessionInput {
@@ -11,16 +12,7 @@ export interface CreateSessionInput {
 	createdBy: string;
 	teamSize: number;
 	rotationMode: "winner-stays" | "manual";
-	modeSettings:
-		| {
-				maxConsecutiveGames: number | null;
-				winnersTakePriority: boolean;
-				autoRandomize: boolean;
-				randomizerType?: "fisher-yates" | "diversity";
-				autoCoinToss: boolean;
-				alwaysSplitConstraints: [string, string][];
-		  }
-		| undefined;
+	modeSettings: ModeSettings | undefined;
 	playerSeasonIds: string[];
 }
 
@@ -104,6 +96,8 @@ export async function recordResult(
 		},
 	});
 
+	const modeSettings = parseModeSettings(fullSession.modeSettings);
+
 	const { match: updatedMatch, players: updatedPlayers } =
 		await sessionRepository.recordMatchResult({
 			db,
@@ -111,9 +105,18 @@ export async function recordResult(
 			sessionMatchId: input.sessionMatchId,
 			result: input.result,
 			matchId: createdMatch.id,
-			winnersTakePriority: fullSession.winnersTakePriority,
-			maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
-			maxConsecutiveGames: fullSession.maxConsecutiveGames,
+			winnersTakePriority:
+				modeSettings?.mode === "winner-stays"
+					? modeSettings.winnersTakePriority
+					: (fullSession.winnersTakePriority ?? false),
+			maxConsecutiveEnabled:
+				modeSettings?.mode === "winner-stays"
+					? modeSettings.maxConsecutiveGames !== null
+					: (fullSession.maxConsecutiveEnabled ?? false),
+			maxConsecutiveGames:
+				modeSettings?.mode === "winner-stays"
+					? modeSettings.maxConsecutiveGames
+					: (fullSession.maxConsecutiveGames ?? null),
 		});
 
 	const homeSessionPlayerIds = updatedPlayers
@@ -122,8 +125,6 @@ export async function recordResult(
 	const awaySessionPlayerIds = updatedPlayers
 		.filter((p) => awaySeasonPlayerIds.includes(p.seasonPlayerId))
 		.map((p) => p.id);
-
-	const modeSettings = parseModeSettings(fullSession.modeSettings);
 
 	let proposedLineup: WinnerStaysLineup | null = null;
 	let coinTossId: string | null = null;
@@ -157,8 +158,7 @@ export async function recordResult(
 			if (modeSettings.autoCoinToss) {
 				let resolvedWinnerIds: string[];
 				if (conflictType === "draw-tiebreak") {
-					resolvedWinnerIds =
-						Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
+					resolvedWinnerIds = Math.random() < 0.5 ? homeSessionPlayerIds : awaySessionPlayerIds;
 				} else {
 					const shuffled = [...candidates];
 					for (let i = shuffled.length - 1; i > 0; i--) {
@@ -310,11 +310,7 @@ export async function resolveCoinToss(
 	return { resolved, proposedLineup };
 }
 
-export async function addPlayer(
-	db: DrizzleDB,
-	sessionId: string,
-	seasonPlayerId: string
-) {
+export async function addPlayer(db: DrizzleDB, sessionId: string, seasonPlayerId: string) {
 	return sessionRepository.addPlayerToSession({
 		db,
 		sessionId,
@@ -322,11 +318,7 @@ export async function addPlayer(
 	});
 }
 
-export async function removePlayer(
-	db: DrizzleDB,
-	sessionId: string,
-	seasonPlayerId: string
-) {
+export async function removePlayer(db: DrizzleDB, sessionId: string, seasonPlayerId: string) {
 	return sessionRepository.removePlayerFromSession({
 		db,
 		sessionId,

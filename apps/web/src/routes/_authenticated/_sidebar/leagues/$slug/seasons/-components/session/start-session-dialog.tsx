@@ -104,7 +104,9 @@ function reducer(state: DialogState, action: Action): DialogState {
 					...state,
 					winnerStays: {
 						...state.winnerStays,
-						alwaysSplitPairs: state.winnerStays.alwaysSplitPairs.filter((p) => !p.includes(action.id)),
+						alwaysSplitPairs: state.winnerStays.alwaysSplitPairs.filter(
+							(p) => !p.includes(action.id)
+						),
 					},
 					selectedPlayerIds: state.selectedPlayerIds.filter((id) => id !== action.id),
 				};
@@ -205,9 +207,10 @@ export function StartSessionDialog({
 							: null,
 						winnersTakePriority: state.winnerStays.winnersTakePriority,
 						autoRandomize: state.winnerStays.randomizerType !== "off",
-						randomizerType: state.winnerStays.randomizerType === "off"
-							? "fisher-yates"
-							: state.winnerStays.randomizerType,
+						randomizerType:
+							state.winnerStays.randomizerType === "off"
+								? "fisher-yates"
+								: state.winnerStays.randomizerType,
 						autoCoinToss: state.winnerStays.autoCoinToss,
 						alwaysSplitConstraints: state.winnerStays.alwaysSplitPairs,
 					};
@@ -269,17 +272,18 @@ export function StartSessionDialog({
 					>
 						<Switch
 							checked={state.winnerStays.winnersTakePriority}
-							onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { winnersTakePriority: v } })}
+							onCheckedChange={(v) =>
+								dispatch({ type: "SET_WINNER_STAYS", update: { winnersTakePriority: v } })
+							}
 						/>
 					</SettingsRow>
 
-					<SettingsRow
-						label="Max Consecutive Games"
-						description="Limit how many games in a row"
-					>
+					<SettingsRow label="Max Consecutive Games" description="Limit how many games in a row">
 						<Switch
 							checked={state.winnerStays.maxConsecutiveEnabled}
-							onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { maxConsecutiveEnabled: v } })}
+							onCheckedChange={(v) =>
+								dispatch({ type: "SET_WINNER_STAYS", update: { maxConsecutiveEnabled: v } })
+							}
 						/>
 					</SettingsRow>
 					{state.winnerStays.maxConsecutiveEnabled && (
@@ -291,7 +295,9 @@ export function StartSessionDialog({
 							onChange={(e) =>
 								dispatch({
 									type: "SET_WINNER_STAYS",
-									update: { maxConsecutiveGames: Math.min(20, Math.max(1, Number(e.target.value))) },
+									update: {
+										maxConsecutiveGames: Math.min(20, Math.max(1, Number(e.target.value))),
+									},
 								})
 							}
 							className="w-24"
@@ -342,7 +348,9 @@ export function StartSessionDialog({
 				<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
 					<Switch
 						checked={state.winnerStays.autoCoinToss}
-						onCheckedChange={(v) => dispatch({ type: "SET_WINNER_STAYS", update: { autoCoinToss: v } })}
+						onCheckedChange={(v) =>
+							dispatch({ type: "SET_WINNER_STAYS", update: { autoCoinToss: v } })
+						}
 					/>
 				</SettingsRow>
 			)}

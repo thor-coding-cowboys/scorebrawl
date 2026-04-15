@@ -1,6 +1,7 @@
 import { eq, and, asc, desc, sql, inArray, not, gt, isNull, isNotNull } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import { TRPCError } from "@trpc/server";
+import type { ModeSettings } from "../services/session/strategies/types";
 import type { DrizzleDB, TransactionClient } from "../db";
 import { withTransaction } from "../db";
 import { user } from "../db/schema/auth-schema";
@@ -114,15 +115,16 @@ export const createSession = async ({
 	createdBy: string;
 	rotationMode: "winner-stays" | "manual";
 	teamSize: number;
-	modeSettings: { maxConsecutiveGames: number | null; winnersTakePriority: boolean; autoRandomize: boolean; randomizerType?: "fisher-yates" | "diversity"; autoCoinToss: boolean; alwaysSplitConstraints: [string, string][] } | undefined;
+	modeSettings: ModeSettings | undefined;
 	seasonPlayerIds: string[];
 }) => {
-	const maxConsecutiveGames = modeSettings?.maxConsecutiveGames ?? null;
-	const winnersTakePriority = modeSettings?.winnersTakePriority ?? false;
-	const autoRandomize = modeSettings?.autoRandomize ?? false;
-	const autoCoinToss = modeSettings?.autoCoinToss ?? false;
-	const alwaysSplitConstraints = modeSettings?.alwaysSplitConstraints ?? [];
-	const randomizerType = modeSettings?.randomizerType ?? "fisher-yates";
+	const isWinnerStays = modeSettings?.mode === "winner-stays";
+	const maxConsecutiveGames = isWinnerStays ? modeSettings.maxConsecutiveGames : null;
+	const winnersTakePriority = isWinnerStays ? modeSettings.winnersTakePriority : false;
+	const autoRandomize = isWinnerStays ? modeSettings.autoRandomize : false;
+	const autoCoinToss = isWinnerStays ? modeSettings.autoCoinToss : false;
+	const alwaysSplitConstraints = isWinnerStays ? modeSettings.alwaysSplitConstraints : [];
+	const randomizerType = isWinnerStays ? modeSettings.randomizerType : "fisher-yates";
 	const maxConsecutiveEnabled = maxConsecutiveGames !== null;
 
 	return withTransaction(db, async (tx) => {

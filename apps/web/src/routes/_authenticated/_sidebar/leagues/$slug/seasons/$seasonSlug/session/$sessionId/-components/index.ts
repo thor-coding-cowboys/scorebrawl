@@ -8,3 +8,5 @@ export * from "./shared/score-stepper";
 export * from "./shared/team-roster-card";
 export * from "./shared/match-actions";
 export * from "./shared/session-standings";
+export * from "./shared/session-dashboard";
+export * from "./shared/add-player-dialog";

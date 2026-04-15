@@ -11,12 +11,7 @@ export type TeamPickerProps = {
 	teamSize: number;
 };
 
-export function TeamPicker({
-	players,
-	teamAssignment,
-	onAssignPlayer,
-	teamSize,
-}: TeamPickerProps) {
+export function TeamPicker({ players, teamAssignment, onAssignPlayer, teamSize }: TeamPickerProps) {
 	const homePlayers = players.filter((p) => teamAssignment.get(p.id) === "home");
 	const awayPlayers = players.filter((p) => teamAssignment.get(p.id) === "away");
 	const unassignedPlayers = players.filter((p) => !teamAssignment.get(p.id));
@@ -47,15 +42,8 @@ export function TeamPicker({
 					) : (
 						<div className="flex flex-col gap-1">
 							{homePlayers.map((p) => (
-								<div
-									key={p.id}
-									className="flex items-center gap-2 px-1 py-0.5 bg-blue-500/5"
-								>
-									<AvatarWithFallback
-										src={p.playerImage}
-										name={p.displayName}
-										size="sm"
-									/>
+								<div key={p.id} className="flex items-center gap-2 px-1 py-0.5 bg-blue-500/5">
+									<AvatarWithFallback src={p.playerImage} name={p.displayName} size="sm" />
 									<div className="min-w-0 flex-1">
 										<p className="text-xs font-medium truncate">{p.displayName}</p>
 									</div>
@@ -89,20 +77,11 @@ export function TeamPicker({
 					) : (
 						<div className="flex flex-col gap-1">
 							{unassignedPlayers.map((p) => (
-								<div
-									key={p.id}
-									className="flex items-center gap-2 px-1 py-0.5"
-								>
-									<AvatarWithFallback
-										src={p.playerImage}
-										name={p.displayName}
-										size="sm"
-									/>
+								<div key={p.id} className="flex items-center gap-2 px-1 py-0.5">
+									<AvatarWithFallback src={p.playerImage} name={p.displayName} size="sm" />
 									<div className="min-w-0 flex-1">
 										<p className="text-xs font-medium truncate">{p.displayName}</p>
-										<p className="text-[0.65rem] text-muted-foreground font-mono">
-											{p.score} pts
-										</p>
+										<p className="text-[0.65rem] text-muted-foreground font-mono">{p.score} pts</p>
 									</div>
 									<div className="flex gap-1">
 										<Button
@@ -152,15 +131,8 @@ export function TeamPicker({
 					) : (
 						<div className="flex flex-col gap-1">
 							{awayPlayers.map((p) => (
-								<div
-									key={p.id}
-									className="flex items-center gap-2 px-1 py-0.5 bg-red-500/5"
-								>
-									<AvatarWithFallback
-										src={p.playerImage}
-										name={p.displayName}
-										size="sm"
-									/>
+								<div key={p.id} className="flex items-center gap-2 px-1 py-0.5 bg-red-500/5">
+									<AvatarWithFallback src={p.playerImage} name={p.displayName} size="sm" />
 									<div className="min-w-0 flex-1">
 										<p className="text-xs font-medium truncate">{p.displayName}</p>
 									</div>

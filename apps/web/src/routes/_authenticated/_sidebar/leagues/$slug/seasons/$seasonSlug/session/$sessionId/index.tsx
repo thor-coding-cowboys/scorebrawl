@@ -1,15 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient, type AnyTRPC } from "@/lib/trpc";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, Add01Icon } from "@hugeicons/core-free-icons";
 import { truncateSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import type { SessionEventDetail } from "@/lib/event-types";
-import { type GameSession } from "./-components";
+import { type GameSession, AddPlayerDialog } from "./-components";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";
 import {
@@ -103,11 +103,36 @@ function LegacySessionFallback({ session: _session }: { session: GameSession }) 
 function SessionLivePage() {
 	const { slug, seasonSlug, sessionId } = Route.useParams();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const client = trpcClient as AnyTRPC;
+
+	const [showAddPlayer, setShowAddPlayer] = useState(false);
 
 	const { data: session, isLoading } = useQuery({
 		queryKey: ["session", sessionId],
 		queryFn: () => client.session.getById.query({ sessionId }) as Promise<GameSession>,
+	});
+
+	const addPlayer = useMutation({
+		mutationFn: (input: { sessionId: string; seasonPlayerId: string }) =>
+			client.session.addPlayer.mutate(input) as Promise<unknown>,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			setShowAddPlayer(false);
+		},
+		onError: () => toast.error("Failed to add player"),
+	});
+
+	const endSession = useMutation({
+		mutationFn: () => client.session.end.mutate({ sessionId }) as Promise<unknown>,
+		onSuccess: () => {
+			navigate({
+				to: "/leagues/$slug/seasons/$seasonSlug",
+				params: { slug, seasonSlug },
+				replace: true,
+			});
+		},
+		onError: () => toast.error("Failed to end session"),
 	});
 
 	useEffect(() => {
@@ -124,10 +149,13 @@ function SessionLivePage() {
 				});
 				return;
 			}
+			if (detail.type === "session:update" && detail.sessionId === sessionId) {
+				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			}
 		};
 		window.addEventListener("session-event", handler);
 		return () => window.removeEventListener("session-event", handler);
-	}, [sessionId, navigate, slug, seasonSlug]);
+	}, [sessionId, queryClient, navigate, slug, seasonSlug]);
 
 	if (isLoading) return <LoadingState />;
 
@@ -151,12 +179,78 @@ function SessionLivePage() {
 		return <LegacySessionFallback session={session} />;
 	}
 
+	let content: React.ReactNode;
 	switch (settings.mode) {
 		case "winner-stays":
-			return <WinnerStaysSession session={session} />;
+			content = <WinnerStaysSession session={session} seasonSlug={seasonSlug} leagueSlug={slug} />;
+			break;
 		case "manual":
-			return <ManualSession session={session} seasonSlug={seasonSlug} leagueSlug={slug} />;
+			content = <ManualSession session={session} seasonSlug={seasonSlug} leagueSlug={slug} />;
+			break;
 		default:
 			return exhaustiveCheck(settings);
 	}
+
+	return (
+		<>
+			<Header
+				breadcrumbs={[
+					{ name: "Leagues", href: "/leagues" },
+					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
+					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
+					{ name: truncateSlug(seasonSlug), href: `/leagues/${slug}/seasons/${seasonSlug}` },
+					{ name: "Session" },
+				]}
+				rightContent={
+					<div className="flex items-center gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setShowAddPlayer(true)}
+							className="gap-1.5"
+						>
+							<HugeiconsIcon icon={Add01Icon} className="size-4" />
+							<span className="hidden sm:inline">Player</span>
+						</Button>
+						<AlertDialog>
+							<AlertDialogTrigger
+								render={
+									<Button variant="destructive" size="sm" className="gap-1.5">
+										<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
+										<span className="hidden sm:inline">End Session</span>
+									</Button>
+								}
+							/>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>End this session?</AlertDialogTitle>
+									<AlertDialogDescription>
+										The session will be closed and a summary will be generated.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={() => endSession.mutate()}
+										className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+									>
+										End Session
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
+				}
+			/>
+			{content}
+			<AddPlayerDialog
+				open={showAddPlayer}
+				onOpenChange={setShowAddPlayer}
+				session={session}
+				seasonSlug={seasonSlug}
+				onAdd={(seasonPlayerId) => addPlayer.mutate({ sessionId, seasonPlayerId })}
+				isAdding={addPlayer.isPending}
+			/>
+		</>
+	);
 }

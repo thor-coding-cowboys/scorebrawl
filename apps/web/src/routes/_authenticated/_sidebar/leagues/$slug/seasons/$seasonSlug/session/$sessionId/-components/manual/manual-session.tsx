@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, type AnyTRPC } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/routes/-components/ui/glow-button";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +22,13 @@ import {
 } from "@hugeicons/core-free-icons";
 import { debounce } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSessionMutations } from "@/hooks/use-session-mutations";
 import { OverviewCard } from "../../../../../-components/season/overview-card";
 import {
 	ScoreStepper,
 	TeamRosterCard,
 	SessionStandings,
+	SessionDashboardCards,
 	type GameSession,
 	type SessionPlayer,
 	type SessionMatch,
@@ -45,8 +45,8 @@ export function ManualSession({
 	seasonSlug: string;
 	leagueSlug: string;
 }) {
-	const queryClient = useQueryClient();
-	const client = trpcClient as AnyTRPC;
+	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch, updateMatchScore } =
+		useSessionMutations(session.id);
 
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
@@ -97,14 +97,6 @@ export function ManualSession({
 		setAwayScore(updater);
 	};
 
-	const updateMatchScore = useMutation({
-		mutationFn: (input: {
-			sessionId: string;
-			sessionMatchId: string;
-			homeScore: number;
-			awayScore: number;
-		}) => client.session.updateMatchScore.mutate(input),
-	});
 	const updateMatchScoreRef = useRef(updateMatchScore);
 	updateMatchScoreRef.current = updateMatchScore;
 
@@ -114,13 +106,12 @@ export function ManualSession({
 				const match = currentMatchRef.current;
 				if (!match) return;
 				updateMatchScoreRef.current.mutate({
-					sessionId: session.id,
 					sessionMatchId: match.id,
 					homeScore: home,
 					awayScore: away,
 				});
 			}, 300),
-		[session.id]
+		[]
 	);
 
 	useEffect(() => {
@@ -128,55 +119,6 @@ export function ManualSession({
 		debouncedUpdateScore(homeScore, awayScore);
 		return () => debouncedUpdateScore.cancel();
 	}, [homeScore, awayScore, debouncedUpdateScore]);
-
-	const startNextMatch = useMutation({
-		mutationFn: (input: {
-			sessionId: string;
-			homeSeasonPlayerIds: string[];
-			awaySeasonPlayerIds: string[];
-		}) => client.session.startNextMatch.mutate(input) as Promise<unknown>,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-		},
-		onError: () => toast.error("Failed to start match"),
-	});
-
-	const recordResult = useMutation({
-		mutationFn: (input: {
-			sessionId: string;
-			sessionMatchId: string;
-			homeScore: number;
-			awayScore: number;
-		}) => client.session.recordResult.mutate(input) as Promise<unknown>,
-		onSuccess: () => {
-			setHomeScore(0);
-			setAwayScore(0);
-			setTeamAssignment(new Map());
-			queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-			toast.success("Match recorded");
-		},
-		onError: () => toast.error("Failed to record result"),
-	});
-
-	const cancelMatch = useMutation({
-		mutationFn: () => client.session.cancelMatch.mutate({ sessionId: session.id }) as Promise<unknown>,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-			setHomeScore(0);
-			setAwayScore(0);
-		},
-		onError: () => toast.error("Failed to cancel match"),
-	});
-
-	const deleteLastMatch = useMutation({
-		mutationFn: () => client.session.deleteLastMatch.mutate({ sessionId: session.id }) as Promise<unknown>,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-			setShowUndoDialog(false);
-			toast.success("Last match deleted");
-		},
-		onError: () => toast.error("Failed to delete last match"),
-	});
 
 	const handleAssignPlayer = (playerId: string, team: TeamAssignment) => {
 		lastLocalChangeRef.current = Date.now();
@@ -197,7 +139,6 @@ export function ManualSession({
 
 	const handleStartMatch = () => {
 		startNextMatch.mutate({
-			sessionId: session.id,
 			homeSeasonPlayerIds: homePlayers.map((p) => p.seasonPlayerId),
 			awaySeasonPlayerIds: awayPlayers.map((p) => p.seasonPlayerId),
 		});
@@ -205,12 +146,21 @@ export function ManualSession({
 
 	const handleRecordResult = () => {
 		if (!currentMatch) return;
-		recordResult.mutate({
-			sessionId: session.id,
-			sessionMatchId: currentMatch.id,
-			homeScore,
-			awayScore,
-		});
+		recordResult.mutate(
+			{
+				sessionMatchId: currentMatch.id,
+				homeScore,
+				awayScore,
+			},
+			{
+				onSuccess: () => {
+					setHomeScore(0);
+					setAwayScore(0);
+					setTeamAssignment(new Map());
+					toast.success("Match recorded");
+				},
+			}
+		);
 	};
 
 	const allMatches = session?.matches ?? [];
@@ -287,7 +237,14 @@ export function ManualSession({
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() => cancelMatch.mutate()}
+											onClick={() =>
+												cancelMatch.mutate(undefined, {
+													onSuccess: () => {
+														setHomeScore(0);
+														setAwayScore(0);
+													},
+												})
+											}
 											disabled={cancelMatch.isPending}
 											className="w-full gap-1.5 text-muted-foreground"
 										>
@@ -346,7 +303,11 @@ export function ManualSession({
 													<AlertDialogFooter>
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
-															onClick={() => deleteLastMatch.mutate()}
+															onClick={() =>
+																deleteLastMatch.mutate(undefined, {
+																	onSuccess: () => setShowUndoDialog(false),
+																})
+															}
 															disabled={deleteLastMatch.isPending}
 															className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 														>
@@ -364,6 +325,7 @@ export function ManualSession({
 				</div>
 
 				<div className="flex flex-col gap-4">
+					<SessionDashboardCards session={session} />
 					<SessionStandings
 						seasonSlug={seasonSlug}
 						leagueSlug={leagueSlug}

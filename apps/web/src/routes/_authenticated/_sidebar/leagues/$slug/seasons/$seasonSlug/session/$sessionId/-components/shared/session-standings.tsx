@@ -25,10 +25,7 @@ export function SessionStandings({
 							.slice()
 							.sort((a, b) => b.score - a.score)
 							.map((player, index) => (
-								<div
-									key={player.id}
-									className="flex items-center gap-2 px-1 py-0.5"
-								>
+								<div key={player.id} className="flex items-center gap-2 px-1 py-0.5">
 									<span className="text-xs text-muted-foreground w-4 text-right font-mono">
 										{index + 1}
 									</span>

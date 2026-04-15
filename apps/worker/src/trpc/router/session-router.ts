@@ -2,7 +2,12 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { seasonPlayer, player, sessionPlayer, sessionCoinToss } from "../../db/schema/league-schema";
+import {
+	seasonPlayer,
+	player,
+	sessionPlayer,
+	sessionCoinToss,
+} from "../../db/schema/league-schema";
 import { leagueMemberProcedure } from "../trpc";
 import * as sessionRepository from "../../repositories/session-repository";
 import * as matchRepository from "../../repositories/match-repository";
@@ -11,7 +16,11 @@ import { broadcastSeasonEvent } from "../../routes/sse-router";
 import * as sessionService from "../../services/session";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 
-async function getSeasonBySlug(db: Parameters<typeof seasonRepository.getBySlug>[0]["db"], seasonSlug: string, organizationId: string) {
+async function getSeasonBySlug(
+	db: Parameters<typeof seasonRepository.getBySlug>[0]["db"],
+	seasonSlug: string,
+	organizationId: string
+) {
 	try {
 		return await seasonRepository.getBySlug({ db, seasonSlug, leagueId: organizationId });
 	} catch (error) {
@@ -22,7 +31,11 @@ async function getSeasonBySlug(db: Parameters<typeof seasonRepository.getBySlug>
 	}
 }
 
-async function getSessionForOrg(db: Parameters<typeof sessionRepository.getSessionWithSeason>[0]["db"], sessionId: string, organizationId: string) {
+async function getSessionForOrg(
+	db: Parameters<typeof sessionRepository.getSessionWithSeason>[0]["db"],
+	sessionId: string,
+	organizationId: string
+) {
 	const info = await sessionRepository.getSessionWithSeason({ db, sessionId });
 	if (!info) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
@@ -71,15 +84,9 @@ export const sessionRouter = {
 
 			const modeSettings =
 				input.modeSettings.mode === "manual"
-					? {
-							maxConsecutiveGames: null,
-							winnersTakePriority: false,
-							autoRandomize: false,
-							randomizerType: "fisher-yates" as const,
-							autoCoinToss: false,
-							alwaysSplitConstraints: [] as [string, string][],
-						}
+					? ({ mode: "manual" } as const)
 					: {
+							mode: "winner-stays" as const,
 							maxConsecutiveGames: input.modeSettings.maxConsecutiveGames,
 							winnersTakePriority: input.modeSettings.winnersTakePriority,
 							autoRandomize: input.modeSettings.autoRandomize,
@@ -172,7 +179,11 @@ export const sessionRouter = {
 				});
 			}
 
-			const newPlayer = await sessionService.addPlayer(ctx.db, input.sessionId, seasonPlayerRecord.id);
+			const newPlayer = await sessionService.addPlayer(
+				ctx.db,
+				input.sessionId,
+				seasonPlayerRecord.id
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -190,7 +201,11 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const newPlayer = await sessionService.addPlayer(ctx.db, input.sessionId, input.seasonPlayerId);
+			const newPlayer = await sessionService.addPlayer(
+				ctx.db,
+				input.sessionId,
+				input.seasonPlayerId
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -208,7 +223,11 @@ export const sessionRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const result = await sessionService.removePlayer(ctx.db, input.sessionId, input.sessionPlayerId);
+			const result = await sessionService.removePlayer(
+				ctx.db,
+				input.sessionId,
+				input.sessionPlayerId
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -263,7 +282,11 @@ export const sessionRouter = {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
 			const result: "home" | "away" | "draw" =
-				input.homeScore > input.awayScore ? "home" : input.awayScore > input.homeScore ? "away" : "draw";
+				input.homeScore > input.awayScore
+					? "home"
+					: input.awayScore > input.homeScore
+						? "away"
+						: "draw";
 
 			const serviceResult = await sessionService.recordResult(ctx.db, {
 				sessionId: input.sessionId,

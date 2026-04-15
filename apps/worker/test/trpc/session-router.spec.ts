@@ -999,8 +999,7 @@ describe("session router", () => {
 
 			const s = await client.session.getById.query({ sessionId: session.id });
 			const proposedBefore = s.proposedLineup;
-			const playerToRemove =
-				proposedBefore?.homePlayerIds[0] || proposedBefore?.awayPlayerIds[0];
+			const playerToRemove = proposedBefore?.homePlayerIds[0] || proposedBefore?.awayPlayerIds[0];
 			expect(playerToRemove).toBeDefined();
 
 			await client.session.removePlayer.mutate({

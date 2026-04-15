@@ -19,9 +19,14 @@ export function SettingsRow({ label, description, children, className }: Setting
 			</div>
 			{description && (
 				<span className="text-[0.65rem] leading-tight text-muted-foreground">
-					{Array.isArray(description) ? description.map((line, i) => (
-						<>{line}{i < description.length - 1 && <br/>}</>
-					)) : description}
+					{Array.isArray(description)
+						? description.map((line, i) => (
+								<>
+									{line}
+									{i < description.length - 1 && <br />}
+								</>
+							))
+						: description}
 				</span>
 			)}
 		</div>

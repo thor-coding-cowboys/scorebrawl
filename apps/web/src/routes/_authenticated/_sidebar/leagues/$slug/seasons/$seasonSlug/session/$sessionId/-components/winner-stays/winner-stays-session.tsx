@@ -29,6 +29,7 @@ import {
 	ScoreStepper,
 	TeamRosterCard,
 	SessionStandings,
+	SessionDashboardCards,
 	type GameSession,
 	type ProposedLineup,
 	type TeamAssignment,
@@ -43,9 +44,11 @@ import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-
 
 interface WinnerStaysSessionProps {
 	session: GameSession;
+	seasonSlug: string;
+	leagueSlug: string;
 }
 
-export function WinnerStaysSession({ session }: WinnerStaysSessionProps) {
+export function WinnerStaysSession({ session, seasonSlug, leagueSlug }: WinnerStaysSessionProps) {
 	const [proposedLineup] = useState<ProposedLineup>(null);
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
@@ -77,9 +80,8 @@ export function WinnerStaysSession({ session }: WinnerStaysSessionProps) {
 	const coinTossCandidates =
 		pendingCoinToss?.candidates ?? proposedLineup?.coinTossNeeded?.candidates ?? [];
 
-	const winnerSettings = session.modeSettings?.mode === "winner-stays"
-		? session.modeSettings
-		: null;
+	const winnerSettings =
+		session.modeSettings?.mode === "winner-stays" ? session.modeSettings : null;
 
 	const homePlayers = teamAssignment.filter((p) => p.team === "home");
 	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
@@ -463,13 +465,18 @@ export function WinnerStaysSession({ session }: WinnerStaysSessionProps) {
 						handleRotation={handleRotation}
 					/>
 
-					<QueueCard session={session} winnerSettings={winnerSettings} removePlayer={removePlayer} />
+					<QueueCard
+						session={session}
+						winnerSettings={winnerSettings}
+						removePlayer={removePlayer}
+					/>
 				</div>
 
 				<div className="flex flex-col gap-4">
+					<SessionDashboardCards session={session} />
 					<SessionStandings
-						seasonSlug=""
-						leagueSlug=""
+						seasonSlug={seasonSlug}
+						leagueSlug={leagueSlug}
 						sessionPlayers={session.players}
 					/>
 				</div>
@@ -688,9 +695,7 @@ function MatchCard({
 							<GlowButton
 								glowColor={glowColors.blue}
 								onClick={handleStartMatch}
-								disabled={
-									!teamsBalanced || homePlayers.length !== session.teamSize
-								}
+								disabled={!teamsBalanced || homePlayers.length !== session.teamSize}
 								className="w-full gap-2"
 							>
 								<HugeiconsIcon icon={PlayIcon} className="size-4" />
