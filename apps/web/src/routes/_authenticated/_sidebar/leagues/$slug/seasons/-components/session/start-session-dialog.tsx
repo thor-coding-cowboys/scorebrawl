@@ -19,7 +19,7 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { SettingsRow } from "@/routes/-components/ui/settings-row";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	Add01Icon,
+
 	ArrowLeft01Icon,
 	ArrowRight01Icon,
 	Cancel01Icon,
@@ -136,10 +136,36 @@ function reducer(state: DialogState, action: Action): DialogState {
 					([pa, pb]) => !(pa === action.a && pb === action.b)
 				),
 			};
-		case "SET_SPLIT_PICK_A":
-			return { ...state, splitPickA: action.value };
-		case "SET_SPLIT_PICK_B":
-			return { ...state, splitPickB: action.value };
+		case "SET_SPLIT_PICK_A": {
+			const a = action.value;
+			const b = state.splitPickB;
+			if (!a || !b || a === b) return { ...state, splitPickA: a };
+			const alreadyA = state.alwaysSplitPairs.some(
+				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
+			);
+			if (alreadyA) return { ...state, splitPickA: a };
+			return {
+				...state,
+				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
+				splitPickA: "",
+				splitPickB: "",
+			};
+		}
+		case "SET_SPLIT_PICK_B": {
+			const b = action.value;
+			const a = state.splitPickA;
+			if (!a || !b || a === b) return { ...state, splitPickB: b };
+			const alreadyB = state.alwaysSplitPairs.some(
+				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
+			);
+			if (alreadyB) return { ...state, splitPickB: b };
+			return {
+				...state,
+				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
+				splitPickA: "",
+				splitPickB: "",
+			};
+		}
 		case "SET_PLAYER_SEARCH":
 			return { ...state, playerSearch: action.value };
 		case "SET_MOBILE_STEP":
@@ -471,18 +497,6 @@ export function StartSessionDialog({
 										))}
 								</SelectContent>
 							</Select>
-							<Button
-								type="button"
-								size="sm"
-								variant="outline"
-								onClick={() => dispatch({ type: "ADD_SPLIT_PAIR" })}
-								disabled={
-									!state.splitPickA || !state.splitPickB || state.splitPickA === state.splitPickB
-								}
-								className="shrink-0"
-							>
-								<HugeiconsIcon icon={Add01Icon} className="size-4" />
-							</Button>
 						</div>
 						{state.alwaysSplitPairs.length > 0 && (
 							<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
