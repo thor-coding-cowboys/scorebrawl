@@ -275,7 +275,7 @@ export const gameSession = sqliteTable(
 			.notNull()
 			.default("active"),
 		rotationMode: text("rotation_mode", {
-			enum: ["winner-stays", "sequential", "manual"],
+			enum: ["winner-stays", "manual"],
 		}).notNull(),
 		teamSize: integer("team_size").notNull(),
 		maxConsecutiveGames: integer("max_consecutive_games"),
@@ -294,6 +294,7 @@ export const gameSession = sqliteTable(
 			.default(false)
 			.notNull(),
 		proposedLineup: text("proposed_lineup"),
+		modeSettings: text("mode_settings"),
 		endedAt: integer("ended_at", { mode: "timestamp" }),
 		...timestampAuditFields,
 	},
