@@ -506,18 +506,18 @@ export function StartSessionDialog({
 									return (
 										<div
 											key={`${a}-${b}`}
-											className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-1.5 px-3 py-2"
+											className="flex items-center gap-2 px-3 py-2"
 										>
-											<span className="text-sm truncate">{playerA?.name}</span>
-											<span className="text-xs text-muted-foreground">vs</span>
-											<span className="text-sm truncate">{playerB?.name}</span>
+											<span className="text-sm truncate flex-1 text-right">{playerA?.name}</span>
+											<span className="text-xs text-muted-foreground shrink-0">vs</span>
+											<span className="text-sm truncate flex-1">{playerB?.name}</span>
 											<Button
 												type="button"
-												size="sm"
+												size="icon-sm"
 												variant="ghost"
 												onClick={() => dispatch({ type: "REMOVE_SPLIT_PAIR", a, b })}
 											>
-												<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
+												<HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
 											</Button>
 										</div>
 									);
