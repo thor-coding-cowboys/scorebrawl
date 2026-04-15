@@ -60,6 +60,7 @@ export type GameSession = {
 	id: string;
 	seasonId: string;
 	status: "active" | "ended";
+	rotationMode: "winner-stays" | "manual";
 	modeSettings: ModeSettings | null;
 	teamSize: number;
 	proposedLineup: ProposedLineup;

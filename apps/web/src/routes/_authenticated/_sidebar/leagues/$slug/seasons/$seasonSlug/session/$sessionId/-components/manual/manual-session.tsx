@@ -46,7 +46,7 @@ export function ManualSession({
 	leagueSlug: string;
 }) {
 	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch, updateMatchScore } =
-		useSessionMutations(session.id);
+		useSessionMutations(session.id, seasonSlug, { slug: leagueSlug, seasonSlug });
 
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
@@ -106,12 +106,13 @@ export function ManualSession({
 				const match = currentMatchRef.current;
 				if (!match) return;
 				updateMatchScoreRef.current.mutate({
+					sessionId: session.id,
 					sessionMatchId: match.id,
 					homeScore: home,
 					awayScore: away,
 				});
 			}, 300),
-		[]
+		[session.id]
 	);
 
 	useEffect(() => {
@@ -139,6 +140,7 @@ export function ManualSession({
 
 	const handleStartMatch = () => {
 		startNextMatch.mutate({
+			sessionId: session.id,
 			homeSeasonPlayerIds: homePlayers.map((p) => p.seasonPlayerId),
 			awaySeasonPlayerIds: awayPlayers.map((p) => p.seasonPlayerId),
 		});
@@ -148,6 +150,7 @@ export function ManualSession({
 		if (!currentMatch) return;
 		recordResult.mutate(
 			{
+				sessionId: session.id,
 				sessionMatchId: currentMatch.id,
 				homeScore,
 				awayScore,

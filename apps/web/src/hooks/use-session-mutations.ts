@@ -1,52 +1,150 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, type AnyTRPC } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
+import { trpcClient, useTRPC } from "@/lib/trpc";
+import type { ProposedLineup } from "@/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/-components/session-types";
 
-export function useSessionMutations(sessionId: string) {
+export function useSessionMutations(
+	sessionId: string,
+	seasonSlug: string,
+	params: { slug: string; seasonSlug: string }
+) {
 	const queryClient = useQueryClient();
-	const client = trpcClient as AnyTRPC;
-
-	const invalidateSession = () => {
-		queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
-	};
+	const trpc = useTRPC();
+	const navigate = useNavigate();
 
 	const startNextMatch = useMutation({
-		mutationFn: (input: { homeSeasonPlayerIds: string[]; awaySeasonPlayerIds: string[] }) =>
-			client.session.startNextMatch.mutate({ sessionId, ...input }) as Promise<unknown>,
-		onSuccess: invalidateSession,
+		mutationFn: (input: {
+			sessionId: string;
+			homeSeasonPlayerIds: string[];
+			awaySeasonPlayerIds: string[];
+		}) => trpcClient.session.startNextMatch.mutate(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+		},
 		onError: () => toast.error("Failed to start match"),
 	});
 
 	const recordResult = useMutation({
-		mutationFn: (input: { sessionMatchId: string; homeScore: number; awayScore: number }) =>
-			client.session.recordResult.mutate({ sessionId, ...input }) as Promise<unknown>,
-		onSuccess: invalidateSession,
+		mutationFn: (input: {
+			sessionId: string;
+			sessionMatchId: string;
+			homeScore: number;
+			awayScore: number;
+		}) => trpcClient.session.recordResult.mutate(input) as Promise<unknown>,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
+			});
+		},
 		onError: () => toast.error("Failed to record result"),
 	});
 
 	const cancelMatch = useMutation({
-		mutationFn: () => client.session.cancelMatch.mutate({ sessionId }) as Promise<unknown>,
-		onSuccess: invalidateSession,
+		mutationFn: () => trpcClient.session.cancelMatch.mutate({ sessionId }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+		},
 		onError: () => toast.error("Failed to cancel match"),
 	});
 
 	const deleteLastMatch = useMutation({
-		mutationFn: () => client.session.deleteLastMatch.mutate({ sessionId }) as Promise<unknown>,
+		mutationFn: () => trpcClient.session.deleteLastMatch.mutate({ sessionId }),
 		onSuccess: () => {
-			invalidateSession();
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.match.getLatest.queryKey({ seasonSlug }),
+			});
 			toast.success("Last match deleted");
 		},
 		onError: () => toast.error("Failed to delete last match"),
 	});
 
+	const addPlayer = useMutation({
+		mutationFn: (input: { sessionId: string; seasonPlayerId: string }) =>
+			trpcClient.session.addPlayer.mutate(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+		},
+		onError: () => toast.error("Failed to add player"),
+	});
+
+	const removePlayer = useMutation({
+		mutationFn: (input: { sessionId: string; sessionPlayerId: string }) =>
+			trpcClient.session.removePlayer.mutate(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			toast.success("Player removed from session");
+		},
+		onError: () => toast.error("Failed to remove player"),
+	});
+
+	const updateTeamSelection = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			sessionMatchId: string;
+			selectedHomePlayerIds: string[];
+			selectedAwayPlayerIds: string[];
+		}) => trpcClient.session.updateTeamSelection.mutate(input),
+	});
+
+	const updateProposedLineup = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			proposedLineup: {
+				homePlayerIds: string[];
+				awayPlayerIds: string[];
+				rotatedOut: string[];
+				coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+				selectedHomePlayerIds: string[];
+				selectedAwayPlayerIds: string[];
+			};
+		}) => trpcClient.session.updateProposedLineup.mutate(input),
+	});
+
+	const resolveCoinToss = useMutation({
+		mutationFn: (input: { coinTossId: string; resolvedWinnerIds: string[] }) =>
+			trpcClient.session.resolveCoinToss.mutate(input) as Promise<{
+				resolved: unknown;
+				proposedLineup: ProposedLineup;
+			}>,
+		onSuccess: (res) => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			void res;
+		},
+		onError: () => toast.error("Failed to resolve coin toss"),
+	});
+
 	const updateMatchScore = useMutation({
-		mutationFn: (input: { sessionMatchId: string; homeScore: number; awayScore: number }) =>
-			client.session.updateMatchScore.mutate({ sessionId, ...input }) as Promise<unknown>,
+		mutationFn: (input: {
+			sessionId: string;
+			sessionMatchId: string;
+			homeScore: number;
+			awayScore: number;
+		}) => trpcClient.session.updateMatchScore.mutate(input),
 	});
 
 	const endSession = useMutation({
-		mutationFn: () => client.session.end.mutate({ sessionId }) as Promise<unknown>,
-		onSuccess: invalidateSession,
+		mutationFn: () => trpcClient.session.end.mutate({ sessionId }),
+		onSuccess: () => {
+			navigate({
+				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary",
+				params: { slug: params.slug, seasonSlug: params.seasonSlug, sessionId },
+			});
+		},
 		onError: () => toast.error("Failed to end session"),
 	});
 
@@ -55,6 +153,11 @@ export function useSessionMutations(sessionId: string) {
 		recordResult,
 		cancelMatch,
 		deleteLastMatch,
+		addPlayer,
+		removePlayer,
+		updateTeamSelection,
+		updateProposedLineup,
+		resolveCoinToss,
 		updateMatchScore,
 		endSession,
 	};
