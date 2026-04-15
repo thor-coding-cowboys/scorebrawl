@@ -489,7 +489,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 					onShuffle={handleShuffle}
 					onShuffleSelected={handleShuffleSelected}
 					onEven={handleEven}
-					onRotation={allMatches.length === 0 ? handleRotation : undefined}
+					onRotation={handleRotation}
 					canReorder={canReorder}
 				/>
 			)}
@@ -682,7 +682,7 @@ function MatchCard({
 								onShuffle={handleShuffle}
 								onShuffleSelected={handleShuffleSelected}
 								onEven={handleEven}
-								onRotation={allMatches.length === 0 ? handleRotation : undefined}
+								onRotation={handleRotation}
 								isShuffling={isShuffling}
 							/>
 							<GlowButton
