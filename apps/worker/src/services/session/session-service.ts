@@ -272,3 +272,73 @@ export async function resolveCoinToss(
 
 	return { resolved, proposedLineup };
 }
+
+export async function recomputeLineupAfterPlayerRemoval(
+	db: DrizzleDB,
+	{ sessionId, removedSessionPlayerId }: { sessionId: string; removedSessionPlayerId: string }
+) {
+	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
+	if (!fullSession || fullSession.status !== "active") return;
+
+	const currentLineup = fullSession.proposedLineup;
+	if (!currentLineup) return;
+
+	const inHome = currentLineup.homePlayerIds.includes(removedSessionPlayerId);
+	const inAway = currentLineup.awayPlayerIds.includes(removedSessionPlayerId);
+	if (!inHome && !inAway) return;
+
+	const waitingPlayers = fullSession.players
+		.filter((p) => p.status === "waiting")
+		.sort((a, b) => a.queuePosition - b.queuePosition);
+
+	const substitute = waitingPlayers[0];
+	if (!substitute) return;
+
+	const newHomeIds = inHome
+		? currentLineup.homePlayerIds.map((id) => (id === removedSessionPlayerId ? substitute.id : id))
+		: currentLineup.homePlayerIds;
+	const newAwayIds = inAway
+		? currentLineup.awayPlayerIds.map((id) => (id === removedSessionPlayerId ? substitute.id : id))
+		: currentLineup.awayPlayerIds;
+
+	const settings = buildWinnerStaysSettings(fullSession);
+	let finalHomeIds = newHomeIds;
+	let finalAwayIds = newAwayIds;
+
+	if (settings.autoRandomize) {
+		const lineup = computeWinnerStaysLineup({
+			settings,
+			players: fullSession.players.map((p) => ({
+				id: p.id,
+				seasonPlayerId: p.seasonPlayerId,
+				status: p.status,
+				queuePosition: p.queuePosition,
+				consecutiveGames: p.consecutiveGames,
+			})),
+			teamSize: fullSession.teamSize,
+			lastMatchResult: null,
+			lastMatchHome: newHomeIds,
+			lastMatchAway: newAwayIds,
+			matchHistory: fullSession.matches.map((m) => ({
+				homePlayerIds: m.homePlayerIds,
+				awayPlayerIds: m.awayPlayerIds,
+			})),
+			resolvedCoinTossWinnerIds: null,
+		});
+		finalHomeIds = lineup.homePlayerIds;
+		finalAwayIds = lineup.awayPlayerIds;
+	}
+
+	await sessionRepository.updateProposedLineup({
+		db,
+		sessionId,
+		proposedLineup: {
+			homePlayerIds: finalHomeIds,
+			awayPlayerIds: finalAwayIds,
+			rotatedOut: currentLineup.rotatedOut,
+			coinTossNeeded: null,
+			selectedHomePlayerIds: finalHomeIds,
+			selectedAwayPlayerIds: finalAwayIds,
+		},
+	});
+}

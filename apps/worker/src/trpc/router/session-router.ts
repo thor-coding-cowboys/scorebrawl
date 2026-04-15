@@ -9,7 +9,6 @@ import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import * as sessionService from "../../services/session";
-import { computeWinnerStaysLineup } from "../../services/session/strategies/winner-stays";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
@@ -220,102 +219,13 @@ export const sessionRouter = {
 				sessionId: input.sessionId,
 			});
 
-			if (fullSession && fullSession.status === "active" && fullSession.matches.length > 0) {
-				const lastMatch = fullSession.matches[fullSession.matches.length - 1];
-				if (lastMatch?.result) {
-					const modeSettings = sessionService.parseModeSettings(fullSession.modeSettings);
-					const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
+			const hasActiveMatch = fullSession?.matches.some((m) => m.result === null) ?? false;
 
-					let proposedLineup: {
-						homePlayerIds: string[];
-						awayPlayerIds: string[];
-						rotatedOut: string[];
-						coinTossNeeded: { conflictType: string; candidates: string[] } | null;
-					} | null = null;
-
-					if (effectiveMode === "winner-stays") {
-						const settings: sessionService.WinnerStaysSettings =
-							modeSettings?.mode === "winner-stays"
-								? modeSettings
-								: {
-										mode: "winner-stays",
-										maxConsecutiveGames: fullSession.maxConsecutiveEnabled
-											? fullSession.maxConsecutiveGames
-											: null,
-										winnersTakePriority: fullSession.winnersTakePriority,
-										autoRandomize: fullSession.autoRandomize,
-										randomizerType: fullSession.randomizerType as "fisher-yates" | "diversity",
-										autoCoinToss: fullSession.autoCoinToss,
-										alwaysSplitConstraints: fullSession.alwaysSplitConstraints,
-									};
-
-						proposedLineup = computeWinnerStaysLineup({
-							settings,
-							players: fullSession.players.map((p) => ({
-								id: p.id,
-								seasonPlayerId: p.seasonPlayerId,
-								status: p.status,
-								queuePosition: p.queuePosition,
-								consecutiveGames: p.consecutiveGames,
-							})),
-							teamSize: fullSession.teamSize,
-							lastMatchResult: lastMatch.result,
-							lastMatchHome: lastMatch.homePlayerIds,
-							lastMatchAway: lastMatch.awayPlayerIds,
-							matchHistory: fullSession.matches.map((m) => ({
-								homePlayerIds: m.homePlayerIds,
-								awayPlayerIds: m.awayPlayerIds,
-							})),
-							resolvedCoinTossWinnerIds: null,
-						});
-					}
-
-					if (proposedLineup && fullSession.proposedLineup) {
-						const removedSessionPlayerId = removedPlayer.id;
-						const homeInProposed =
-							fullSession.proposedLineup.homePlayerIds.includes(removedSessionPlayerId);
-						const awayInProposed =
-							fullSession.proposedLineup.awayPlayerIds.includes(removedSessionPlayerId);
-
-						if (homeInProposed || awayInProposed) {
-							const waitingPlayers = fullSession.players
-								.filter((p) => p.status === "waiting")
-								.sort((a, b) => a.queuePosition - b.queuePosition);
-
-							if (waitingPlayers.length > 0) {
-								const replacement = waitingPlayers[0]!;
-								const newHomeIds = homeInProposed
-									? fullSession.proposedLineup.homePlayerIds.map((id) =>
-											id === removedSessionPlayerId ? replacement.id : id
-										)
-									: fullSession.proposedLineup.homePlayerIds;
-								const newAwayIds = awayInProposed
-									? fullSession.proposedLineup.awayPlayerIds.map((id) =>
-											id === removedSessionPlayerId ? replacement.id : id
-										)
-									: fullSession.proposedLineup.awayPlayerIds;
-
-								proposedLineup = {
-									...proposedLineup,
-									homePlayerIds: newHomeIds,
-									awayPlayerIds: newAwayIds,
-								};
-							}
-						}
-					}
-
-					if (proposedLineup) {
-						await sessionRepository.updateProposedLineup({
-							db: ctx.db,
-							sessionId: input.sessionId,
-							proposedLineup: {
-								...proposedLineup,
-								selectedHomePlayerIds: proposedLineup.homePlayerIds,
-								selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
-							},
-						});
-					}
-				}
+			if (!hasActiveMatch) {
+				await sessionService.recomputeLineupAfterPlayerRemoval(ctx.db, {
+					sessionId: input.sessionId,
+					removedSessionPlayerId: removedPlayer.id,
+				});
 			}
 
 			ctx.waitUntil(
@@ -548,6 +458,20 @@ export const sessionRouter = {
 				db: ctx.db,
 				sessionId: input.sessionId,
 			});
+
+			const outPlayerIds = result.restoredProposedLineup
+				? [
+						...result.restoredProposedLineup.homePlayerIds,
+						...result.restoredProposedLineup.awayPlayerIds,
+					].filter((id) => result.players.find((p) => p.id === id)?.status === "out")
+				: [];
+
+			for (const removedSessionPlayerId of outPlayerIds) {
+				await sessionService.recomputeLineupAfterPlayerRemoval(ctx.db, {
+					sessionId: input.sessionId,
+					removedSessionPlayerId,
+				});
+			}
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
