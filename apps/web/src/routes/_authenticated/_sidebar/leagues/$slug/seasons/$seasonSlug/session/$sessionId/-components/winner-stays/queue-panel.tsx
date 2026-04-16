@@ -25,8 +25,6 @@ export function QueuePanel({
 	const out = session.players.filter((p) => p.status === "out");
 
 	const hasActiveMatch = session.matches.some((m) => m.result === null);
-	const canRemovePlaying = !hasActiveMatch ? onRemovePlayer : undefined;
-	const canRemoveWaiting = onRemovePlayer;
 
 	if (session.players.length === 0) {
 		return (
@@ -50,13 +48,14 @@ export function QueuePanel({
 							key={p.id}
 							player={p}
 							matches={session.matches}
-						onRemove={canRemovePlaying ? () => canRemovePlaying(p.id) : undefined}
-						isRemoving={isRemoving}
-					/>
-				))}
-			</>
-		)}
-		{waiting.length > 0 && (
+							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							removeVisible={!hasActiveMatch}
+							isRemoving={isRemoving}
+						/>
+					))}
+				</>
+			)}
+			{waiting.length > 0 && (
 				<>
 					<div className="px-4 py-1.5 bg-muted/20">
 						<span className="text-[0.65rem] font-mono font-medium uppercase tracking-wider text-muted-foreground">
@@ -69,7 +68,8 @@ export function QueuePanel({
 							player={p}
 							matches={session.matches}
 							rank={i + 1}
-							onRemove={canRemoveWaiting ? () => canRemoveWaiting(p.id) : undefined}
+							onRemove={onRemovePlayer ? () => onRemovePlayer(p.id) : undefined}
+							removeVisible={true}
 							isRemoving={isRemoving}
 						/>
 					))}
@@ -119,6 +119,7 @@ export function PlayerQueueRow({
 	matches,
 	rank,
 	onRemove,
+	removeVisible = true,
 	isRemoving,
 	onRejoin,
 	isRejoining,
@@ -127,6 +128,7 @@ export function PlayerQueueRow({
 	matches: SessionMatch[];
 	rank?: number;
 	onRemove?: () => void;
+	removeVisible?: boolean;
 	isRemoving?: boolean;
 	onRejoin?: () => void;
 	isRejoining?: boolean;
@@ -197,18 +199,23 @@ export function PlayerQueueRow({
 						<HugeiconsIcon icon={ReloadIcon} className="size-3.5" />
 					</Button>
 				)}
-				{onRemove && (
+				{onRemove !== undefined || isRemoving !== undefined ? (
 					<Button
 						variant="ghost"
 						size="icon-sm"
 						onClick={onRemove}
-						disabled={isRemoving}
-						className="h-6 w-6 text-muted-foreground hover:text-destructive"
+						disabled={!onRemove || isRemoving}
+						className={cn(
+							"h-6 w-6",
+							onRemove && removeVisible
+								? "text-muted-foreground hover:text-destructive"
+								: "invisible"
+						)}
 						title="Remove player from session"
 					>
 						<HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
 					</Button>
-				)}
+				) : null}
 			</div>
 		</div>
 	);
