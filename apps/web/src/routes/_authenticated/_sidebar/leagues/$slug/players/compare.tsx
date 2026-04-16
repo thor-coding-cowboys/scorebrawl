@@ -1,6 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { z } from "zod";
+
+const compareSearchSchema = z.object({
+	p1: z.string().optional(),
+	p2: z.string().optional(),
+	season: z.string().optional(),
+});
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,28 +15,30 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Drawer,
 	DrawerContent,
 	DrawerHeader,
 	DrawerFooter,
 	DrawerTitle,
 } from "@/components/ui/drawer";
-import { useTRPC, trpcClient } from "@/lib/trpc";
+import { useTRPC } from "@/lib/trpc";
 import { truncateSlug, cn } from "@/lib/utils";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	Target01Icon,
-	ZapIcon,
 	ActivityIcon,
 	CrownIcon,
-	FireIcon,
-	Rocket01Icon,
 	ChartBarLineIcon,
 	GitCompareIcon,
 	Medal01Icon,
 	Clock01Icon,
 	ChartLineData01Icon,
-	FlashIcon,
 	UserAdd01Icon,
 	Tick01Icon,
 } from "@hugeicons/core-free-icons";
@@ -50,8 +59,53 @@ import {
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
+function StatComparison({
+	label,
+	p1Value,
+	p2Value,
+	p1Display,
+	p2Display,
+	higherIsBetter = true,
+	suffix = "",
+}: {
+	label: string;
+	p1Value: number;
+	p2Value: number;
+	p1Display?: string;
+	p2Display?: string;
+	higherIsBetter?: boolean;
+	suffix?: string;
+}) {
+	const diff = p1Value - p2Value;
+	const p1Better = higherIsBetter ? diff > 0 : diff < 0;
+	const p2Better = higherIsBetter ? diff < 0 : diff > 0;
+
+	return (
+		<div className="grid grid-cols-3 items-center gap-4 py-3 border-b last:border-0">
+			<div className="text-right">
+				<div
+					className={`text-lg font-bold ${p1Better ? "text-green-500" : "text-muted-foreground"}`}
+				>
+					{p1Display || `${p1Value}${suffix}`}
+					{p1Better && <HugeiconsIcon icon={CrownIcon} className="inline size-4 ml-1" />}
+				</div>
+			</div>
+			<div className="text-center text-sm text-muted-foreground font-medium">{label}</div>
+			<div className="text-left">
+				<div
+					className={`text-lg font-bold ${p2Better ? "text-green-500" : "text-muted-foreground"}`}
+				>
+					{p2Display || `${p2Value}${suffix}`}
+					{p2Better && <HugeiconsIcon icon={CrownIcon} className="inline size-4 ml-1" />}
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/players/compare")({
 	component: PlayerComparisonPage,
+	validateSearch: compareSearchSchema,
 	loader: async ({ params }) => {
 		return { slug: params.slug };
 	},
@@ -59,32 +113,35 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/pla
 
 function PlayerComparisonPage() {
 	const { slug } = Route.useLoaderData();
+	const navigate = useNavigate({ from: Route.fullPath });
 	const trpc = useTRPC();
-	const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [drawerFocus, setDrawerFocus] = useState<"p1" | "p2">("p1");
 
-	// Get active season for context
-	useQuery({
-		queryKey: ["activeSeason", slug],
-		queryFn: async () => {
-			return await trpcClient.season.findActive.query();
-		},
-	});
+	const { p1: player1Id, p2: player2Id, season: selectedSeasonId } = Route.useSearch();
+
+	const setSelectedSeasonId = (id: string | undefined) => {
+		navigate({ to: ".", search: (prev) => ({ ...prev, season: id }) });
+	};
+
+	const setPlayer2Id = (id: string | undefined) => {
+		navigate({ to: ".", search: (prev) => ({ ...prev, p2: id }) });
+	};
 
 	// Get all players for selection
 	const { data: allPlayers, isLoading: playersLoading } = useQuery(
 		trpc.player.getAll.queryOptions()
 	);
 
-	// Player 1 is the first player in the list (or could be passed via URL params later)
-	const player1Id = allPlayers?.[0]?.id;
-	const player2Id = selectedPlayerId;
+	// Get available seasons
+	const { data: seasons } = useQuery(trpc.season.getAll.queryOptions());
 
 	// Get comparison data only when both players are selected
 	const { data: comparisonData, isLoading: comparisonLoading } = useQuery({
 		...trpc.player.comparePlayers.queryOptions({
 			player1Id: player1Id ?? "",
 			player2Id: player2Id ?? "",
+			seasonId: selectedSeasonId,
 		}),
 		enabled: !!player1Id && !!player2Id && player1Id !== player2Id,
 	});
@@ -93,6 +150,7 @@ function PlayerComparisonPage() {
 	const { data: player1History } = useQuery({
 		...trpc.player.getSeasonHistory.queryOptions({
 			playerId: player1Id ?? "",
+			seasonId: selectedSeasonId,
 		}),
 		enabled: !!player1Id,
 	});
@@ -100,6 +158,7 @@ function PlayerComparisonPage() {
 	const { data: player2History } = useQuery({
 		...trpc.player.getSeasonHistory.queryOptions({
 			playerId: player2Id ?? "",
+			seasonId: selectedSeasonId,
 		}),
 		enabled: !!player2Id,
 	});
@@ -108,20 +167,16 @@ function PlayerComparisonPage() {
 	const p2 = comparisonData?.player2;
 	const h2h = comparisonData?.headToHead;
 
-	// Get player 2 basic info for the empty state card
-	const player2Basic = allPlayers?.find((p) => p.id === player2Id);
-
-	// Available players for selection (exclude player 1 and already selected player 2)
-	const availablePlayers = allPlayers?.filter((p) => p.id !== player1Id) || [];
-
-	// Handle player selection from drawer
-	const handlePlayerSelect = (playerId: string) => {
-		setSelectedPlayerId(playerId);
-		setIsDrawerOpen(false);
+	const setPlayer1Id = (id: string | undefined) => {
+		navigate({ to: ".", search: (prev) => ({ ...prev, p1: id }) });
 	};
 
+	// Get basic info for both players
+	const player1Basic = allPlayers?.find((p) => p.id === player1Id);
+	const player2Basic = allPlayers?.find((p) => p.id === player2Id);
+
 	// Prepare chart data
-	const combinedSeasonData = () => {
+	const combinedSeasonData = useMemo(() => {
 		if (!player1History || !player2History) return [];
 
 		const allSeasons = new Set([
@@ -141,80 +196,38 @@ function PlayerComparisonPage() {
 				[`${p2?.name || "P2"}_WinRate`]: p2Data?.winRate || 0,
 			};
 		});
-	};
+	}, [player1History, player2History, p1?.name, p2?.name]);
 
-	const radarData = [
-		{
-			stat: "Win Rate",
-			p1: p1?.winRate || 0,
-			p2: p2?.winRate || 0,
-		},
-		{
-			stat: "Matches",
-			p1: p1 ? (p1.totalMatches / Math.max(p1.totalMatches, p2?.totalMatches || 1)) * 100 : 0,
-			p2: p2 ? (p2.totalMatches / Math.max(p1?.totalMatches || 1, p2.totalMatches)) * 100 : 0,
-		},
-		{
-			stat: "Consistency",
-			p1: p1 ? Math.max(0, 100 - p1.consistencyScore) : 0,
-			p2: p2 ? Math.max(0, 100 - p2.consistencyScore) : 0,
-		},
-		{
-			stat: "Comebacks",
-			p1: p1 ? Math.min(100, p1.comebackWins * 10) : 0,
-			p2: p2 ? Math.min(100, p2.comebackWins * 10) : 0,
-		},
-		{
-			stat: "Peak ELO",
-			p1: p1 ? (p1.highestElo / Math.max(p1.highestElo, p2?.highestElo || 1)) * 100 : 0,
-			p2: p2 ? (p2.highestElo / Math.max(p1?.highestElo || 1, p2.highestElo)) * 100 : 0,
-		},
-	];
-
-	// Comparison card helper
-	const StatComparison = ({
-		label,
-		p1Value,
-		p2Value,
-		p1Display,
-		p2Display,
-		higherIsBetter = true,
-		suffix = "",
-	}: {
-		label: string;
-		p1Value: number;
-		p2Value: number;
-		p1Display?: string;
-		p2Display?: string;
-		higherIsBetter?: boolean;
-		suffix?: string;
-	}) => {
-		const diff = p1Value - p2Value;
-		const p1Better = higherIsBetter ? diff > 0 : diff < 0;
-		const p2Better = higherIsBetter ? diff < 0 : diff > 0;
-
-		return (
-			<div className="grid grid-cols-3 items-center gap-4 py-3 border-b last:border-0">
-				<div className="text-right">
-					<div
-						className={`text-lg font-bold ${p1Better ? "text-green-500" : "text-muted-foreground"}`}
-					>
-						{p1Display || `${p1Value}${suffix}`}
-						{p1Better && <HugeiconsIcon icon={CrownIcon} className="inline size-4 ml-1" />}
-					</div>
-				</div>
-				<div className="text-center text-sm text-muted-foreground font-medium">{label}</div>
-				<div className="text-left">
-					<div
-						className={`text-lg font-bold ${p2Better ? "text-green-500" : "text-muted-foreground"}`}
-					>
-						{p2Display || `${p2Value}${suffix}`}
-						{p2Better && <HugeiconsIcon icon={CrownIcon} className="inline size-4 ml-1" />}
-					</div>
-				</div>
-			</div>
-		);
-	};
+	const radarData = useMemo(
+		() => [
+			{
+				stat: "Win Rate",
+				p1: p1?.winRate || 0,
+				p2: p2?.winRate || 0,
+			},
+			{
+				stat: "Matches",
+				p1: p1 ? (p1.totalMatches / Math.max(p1.totalMatches, p2?.totalMatches || 1)) * 100 : 0,
+				p2: p2 ? (p2.totalMatches / Math.max(p1?.totalMatches || 1, p2.totalMatches)) * 100 : 0,
+			},
+			{
+				stat: "Consistency",
+				p1: p1 ? Math.max(0, 100 - p1.consistencyScore) : 0,
+				p2: p2 ? Math.max(0, 100 - p2.consistencyScore) : 0,
+			},
+			{
+				stat: "Comebacks",
+				p1: p1 ? Math.min(100, p1.comebackWins * 10) : 0,
+				p2: p2 ? Math.min(100, p2.comebackWins * 10) : 0,
+			},
+			{
+				stat: "Peak ELO",
+				p1: p1 ? (p1.highestElo / Math.max(p1.highestElo, p2?.highestElo || 1)) * 100 : 0,
+				p2: p2 ? (p2.highestElo / Math.max(p1?.highestElo || 1, p2.highestElo)) * 100 : 0,
+			},
+		],
+		[p1, p2]
+	);
 
 	return (
 		<>
@@ -237,27 +250,69 @@ function PlayerComparisonPage() {
 						<CardDescription>Select players to compare their statistics</CardDescription>
 					</CardHeader>
 					<CardContent>
+						{/* Season Filter */}
+						<div className="mb-4">
+							<Select
+								value={selectedSeasonId ?? "all"}
+								onValueChange={(val: string | null) =>
+									setSelectedSeasonId(val === "all" || !val ? undefined : val)
+								}
+							>
+								<SelectTrigger className="w-full sm:w-56">
+									<SelectValue>
+										{selectedSeasonId
+											? (seasons?.find((s) => s.id === selectedSeasonId)?.name ?? "All Seasons")
+											: "All Seasons"}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All Seasons</SelectItem>
+									{seasons?.map((s) => (
+										<SelectItem key={s.id} value={s.id}>
+											{s.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 						<div className="flex flex-col sm:flex-row items-center gap-4">
-							{/* Player 1 Display */}
+							{/* Player 1 Selector */}
 							<div className="flex-1 w-full">
 								{playersLoading ? (
 									<Skeleton className="h-14 w-full" />
-								) : (
-									<div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+								) : player1Basic ? (
+									<button
+										type="button"
+										onClick={() => {
+											setDrawerFocus("p1");
+											setIsDrawerOpen(true);
+										}}
+										className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+									>
 										<Avatar className="h-12 w-12 rounded-lg">
-											<AvatarImage
-												src={allPlayers?.[0]?.image ?? undefined}
-												className="rounded-lg"
-											/>
+											<AvatarImage src={player1Basic.image ?? undefined} className="rounded-lg" />
 											<AvatarFallback className="rounded-lg text-lg">
-												{allPlayers?.[0]?.name?.charAt(0) ?? "P"}
+												{player1Basic.name.charAt(0)}
 											</AvatarFallback>
 										</Avatar>
-										<div>
-											<p className="font-semibold">{allPlayers?.[0]?.name}</p>
-											<p className="text-sm text-muted-foreground">Player 1</p>
+										<div className="flex-1">
+											<p className="font-semibold">{player1Basic.name}</p>
+											<p className="text-sm text-muted-foreground">Player 1 (click to change)</p>
 										</div>
-									</div>
+										<HugeiconsIcon icon={GitCompareIcon} className="size-4 text-muted-foreground" />
+									</button>
+								) : (
+									<button
+										type="button"
+										onClick={() => {
+											setDrawerFocus("p1");
+											setIsDrawerOpen(true);
+										}}
+										className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-muted-foreground hover:text-primary"
+									>
+										<HugeiconsIcon icon={UserAdd01Icon} className="size-5" />
+										<span className="font-medium">Select Player 1</span>
+									</button>
 								)}
 							</div>
 
@@ -269,10 +324,13 @@ function PlayerComparisonPage() {
 							<div className="flex-1 w-full">
 								{playersLoading ? (
 									<Skeleton className="h-14 w-full" />
-								) : selectedPlayerId && player2Basic ? (
+								) : player2Id && player2Basic ? (
 									<button
 										type="button"
-										onClick={() => setIsDrawerOpen(true)}
+										onClick={() => {
+											setDrawerFocus("p2");
+											setIsDrawerOpen(true);
+										}}
 										className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
 									>
 										<Avatar className="h-12 w-12 rounded-lg">
@@ -290,7 +348,10 @@ function PlayerComparisonPage() {
 								) : (
 									<button
 										type="button"
-										onClick={() => setIsDrawerOpen(true)}
+										onClick={() => {
+											setDrawerFocus("p2");
+											setIsDrawerOpen(true);
+										}}
 										className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-muted-foreground hover:text-primary"
 									>
 										<HugeiconsIcon icon={UserAdd01Icon} className="size-5" />
@@ -301,6 +362,12 @@ function PlayerComparisonPage() {
 						</div>
 					</CardContent>
 				</Card>
+
+				{player1Id && player2Id && player1Id === player2Id && (
+					<div className="text-sm text-muted-foreground text-center p-2">
+						Please select two different players to compare.
+					</div>
+				)}
 
 				{/* Comparison Header with Both Players */}
 				{comparisonLoading ? (
@@ -354,11 +421,11 @@ function PlayerComparisonPage() {
 									<div className="flex items-center gap-4">
 										<Avatar className="h-20 w-20 rounded-xl">
 											<AvatarFallback className="text-2xl rounded-lg bg-blue-500/10 text-blue-500">
-												{allPlayers?.[0]?.name?.charAt(0) ?? "P"}
+												{player1Basic?.name?.charAt(0) ?? "P"}
 											</AvatarFallback>
 										</Avatar>
 										<div className="flex-1">
-											<h2 className="text-2xl font-bold">{allPlayers?.[0]?.name ?? "Player 1"}</h2>
+											<h2 className="text-2xl font-bold">{player1Basic?.name ?? "Player 1"}</h2>
 											<Badge variant="outline">Waiting for opponent...</Badge>
 										</div>
 									</div>
@@ -606,7 +673,7 @@ function PlayerComparisonPage() {
 									}}
 									className="h-[300px]"
 								>
-									<LineChart data={combinedSeasonData()}>
+									<LineChart data={combinedSeasonData}>
 										<CartesianGrid strokeDasharray="3 3" />
 										<XAxis dataKey="season" />
 										<YAxis />
@@ -668,151 +735,178 @@ function PlayerComparisonPage() {
 						</Card>
 					</div>
 				)}
-
-				{/* Fun Stats Cards */}
-				{p1 && p2 && (
-					<Card>
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<HugeiconsIcon icon={ZapIcon} className="size-5 text-yellow-500" />
-								Fun Statistics
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-								{/* Comeback King */}
-								<div className="p-4 rounded-lg bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-									<div className="flex items-center gap-2 mb-2">
-										<HugeiconsIcon icon={Rocket01Icon} className="size-5 text-amber-500" />
-										<h4 className="font-semibold">Comeback King</h4>
-									</div>
-									<p className="text-2xl font-bold">
-										{p1.comebackWins > p2.comebackWins ? p1.name : p2.name}
-									</p>
-									<p className="text-sm text-muted-foreground">Most wins after losing streak</p>
-								</div>
-
-								{/* Dominator */}
-								<div className="p-4 rounded-lg bg-gradient-to-br from-red-500/10 to-rose-500/10 border border-red-500/20">
-									<div className="flex items-center gap-2 mb-2">
-										<HugeiconsIcon icon={FlashIcon} className="size-5 text-red-500" />
-										<h4 className="font-semibold">The Dominator</h4>
-									</div>
-									<p className="text-2xl font-bold">
-										{p1.blowoutWins > p2.blowoutWins ? p1.name : p2.name}
-									</p>
-									<p className="text-sm text-muted-foreground">Most blowout wins (3+ goals)</p>
-								</div>
-
-								{/* Clutch Player */}
-								<div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
-									<div className="flex items-center gap-2 mb-2">
-										<HugeiconsIcon icon={Target01Icon} className="size-5 text-blue-500" />
-										<h4 className="font-semibold">Clutch Master</h4>
-									</div>
-									<p className="text-2xl font-bold">
-										{p1.closeWins > p2.closeWins ? p1.name : p2.name}
-									</p>
-									<p className="text-sm text-muted-foreground">Most 1-goal victories</p>
-								</div>
-
-								{/* Consistency Award */}
-								<div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
-									<div className="flex items-center gap-2 mb-2">
-										<HugeiconsIcon icon={ActivityIcon} className="size-5 text-green-500" />
-										<h4 className="font-semibold">Mr. Consistent</h4>
-									</div>
-									<p className="text-2xl font-bold">
-										{p1.consistencyScore < p2.consistencyScore ? p1.name : p2.name}
-									</p>
-									<p className="text-sm text-muted-foreground">Most stable performance</p>
-								</div>
-							</div>
-
-							{/* Peak Performance */}
-							<div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3">
-										<HugeiconsIcon icon={FireIcon} className="size-6 text-purple-500" />
-										<div>
-											<h4 className="font-semibold">Peak Performance Season</h4>
-											<p className="text-sm text-muted-foreground">
-												{p1.peakPerformanceSeason && p2.peakPerformanceSeason
-													? `${p1.peakPerformanceSeason === p2.peakPerformanceSeason ? "Tie! Both dominated" : p1.highestElo > p2.highestElo ? p1.name : p2.name} in ${p1.highestElo > p2.highestElo ? p1.peakPerformanceSeason : p2.peakPerformanceSeason}`
-													: "No peak season data yet"}
-											</p>
-										</div>
-									</div>
-									<div className="text-right">
-										<p className="text-3xl font-bold text-purple-500">
-											{Math.max(p1.highestElo, p2.highestElo)}
-										</p>
-										<p className="text-xs text-muted-foreground">Highest ELO achieved</p>
-									</div>
-								</div>
-							</div>
-						</CardContent>
-					</Card>
-				)}
 			</div>
 
-			{/* Player Selection Drawer */}
-			<Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-				<DrawerContent className="max-h-[85vh]">
-					<div className="mx-auto w-full max-w-xl">
-						<DrawerHeader className="border-b border-border pb-3">
-							<DrawerTitle className="text-sm font-bold font-mono text-center">
-								Select Player to Compare
-							</DrawerTitle>
-						</DrawerHeader>
+			<PlayerSelectionDrawer
+				isOpen={isDrawerOpen}
+				onClose={() => setIsDrawerOpen(false)}
+				players={allPlayers ?? []}
+				player1Id={player1Id}
+				player2Id={player2Id}
+				onSelectPlayer1={setPlayer1Id}
+				onSelectPlayer2={setPlayer2Id}
+				initialFocus={drawerFocus}
+			/>
+		</>
+	);
+}
 
-						<div className="max-h-[55vh] overflow-y-auto">
-							{availablePlayers.length === 0 ? (
-								<div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-									No other players available
-								</div>
-							) : (
-								<div className="flex flex-col">
-									{availablePlayers.map((player) => (
-										<button
-											key={player.id}
-											type="button"
-											onClick={() => handlePlayerSelect(player.id)}
-											className={cn(
-												"flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-border/50 last:border-b-0 hover:bg-muted/50",
-												selectedPlayerId === player.id &&
-													"bg-primary/10 border-l-2 border-l-primary"
-											)}
-										>
-											<Avatar className="h-10 w-10 rounded-lg">
-												<AvatarImage src={player.image ?? undefined} className="rounded-lg" />
-												<AvatarFallback className="rounded-lg text-sm">
-													{player.name.charAt(0)}
-												</AvatarFallback>
-											</Avatar>
-											<div className="flex-1 min-w-0">
-												<p className="text-sm font-medium truncate">{player.name}</p>
-												<p className="text-xs text-muted-foreground">
-													{player.isGuest ? "Guest" : "Member"}
-												</p>
-											</div>
-											{selectedPlayerId === player.id && (
-												<HugeiconsIcon icon={Tick01Icon} className="size-4 text-primary shrink-0" />
-											)}
-										</button>
-									))}
-								</div>
-							)}
+function PlayerSelectionDrawer({
+	isOpen,
+	onClose,
+	players,
+	player1Id,
+	player2Id,
+	onSelectPlayer1,
+	onSelectPlayer2,
+	initialFocus,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+	players: { id: string; name: string; image: string | null; isGuest: boolean }[];
+	player1Id: string | undefined;
+	player2Id: string | undefined;
+	onSelectPlayer1: (id: string | undefined) => void;
+	onSelectPlayer2: (id: string | undefined) => void;
+	initialFocus: "p1" | "p2";
+}) {
+	return (
+		<Drawer
+			open={isOpen}
+			onOpenChange={(open) => {
+				if (!open) onClose();
+			}}
+		>
+			<DrawerContent className="max-h-[85vh]">
+				<div className="mx-auto w-full max-w-xl">
+					<DrawerHeader className="border-b border-border pb-3">
+						<DrawerTitle className="text-sm font-bold font-mono text-center">
+							Select Players
+						</DrawerTitle>
+					</DrawerHeader>
+
+					<div className="grid grid-cols-2 gap-0 max-h-[55vh] overflow-y-auto">
+						{/* Player 1 Column */}
+						<div className="border-r border-border">
+							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
+								<span
+									className={cn(
+										"text-xs font-mono font-medium uppercase tracking-wider",
+										initialFocus === "p1" ? "text-blue-500" : "text-blue-500/50"
+									)}
+								>
+									Player 1
+								</span>
+							</div>
+							<ComparePlayerList
+								players={players}
+								side="p1"
+								player1Id={player1Id}
+								player2Id={player2Id}
+								onSelect={(id) => {
+									if (player2Id === id) onSelectPlayer2(undefined);
+									onSelectPlayer1(player1Id === id ? undefined : id);
+								}}
+							/>
 						</div>
 
-						<DrawerFooter className="border-t border-border">
-							<Button onClick={() => setIsDrawerOpen(false)} className="w-full">
-								Done
-							</Button>
-						</DrawerFooter>
+						{/* Player 2 Column */}
+						<div>
+							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
+								<span
+									className={cn(
+										"text-xs font-mono font-medium uppercase tracking-wider",
+										initialFocus === "p2" ? "text-rose-500" : "text-rose-500/50"
+									)}
+								>
+									Player 2
+								</span>
+							</div>
+							<ComparePlayerList
+								players={players}
+								side="p2"
+								player1Id={player1Id}
+								player2Id={player2Id}
+								onSelect={(id) => {
+									if (player1Id === id) onSelectPlayer1(undefined);
+									onSelectPlayer2(player2Id === id ? undefined : id);
+								}}
+							/>
+						</div>
 					</div>
-				</DrawerContent>
-			</Drawer>
-		</>
+
+					<DrawerFooter className="border-t border-border">
+						<Button onClick={onClose} className="w-full">
+							Done
+						</Button>
+					</DrawerFooter>
+				</div>
+			</DrawerContent>
+		</Drawer>
+	);
+}
+
+function ComparePlayerList({
+	players,
+	side,
+	player1Id,
+	player2Id,
+	onSelect,
+}: {
+	players: { id: string; name: string; image: string | null; isGuest: boolean }[];
+	side: "p1" | "p2";
+	player1Id: string | undefined;
+	player2Id: string | undefined;
+	onSelect: (id: string) => void;
+}) {
+	return (
+		<div className="flex flex-col">
+			{players.map((player) => {
+				const isThisSide = side === "p1" ? player.id === player1Id : player.id === player2Id;
+				const isOtherSide = side === "p1" ? player.id === player2Id : player.id === player1Id;
+
+				return (
+					<button
+						key={player.id}
+						type="button"
+						onClick={() => onSelect(player.id)}
+						className={cn(
+							"flex items-center gap-2 px-3 py-2 text-left transition-colors border-b border-border/50 last:border-b-0",
+							isThisSide && side === "p1" && "bg-blue-500/10 border-l-2 border-l-blue-500",
+							isThisSide && side === "p2" && "bg-rose-500/10 border-l-2 border-l-rose-500",
+							isOtherSide && "opacity-40 line-through",
+							!isThisSide && !isOtherSide && "hover:bg-muted/50"
+						)}
+					>
+						<Avatar className="h-9 w-9 rounded-lg shrink-0">
+							<AvatarImage src={player.image ?? undefined} className="rounded-lg" />
+							<AvatarFallback className="rounded-lg text-sm">
+								{player.name.charAt(0)}
+							</AvatarFallback>
+						</Avatar>
+						<div className="flex-1 min-w-0">
+							<p className="text-xs font-medium truncate">{player.name}</p>
+							<p className="text-[0.65rem] text-muted-foreground">
+								{player.isGuest ? "Guest" : "Member"}
+							</p>
+						</div>
+						{isThisSide && (
+							<HugeiconsIcon
+								icon={Tick01Icon}
+								className={cn(
+									"size-3.5 shrink-0",
+									side === "p1" ? "text-blue-500" : "text-rose-500"
+								)}
+							/>
+						)}
+					</button>
+				);
+			})}
+			{players.length === 0 && (
+				<div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
+					No players available
+				</div>
+			)}
+		</div>
 	);
 }

@@ -263,7 +263,7 @@ export const playerRouter = {
 		}),
 
 	getSeasonHistory: leagueProcedure
-		.input(z.object({ playerId: z.string() }))
+		.input(z.object({ playerId: z.string(), seasonId: z.string().optional() }))
 		.query(async ({ input, ctx }) => {
 			const player = await playerRepository.getById({
 				db: ctx.db,
@@ -281,6 +281,7 @@ export const playerRouter = {
 			return playerRepository.getSeasonHistory({
 				db: ctx.db,
 				playerId: input.playerId,
+				seasonId: input.seasonId,
 			});
 		}),
 
@@ -443,7 +444,9 @@ export const playerRouter = {
 		}),
 
 	comparePlayers: leagueProcedure
-		.input(z.object({ player1Id: z.string(), player2Id: z.string() }))
+		.input(
+			z.object({ player1Id: z.string(), player2Id: z.string(), seasonId: z.string().optional() })
+		)
 		.query(async ({ input, ctx }) => {
 			// Verify both players exist in this league
 			const [player1, player2] = await Promise.all([
@@ -471,15 +474,18 @@ export const playerRouter = {
 				playerRepository.getPlayerComparisonStats({
 					db: ctx.db,
 					playerId: input.player1Id,
+					seasonId: input.seasonId,
 				}),
 				playerRepository.getPlayerComparisonStats({
 					db: ctx.db,
 					playerId: input.player2Id,
+					seasonId: input.seasonId,
 				}),
 				playerRepository.getHeadToHeadStats({
 					db: ctx.db,
 					player1Id: input.player1Id,
 					player2Id: input.player2Id,
+					seasonId: input.seasonId,
 				}),
 			]);
 

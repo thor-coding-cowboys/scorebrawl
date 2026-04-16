@@ -417,7 +417,15 @@ export const getRecentMatchesWithTeams = async ({
 	});
 };
 
-export const getSeasonHistory = async ({ db, playerId }: { db: DrizzleDB; playerId: string }) => {
+export const getSeasonHistory = async ({
+	db,
+	playerId,
+	seasonId,
+}: {
+	db: DrizzleDB;
+	playerId: string;
+	seasonId?: string;
+}) => {
 	const history = await db
 		.select({
 			seasonName: season.name,
@@ -433,7 +441,11 @@ export const getSeasonHistory = async ({ db, playerId }: { db: DrizzleDB; player
 		.from(seasonPlayer)
 		.innerJoin(season, eq(seasonPlayer.seasonId, season.id))
 		.leftJoin(matchPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.where(eq(seasonPlayer.playerId, playerId))
+		.where(
+			seasonId
+				? and(eq(seasonPlayer.playerId, playerId), eq(season.id, seasonId))
+				: eq(seasonPlayer.playerId, playerId)
+		)
 		.groupBy(seasonPlayer.id, season.id)
 		.orderBy(desc(season.startDate));
 
@@ -517,9 +529,11 @@ export interface HeadToHeadStats {
 export const getPlayerComparisonStats = async ({
 	db,
 	playerId,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	playerId: string;
+	seasonId?: string;
 }): Promise<PlayerComparisonStats | null> => {
 	// Get player basic info
 	const [playerInfo] = await db
@@ -553,7 +567,11 @@ export const getPlayerComparisonStats = async ({
 		})
 		.from(seasonPlayer)
 		.leftJoin(matchPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.where(eq(seasonPlayer.playerId, playerId))
+		.where(
+			seasonId
+				? and(eq(seasonPlayer.playerId, playerId), eq(seasonPlayer.seasonId, seasonId))
+				: eq(seasonPlayer.playerId, playerId)
+		)
 		.groupBy(seasonPlayer.id);
 
 	const s = stats[0];
@@ -572,7 +590,11 @@ export const getPlayerComparisonStats = async ({
 		.from(matchPlayer)
 		.innerJoin(seasonPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
 		.innerJoin(match, eq(matchPlayer.matchId, match.id))
-		.where(eq(seasonPlayer.playerId, playerId))
+		.where(
+			seasonId
+				? and(eq(seasonPlayer.playerId, playerId), eq(seasonPlayer.seasonId, seasonId))
+				: eq(seasonPlayer.playerId, playerId)
+		)
 		.orderBy(match.createdAt);
 
 	// Calculate streaks
@@ -632,7 +654,11 @@ export const getPlayerComparisonStats = async ({
 		.from(seasonPlayer)
 		.innerJoin(season, eq(seasonPlayer.seasonId, season.id))
 		.leftJoin(matchPlayer, eq(matchPlayer.seasonPlayerId, seasonPlayer.id))
-		.where(eq(seasonPlayer.playerId, playerId))
+		.where(
+			seasonId
+				? and(eq(seasonPlayer.playerId, playerId), eq(seasonPlayer.seasonId, seasonId))
+				: eq(seasonPlayer.playerId, playerId)
+		)
 		.groupBy(seasonPlayer.id, season.id)
 		.having(sql`count(${matchPlayer.id}) >= 5`)
 		.orderBy(
@@ -675,10 +701,12 @@ export const getHeadToHeadStats = async ({
 	db,
 	player1Id,
 	player2Id,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	player1Id: string;
 	player2Id: string;
+	seasonId?: string;
 }): Promise<HeadToHeadStats> => {
 	// Find all matches where both players played on opposite teams
 	const h2hMatches = await db
@@ -706,7 +734,11 @@ export const getHeadToHeadStats = async ({
 			sql`season_player p2_sp`,
 			sql`p2_sp.id = p2_mp.season_player_id AND p2_sp.player_id = ${player2Id}`
 		)
-		.where(eq(seasonPlayer.playerId, player1Id))
+		.where(
+			seasonId
+				? and(eq(seasonPlayer.playerId, player1Id), eq(seasonPlayer.seasonId, seasonId))
+				: eq(seasonPlayer.playerId, player1Id)
+		)
 		.orderBy(desc(match.createdAt));
 
 	if (h2hMatches.length === 0) {
