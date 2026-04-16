@@ -701,7 +701,10 @@ function MatchCard({
 										<AlertDialogFooter>
 											<AlertDialogCancel>Cancel</AlertDialogCancel>
 											<AlertDialogAction
-												onClick={() => deleteLastMatch.mutate()}
+												onClick={() => {
+												deleteLastMatch.mutate();
+												setShowUndoDialog(false);
+											}}
 												disabled={deleteLastMatch.isPending}
 												className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 											>
