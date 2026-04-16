@@ -623,13 +623,12 @@ function MatchCard({
 										? "Loading teams..."
 										: "Record Result"}
 							</GlowButton>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => cancelMatch.mutate()}
-								disabled={cancelMatch.isPending}
-								className="w-full gap-1.5 text-muted-foreground"
-							>
+						<Button
+							variant="ghost"
+							onClick={() => cancelMatch.mutate()}
+							disabled={cancelMatch.isPending}
+							className="w-full gap-1.5 text-muted-foreground"
+						>
 								<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
 								{cancelMatch.isPending ? "Cancelling..." : "Cancel Match"}
 							</Button>
