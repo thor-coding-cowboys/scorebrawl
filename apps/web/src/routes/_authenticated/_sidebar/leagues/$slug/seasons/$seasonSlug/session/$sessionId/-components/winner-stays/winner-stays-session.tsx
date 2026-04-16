@@ -623,12 +623,12 @@ function MatchCard({
 										? "Loading teams..."
 										: "Record Result"}
 							</GlowButton>
-						<Button
-							variant="ghost"
-							onClick={() => cancelMatch.mutate()}
-							disabled={cancelMatch.isPending}
-							className="w-full gap-1.5 text-muted-foreground"
-						>
+							<Button
+								variant="ghost"
+								onClick={() => cancelMatch.mutate()}
+								disabled={cancelMatch.isPending}
+								className="w-full gap-1.5 text-muted-foreground"
+							>
 								<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
 								{cancelMatch.isPending ? "Cancelling..." : "Cancel Match"}
 							</Button>
@@ -701,9 +701,9 @@ function MatchCard({
 											<AlertDialogCancel>Cancel</AlertDialogCancel>
 											<AlertDialogAction
 												onClick={() => {
-												deleteLastMatch.mutate();
-												setShowUndoDialog(false);
-											}}
+													deleteLastMatch.mutate();
+													setShowUndoDialog(false);
+												}}
 												disabled={deleteLastMatch.isPending}
 												className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 											>
@@ -739,8 +739,7 @@ function QueueCard({
 				session={session}
 				onRemovePlayer={
 					session.players.filter((p) => p.status !== "out").length > session.teamSize * 2
-						? (sessionPlayerId) =>
-								removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
+						? (sessionPlayerId) => removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
 						: undefined
 				}
 				isRemoving={removePlayer.isPending}

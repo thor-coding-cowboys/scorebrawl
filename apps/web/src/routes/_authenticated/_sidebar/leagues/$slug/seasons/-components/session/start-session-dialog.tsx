@@ -19,7 +19,6 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { SettingsRow } from "@/routes/-components/ui/settings-row";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-
 	ArrowLeft01Icon,
 	ArrowRight01Icon,
 	Cancel01Icon,
@@ -504,10 +503,7 @@ export function StartSessionDialog({
 									const playerA = seasonPlayers.find((p) => p.id === a);
 									const playerB = seasonPlayers.find((p) => p.id === b);
 									return (
-										<div
-											key={`${a}-${b}`}
-											className="flex items-center gap-2 px-3 py-2"
-										>
+										<div key={`${a}-${b}`} className="flex items-center gap-2 px-3 py-2">
 											<span className="text-sm truncate flex-1 text-right">{playerA?.name}</span>
 											<span className="text-xs text-muted-foreground shrink-0">vs</span>
 											<span className="text-sm truncate flex-1">{playerB?.name}</span>
