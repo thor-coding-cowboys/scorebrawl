@@ -732,8 +732,11 @@ function QueueCard({
 		<Card className="p-4">
 			<QueuePanel
 				session={session}
-				onRemovePlayer={(sessionPlayerId) =>
-					removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
+				onRemovePlayer={
+					session.players.filter((p) => p.status !== "out").length > session.teamSize * 2
+						? (sessionPlayerId) =>
+								removePlayer.mutate({ sessionId: session.id, sessionPlayerId })
+						: undefined
 				}
 				isRemoving={removePlayer.isPending}
 				onRejoinPlayer={(seasonPlayerId) =>
