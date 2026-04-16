@@ -733,6 +733,9 @@ function QueueCard({
 }) {
 	return (
 		<Card className="p-4">
+			<div className="px-4 pb-2 pt-1">
+				<span className="text-sm font-semibold">Players</span>
+			</div>
 			<QueuePanel
 				session={session}
 				onRemovePlayer={
