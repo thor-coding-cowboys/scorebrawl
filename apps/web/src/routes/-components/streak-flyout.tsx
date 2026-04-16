@@ -314,13 +314,14 @@ export function StreakFlyout() {
 
 		canDismiss.current = false;
 		clearTimers();
+		const skipDelay = eventQueue.current.length > 0 ? 0 : 1000;
 		timers.current.push(
 			setTimeout(() => {
 				setPhase("visible");
 				timers.current.push(
 					setTimeout(() => {
 						canDismiss.current = true;
-					}, 2000)
+					}, skipDelay)
 				);
 				timers.current.push(
 					setTimeout(() => {

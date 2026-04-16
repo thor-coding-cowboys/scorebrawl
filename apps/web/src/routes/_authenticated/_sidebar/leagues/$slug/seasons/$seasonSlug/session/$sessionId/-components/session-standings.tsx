@@ -64,7 +64,11 @@ export function SessionStandings({
 	return (
 		<OverviewCard title={tabToggle}>
 			{!hasTeams || activeTab === 0 ? (
-				<Standing seasonSlug={seasonSlug} highlightPlayerIds={highlightSeasonPlayerIds} />
+				<Standing
+					seasonSlug={seasonSlug}
+					leagueSlug={leagueSlug}
+					highlightPlayerIds={highlightSeasonPlayerIds}
+				/>
 			) : (
 				<TeamStanding
 					seasonSlug={seasonSlug}

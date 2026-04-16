@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { SettingsRow } from "@/routes/-components/ui/settings-row";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	Add01Icon,
 	ArrowLeft01Icon,
 	ArrowRight01Icon,
 	Cancel01Icon,
@@ -36,14 +36,15 @@ interface StartSessionDialogProps {
 	leagueSlug: string;
 }
 
-type RotationMode = "winner-stays" | "winner-stays-hard" | "round-robin" | "manual";
+type RotationMode = "winner-stays" | "manual";
 
 interface DialogState {
 	rotationMode: RotationMode;
 	teamSize: number;
 	maxConsecutiveEnabled: boolean;
 	maxConsecutiveGames: number;
-	autoRandomize: boolean;
+	winnersTakePriority: boolean;
+	randomizerType: "off" | "fisher-yates" | "diversity";
 	autoCoinToss: boolean;
 	selectedPlayerIds: string[];
 	alwaysSplitPairs: [string, string][];
@@ -58,7 +59,8 @@ const initialState: DialogState = {
 	teamSize: 2,
 	maxConsecutiveEnabled: true,
 	maxConsecutiveGames: 3,
-	autoRandomize: true,
+	winnersTakePriority: false,
+	randomizerType: "fisher-yates",
 	autoCoinToss: true,
 	selectedPlayerIds: [],
 	alwaysSplitPairs: [],
@@ -73,7 +75,8 @@ type Action =
 	| { type: "SET_TEAM_SIZE"; value: number }
 	| { type: "SET_MAX_CONSECUTIVE_ENABLED"; value: boolean }
 	| { type: "SET_MAX_CONSECUTIVE_GAMES"; value: number }
-	| { type: "SET_AUTO_RANDOMIZE"; value: boolean }
+	| { type: "SET_WINNERS_TAKE_PRIORITY"; value: boolean }
+	| { type: "SET_RANDOMIZER_TYPE"; value: "off" | "fisher-yates" | "diversity" }
 	| { type: "SET_AUTO_COIN_TOSS"; value: boolean }
 	| { type: "TOGGLE_PLAYER"; id: string }
 	| { type: "ADD_SPLIT_PAIR" }
@@ -94,8 +97,10 @@ function reducer(state: DialogState, action: Action): DialogState {
 			return { ...state, maxConsecutiveEnabled: action.value };
 		case "SET_MAX_CONSECUTIVE_GAMES":
 			return { ...state, maxConsecutiveGames: action.value };
-		case "SET_AUTO_RANDOMIZE":
-			return { ...state, autoRandomize: action.value };
+		case "SET_WINNERS_TAKE_PRIORITY":
+			return { ...state, winnersTakePriority: action.value };
+		case "SET_RANDOMIZER_TYPE":
+			return { ...state, randomizerType: action.value };
 		case "SET_AUTO_COIN_TOSS":
 			return { ...state, autoCoinToss: action.value };
 		case "TOGGLE_PLAYER": {
@@ -130,10 +135,36 @@ function reducer(state: DialogState, action: Action): DialogState {
 					([pa, pb]) => !(pa === action.a && pb === action.b)
 				),
 			};
-		case "SET_SPLIT_PICK_A":
-			return { ...state, splitPickA: action.value };
-		case "SET_SPLIT_PICK_B":
-			return { ...state, splitPickB: action.value };
+		case "SET_SPLIT_PICK_A": {
+			const a = action.value;
+			const b = state.splitPickB;
+			if (!a || !b || a === b) return { ...state, splitPickA: a };
+			const alreadyA = state.alwaysSplitPairs.some(
+				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
+			);
+			if (alreadyA) return { ...state, splitPickA: a };
+			return {
+				...state,
+				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
+				splitPickA: "",
+				splitPickB: "",
+			};
+		}
+		case "SET_SPLIT_PICK_B": {
+			const b = action.value;
+			const a = state.splitPickA;
+			if (!a || !b || a === b) return { ...state, splitPickB: b };
+			const alreadyB = state.alwaysSplitPairs.some(
+				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
+			);
+			if (alreadyB) return { ...state, splitPickB: b };
+			return {
+				...state,
+				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
+				splitPickA: "",
+				splitPickB: "",
+			};
+		}
 		case "SET_PLAYER_SEARCH":
 			return { ...state, playerSearch: action.value };
 		case "SET_MOBILE_STEP":
@@ -166,9 +197,12 @@ export function StartSessionDialog({
 			rotationMode: RotationMode;
 			teamSize: number;
 			maxConsecutiveGames: number | null;
+			maxConsecutiveEnabled: boolean;
+			winnersTakePriority: boolean;
 			seasonPlayerIds: string[];
 			alwaysSplitConstraints: [string, string][];
 			autoRandomize: boolean;
+			randomizerType?: "fisher-yates" | "diversity";
 			autoCoinToss: boolean;
 		}) => client.session.create.mutate(input) as Promise<{ id: string }>,
 		onSuccess: (session) => {
@@ -190,16 +224,23 @@ export function StartSessionDialog({
 			toast.error(`Select at least ${state.teamSize * 2} players`);
 			return;
 		}
-		createSession.mutate({
+		const mutationInput = {
 			seasonSlug,
 			rotationMode: state.rotationMode,
 			teamSize: state.teamSize,
+			maxConsecutiveEnabled: state.maxConsecutiveEnabled,
 			maxConsecutiveGames: state.maxConsecutiveEnabled ? state.maxConsecutiveGames : null,
+			winnersTakePriority: state.winnersTakePriority,
 			seasonPlayerIds: state.selectedPlayerIds,
 			alwaysSplitConstraints: state.alwaysSplitPairs,
-			autoRandomize: state.autoRandomize,
+			autoRandomize: state.randomizerType !== "off",
 			autoCoinToss: state.autoCoinToss,
-		});
+		};
+		if (state.randomizerType !== "off") {
+			createSession.mutate({ ...mutationInput, randomizerType: state.randomizerType });
+		} else {
+			createSession.mutate(mutationInput);
+		}
 	};
 
 	const handleClose = () => {
@@ -217,19 +258,11 @@ export function StartSessionDialog({
 				>
 					<SelectTrigger>
 						<SelectValue>
-							{state.rotationMode === "winner-stays"
-								? "Winner Stays"
-								: state.rotationMode === "winner-stays-hard"
-									? "Winner Stays (Hard)"
-									: state.rotationMode === "round-robin"
-										? "Round Robin"
-										: "Manual"}
+							{state.rotationMode === "winner-stays" ? "Winner Stays" : "Manual"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="winner-stays">Winner Stays</SelectItem>
-						<SelectItem value="winner-stays-hard">Winner Stays (Hard)</SelectItem>
-						<SelectItem value="round-robin">Round Robin</SelectItem>
 						<SelectItem value="manual">Manual</SelectItem>
 					</SelectContent>
 				</Select>
@@ -251,55 +284,88 @@ export function StartSessionDialog({
 				/>
 			</div>
 
-			<div className="flex flex-col gap-3">
-				<div className="flex items-center justify-between">
-					<div className="flex flex-col gap-0.5">
-						<Label>Max Consecutive Games</Label>
-						<span className="text-xs text-muted-foreground">Limit how many games in a row</span>
-					</div>
-					<Switch
-						checked={state.maxConsecutiveEnabled}
-						onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
-					/>
-				</div>
-				{state.maxConsecutiveEnabled && (
-					<Input
-						type="number"
-						min={1}
-						max={20}
-						value={state.maxConsecutiveGames}
-						onChange={(e) =>
+			{state.rotationMode === "winner-stays" && (
+				<>
+					<SettingsRow
+						label="Winners Take Priority"
+						description={["ON: winners go to top of queue", "OFF: winners placed above losers"]}
+					>
+						<Switch
+							checked={state.winnersTakePriority}
+							onCheckedChange={(v) => dispatch({ type: "SET_WINNERS_TAKE_PRIORITY", value: v })}
+						/>
+					</SettingsRow>
+
+					<SettingsRow label="Max Consecutive Games" description="Limit how many games in a row">
+						<Switch
+							checked={state.maxConsecutiveEnabled}
+							onCheckedChange={(v) => dispatch({ type: "SET_MAX_CONSECUTIVE_ENABLED", value: v })}
+						/>
+					</SettingsRow>
+					{state.maxConsecutiveEnabled && (
+						<Input
+							type="number"
+							min={1}
+							max={20}
+							value={state.maxConsecutiveGames}
+							onChange={(e) =>
+								dispatch({
+									type: "SET_MAX_CONSECUTIVE_GAMES",
+									value: Math.min(20, Math.max(1, Number(e.target.value))),
+								})
+							}
+							className="w-24"
+						/>
+					)}
+				</>
+			)}
+
+			{state.rotationMode !== "manual" && (
+				<SettingsRow
+					label="Auto Randomize"
+					description={
+						state.randomizerType === "off"
+							? "No auto-shuffle - teams stay as manually arranged"
+							: state.randomizerType === "fisher-yates"
+								? "Pure random shuffle - every pairing equally likely"
+								: "Prefer pairing players who haven't played together recently"
+					}
+				>
+					<Select
+						value={state.randomizerType}
+						onValueChange={(v) =>
 							dispatch({
-								type: "SET_MAX_CONSECUTIVE_GAMES",
-								value: Math.min(20, Math.max(1, Number(e.target.value))),
+								type: "SET_RANDOMIZER_TYPE",
+								value: v as "off" | "fisher-yates" | "diversity",
 							})
 						}
-						className="w-24"
+					>
+						<SelectTrigger className="w-32">
+							<SelectValue>
+								{state.randomizerType === "off"
+									? "Off"
+									: state.randomizerType === "fisher-yates"
+										? "Fisher-Yates"
+										: "Diversity"}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="off">Off</SelectItem>
+							<SelectItem value="fisher-yates">Fisher-Yates</SelectItem>
+							<SelectItem value="diversity">Diversity</SelectItem>
+						</SelectContent>
+					</Select>
+				</SettingsRow>
+			)}
+
+			{state.rotationMode !== "manual" && (
+				<SettingsRow label="Auto Coin Toss" description="Auto-resolve coin tosses">
+					<Switch
+						checked={state.autoCoinToss}
+						onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
 					/>
-				)}
-			</div>
-
-			<div className="flex items-center justify-between">
-				<div className="flex flex-col gap-0.5">
-					<Label>Auto Randomize</Label>
-					<span className="text-xs text-muted-foreground">Shuffle teams on new lineup</span>
-				</div>
-				<Switch
-					checked={state.autoRandomize}
-					onCheckedChange={(v) => dispatch({ type: "SET_AUTO_RANDOMIZE", value: v })}
-				/>
-			</div>
-
-			<div className="flex items-center justify-between">
-				<div className="flex flex-col gap-0.5">
-					<Label>Auto Coin Toss</Label>
-					<span className="text-xs text-muted-foreground">Auto-resolve coin tosses</span>
-				</div>
-				<Switch
-					checked={state.autoCoinToss}
-					onCheckedChange={(v) => dispatch({ type: "SET_AUTO_COIN_TOSS", value: v })}
-				/>
-			</div>
+				</SettingsRow>
+			)}
 		</div>
 	);
 
@@ -365,110 +431,97 @@ export function StartSessionDialog({
 				</div>
 			)}
 
-			{state.selectedPlayerIds.length >= 2 && seasonPlayers && (
-				<div className="flex flex-col gap-3 shrink-0">
-					<div className="flex flex-col gap-0.5">
-						<Label>Always Split</Label>
-						<span className="text-xs text-muted-foreground">
-							Pairs that must always be on opposite teams
-						</span>
-					</div>
-					<div className="flex gap-2 items-center">
-						<Select
-							value={state.splitPickA}
-							onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_A", value: v ?? "" })}
-						>
-							<SelectTrigger className="flex-1 min-w-0">
-								<SelectValue>
-									{state.splitPickA ? (
-										<span className="truncate">
-											{seasonPlayers.find((p) => p.id === state.splitPickA)?.name}
-										</span>
-									) : (
-										<span className="text-muted-foreground">Player A</span>
-									)}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{seasonPlayers
-									.filter(
-										(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickB
-									)
-									.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-							</SelectContent>
-						</Select>
-						<Select
-							value={state.splitPickB}
-							onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_B", value: v ?? "" })}
-						>
-							<SelectTrigger className="flex-1 min-w-0">
-								<SelectValue>
-									{state.splitPickB ? (
-										<span className="truncate">
-											{seasonPlayers.find((p) => p.id === state.splitPickB)?.name}
-										</span>
-									) : (
-										<span className="text-muted-foreground">Player B</span>
-									)}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{seasonPlayers
-									.filter(
-										(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickA
-									)
-									.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-							</SelectContent>
-						</Select>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={() => dispatch({ type: "ADD_SPLIT_PAIR" })}
-							disabled={
-								!state.splitPickA || !state.splitPickB || state.splitPickA === state.splitPickB
-							}
-							className="shrink-0"
-						>
-							<HugeiconsIcon icon={Add01Icon} className="size-4" />
-						</Button>
-					</div>
-					{state.alwaysSplitPairs.length > 0 && (
-						<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
-							{state.alwaysSplitPairs.map(([a, b]) => {
-								const playerA = seasonPlayers.find((p) => p.id === a);
-								const playerB = seasonPlayers.find((p) => p.id === b);
-								return (
-									<div
-										key={`${a}-${b}`}
-										className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-1.5 px-3 py-2"
-									>
-										<span className="text-sm truncate">{playerA?.name}</span>
-										<span className="text-xs text-muted-foreground">vs</span>
-										<span className="text-sm truncate">{playerB?.name}</span>
-										<Button
-											type="button"
-											size="sm"
-											variant="ghost"
-											onClick={() => dispatch({ type: "REMOVE_SPLIT_PAIR", a, b })}
-										>
-											<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
-										</Button>
-									</div>
-								);
-							})}
+			{state.selectedPlayerIds.length >= 2 &&
+				seasonPlayers &&
+				state.rotationMode === "winner-stays" && (
+					<div className="flex flex-col gap-3 shrink-0">
+						<div className="flex flex-col gap-0.5">
+							<Label>Always Split</Label>
+							<span className="text-xs text-muted-foreground">
+								Pairs that must always be on opposite teams
+							</span>
 						</div>
-					)}
-				</div>
-			)}
+						<div className="flex gap-2 items-center">
+							<Select
+								value={state.splitPickA}
+								onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_A", value: v ?? "" })}
+							>
+								<SelectTrigger className="flex-1 min-w-0">
+									<SelectValue>
+										{state.splitPickA ? (
+											<span className="truncate">
+												{seasonPlayers.find((p) => p.id === state.splitPickA)?.name}
+											</span>
+										) : (
+											<span className="text-muted-foreground">Player A</span>
+										)}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									{seasonPlayers
+										.filter(
+											(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickB
+										)
+										.map((p) => (
+											<SelectItem key={p.id} value={p.id}>
+												{p.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={state.splitPickB}
+								onValueChange={(v) => dispatch({ type: "SET_SPLIT_PICK_B", value: v ?? "" })}
+							>
+								<SelectTrigger className="flex-1 min-w-0">
+									<SelectValue>
+										{state.splitPickB ? (
+											<span className="truncate">
+												{seasonPlayers.find((p) => p.id === state.splitPickB)?.name}
+											</span>
+										) : (
+											<span className="text-muted-foreground">Player B</span>
+										)}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									{seasonPlayers
+										.filter(
+											(p) => state.selectedPlayerIds.includes(p.id) && p.id !== state.splitPickA
+										)
+										.map((p) => (
+											<SelectItem key={p.id} value={p.id}>
+												{p.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+						</div>
+						{state.alwaysSplitPairs.length > 0 && (
+							<div className="divide-y divide-border border max-h-[132px] overflow-y-auto">
+								{state.alwaysSplitPairs.map(([a, b]) => {
+									const playerA = seasonPlayers.find((p) => p.id === a);
+									const playerB = seasonPlayers.find((p) => p.id === b);
+									return (
+										<div key={`${a}-${b}`} className="flex items-center gap-2 px-3 py-2">
+											<span className="text-sm truncate flex-1 text-right">{playerA?.name}</span>
+											<span className="text-xs text-muted-foreground shrink-0">vs</span>
+											<span className="text-sm truncate flex-1">{playerB?.name}</span>
+											<Button
+												type="button"
+												size="icon-sm"
+												variant="ghost"
+												onClick={() => dispatch({ type: "REMOVE_SPLIT_PAIR", a, b })}
+											>
+												<HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
+											</Button>
+										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				)}
 		</div>
 	);
 

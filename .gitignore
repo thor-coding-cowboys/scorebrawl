@@ -227,3 +227,7 @@ node_modules/
 apps/garmin/build/
 apps/garmin/developer_key.pem
 apps/garmin/developer_key.der
+
+
+.superpowers
+.worktrees

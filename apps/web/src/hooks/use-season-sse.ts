@@ -149,13 +149,10 @@ export function useSeasonSSE({
 							})
 						);
 
-						// Invalidate session queries to refresh session data including current match
 						if (sessionId) {
-							// Invalidate both tRPC key and manual key used in session page
 							qc.invalidateQueries({
 								queryKey: t.session.getById.queryKey({ sessionId }),
 							});
-							qc.invalidateQueries({ queryKey: ["session", sessionId] });
 						}
 						qc.invalidateQueries({
 							queryKey: t.session.getActive.queryKey({ seasonSlug }),

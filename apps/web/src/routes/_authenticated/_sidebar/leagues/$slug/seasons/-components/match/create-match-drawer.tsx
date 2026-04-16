@@ -7,28 +7,18 @@ import { useTRPC } from "@/lib/trpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-	Drawer,
-	DrawerContent,
-	DrawerHeader,
-	DrawerFooter,
-	DrawerTitle,
-} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
-import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Add01Icon,
 	Remove01Icon,
-	ArrowReloadHorizontalIcon,
-	BalanceScaleIcon,
-	Tick01Icon,
 	UserMultiple02Icon,
 	Alert01Icon,
 } from "@hugeicons/core-free-icons";
+import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-drawer";
 
 // --- Types ---
 
@@ -542,7 +532,7 @@ export function CreateMatchDialog({
 			<PlayerSelectionDrawer
 				isOpen={isPlayerDrawerOpen}
 				onClose={() => setIsPlayerDrawerOpen(false)}
-				teamSelection={teamSelection}
+				players={teamSelection}
 				onPlayerSelect={handlePlayerSelection}
 				onShuffle={shuffleTeams}
 				onEven={evenTeams}
@@ -645,159 +635,6 @@ function TeamRosterCard({
 					</div>
 				)}
 			</div>
-		</div>
-	);
-}
-
-// --- Player Selection Drawer ---
-
-function PlayerSelectionDrawer({
-	isOpen,
-	onClose,
-	teamSelection,
-	onPlayerSelect,
-	onShuffle,
-	onEven,
-	canReorder,
-}: {
-	isOpen: boolean;
-	onClose: () => void;
-	teamSelection: PlayerWithSelection[];
-	onPlayerSelect: (player: PlayerWithSelection) => void;
-	onShuffle: () => void;
-	onEven: () => void;
-	canReorder: boolean;
-}) {
-	return (
-		<Drawer
-			open={isOpen}
-			onOpenChange={(open) => {
-				if (!open) onClose();
-			}}
-		>
-			<DrawerContent className="max-h-[85vh]" data-testid="player-selection-drawer">
-				<div className="mx-auto w-full max-w-xl">
-					<DrawerHeader className="border-b border-border pb-3">
-						<DrawerTitle className="text-sm font-bold font-mono text-center">
-							Select Players
-						</DrawerTitle>
-					</DrawerHeader>
-
-					<div className="grid grid-cols-2 gap-0 max-h-[55vh] overflow-y-auto">
-						{/* Home Column */}
-						<div className="border-r border-border" data-testid="player-selection-home-column">
-							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
-								<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
-									Home
-								</span>
-							</div>
-							<PlayerList team="home" players={teamSelection} onSelect={onPlayerSelect} />
-						</div>
-
-						{/* Away Column */}
-						<div data-testid="player-selection-away-column">
-							<div className="sticky top-0 bg-background px-3 py-2 border-b border-border">
-								<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
-									Away
-								</span>
-							</div>
-							<PlayerList team="away" players={teamSelection} onSelect={onPlayerSelect} />
-						</div>
-					</div>
-
-					<Separator />
-
-					<DrawerFooter className="flex-row items-center justify-between">
-						<div className="flex gap-1.5">
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={!canReorder}
-								onClick={onShuffle}
-								className="gap-1"
-								data-testid="match-shuffle-button"
-							>
-								<HugeiconsIcon icon={ArrowReloadHorizontalIcon} className="size-3.5" />
-								<span className="hidden sm:inline">Shuffle</span>
-							</Button>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={!canReorder}
-								onClick={onEven}
-								className="gap-1"
-								data-testid="match-even-button"
-							>
-								<HugeiconsIcon icon={BalanceScaleIcon} className="size-3.5" />
-								<span className="hidden sm:inline">Even</span>
-							</Button>
-						</div>
-						<GlowButton
-							glowColor={glowColors.blue}
-							size="sm"
-							onClick={onClose}
-							icon={Tick01Icon}
-							data-testid="match-done-button"
-						>
-							Done
-						</GlowButton>
-					</DrawerFooter>
-				</div>
-			</DrawerContent>
-		</Drawer>
-	);
-}
-
-// --- Player List (within selection drawer) ---
-
-function PlayerList({
-	team,
-	players,
-	onSelect,
-}: {
-	team: "home" | "away";
-	players: PlayerWithSelection[];
-	onSelect: (player: PlayerWithSelection) => void;
-}) {
-	const handleClick = (player: PlayerWithSelection) => {
-		onSelect({
-			...player,
-			team: player.team === team ? undefined : team,
-		});
-	};
-
-	return (
-		<div className="flex flex-col">
-			{players.map((p) => (
-				<button
-					key={p.id}
-					type="button"
-					onClick={() => handleClick(p)}
-					data-testid={`player-item-${p.id}`}
-					className={cn(
-						"flex items-center gap-2 px-3 py-2 text-left transition-colors border-b border-border/50 last:border-b-0",
-						p.team === team && "bg-primary/10 border-l-2 border-l-primary",
-						p.team && p.team !== team && "opacity-40 line-through",
-						!p.team && "hover:bg-muted/50"
-					)}
-				>
-					<AvatarWithFallback src={p.image} name={p.name} size="sm" />
-					<div className="min-w-0 flex-1">
-						<p className="text-xs font-medium truncate">{p.name}</p>
-						<p className="text-[0.65rem] text-muted-foreground font-mono">{p.score}</p>
-					</div>
-					{p.team === team && (
-						<HugeiconsIcon icon={Tick01Icon} className="size-3.5 text-primary shrink-0" />
-					)}
-				</button>
-			))}
-			{players.length === 0 && (
-				<div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
-					No players in season
-				</div>
-			)}
 		</div>
 	);
 }
