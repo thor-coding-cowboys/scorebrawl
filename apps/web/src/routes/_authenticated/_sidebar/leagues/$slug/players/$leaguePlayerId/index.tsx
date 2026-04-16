@@ -224,6 +224,7 @@ function PlayerProfilePage() {
 											<Link
 												to="/leagues/$slug/players/compare"
 												params={{ slug }}
+												search={{ p1: leaguePlayerId }}
 												className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-none border border-border bg-background hover:bg-muted transition-colors"
 											>
 												<HugeiconsIcon icon={GitCompareIcon} className="size-3.5" />
