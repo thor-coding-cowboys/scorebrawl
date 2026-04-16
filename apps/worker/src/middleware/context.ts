@@ -43,9 +43,6 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		c.req.header("origin") ||
 		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
 
-	// Determine if production based on origin (localhost/127.0.0.1 = dev)
-	const isProduction = !(origin.includes("localhost") || origin.includes("127.0.0.1"));
-
 	const auth = createAuth({
 		db,
 		betterAuthSecret,
@@ -55,7 +52,6 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		googleClientSecret,
 		origin,
 		resendApiKey,
-		isProduction,
 		adminUserIds,
 	});
 	c.set("db", db);
