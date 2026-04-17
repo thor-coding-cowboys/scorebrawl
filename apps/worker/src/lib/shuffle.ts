@@ -21,12 +21,14 @@ export function diversityShuffle<T>(items: T[], pairWeights: Map<string, number>
 			return { item, score: totalWeight };
 		});
 
-		const totalScore = scored.reduce((sum, s) => sum + s.score + 1, 0);
-		let random = Math.random() * totalScore;
+		const maxScore = scored.reduce((max, s) => Math.max(max, s.score), 0);
+		const weightOf = (score: number) => maxScore - score + 1;
+		const totalWeight = scored.reduce((sum, s) => sum + weightOf(s.score), 0);
+		let random = Math.random() * totalWeight;
 		let selected = scored[0];
 
 		for (const s of scored) {
-			random -= s.score + 1;
+			random -= weightOf(s.score);
 			if (random < 0) {
 				selected = s;
 				break;

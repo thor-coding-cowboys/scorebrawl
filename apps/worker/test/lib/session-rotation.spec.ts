@@ -231,6 +231,48 @@ describe("diversityShuffle", () => {
 			expect(new Set(shuffled).size).toBe(4);
 		}
 	});
+
+	const countAdjacencies = (shuffled: string[], x: string, y: string): number => {
+		const ix = shuffled.indexOf(x);
+		const iy = shuffled.indexOf(y);
+		return Math.abs(ix - iy) === 1 ? 1 : 0;
+	};
+
+	it("places frequent co-players adjacent far less often than random", () => {
+		const items = ["a", "b", "c", "d"];
+		const pairWeights = new Map<string, number>();
+		pairWeights.set("a|b", 1000);
+
+		const iterations = 1000;
+		let adjacencyCount = 0;
+		for (let i = 0; i < iterations; i++) {
+			const shuffled = diversityShuffle([...items], pairWeights);
+			adjacencyCount += countAdjacencies(shuffled, "a", "b");
+		}
+
+		const adjacencyRate = adjacencyCount / iterations;
+		// Random baseline for 4 items: 50% adjacency. Correct diversity keeps
+		// it well below that (theoretical floor ~16.67% — when c,d happen to
+		// be placed first, a,b inevitably end up adjacent at positions 2,3).
+		expect(adjacencyRate).toBeLessThan(0.25);
+	});
+
+	it("makes frequent pairs less adjacent than infrequent pairs", () => {
+		const items = ["a", "b", "c", "d"];
+		const pairWeights = new Map<string, number>();
+		pairWeights.set("a|b", 1000);
+
+		const iterations = 1000;
+		let frequentAdjacency = 0;
+		let infrequentAdjacency = 0;
+		for (let i = 0; i < iterations; i++) {
+			const shuffled = diversityShuffle([...items], pairWeights);
+			frequentAdjacency += countAdjacencies(shuffled, "a", "b");
+			infrequentAdjacency += countAdjacencies(shuffled, "c", "d");
+		}
+
+		expect(frequentAdjacency).toBeLessThan(infrequentAdjacency);
+	});
 });
 
 describe("fisherYatesShuffle", () => {
