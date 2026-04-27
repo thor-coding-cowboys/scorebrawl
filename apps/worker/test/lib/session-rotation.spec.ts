@@ -232,46 +232,61 @@ describe("diversityShuffle", () => {
 		}
 	});
 
-	const countAdjacencies = (shuffled: string[], x: string, y: string): number => {
+	// Helper to check if two players end up on the same team (for 2v2)
+	const countSameTeam = (shuffled: string[], x: string, y: string, teamSize = 2): number => {
 		const ix = shuffled.indexOf(x);
 		const iy = shuffled.indexOf(y);
-		return Math.abs(ix - iy) === 1 ? 1 : 0;
+		const teamX = Math.floor(ix / teamSize);
+		const teamY = Math.floor(iy / teamSize);
+		return teamX === teamY ? 1 : 0;
 	};
 
-	it("places frequent co-players adjacent far less often than random", () => {
+	it("places frequent co-players on different teams when possible", () => {
 		const items = ["a", "b", "c", "d"];
 		const pairWeights = new Map<string, number>();
 		pairWeights.set("a|b", 1000);
 
 		const iterations = 1000;
-		let adjacencyCount = 0;
+		let sameTeamCount = 0;
 		for (let i = 0; i < iterations; i++) {
 			const shuffled = diversityShuffle([...items], pairWeights);
-			adjacencyCount += countAdjacencies(shuffled, "a", "b");
+			sameTeamCount += countSameTeam(shuffled, "a", "b");
 		}
 
-		const adjacencyRate = adjacencyCount / iterations;
-		// Random baseline for 4 items: 50% adjacency. Correct diversity keeps
-		// it well below that (theoretical floor ~16.67% — when c,d happen to
-		// be placed first, a,b inevitably end up adjacent at positions 2,3).
-		expect(adjacencyRate).toBeLessThan(0.25);
+		const sameTeamRate = sameTeamCount / iterations;
+		// With optimal diversity, a&b should almost never be on the same team
+		// when alternatives exist (weight=1000 makes it very strongly avoided)
+		expect(sameTeamRate).toBeLessThan(0.05);
 	});
 
-	it("makes frequent pairs less adjacent than infrequent pairs", () => {
+	it("always picks optimal team splits when available", () => {
 		const items = ["a", "b", "c", "d"];
 		const pairWeights = new Map<string, number>();
-		pairWeights.set("a|b", 1000);
+		pairWeights.set("a|b", 100);
+		pairWeights.set("c|d", 100);
 
-		const iterations = 1000;
-		let frequentAdjacency = 0;
-		let infrequentAdjacency = 0;
+		const iterations = 100;
+		let anyBadSplit = false;
 		for (let i = 0; i < iterations; i++) {
 			const shuffled = diversityShuffle([...items], pairWeights);
-			frequentAdjacency += countAdjacencies(shuffled, "a", "b");
-			infrequentAdjacency += countAdjacencies(shuffled, "c", "d");
+			// Check if a,b or c,d ended up on same team (bad splits)
+			const aIdx = shuffled.indexOf("a");
+			const bIdx = shuffled.indexOf("b");
+			const cIdx = shuffled.indexOf("c");
+			const dIdx = shuffled.indexOf("d");
+
+			const abSameTeam = Math.floor(aIdx / 2) === Math.floor(bIdx / 2);
+			const cdSameTeam = Math.floor(cIdx / 2) === Math.floor(dIdx / 2);
+
+			if (abSameTeam || cdSameTeam) {
+				anyBadSplit = true;
+				break;
+			}
 		}
 
-		expect(frequentAdjacency).toBeLessThan(infrequentAdjacency);
+		// Should never pick a split with weighted pairs together
+		// when splits with score=0 are available
+		expect(anyBadSplit).toBe(false);
 	});
 });
 
