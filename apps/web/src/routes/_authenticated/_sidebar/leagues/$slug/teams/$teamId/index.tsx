@@ -1,10 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	PlayerAvatarGroupInline,
 	PlayerAvatarGroupGrid,
@@ -47,8 +55,13 @@ import {
 	type ChartConfig,
 } from "@/components/ui/chart";
 
+const teamSearchSchema = z.object({
+	season: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/teams/$teamId/")({
 	component: TeamProfilePage,
+	validateSearch: teamSearchSchema,
 	loader: async ({ params }) => {
 		return { slug: params.slug, teamId: params.teamId };
 	},
@@ -91,6 +104,7 @@ const matchResultsConfig = {
 
 function TeamProfilePage() {
 	const { slug, teamId } = Route.useLoaderData();
+	const navigate = useNavigate({ from: Route.fullPath });
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
@@ -100,12 +114,20 @@ function TeamProfilePage() {
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [isLogoRemoved, setIsLogoRemoved] = useState(false);
 
+	const { season: selectedSeasonId } = Route.useSearch();
+	const setSelectedSeasonId = (id: string | undefined) => {
+		navigate({ to: ".", search: (prev) => ({ ...prev, season: id }) });
+	};
+
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const isEditor = role === "owner" || role === "admin" || role === "editor";
 
 	const { data: userSession } = authClient.useSession();
 	const currentUserId = userSession?.user?.id;
+
+	// Get available seasons
+	const { data: seasons } = useQuery(trpc.season.getAll.queryOptions());
 
 	const {
 		data: team,
@@ -118,19 +140,38 @@ function TeamProfilePage() {
 	);
 
 	const { data: allTimeStats, isLoading: allTimeStatsLoading } = useQuery(
-		trpc.leagueTeam.getAllTimeStats.queryOptions({ teamId })
+		trpc.leagueTeam.getAllTimeStats.queryOptions({
+			teamId,
+			seasonId: selectedSeasonId,
+		})
 	);
 
-	const { data: bestSeason, isLoading: bestSeasonLoading } = useQuery(
-		trpc.leagueTeam.getBestSeason.queryOptions({ teamId })
-	);
+	const { data: bestSeason, isLoading: bestSeasonLoading } = useQuery({
+		...trpc.leagueTeam.getBestSeason.queryOptions({
+			teamId,
+			seasonId: selectedSeasonId,
+		}),
+		enabled: !selectedSeasonId,
+	});
+
+	const { data: filteredSeason, isLoading: filteredSeasonLoading } = useQuery({
+		...trpc.leagueTeam.getBestSeason.queryOptions({
+			teamId,
+			seasonId: selectedSeasonId,
+		}),
+		enabled: !!selectedSeasonId,
+	});
 
 	const { data: seasonHistory, isLoading: seasonHistoryLoading } = useQuery(
 		trpc.leagueTeam.getSeasonHistory.queryOptions({ teamId })
 	);
 
 	const { data: recentMatches, isLoading: matchesLoading } = useQuery(
-		trpc.leagueTeam.getRecentMatches.queryOptions({ teamId, limit: 10 })
+		trpc.leagueTeam.getRecentMatches.queryOptions({
+			teamId,
+			limit: 10,
+			seasonId: selectedSeasonId,
+		})
 	);
 
 	const {
@@ -140,6 +181,7 @@ function TeamProfilePage() {
 	} = useQuery({
 		...trpc.leagueTeam.getRivalTeams.queryOptions({
 			teamId,
+			seasonId: selectedSeasonId,
 		}),
 		enabled: !!teamId && !!team,
 		retry: 2,
@@ -307,6 +349,15 @@ function TeamProfilePage() {
 			? Math.round(((allTimeStats.wins || 0) / allTimeStats.total) * 100)
 			: 0;
 
+	// Current score: use selected season if filtered, otherwise latest season from history
+	const latestSeason = seasonHistory?.[0];
+	const currentScore = selectedSeasonId ? filteredSeason?.score : latestSeason?.score;
+	const currentScoreLoading = selectedSeasonId ? filteredSeasonLoading : seasonHistoryLoading;
+
+	// Season display for card 4: selected season if filtered, otherwise best season
+	const seasonDisplay = selectedSeasonId ? filteredSeason : bestSeason;
+	const seasonDisplayLoading = selectedSeasonId ? filteredSeasonLoading : bestSeasonLoading;
+
 	const seasonChartData =
 		seasonHistory
 			?.map((h) => ({
@@ -444,26 +495,58 @@ function TeamProfilePage() {
 					</CardContent>
 				</Card>
 
+				{/* Season Selector */}
+				<div className="flex justify-end">
+					<Select
+						value={selectedSeasonId ?? "all"}
+						onValueChange={(val: string | null) =>
+							setSelectedSeasonId(val === "all" || !val ? undefined : val)
+						}
+					>
+						<SelectTrigger className="w-full sm:w-56">
+							<SelectValue>
+								{selectedSeasonId
+									? (seasons?.find((s) => s.id === selectedSeasonId)?.name ?? "All Seasons")
+									: "All Seasons"}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All Seasons</SelectItem>
+							{seasons?.map((s) => (
+								<SelectItem key={s.id} value={s.id}>
+									{s.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
 				{/* Stats Overview */}
 				<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 					<Card className="relative overflow-hidden">
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
-								Current Score
+								{selectedSeasonId ? "Season Score" : "Current Score"}
 							</CardTitle>
 							<HugeiconsIcon icon={Target01Icon} className="size-4 text-blue-600" />
 						</CardHeader>
 						<CardContent className="relative">
-							{bestSeasonLoading ? (
+							{currentScoreLoading ? (
 								<>
 									<Skeleton className="h-8 w-16 mb-2" />
 									<Skeleton className="h-4 w-20" />
 								</>
 							) : (
 								<>
-									<div className="text-2xl font-bold">{bestSeason?.score ?? "N/A"}</div>
-									<p className="text-xs text-muted-foreground">Current season</p>
+									<div className="text-2xl font-bold">{currentScore ?? "N/A"}</div>
+									<p className="text-xs text-muted-foreground">
+										{selectedSeasonId
+											? (seasons?.find((s) => s.id === selectedSeasonId)?.name ?? "Selected season")
+											: latestSeason
+												? `Current: ${latestSeason.season}`
+												: "No seasons"}
+									</p>
 								</>
 							)}
 						</CardContent>
@@ -496,7 +579,7 @@ function TeamProfilePage() {
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
-								Total Matches
+								{selectedSeasonId ? "Matches" : "Total Matches"}
 							</CardTitle>
 							<HugeiconsIcon icon={UserMultiple02Icon} className="size-4 text-amber-600" />
 						</CardHeader>
@@ -510,8 +593,9 @@ function TeamProfilePage() {
 								<>
 									<div className="text-2xl font-bold">{allTimeStats?.total ?? 0}</div>
 									<p className="text-xs text-muted-foreground">
-										Across {allTimeStats?.seasonCount ?? 0} season
-										{(allTimeStats?.seasonCount ?? 0) !== 1 ? "s" : ""}
+										{selectedSeasonId
+											? "In selected season"
+											: `Across ${allTimeStats?.seasonCount ?? 0} season${(allTimeStats?.seasonCount ?? 0) !== 1 ? "s" : ""}`}
 									</p>
 								</>
 							)}
@@ -522,21 +606,23 @@ function TeamProfilePage() {
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.1),transparent_60%)]" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
-								Best Season
+								{selectedSeasonId ? "Season" : "Best Season"}
 							</CardTitle>
 							<HugeiconsIcon icon={Calendar01Icon} className="size-4 text-purple-600" />
 						</CardHeader>
 						<CardContent className="relative">
-							{bestSeasonLoading ? (
+							{seasonDisplayLoading ? (
 								<>
 									<Skeleton className="h-8 w-16 mb-2" />
 									<Skeleton className="h-4 w-20" />
 								</>
-							) : bestSeason ? (
+							) : seasonDisplay ? (
 								<>
-									<div className="text-2xl font-bold">{bestSeason.season}</div>
+									<div className="text-2xl font-bold">{seasonDisplay.season}</div>
 									<p className="text-xs text-muted-foreground">
-										Peak: {bestSeason.score} ({bestSeason.matches} matches)
+										{selectedSeasonId
+											? `Score: ${seasonDisplay.score} (${seasonDisplay.matches} matches)`
+											: `Peak: ${seasonDisplay.score} (${seasonDisplay.matches} matches)`}
 									</p>
 								</>
 							) : (

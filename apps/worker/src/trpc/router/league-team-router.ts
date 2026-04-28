@@ -499,7 +499,7 @@ export const leagueTeamRouter = {
 		}),
 
 	getAllTimeStats: leagueProcedure
-		.input(z.object({ teamId: z.string() }))
+		.input(z.object({ teamId: z.string(), seasonId: z.string().optional() }))
 		.query(async ({ input, ctx }) => {
 			const team = await teamRepository.getById({
 				db: ctx.db,
@@ -517,11 +517,12 @@ export const leagueTeamRouter = {
 			return teamRepository.getAllTimeStats({
 				db: ctx.db,
 				teamId: input.teamId,
+				seasonId: input.seasonId,
 			});
 		}),
 
 	getBestSeason: leagueProcedure
-		.input(z.object({ teamId: z.string() }))
+		.input(z.object({ teamId: z.string(), seasonId: z.string().optional() }))
 		.query(async ({ input, ctx }) => {
 			const team = await teamRepository.getById({
 				db: ctx.db,
@@ -539,6 +540,7 @@ export const leagueTeamRouter = {
 			return teamRepository.getBestSeason({
 				db: ctx.db,
 				teamId: input.teamId,
+				seasonId: input.seasonId,
 			});
 		}),
 
@@ -565,7 +567,13 @@ export const leagueTeamRouter = {
 		}),
 
 	getRecentMatches: leagueProcedure
-		.input(z.object({ teamId: z.string(), limit: z.number().default(10) }))
+		.input(
+			z.object({
+				teamId: z.string(),
+				limit: z.number().default(10),
+				seasonId: z.string().optional(),
+			})
+		)
 		.query(async ({ input, ctx }) => {
 			const team = await teamRepository.getById({
 				db: ctx.db,
@@ -584,11 +592,12 @@ export const leagueTeamRouter = {
 				db: ctx.db,
 				teamId: input.teamId,
 				limit: input.limit,
+				seasonId: input.seasonId,
 			});
 		}),
 
 	getRivalTeams: leagueProcedure
-		.input(z.object({ teamId: z.string() }))
+		.input(z.object({ teamId: z.string(), seasonId: z.string().optional() }))
 		.query(async ({ input, ctx }) => {
 			const team = await teamRepository.getById({
 				db: ctx.db,
@@ -606,6 +615,7 @@ export const leagueTeamRouter = {
 			return teamRepository.getRivalTeams({
 				db: ctx.db,
 				teamId: input.teamId,
+				seasonId: input.seasonId,
 			});
 		}),
 } satisfies TRPCRouterRecord;
