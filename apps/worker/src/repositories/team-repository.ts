@@ -98,7 +98,20 @@ export const getTeamPlayersWithDetails = async ({
 		.where(eq(leagueTeamPlayer.leagueTeamId, teamId));
 };
 
-export const getAllTimeStats = async ({ db, teamId }: { db: DrizzleDB; teamId: string }) => {
+export const getAllTimeStats = async ({
+	db,
+	teamId,
+	seasonId,
+}: {
+	db: DrizzleDB;
+	teamId: string;
+	seasonId?: string;
+}) => {
+	const conditions = [eq(seasonTeam.leagueTeamId, teamId)];
+	if (seasonId) {
+		conditions.push(eq(seasonTeam.seasonId, seasonId));
+	}
+
 	const stats = await db
 		.select({
 			total: sql<number>`count(*)`,
@@ -109,12 +122,25 @@ export const getAllTimeStats = async ({ db, teamId }: { db: DrizzleDB; teamId: s
 		})
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.where(eq(seasonTeam.leagueTeamId, teamId));
+		.where(and(...conditions));
 
 	return stats[0] || { total: 0, wins: 0, losses: 0, draws: 0, seasonCount: 0 };
 };
 
-export const getBestSeason = async ({ db, teamId }: { db: DrizzleDB; teamId: string }) => {
+export const getBestSeason = async ({
+	db,
+	teamId,
+	seasonId,
+}: {
+	db: DrizzleDB;
+	teamId: string;
+	seasonId?: string;
+}) => {
+	const conditions = [eq(seasonTeam.leagueTeamId, teamId)];
+	if (seasonId) {
+		conditions.push(eq(seasonTeam.seasonId, seasonId));
+	}
+
 	const [best] = await db
 		.select({
 			seasonName: season.name,
@@ -127,9 +153,9 @@ export const getBestSeason = async ({ db, teamId }: { db: DrizzleDB; teamId: str
 		.from(seasonTeam)
 		.innerJoin(season, eq(seasonTeam.seasonId, season.id))
 		.leftJoin(matchTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
-		.where(eq(seasonTeam.leagueTeamId, teamId))
+		.where(and(...conditions))
 		.groupBy(seasonTeam.id, season.id)
-		.orderBy(desc(seasonTeam.score))
+		.orderBy(seasonId ? desc(season.startDate) : desc(seasonTeam.score))
 		.limit(1);
 
 	if (!best) {
@@ -184,11 +210,18 @@ export const getRecentMatches = async ({
 	db,
 	teamId,
 	limit,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	teamId: string;
 	limit: number;
+	seasonId?: string;
 }) => {
+	const conditions = [eq(seasonTeam.leagueTeamId, teamId)];
+	if (seasonId) {
+		conditions.push(eq(seasonTeam.seasonId, seasonId));
+	}
+
 	// First, get the match IDs for our team's recent matches, ordered by match.createdAt
 	const ourMatchIds = await db
 		.select({
@@ -198,7 +231,7 @@ export const getRecentMatches = async ({
 		.from(matchTeam)
 		.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
 		.innerJoin(match, eq(matchTeam.matchId, match.id))
-		.where(eq(seasonTeam.leagueTeamId, teamId))
+		.where(and(...conditions))
 		.orderBy(desc(match.createdAt))
 		.limit(limit);
 
@@ -338,12 +371,18 @@ export interface RivalTeam {
 export const getRivalTeams = async ({
 	db,
 	teamId,
+	seasonId,
 }: {
 	db: DrizzleDB;
 	teamId: string;
+	seasonId?: string;
 }): Promise<{ bestRival: RivalTeam | null; worstRival: RivalTeam | null }> => {
 	// Use a single, optimized query to get rival statistics
 	// This counts matches grouped by opponent team
+	const whereClause = seasonId
+		? sql`our_season_team.league_team_id = ${teamId} AND our_season_team.season_id = ${seasonId}`
+		: sql`our_season_team.league_team_id = ${teamId}`;
+
 	const rivalStats = await db
 		.select({
 			opponentTeamId: sql<string>`opponent_league_team.id`,
@@ -367,7 +406,7 @@ export const getRivalTeams = async ({
 			sql`league_team opponent_league_team`,
 			sql`opponent_season_team.league_team_id = opponent_league_team.id`
 		)
-		.where(sql`our_season_team.league_team_id = ${teamId}`)
+		.where(whereClause)
 		.groupBy(sql`opponent_league_team.id, opponent_league_team.name, opponent_league_team.logo`)
 		.having(sql`COUNT(*) >= 2`) // Only teams with 2+ matches
 		.orderBy(sql`COUNT(*) DESC`) // Order by most matches first
