@@ -23,6 +23,7 @@ import { Route as AuthenticatedSidebarProfileRouteImport } from './routes/_authe
 import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
 import { Route as AuthAuthForgotPasswordRouteImport } from './routes/_auth/auth/forgot-password'
+import { Route as AuthenticatedAuthMcpLoginIndexRouteImport } from './routes/_authenticated/auth/mcp-login/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
 import { Route as AuthenticatedAdminLeaguesIndexRouteImport } from './routes/_authenticated/admin/leagues/index'
 import { Route as AuthenticatedSidebarLeaguesSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/route'
@@ -33,6 +34,7 @@ import { Route as AuthenticatedSidebarLeaguesSlugInvitationsRouteImport } from '
 import { Route as AuthenticatedSidebarLeaguesSlugTeamsIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/teams/index'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/index'
 import { Route as AuthenticatedSidebarLeaguesSlugPlayersIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/players/index'
+import { Route as AuthenticatedSidebarLeaguesSlugAiChatIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/ai-chat/index'
 import { Route as AuthenticatedSidebarLeaguesSlugPlayersCompareRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/players/compare'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/route'
 import { Route as AuthenticatedSidebarLeaguesSlugTeamsTeamIdIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/teams/$teamId/index'
@@ -116,6 +118,12 @@ const AuthAuthForgotPasswordRoute = AuthAuthForgotPasswordRouteImport.update({
   path: '/auth/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthenticatedAuthMcpLoginIndexRoute =
+  AuthenticatedAuthMcpLoginIndexRouteImport.update({
+    id: '/auth/mcp-login/',
+    path: '/auth/mcp-login/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminUsersIndexRoute =
   AuthenticatedAdminUsersIndexRouteImport.update({
     id: '/users/',
@@ -174,6 +182,12 @@ const AuthenticatedSidebarLeaguesSlugPlayersIndexRoute =
   AuthenticatedSidebarLeaguesSlugPlayersIndexRouteImport.update({
     id: '/players/',
     path: '/players/',
+    getParentRoute: () => AuthenticatedSidebarLeaguesSlugRouteRoute,
+  } as any)
+const AuthenticatedSidebarLeaguesSlugAiChatIndexRoute =
+  AuthenticatedSidebarLeaguesSlugAiChatIndexRouteImport.update({
+    id: '/ai-chat/',
+    path: '/ai-chat/',
     getParentRoute: () => AuthenticatedSidebarLeaguesSlugRouteRoute,
   } as any)
 const AuthenticatedSidebarLeaguesSlugPlayersCompareRoute =
@@ -257,12 +271,14 @@ export interface FileRoutesByFullPath {
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
+  '/auth/mcp-login': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
   '/leagues/$slug/': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren
   '/leagues/$slug/players/compare': typeof AuthenticatedSidebarLeaguesSlugPlayersCompareRoute
+  '/leagues/$slug/ai-chat': typeof AuthenticatedSidebarLeaguesSlugAiChatIndexRoute
   '/leagues/$slug/players': typeof AuthenticatedSidebarLeaguesSlugPlayersIndexRoute
   '/leagues/$slug/seasons': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
   '/leagues/$slug/teams/': typeof AuthenticatedSidebarLeaguesSlugTeamsIndexRoute
@@ -288,10 +304,12 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
+  '/auth/mcp-login': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/leagues/$slug/players/compare': typeof AuthenticatedSidebarLeaguesSlugPlayersCompareRoute
+  '/leagues/$slug/ai-chat': typeof AuthenticatedSidebarLeaguesSlugAiChatIndexRoute
   '/leagues/$slug/players': typeof AuthenticatedSidebarLeaguesSlugPlayersIndexRoute
   '/leagues/$slug/seasons': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
   '/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsIndexRoute
@@ -322,12 +340,14 @@ export interface FileRoutesById {
   '/_authenticated/_sidebar/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/_authenticated/admin/leagues/': typeof AuthenticatedAdminLeaguesIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
+  '/_authenticated/auth/mcp-login/': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/_authenticated/_sidebar/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/_authenticated/_sidebar/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
   '/_authenticated/_sidebar/leagues/$slug/': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren
   '/_authenticated/_sidebar/leagues/$slug/players/compare': typeof AuthenticatedSidebarLeaguesSlugPlayersCompareRoute
+  '/_authenticated/_sidebar/leagues/$slug/ai-chat/': typeof AuthenticatedSidebarLeaguesSlugAiChatIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/players/': typeof AuthenticatedSidebarLeaguesSlugPlayersIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/': typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/teams/': typeof AuthenticatedSidebarLeaguesSlugTeamsIndexRoute
@@ -356,12 +376,14 @@ export interface FileRouteTypes {
     | '/leagues/$slug'
     | '/admin/leagues'
     | '/admin/users'
+    | '/auth/mcp-login'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug/teams'
     | '/leagues/$slug/'
     | '/leagues/$slug/seasons/$seasonSlug'
     | '/leagues/$slug/players/compare'
+    | '/leagues/$slug/ai-chat'
     | '/leagues/$slug/players'
     | '/leagues/$slug/seasons'
     | '/leagues/$slug/teams/'
@@ -387,10 +409,12 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/admin/leagues'
     | '/admin/users'
+    | '/auth/mcp-login'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug'
     | '/leagues/$slug/players/compare'
+    | '/leagues/$slug/ai-chat'
     | '/leagues/$slug/players'
     | '/leagues/$slug/seasons'
     | '/leagues/$slug/teams'
@@ -420,12 +444,14 @@ export interface FileRouteTypes {
     | '/_authenticated/_sidebar/leagues/$slug'
     | '/_authenticated/admin/leagues/'
     | '/_authenticated/admin/users/'
+    | '/_authenticated/auth/mcp-login/'
     | '/_authenticated/_sidebar/leagues/$slug/invitations'
     | '/_authenticated/_sidebar/leagues/$slug/members'
     | '/_authenticated/_sidebar/leagues/$slug/teams'
     | '/_authenticated/_sidebar/leagues/$slug/'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug'
     | '/_authenticated/_sidebar/leagues/$slug/players/compare'
+    | '/_authenticated/_sidebar/leagues/$slug/ai-chat/'
     | '/_authenticated/_sidebar/leagues/$slug/players/'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/'
     | '/_authenticated/_sidebar/leagues/$slug/teams/'
@@ -546,6 +572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_authenticated/auth/mcp-login/': {
+      id: '/_authenticated/auth/mcp-login/'
+      path: '/auth/mcp-login'
+      fullPath: '/auth/mcp-login'
+      preLoaderRoute: typeof AuthenticatedAuthMcpLoginIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/users/': {
       id: '/_authenticated/admin/users/'
       path: '/users'
@@ -614,6 +647,13 @@ declare module '@tanstack/react-router' {
       path: '/players'
       fullPath: '/leagues/$slug/players'
       preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugPlayersIndexRouteImport
+      parentRoute: typeof AuthenticatedSidebarLeaguesSlugRouteRoute
+    }
+    '/_authenticated/_sidebar/leagues/$slug/ai-chat/': {
+      id: '/_authenticated/_sidebar/leagues/$slug/ai-chat/'
+      path: '/ai-chat'
+      fullPath: '/leagues/$slug/ai-chat'
+      preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugAiChatIndexRouteImport
       parentRoute: typeof AuthenticatedSidebarLeaguesSlugRouteRoute
     }
     '/_authenticated/_sidebar/leagues/$slug/players/compare': {
@@ -750,6 +790,7 @@ interface AuthenticatedSidebarLeaguesSlugRouteRouteChildren {
   AuthenticatedSidebarLeaguesSlugIndexRoute: typeof AuthenticatedSidebarLeaguesSlugIndexRoute
   AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren
   AuthenticatedSidebarLeaguesSlugPlayersCompareRoute: typeof AuthenticatedSidebarLeaguesSlugPlayersCompareRoute
+  AuthenticatedSidebarLeaguesSlugAiChatIndexRoute: typeof AuthenticatedSidebarLeaguesSlugAiChatIndexRoute
   AuthenticatedSidebarLeaguesSlugPlayersIndexRoute: typeof AuthenticatedSidebarLeaguesSlugPlayersIndexRoute
   AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute
   AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRoute: typeof AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRoute
@@ -769,6 +810,8 @@ const AuthenticatedSidebarLeaguesSlugRouteRouteChildren: AuthenticatedSidebarLea
       AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren,
     AuthenticatedSidebarLeaguesSlugPlayersCompareRoute:
       AuthenticatedSidebarLeaguesSlugPlayersCompareRoute,
+    AuthenticatedSidebarLeaguesSlugAiChatIndexRoute:
+      AuthenticatedSidebarLeaguesSlugAiChatIndexRoute,
     AuthenticatedSidebarLeaguesSlugPlayersIndexRoute:
       AuthenticatedSidebarLeaguesSlugPlayersIndexRoute,
     AuthenticatedSidebarLeaguesSlugSeasonsIndexRoute:
@@ -821,6 +864,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingCreateLeagueRoute: typeof AuthenticatedOnboardingCreateLeagueRoute
   AuthenticatedLeaguesIndexRoute: typeof AuthenticatedLeaguesIndexRoute
   AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
+  AuthenticatedAuthMcpLoginIndexRoute: typeof AuthenticatedAuthMcpLoginIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -830,6 +874,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedOnboardingCreateLeagueRoute,
   AuthenticatedLeaguesIndexRoute: AuthenticatedLeaguesIndexRoute,
   AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
+  AuthenticatedAuthMcpLoginIndexRoute: AuthenticatedAuthMcpLoginIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
