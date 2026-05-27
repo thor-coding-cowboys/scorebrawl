@@ -31,7 +31,7 @@ export async function proxyToWorker(request: MCPJsonRpcRequest): Promise<MCPJson
 	}
 
 	try {
-		const res = await fetch(`${config.apiBaseUrl}/mcp`, {
+		const res = await fetch(`${config.apiBaseUrl}/api/mcp`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",

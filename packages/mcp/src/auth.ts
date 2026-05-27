@@ -67,7 +67,7 @@ export async function runLoginFlow(): Promise<void> {
 	const config = loadConfig();
 	const callbackPort = await getAvailablePort();
 	const callbackUrl = `http://localhost:${callbackPort}/callback`;
-	const loginUrl = `${config.apiBaseUrl.replace("/api", "")}/auth/mcp-login?callback=${encodeURIComponent(callbackUrl)}`;
+	const loginUrl = `${config.apiBaseUrl}/auth/mcp-login?callback=${encodeURIComponent(callbackUrl)}`;
 
 	return new Promise((resolve, reject) => {
 		const server = createServer(async (req, res) => {
