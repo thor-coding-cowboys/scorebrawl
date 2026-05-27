@@ -34,7 +34,6 @@ const app = new Hono<HonoEnv>()
 	.use("/api/ai/*", enforceAuthMiddleware)
 	.route("/api/ai", aiStreamRouter)
 	.route("/api/mcp-auth", mcpAuthRouter)
-	.use("/api/mcp/*", enforceAuthMiddleware)
 	.route("/api/mcp", mcpRouter)
 	.use("/api/trpc/*", trpcServer)
 	.use("*", async (c, next) => {

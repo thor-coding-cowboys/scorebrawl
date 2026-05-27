@@ -3,7 +3,10 @@ import { randCompanyName, randEmail, randFullName, randSlug } from "@ngneat/fals
 import { eq } from "drizzle-orm";
 import { getDb } from "../../src/db/index";
 import { user } from "../../src/db/schema/auth-schema";
+import { mcpToken } from "../../src/db/schema/mcp-schema";
 import { createAuth } from "../../src/lib/better-auth";
+import { generateToken, hashToken } from "../../src/lib/mcp-tokens";
+import { createId } from "../../src/utils/id-util";
 
 export interface UserInput {
 	email?: string;
@@ -191,4 +194,24 @@ export async function createUser(overrides: UserInput = {}): Promise<{
 			id: createdUser.id,
 		},
 	};
+}
+
+export async function createMcpToken(opts: {
+	userId: string;
+	organizationId: string;
+}): Promise<string> {
+	const db = getDb(env.DB);
+	const token = generateToken();
+	const tokenHash = await hashToken(token);
+	await db.insert(mcpToken).values({
+		id: createId(),
+		tokenHash,
+		userId: opts.userId,
+		organizationId: opts.organizationId,
+	});
+	return token;
+}
+
+export function bearerHeaders(token: string): Record<string, string> {
+	return { Authorization: `Bearer ${token}` };
 }

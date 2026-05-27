@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../middleware/context";
-import { enforceAuthMiddleware } from "../middleware/auth";
+import { mcpAuthMiddleware } from "../middleware/mcp-auth";
 import { tools } from "../services/ai/tool-registry";
 import {
 	getPlayers,
@@ -102,7 +102,7 @@ function createError(id: string | number | null, error: MCPError) {
 }
 
 export const mcpRouter = new Hono<HonoEnv>()
-	.use("*", enforceAuthMiddleware)
+	.use("*", mcpAuthMiddleware)
 	.post("/", async (c) => {
 		const auth = c.get("authentication");
 		const db = c.get("db");
