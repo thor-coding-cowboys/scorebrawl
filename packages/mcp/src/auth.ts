@@ -1,31 +1,11 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { loadConfig } from "./config.js";
+import { readFileSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { loadConfig, saveConfig } from "./config.js";
 import { allowLocalhostTls } from "./util.js";
 
-let keytar: typeof import("keytar") | null = null;
-try {
-	keytar = await import("keytar");
-} catch {
-	// keytar not available (e.g. missing native deps)
-}
-
-const SERVICE = "scorebrawl-mcp";
-const ACCOUNT = "sessionToken";
-
 export async function getToken(): Promise<string | null> {
-	if (keytar) {
-		try {
-			const password = await keytar.getPassword(SERVICE, ACCOUNT);
-			if (password) return password;
-			// Fall through if keytar returned null/empty
-		} catch {
-			// Fall through to file fallback
-		}
-	}
-	// Fallback: try to read from config file
-	const { readFileSync, existsSync } = await import("node:fs");
-	const { homedir } = await import("node:os");
 	const configPath = join(homedir(), ".config", "scorebrawl", "mcp.json");
 	if (existsSync(configPath)) {
 		try {
@@ -40,29 +20,10 @@ export async function getToken(): Promise<string | null> {
 }
 
 export async function setToken(token: string): Promise<void> {
-	if (keytar) {
-		try {
-			await keytar.setPassword(SERVICE, ACCOUNT, token);
-			return;
-		} catch {
-			// Fall through to file fallback
-		}
-	}
-	// Fallback: store in config file
-	const { saveConfig } = await import("./config.js");
 	saveConfig({ sessionToken: token } as Record<string, string>);
 }
 
 export async function deleteToken(): Promise<void> {
-	if (keytar) {
-		try {
-			await keytar.deletePassword(SERVICE, ACCOUNT);
-			return;
-		} catch {
-			// Fall through
-		}
-	}
-	const { saveConfig } = await import("./config.js");
 	saveConfig({ sessionToken: undefined } as unknown as Record<string, string>);
 }
 
