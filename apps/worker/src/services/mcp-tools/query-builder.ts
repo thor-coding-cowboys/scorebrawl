@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDrizzleDB = any;
@@ -87,6 +87,27 @@ function sanitizeIdentifier(name: string): string {
 	return name;
 }
 
+function sanitizeColumnRef(ref: string): string {
+	const parts = ref.split(".");
+	if (parts.length === 2) {
+		return `"${sanitizeIdentifier(parts[0]!)}"."${sanitizeIdentifier(parts[1]!)}"`;
+	}
+	return `"${sanitizeIdentifier(ref)}"`;
+}
+
+function buildSql(query: string, params: (string | number)[]): SQL {
+	const parts = query.split("?");
+	if (parts.length !== params.length + 1) {
+		throw new Error("Param count mismatch");
+	}
+	const sqlParts: SQL[] = [];
+	for (let i = 0; i < parts.length; i++) {
+		if (parts[i]) sqlParts.push(sql.raw(parts[i]!));
+		if (i < params.length) sqlParts.push(sql`${params[i]}`);
+	}
+	return sql.join(sqlParts, sql``);
+}
+
 export async function executeQuery(
 	ctx: { db: AnyDrizzleDB },
 	args: { leagueId: string } & QueryJson
@@ -109,7 +130,7 @@ export async function executeQuery(
 			.map((j) => {
 				const joinTable = sanitizeIdentifier(j.table);
 				const joinType = j.type === "inner" ? "INNER" : "LEFT";
-				return `${joinType} JOIN "${joinTable}" ON ${j.on.left} = ${j.on.right}`;
+				return `${joinType} JOIN "${joinTable}" ON ${sanitizeColumnRef(j.on.left)} = ${sanitizeColumnRef(j.on.right)}`;
 			})
 			.join(" ");
 
@@ -147,7 +168,7 @@ export async function executeQuery(
 
 		queryStr += ` LIMIT ${limit}`;
 
-		const results = await db.all(sql.raw(queryStr));
+		const results = await db.all(buildSql(queryStr, params));
 		return { data: results };
 	} catch (err) {
 		return { error: err instanceof Error ? err.message : "Query execution failed" };
