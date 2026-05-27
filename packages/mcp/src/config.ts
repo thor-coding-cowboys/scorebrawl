@@ -20,6 +20,11 @@ function ensureConfigDir() {
 }
 
 export function loadConfig(): MCPConfig {
+	const envUrl = process.env.SCOREBRAWL_API_URL;
+	if (envUrl) {
+		return { ...DEFAULT_CONFIG, apiBaseUrl: envUrl };
+	}
+
 	ensureConfigDir();
 	if (existsSync(CONFIG_FILE)) {
 		try {
