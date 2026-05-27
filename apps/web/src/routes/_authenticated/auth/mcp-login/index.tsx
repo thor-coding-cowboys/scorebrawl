@@ -15,6 +15,18 @@ export const Route = createFileRoute("/_authenticated/auth/mcp-login/")({
 	validateSearch: zodValidator(mcpLoginSearchSchema),
 });
 
+function isLocalhostCallback(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return (
+			parsed.protocol === "http:" &&
+			(parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")
+		);
+	} catch {
+		return false;
+	}
+}
+
 function McpLoginPage() {
 	const { callback } = useSearch({ from: "/_authenticated/auth/mcp-login/" });
 	const [copied, setCopied] = useState(false);
@@ -23,6 +35,10 @@ function McpLoginPage() {
 
 	const handleConnect = async () => {
 		if (!callback) return;
+		if (!isLocalhostCallback(callback)) {
+			setError("Invalid callback URL. Must be a localhost address.");
+			return;
+		}
 		setIsAuthorizing(true);
 		setError(null);
 		try {
