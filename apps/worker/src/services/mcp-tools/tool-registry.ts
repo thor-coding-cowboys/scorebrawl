@@ -1,6 +1,14 @@
-import type { LLMTool } from "./llm-client";
+interface Tool {
+	name: string;
+	description: string;
+	parameters: {
+		type: string;
+		properties?: Record<string, unknown>;
+		required?: string[];
+	};
+}
 
-export const tools: LLMTool[] = [
+export const tools: Tool[] = [
 	{
 		name: "get_players",
 		description:

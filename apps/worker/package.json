@@ -32,7 +32,6 @@
 		"@hono/trpc-server": "catalog:",
 		"@hono/zod-validator": "catalog:",
 		"@ihs7/ts-elo": "catalog:",
-		"@opencode-ai/sdk": "catalog:",
 		"@sindresorhus/slugify": "catalog:",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
@@ -41,7 +40,6 @@
 		"drizzle-orm": "catalog:",
 		"hono": "catalog:",
 		"nanoid": "catalog:",
-		"openai": "catalog:",
 		"resend": "catalog:",
 		"superjson": "catalog:"
 	},

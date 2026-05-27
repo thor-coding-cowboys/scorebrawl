@@ -5,7 +5,6 @@ import {
 	UserIcon,
 	Mail01Icon,
 	ArrowRight01Icon,
-	AiChat01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -114,7 +113,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	});
 	const isTeamsRoute = matchRoute({ to: "/leagues/$slug/teams", fuzzy: false });
 	const isPlayersRoute = matchRoute({ to: "/leagues/$slug/players", fuzzy: false });
-	const isAiChatRoute = matchRoute({ to: "/leagues/$slug/ai-chat", fuzzy: false });
 	const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: false });
 	const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: false });
 
@@ -224,18 +222,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 									>
 										<HugeiconsIcon icon={UserIcon} className="size-4" />
 										<span>Players</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={!!isAiChatRoute}>
-									<Link
-										to="/leagues/$slug/ai-chat"
-										params={{ slug: leagueSlug }}
-										onClick={handleNavClick}
-									>
-										<HugeiconsIcon icon={AiChat01Icon} className="size-4" />
-										<span>AI Assistant</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>

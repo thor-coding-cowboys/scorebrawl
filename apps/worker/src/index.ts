@@ -7,7 +7,6 @@ import { contextStorage } from "hono/context-storage";
 import { getDb } from "./db";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
-import { aiStreamRouter } from "./routes/ai-stream";
 import { authRouter } from "./routes/auth-router";
 import { mcpAuthRouter } from "./routes/mcp-auth-router";
 import { mcpRouter } from "./routes/mcp-router";
@@ -31,8 +30,6 @@ const app = new Hono<HonoEnv>()
 	.route("/api/sse", sseRouter)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
-	.use("/api/ai/*", enforceAuthMiddleware)
-	.route("/api/ai", aiStreamRouter)
 	.route("/api/mcp-auth", mcpAuthRouter)
 	.route("/api/mcp", mcpRouter)
 	.use("/api/trpc/*", trpcServer)

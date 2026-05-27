@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../middleware/context";
 import { mcpAuthMiddleware } from "../middleware/mcp-auth";
-import { tools } from "../services/ai/tool-registry";
+import { tools } from "../services/mcp-tools/tool-registry";
 import {
 	getPlayers,
 	getMatches,
@@ -38,8 +38,8 @@ import {
 	getBusiestPeriods,
 	getActiveSessions,
 	getSessionLineup,
-} from "../services/ai/tool-executors";
-import { executeQuery } from "../services/ai/tool-executors/query-builder";
+} from "../services/mcp-tools/tool-executors";
+import { executeQuery } from "../services/mcp-tools/query-builder";
 
 const toolExecutors: Record<string, (ctx: any, args: any) => Promise<unknown>> = {
 	get_players: getPlayers,
