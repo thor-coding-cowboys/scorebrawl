@@ -35,7 +35,7 @@ export async function proxyToWorker(request: MCPJsonRpcRequest): Promise<MCPJson
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Cookie: `better-auth.session_token=${token}`,
+				Authorization: `Bearer ${token}`,
 			},
 			body: JSON.stringify(request),
 		});
