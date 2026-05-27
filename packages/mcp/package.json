@@ -2,13 +2,13 @@
 	"name": "@scorebrawl/mcp",
 	"version": "0.1.0",
 	"description": "Scorebrawl MCP server for agent harnesses",
-	"type": "module",
 	"bin": {
 		"scorebrawl-mcp": "./dist/index.js"
 	},
 	"files": [
 		"dist"
 	],
+	"type": "module",
 	"scripts": {
 		"build": "tsc",
 		"typecheck": "tsc --noEmit",

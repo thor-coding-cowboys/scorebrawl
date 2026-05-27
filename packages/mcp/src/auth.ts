@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { loadConfig } from "./config.js";
+import { allowLocalhostTls } from "./util.js";
 
 let keytar: typeof import("keytar") | null = null;
 try {
@@ -65,6 +66,7 @@ export async function deleteToken(): Promise<void> {
 
 export async function runLoginFlow(): Promise<void> {
 	const config = loadConfig();
+	allowLocalhostTls(config.apiBaseUrl);
 	const callbackPort = await getAvailablePort();
 	const callbackUrl = `http://localhost:${callbackPort}/callback`;
 	const loginUrl = `${config.apiBaseUrl}/auth/mcp-login?callback=${encodeURIComponent(callbackUrl)}`;

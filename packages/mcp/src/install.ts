@@ -61,7 +61,11 @@ function getMcpEntry(useLocal: boolean): Record<string, unknown> {
 }
 
 function installToOpenCode(useLocal: boolean): void {
-	const path = getAgentConfigPath({ name: "opencode", dir: ".opencode", configFile: "settings.local.json" });
+	const path = getAgentConfigPath({
+		name: "opencode",
+		dir: ".opencode",
+		configFile: "settings.local.json",
+	});
 	const config = readJson(path);
 	const mcpServers = (config.mcpServers as Record<string, unknown>) || {};
 

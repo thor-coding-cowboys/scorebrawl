@@ -1,5 +1,6 @@
 import { loadConfig } from "./config.js";
 import { getToken } from "./auth.js";
+import { allowLocalhostTls } from "./util.js";
 
 interface MCPJsonRpcRequest {
 	jsonrpc: "2.0";
@@ -17,6 +18,7 @@ interface MCPJsonRpcResponse {
 
 export async function proxyToWorker(request: MCPJsonRpcRequest): Promise<MCPJsonRpcResponse> {
 	const config = loadConfig();
+	allowLocalhostTls(config.apiBaseUrl);
 	const token = await getToken();
 
 	if (!token) {
