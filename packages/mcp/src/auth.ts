@@ -16,7 +16,9 @@ const ACCOUNT = "sessionToken";
 export async function getToken(): Promise<string | null> {
 	if (keytar) {
 		try {
-			return await keytar.getPassword(SERVICE, ACCOUNT);
+			const password = await keytar.getPassword(SERVICE, ACCOUNT);
+			if (password) return password;
+			// Fall through if keytar returned null/empty
 		} catch {
 			// Fall through to file fallback
 		}

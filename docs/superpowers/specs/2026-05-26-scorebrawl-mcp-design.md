@@ -68,43 +68,43 @@ No new tool logic. The MCP server reuses the exact same tool registry and execut
 
 Each existing tool maps 1:1 to an MCP tool:
 
-| MCP Tool Name | Existing Executor |
-|---------------|-------------------|
-| `get_players` | `getPlayers` |
-| `get_matches` | `getMatches` |
-| `get_season_standings` | `getSeasonStandings` |
-| `get_player_stats` | `getPlayerStats` |
-| `get_head_to_head` | `getHeadToHead` |
-| `get_scoring_stats` | `getScoringStats` |
-| `get_streaks` | `getStreaks` |
-| `get_elo_progression` | `getEloProgression` |
-| `get_form_guide` | `getFormGuide` |
-| `get_team_chemistry` | `getTeamChemistry` |
-| `get_session_stats` | `getSessionStats` |
-| `get_biggest_margins` | `getBiggestMargins` |
-| `get_closest_matches` | `getClosestMatches` |
-| `get_upsets` | `getUpsets` |
-| `get_recent_matches` | `getRecentMatches` |
-| `get_match_by_id` | `getMatchById` |
-| `get_fixtures` | `getFixtures` |
-| `get_season_progress` | `getSeasonProgress` |
-| `get_achievements` | `getAchievements` |
-| `get_unbeaten_runs` | `getUnbeatenRuns` |
-| `get_most_improved` | `getMostImproved` |
-| `get_player_activity` | `getPlayerActivity` |
-| `get_player_peak` | `getPlayerPeak` |
-| `get_team_standings` | `getTeamStandings` |
-| `get_team_stats` | `getTeamStats` |
-| `get_comparison` | `getComparison` |
-| `get_win_probability` | `getWinProbability` |
-| `get_rivalries` | `getRivalries` |
-| `get_league_records` | `getLeagueRecords` |
+| MCP Tool Name           | Existing Executor     |
+| ----------------------- | --------------------- |
+| `get_players`           | `getPlayers`          |
+| `get_matches`           | `getMatches`          |
+| `get_season_standings`  | `getSeasonStandings`  |
+| `get_player_stats`      | `getPlayerStats`      |
+| `get_head_to_head`      | `getHeadToHead`       |
+| `get_scoring_stats`     | `getScoringStats`     |
+| `get_streaks`           | `getStreaks`          |
+| `get_elo_progression`   | `getEloProgression`   |
+| `get_form_guide`        | `getFormGuide`        |
+| `get_team_chemistry`    | `getTeamChemistry`    |
+| `get_session_stats`     | `getSessionStats`     |
+| `get_biggest_margins`   | `getBiggestMargins`   |
+| `get_closest_matches`   | `getClosestMatches`   |
+| `get_upsets`            | `getUpsets`           |
+| `get_recent_matches`    | `getRecentMatches`    |
+| `get_match_by_id`       | `getMatchById`        |
+| `get_fixtures`          | `getFixtures`         |
+| `get_season_progress`   | `getSeasonProgress`   |
+| `get_achievements`      | `getAchievements`     |
+| `get_unbeaten_runs`     | `getUnbeatenRuns`     |
+| `get_most_improved`     | `getMostImproved`     |
+| `get_player_activity`   | `getPlayerActivity`   |
+| `get_player_peak`       | `getPlayerPeak`       |
+| `get_team_standings`    | `getTeamStandings`    |
+| `get_team_stats`        | `getTeamStats`        |
+| `get_comparison`        | `getComparison`       |
+| `get_win_probability`   | `getWinProbability`   |
+| `get_rivalries`         | `getRivalries`        |
+| `get_league_records`    | `getLeagueRecords`    |
 | `get_season_highlights` | `getSeasonHighlights` |
-| `get_fairness_index` | `getFairnessIndex` |
-| `get_busiest_periods` | `getBusiestPeriods` |
-| `get_active_sessions` | `getActiveSessions` |
-| `get_session_lineup` | `getSessionLineup` |
-| `execute_query` | `executeQuery` |
+| `get_fairness_index`    | `getFairnessIndex`    |
+| `get_busiest_periods`   | `getBusiestPeriods`   |
+| `get_active_sessions`   | `getActiveSessions`   |
+| `get_session_lineup`    | `getSessionLineup`    |
+| `execute_query`         | `executeQuery`        |
 
 Tool input schemas and output shapes come directly from `tool-registry.ts`. Results pass through the same `summarizeToolResult` helper in `ai-service.ts` to stay within token limits.
 
@@ -126,6 +126,7 @@ packages/mcp/
 **Entry point behavior:** When executed with no arguments, the CLI starts the MCP stdio server. When executed as `npx @scorebrawl/mcp login`, it runs the auth flow.
 
 **Dependencies:**
+
 - `keytar` — OS keychain storage
 - `open` — cross-platform browser launch
 - `node-fetch` (or native `fetch` if Node 18+)
@@ -136,8 +137,8 @@ Stored in `~/.config/scorebrawl/mcp.json`:
 
 ```json
 {
-  "apiBaseUrl": "https://api.scorebrawl.com",
-  "keychainService": "scorebrawl-mcp"
+	"apiBaseUrl": "https://api.scorebrawl.com",
+	"keychainService": "scorebrawl-mcp"
 }
 ```
 
@@ -156,6 +157,7 @@ The actual session token is stored in the OS keychain under service `scorebrawl-
 ### `POST /mcp`
 
 **Headers:**
+
 - `Authorization: Bearer <sessionToken>` — required
 - `Content-Type: application/json`
 
@@ -163,22 +165,22 @@ The actual session token is stored in the OS keychain under service `scorebrawl-
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {}
+	"jsonrpc": "2.0",
+	"id": 1,
+	"method": "tools/list",
+	"params": {}
 }
 ```
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "tools/call",
-  "params": {
-    "name": "get_players",
-    "arguments": {}
-  }
+	"jsonrpc": "2.0",
+	"id": 2,
+	"method": "tools/call",
+	"params": {
+		"name": "get_players",
+		"arguments": {}
+	}
 }
 ```
 
@@ -186,17 +188,17 @@ The actual session token is stored in the OS keychain under service `scorebrawl-
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "tools": [
-      {
-        "name": "get_players",
-        "description": "Get all players in the league with their aggregate stats...",
-        "inputSchema": { "type": "object", "properties": {} }
-      }
-    ]
-  }
+	"jsonrpc": "2.0",
+	"id": 1,
+	"result": {
+		"tools": [
+			{
+				"name": "get_players",
+				"description": "Get all players in the league with their aggregate stats...",
+				"inputSchema": { "type": "object", "properties": {} }
+			}
+		]
+	}
 }
 ```
 

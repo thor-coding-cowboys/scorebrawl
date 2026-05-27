@@ -85,6 +85,7 @@ export function createAuth({
 			provider: "sqlite",
 		}),
 		secret: betterAuthSecret,
+		trustedOrigins: origin ? [origin] : undefined,
 		databaseHooks: {
 			user: {
 				create: {

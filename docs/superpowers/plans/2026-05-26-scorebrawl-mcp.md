@@ -13,14 +13,17 @@
 ## File Structure
 
 ### Backend (Worker)
+
 - **Create:** `apps/worker/src/routes/mcp-router.ts` — Hono route handling JSON-RPC MCP requests
 - **Modify:** `apps/worker/src/index.ts` — Wire up `/api/mcp` route
 - **Create:** `apps/worker/test/mcp/mcp-router.spec.ts` — Integration tests for MCP endpoint
 
 ### Frontend (Web App)
+
 - **Create:** `apps/web/src/routes/_authenticated/auth/mcp-login/index.tsx` — Browser login page for MCP CLI
 
 ### CLI Package
+
 - **Create:** `packages/mcp/package.json` — Package manifest
 - **Create:** `packages/mcp/tsconfig.json` — TypeScript config
 - **Create:** `packages/mcp/src/index.ts` — MCP stdio server entry point
@@ -33,10 +36,12 @@
 ## Task 1: MCP Router — Backend JSON-RPC Handler
 
 **Files:**
+
 - Create: `apps/worker/src/routes/mcp-router.ts`
 - Modify: `apps/worker/src/index.ts`
 
 **Prerequisites:**
+
 - Read `apps/worker/src/services/ai/tool-registry.ts` to understand tool shape
 - Read `apps/worker/src/services/ai/tool-executors.ts` to understand executor imports
 - Read `apps/worker/src/middleware/auth.ts` for auth middleware pattern
@@ -191,7 +196,10 @@ export const mcpRouter = new Hono<HonoEnv>()
 		}
 
 		if (method === "tools/call") {
-			const { name, arguments: args } = params as { name: string; arguments: Record<string, unknown> };
+			const { name, arguments: args } = params as {
+				name: string;
+				arguments: Record<string, unknown>;
+			};
 			const executor = toolExecutors[name];
 			if (!executor) {
 				return c.json(
@@ -211,7 +219,9 @@ export const mcpRouter = new Hono<HonoEnv>()
 					env,
 				};
 				const result = await executor(toolCtx, args);
-				return c.json(createResponse(id, { content: [{ type: "text", text: JSON.stringify(result) }] }));
+				return c.json(
+					createResponse(id, { content: [{ type: "text", text: JSON.stringify(result) }] })
+				);
 			} catch (err) {
 				console.error(`[MCP] Tool "${name}" failed:`, err);
 				return c.json(
@@ -239,17 +249,20 @@ export const mcpRouter = new Hono<HonoEnv>()
 Modify `apps/worker/src/index.ts`:
 
 Add import:
+
 ```typescript
 import { mcpRouter } from "./routes/mcp-router";
 ```
 
 Add route registration after the ai-stream router:
+
 ```typescript
 .use("/api/mcp/*", enforceAuthMiddleware)
 .route("/api/mcp", mcpRouter)
 ```
 
 The final route registrations should look like:
+
 ```typescript
 .use("/api/ai/*", enforceAuthMiddleware)
 .route("/api/ai", aiStreamRouter)
@@ -275,6 +288,7 @@ git commit -m "feat: add MCP router to worker"
 ## Task 2: MCP Router Tests
 
 **Files:**
+
 - Create: `apps/worker/test/mcp/mcp-router.spec.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -434,6 +448,7 @@ git commit -m "test: add MCP router integration tests"
 ## Task 3: MCP Login Page (Web App)
 
 **Files:**
+
 - Create: `apps/web/src/routes/_authenticated/auth/mcp-login/index.tsx`
 
 - [ ] **Step 1: Create the MCP login page**
@@ -445,7 +460,13 @@ import { useSearch } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuthQuery } from "../../../../hooks/use-auth";
 import { Button } from "../../../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "../../../../components/ui/card";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/auth/mcp-login/")({
@@ -503,9 +524,7 @@ function McpLoginPage() {
 						</Button>
 					) : (
 						<div className="space-y-2">
-							<p className="text-sm text-muted-foreground">
-								Run this command in your terminal:
-							</p>
+							<p className="text-sm text-muted-foreground">Run this command in your terminal:</p>
 							<code className="block rounded bg-muted px-3 py-2 text-sm font-mono">
 								npx @scorebrawl/mcp login
 							</code>
@@ -540,6 +559,7 @@ git commit -m "feat: add MCP login page"
 ## Task 4: MCP CLI Package — Package Setup
 
 **Files:**
+
 - Create: `packages/mcp/package.json`
 - Create: `packages/mcp/tsconfig.json`
 
@@ -556,9 +576,7 @@ Create `packages/mcp/package.json`:
 	"bin": {
 		"scorebrawl-mcp": "./dist/index.js"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"scripts": {
 		"build": "tsc",
 		"typecheck": "tsc --noEmit",
@@ -625,6 +643,7 @@ git commit -m "feat: setup MCP CLI package"
 ## Task 5: MCP CLI Package — Config Module
 
 **Files:**
+
 - Create: `packages/mcp/src/config.ts`
 
 - [ ] **Step 1: Create config module**
@@ -691,6 +710,7 @@ git commit -m "feat: add MCP config module"
 ## Task 6: MCP CLI Package — Auth Module
 
 **Files:**
+
 - Create: `packages/mcp/src/auth.ts`
 
 - [ ] **Step 1: Create auth module**
@@ -835,6 +855,7 @@ git commit -m "feat: add MCP auth module with login flow"
 ## Task 7: MCP CLI Package — Proxy Module
 
 **Files:**
+
 - Create: `packages/mcp/src/proxy.ts`
 
 - [ ] **Step 1: Create proxy module**
@@ -922,6 +943,7 @@ git commit -m "feat: add MCP proxy module"
 ## Task 8: MCP CLI Package — Main Entry Point
 
 **Files:**
+
 - Create: `packages/mcp/src/index.ts`
 
 - [ ] **Step 1: Create main entry point**
@@ -1032,6 +1054,7 @@ git commit -m "feat: add MCP server entry point"
 ## Task 9: Final Verification
 
 **Files:**
+
 - All of the above
 
 - [ ] **Step 1: Run backend typecheck**
@@ -1066,20 +1089,20 @@ git commit --allow-empty -m "chore: MCP server implementation complete"
 
 ### Spec Coverage Check
 
-| Spec Section | Implementing Task |
-|---|---|
-| Architecture (thin CLI proxy) | Task 4-8 (CLI), Task 1 (worker route) |
-| MCP Protocol (stdio JSON-RPC) | Task 8 |
-| Authentication (better-auth cookie) | Task 6, Task 7 |
-| Backend /api/mcp endpoint | Task 1 |
-| tools/list | Task 1 |
-| tools/call | Task 1 |
-| Tool registry reuse | Task 1 (imports from tool-registry.ts and tool-executors.ts) |
-| Web app login page | Task 3 |
-| CLI package structure | Task 4-8 |
-| Error handling (auth, no org, network) | Task 1, Task 7 |
-| Read-only constraint | Task 1 (only read-only tool executors imported) |
-| Testing | Task 2 |
+| Spec Section                           | Implementing Task                                            |
+| -------------------------------------- | ------------------------------------------------------------ |
+| Architecture (thin CLI proxy)          | Task 4-8 (CLI), Task 1 (worker route)                        |
+| MCP Protocol (stdio JSON-RPC)          | Task 8                                                       |
+| Authentication (better-auth cookie)    | Task 6, Task 7                                               |
+| Backend /api/mcp endpoint              | Task 1                                                       |
+| tools/list                             | Task 1                                                       |
+| tools/call                             | Task 1                                                       |
+| Tool registry reuse                    | Task 1 (imports from tool-registry.ts and tool-executors.ts) |
+| Web app login page                     | Task 3                                                       |
+| CLI package structure                  | Task 4-8                                                     |
+| Error handling (auth, no org, network) | Task 1, Task 7                                               |
+| Read-only constraint                   | Task 1 (only read-only tool executors imported)              |
+| Testing                                | Task 2                                                       |
 
 **No gaps found.**
 

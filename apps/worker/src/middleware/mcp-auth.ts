@@ -34,11 +34,7 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		throw new HTTPException(401, { message: "Unauthorized" });
 	}
 
-	const [u] = await db
-		.select()
-		.from(userTable)
-		.where(eq(userTable.id, row.userId))
-		.limit(1);
+	const [u] = await db.select().from(userTable).where(eq(userTable.id, row.userId)).limit(1);
 	if (!u) {
 		throw new HTTPException(401, { message: "Unauthorized" });
 	}
@@ -60,10 +56,7 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 	// Best-effort last-used bump (no await blocking the request)
 	c.executionCtx.waitUntil(
-		db
-			.update(mcpToken)
-			.set({ lastUsedAt: new Date() })
-			.where(eq(mcpToken.id, row.id))
+		db.update(mcpToken).set({ lastUsedAt: new Date() }).where(eq(mcpToken.id, row.id))
 	);
 
 	await next();

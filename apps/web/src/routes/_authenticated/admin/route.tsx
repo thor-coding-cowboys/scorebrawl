@@ -15,7 +15,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 		const { error } = await authClient.admin.listUsers({ query: { limit: 1 } });
 		if (error) {
-			throw redirect({ to: "/" });
+			console.log("HEEYJA,", error);
+			// throw redirect({ to: "/" });
 		}
 
 		return { session };

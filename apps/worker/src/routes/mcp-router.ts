@@ -101,91 +101,89 @@ function createError(id: string | number | null, error: MCPError) {
 	return { jsonrpc: "2.0" as const, id, error };
 }
 
-export const mcpRouter = new Hono<HonoEnv>()
-	.use("*", mcpAuthMiddleware)
-	.post("/", async (c) => {
-		const auth = c.get("authentication");
-		const db = c.get("db");
-		const env = c.env;
-		const userAssets = c.get("userAssets");
+export const mcpRouter = new Hono<HonoEnv>().use("*", mcpAuthMiddleware).post("/", async (c) => {
+	const auth = c.get("authentication")!;
+	const db = c.get("db");
+	const env = c.env;
+	const userAssets = c.get("userAssets");
 
-		const activeOrganizationId = auth.session.activeOrganizationId;
-		if (!activeOrganizationId) {
-			return c.json(
-				createError(null, {
-					code: -32001,
-					message: "No active league selected. Set an active league in the Scorebrawl web app.",
-				}),
-				400
-			);
-		}
-
-		const body = await c.req.json<MCPRequest>();
-		const { id, method, params = {} } = body;
-
-		if (method === "initialize") {
-			return c.json(
-				createResponse(id, {
-					protocolVersion: "2024-11-05",
-					capabilities: { tools: {} },
-					serverInfo: { name: "scorebrawl-mcp", version: "0.1.0" },
-				})
-			);
-		}
-
-		if (method === "tools/list") {
-			const mcpTools = tools.map((tool) => ({
-				name: tool.name,
-				description: tool.description,
-				inputSchema: tool.parameters,
-			}));
-			return c.json(createResponse(id, { tools: mcpTools }));
-		}
-
-		if (method === "tools/call") {
-			const { name, arguments: args } = params as {
-				name: string;
-				arguments: Record<string, unknown>;
-			};
-			const executor = toolExecutors[name];
-			if (!executor) {
-				return c.json(
-					createError(id, {
-						code: -32601,
-						message: `Tool "${name}" not found`,
-					}),
-					404
-				);
-			}
-
-			try {
-				const toolCtx = {
-					db,
-					organizationId: activeOrganizationId,
-					userAssets,
-					env,
-				};
-				const result = await executor(toolCtx, { leagueId: activeOrganizationId, ...args });
-				return c.json(
-					createResponse(id, { content: [{ type: "text", text: JSON.stringify(result) }] })
-				);
-			} catch (err) {
-				console.error(`[MCP] Tool "${name}" failed:`, err);
-				return c.json(
-					createError(id, {
-						code: -32603,
-						message: err instanceof Error ? err.message : "Tool execution failed",
-					}),
-					500
-				);
-			}
-		}
-
+	const activeOrganizationId = auth.session.activeOrganizationId;
+	if (!activeOrganizationId) {
 		return c.json(
-			createError(id, {
-				code: -32601,
-				message: `Method "${method}" not found`,
+			createError(null, {
+				code: -32001,
+				message: "No active league selected. Set an active league in the Scorebrawl web app.",
 			}),
-			404
+			400
 		);
-	});
+	}
+
+	const body = await c.req.json<MCPRequest>();
+	const { id, method, params = {} } = body;
+
+	if (method === "initialize") {
+		return c.json(
+			createResponse(id, {
+				protocolVersion: "2024-11-05",
+				capabilities: { tools: {} },
+				serverInfo: { name: "scorebrawl-mcp", version: "0.1.0" },
+			})
+		);
+	}
+
+	if (method === "tools/list") {
+		const mcpTools = tools.map((tool) => ({
+			name: tool.name,
+			description: tool.description,
+			inputSchema: tool.parameters,
+		}));
+		return c.json(createResponse(id, { tools: mcpTools }));
+	}
+
+	if (method === "tools/call") {
+		const { name, arguments: args } = params as {
+			name: string;
+			arguments: Record<string, unknown>;
+		};
+		const executor = toolExecutors[name];
+		if (!executor) {
+			return c.json(
+				createError(id, {
+					code: -32601,
+					message: `Tool "${name}" not found`,
+				}),
+				404
+			);
+		}
+
+		try {
+			const toolCtx = {
+				db,
+				organizationId: activeOrganizationId,
+				userAssets,
+				env,
+			};
+			const result = await executor(toolCtx, { leagueId: activeOrganizationId, ...args });
+			return c.json(
+				createResponse(id, { content: [{ type: "text", text: JSON.stringify(result) }] })
+			);
+		} catch (err) {
+			console.error(`[MCP] Tool "${name}" failed:`, err);
+			return c.json(
+				createError(id, {
+					code: -32603,
+					message: err instanceof Error ? err.message : "Tool execution failed",
+				}),
+				500
+			);
+		}
+	}
+
+	return c.json(
+		createError(id, {
+			code: -32601,
+			message: `Method "${method}" not found`,
+		}),
+		404
+	);
+});

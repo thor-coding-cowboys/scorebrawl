@@ -1,20 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { SELF } from "cloudflare:test";
-import {
-	bearerHeaders,
-	createAuthContext,
-	createMcpToken,
-} from "../setup/auth-context-util";
+import { bearerHeaders, createAuthContext, createMcpToken } from "../setup/auth-context-util";
 
 describe("mcp router", () => {
 	let mcpToken: string;
-	let ctxUserId: string;
-	let ctxOrgId: string;
 
 	beforeEach(async () => {
 		const ctx = await createAuthContext();
-		ctxUserId = ctx.user.id;
-		ctxOrgId = ctx.league.id;
 		mcpToken = await createMcpToken({ userId: ctx.user.id, organizationId: ctx.league.id });
 	});
 

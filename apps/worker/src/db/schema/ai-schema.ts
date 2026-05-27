@@ -35,6 +35,7 @@ export const aiMessage = sqliteTable(
 		toolArgs: text("tool_args"),
 		toolResult: text("tool_result"),
 		toolCallId: text("tool_call_id"),
+		reasoningContent: text("reasoning_content"),
 		...timestampAuditFields,
 	},
 	(table) => [index("ai_message_conversation_idx").on(table.conversationId, table.createdAt)]

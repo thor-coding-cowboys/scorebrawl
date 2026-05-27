@@ -20,6 +20,7 @@ declare namespace Cloudflare {
 		RESEND_API_KEY: string;
 		ADMIN_USER_IDS: string;
 		SEED_ALLOWED: string;
+		AI_ENCRYPTION_KEY: string;
 		SEASON_SSE: DurableObjectNamespace<import("./src/index").SeasonSSE>;
 	}
 }

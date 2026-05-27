@@ -53,10 +53,7 @@ export const mcpAuthRouter = new Hono<HonoEnv>()
 			throw new HTTPException(400, { message: "Invalid or expired code." });
 		}
 
-		await db
-			.update(mcpAuthCode)
-			.set({ consumedAt: now })
-			.where(eq(mcpAuthCode.code, code));
+		await db.update(mcpAuthCode).set({ consumedAt: now }).where(eq(mcpAuthCode.code, code));
 
 		const token = generateToken();
 		const tokenHash = await hashToken(token);
