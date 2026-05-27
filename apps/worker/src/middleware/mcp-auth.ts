@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import type { HonoEnv, AuthType } from "./context";
 import { mcpToken } from "../db/schema/mcp-schema";
 import { user as userTable } from "../db/schema/auth-schema";
@@ -24,6 +24,7 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 			tokenId: mcpToken.id,
 			userId: mcpToken.userId,
 			organizationId: mcpToken.organizationId,
+			expiresAt: mcpToken.expiresAt,
 			userName: userTable.name,
 			userEmail: userTable.email,
 			userEmailVerified: userTable.emailVerified,
@@ -37,11 +38,21 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		})
 		.from(mcpToken)
 		.innerJoin(userTable, eq(userTable.id, mcpToken.userId))
-		.where(and(eq(mcpToken.tokenHash, tokenHash), isNull(mcpToken.revokedAt)))
+		.where(
+			and(
+				eq(mcpToken.tokenHash, tokenHash),
+				isNull(mcpToken.revokedAt),
+				gt(mcpToken.expiresAt, new Date())
+			)
+		)
 		.limit(1);
 
 	if (!row) {
 		throw new HTTPException(401, { message: "Unauthorized" });
+	}
+
+	if (row.expiresAt < new Date()) {
+		throw new HTTPException(401, { message: "Token expired." });
 	}
 
 	c.set("authentication", {

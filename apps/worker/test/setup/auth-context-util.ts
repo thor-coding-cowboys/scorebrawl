@@ -208,6 +208,7 @@ export async function createMcpToken(opts: {
 		tokenHash,
 		userId: opts.userId,
 		organizationId: opts.organizationId,
+		expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
 	});
 	return token;
 }

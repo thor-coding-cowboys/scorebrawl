@@ -26,6 +26,7 @@ export const mcpToken = sqliteTable("mcp_token", {
 		.notNull()
 		.references(() => league.id, { onDelete: "cascade" }),
 	lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+	expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 	revokedAt: integer("revoked_at", { mode: "timestamp" }),
 	...timestampAuditFields,
 });

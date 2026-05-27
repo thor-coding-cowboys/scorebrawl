@@ -9,6 +9,7 @@ import { generateAuthCode, generateToken, hashToken } from "../lib/mcp-tokens";
 import { createId } from "../utils/id-util";
 
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
+const TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 export const mcpAuthRouter = new Hono<HonoEnv>()
 	.post("/authorize", enforceAuthMiddleware, async (c) => {
@@ -64,6 +65,7 @@ export const mcpAuthRouter = new Hono<HonoEnv>()
 			tokenHash,
 			userId: consumed.userId,
 			organizationId: consumed.organizationId,
+			expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
 		});
 
 		return c.json({ token, organizationId: consumed.organizationId });
