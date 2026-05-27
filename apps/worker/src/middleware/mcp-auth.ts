@@ -21,12 +21,22 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 	const [row] = await db
 		.select({
-			id: mcpToken.id,
+			tokenId: mcpToken.id,
 			userId: mcpToken.userId,
 			organizationId: mcpToken.organizationId,
-			revokedAt: mcpToken.revokedAt,
+			userName: userTable.name,
+			userEmail: userTable.email,
+			userEmailVerified: userTable.emailVerified,
+			userImage: userTable.image,
+			userCreatedAt: userTable.createdAt,
+			userUpdatedAt: userTable.updatedAt,
+			userRole: userTable.role,
+			userBanned: userTable.banned,
+			userBanReason: userTable.banReason,
+			userBanExpires: userTable.banExpires,
 		})
 		.from(mcpToken)
+		.innerJoin(userTable, eq(userTable.id, mcpToken.userId))
 		.where(and(eq(mcpToken.tokenHash, tokenHash), isNull(mcpToken.revokedAt)))
 		.limit(1);
 
@@ -34,15 +44,22 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		throw new HTTPException(401, { message: "Unauthorized" });
 	}
 
-	const [u] = await db.select().from(userTable).where(eq(userTable.id, row.userId)).limit(1);
-	if (!u) {
-		throw new HTTPException(401, { message: "Unauthorized" });
-	}
-
 	c.set("authentication", {
-		user: u,
+		user: {
+			id: row.userId,
+			name: row.userName,
+			email: row.userEmail,
+			emailVerified: row.userEmailVerified,
+			image: row.userImage,
+			createdAt: row.userCreatedAt,
+			updatedAt: row.userUpdatedAt,
+			role: row.userRole,
+			banned: row.userBanned,
+			banReason: row.userBanReason,
+			banExpires: row.userBanExpires,
+		},
 		session: {
-			id: `mcp-${row.id}`,
+			id: `mcp-${row.tokenId}`,
 			userId: row.userId,
 			activeOrganizationId: row.organizationId,
 			createdAt: new Date(),
@@ -56,7 +73,7 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 	// Best-effort last-used bump (no await blocking the request)
 	c.executionCtx.waitUntil(
-		db.update(mcpToken).set({ lastUsedAt: new Date() }).where(eq(mcpToken.id, row.id))
+		db.update(mcpToken).set({ lastUsedAt: new Date() }).where(eq(mcpToken.id, row.tokenId))
 	);
 
 	await next();
