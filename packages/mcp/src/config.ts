@@ -10,7 +10,7 @@ const CONFIG_DIR = join(homedir(), ".config", "scorebrawl");
 const CONFIG_FILE = join(CONFIG_DIR, "mcp.json");
 
 const DEFAULT_CONFIG: MCPConfig = {
-	apiBaseUrl: "https://api.scorebrawl.com",
+	apiBaseUrl: "https://scorebrawl.com/api",
 };
 
 function ensureConfigDir() {
