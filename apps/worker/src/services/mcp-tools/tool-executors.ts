@@ -404,7 +404,7 @@ export async function getHeadToHead(
 			(mp.userName ?? mp.guestName ?? "").toLowerCase().includes(name1Lower)
 		)?.userName ??
 		allMatchPlayers.find((mp) =>
-			(mp.userName ?? mp.guestName ?? "").toLowerCase().includes(name2Lower)
+			(mp.userName ?? mp.guestName ?? "").toLowerCase().includes(name1Lower)
 		)?.guestName ??
 		args.player1Name;
 	const p2Name =
@@ -924,17 +924,20 @@ export async function getSessionStats(
 
 	// Get player names for sessionPlayers
 	const seasonPlayerIds = [...new Set(sessionPlayers.map((sp) => sp.seasonPlayerId))];
-	const playerNames = await db
-		.select({
-			seasonPlayerId: seasonPlayer.id,
-			userName: user.name,
-			guestName: guest.displayName,
-		})
-		.from(seasonPlayer)
-		.innerJoin(player, eq(player.id, seasonPlayer.playerId))
-		.leftJoin(user, eq(user.id, player.userId))
-		.leftJoin(guest, eq(guest.id, player.guestId))
-		.where(inArray(seasonPlayer.id, seasonPlayerIds));
+	const playerNames =
+		seasonPlayerIds.length === 0
+			? []
+			: await db
+					.select({
+						seasonPlayerId: seasonPlayer.id,
+						userName: user.name,
+						guestName: guest.displayName,
+					})
+					.from(seasonPlayer)
+					.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+					.leftJoin(user, eq(user.id, player.userId))
+					.leftJoin(guest, eq(guest.id, player.guestId))
+					.where(inArray(seasonPlayer.id, seasonPlayerIds));
 
 	const nameMap = new Map(
 		playerNames.map((p) => [p.seasonPlayerId, p.userName ?? p.guestName ?? "Unknown"])
@@ -2185,15 +2188,15 @@ export async function getLeagueRecords(
 				"most_goals_game",
 			];
 
-	const records: Array<{
+	type RecordEntry = {
 		recordType: string;
 		holder: string;
 		value: number | string;
 		seasonName: string | null;
 		date: string | null;
-	}> = [];
+	};
 
-	for (const type of types) {
+	const queryForType = async (type: string): Promise<RecordEntry | null> => {
 		switch (type) {
 			case "highest_score": {
 				const row = await db
@@ -2211,16 +2214,14 @@ export async function getLeagueRecords(
 					.where(eq(season.leagueId, args.leagueId))
 					.orderBy(desc(seasonPlayer.score))
 					.limit(1);
-				if (row[0]) {
-					records.push({
-						recordType: type,
-						holder: row[0].userName ?? row[0].guestName ?? "Unknown",
-						value: row[0].score,
-						seasonName: row[0].seasonName,
-						date: null,
-					});
-				}
-				break;
+				if (!row[0]) return null;
+				return {
+					recordType: type,
+					holder: row[0].userName ?? row[0].guestName ?? "Unknown",
+					value: row[0].score,
+					seasonName: row[0].seasonName,
+					date: null,
+				};
 			}
 			case "lowest_score": {
 				const row = await db
@@ -2238,16 +2239,14 @@ export async function getLeagueRecords(
 					.where(eq(season.leagueId, args.leagueId))
 					.orderBy(seasonPlayer.score)
 					.limit(1);
-				if (row[0]) {
-					records.push({
-						recordType: type,
-						holder: row[0].userName ?? row[0].guestName ?? "Unknown",
-						value: row[0].score,
-						seasonName: row[0].seasonName,
-						date: null,
-					});
-				}
-				break;
+				if (!row[0]) return null;
+				return {
+					recordType: type,
+					holder: row[0].userName ?? row[0].guestName ?? "Unknown",
+					value: row[0].score,
+					seasonName: row[0].seasonName,
+					date: null,
+				};
 			}
 			case "most_matches": {
 				const rows = await db
@@ -2266,16 +2265,14 @@ export async function getLeagueRecords(
 					.groupBy(player.id, user.name, guest.displayName)
 					.orderBy(desc(sql`count(${matchPlayer.id})`))
 					.limit(1);
-				if (rows[0]) {
-					records.push({
-						recordType: type,
-						holder: rows[0].userName ?? rows[0].guestName ?? "Unknown",
-						value: rows[0].count,
-						seasonName: null,
-						date: null,
-					});
-				}
-				break;
+				if (!rows[0]) return null;
+				return {
+					recordType: type,
+					holder: rows[0].userName ?? rows[0].guestName ?? "Unknown",
+					value: rows[0].count,
+					seasonName: null,
+					date: null,
+				};
 			}
 			case "biggest_margin": {
 				const rows = await db
@@ -2290,16 +2287,14 @@ export async function getLeagueRecords(
 					.where(eq(season.leagueId, args.leagueId))
 					.orderBy(desc(sql`abs(${match.homeScore} - ${match.awayScore})`))
 					.limit(1);
-				if (rows[0]) {
-					records.push({
-						recordType: type,
-						holder: `${rows[0].homeScore}-${rows[0].awayScore}`,
-						value: Math.abs(rows[0].homeScore - rows[0].awayScore),
-						seasonName: rows[0].seasonName,
-						date: rows[0].createdAt?.toISOString() ?? null,
-					});
-				}
-				break;
+				if (!rows[0]) return null;
+				return {
+					recordType: type,
+					holder: `${rows[0].homeScore}-${rows[0].awayScore}`,
+					value: Math.abs(rows[0].homeScore - rows[0].awayScore),
+					seasonName: rows[0].seasonName,
+					date: rows[0].createdAt?.toISOString() ?? null,
+				};
 			}
 			case "most_goals_game": {
 				const rows = await db
@@ -2314,19 +2309,16 @@ export async function getLeagueRecords(
 					.where(eq(season.leagueId, args.leagueId))
 					.orderBy(desc(sql`${match.homeScore} + ${match.awayScore}`))
 					.limit(1);
-				if (rows[0]) {
-					records.push({
-						recordType: type,
-						holder: `${rows[0].homeScore}-${rows[0].awayScore}`,
-						value: rows[0].homeScore + rows[0].awayScore,
-						seasonName: rows[0].seasonName,
-						date: rows[0].createdAt?.toISOString() ?? null,
-					});
-				}
-				break;
+				if (!rows[0]) return null;
+				return {
+					recordType: type,
+					holder: `${rows[0].homeScore}-${rows[0].awayScore}`,
+					value: rows[0].homeScore + rows[0].awayScore,
+					seasonName: rows[0].seasonName,
+					date: rows[0].createdAt?.toISOString() ?? null,
+				};
 			}
 			case "longest_win_streak": {
-				// This requires walking match history per player — compute from existing data
 				const allRows = await db
 					.select({
 						result: matchPlayer.result,
@@ -2369,19 +2361,21 @@ export async function getLeagueRecords(
 						bestPlayer = name;
 					}
 				}
-				records.push({
+				return {
 					recordType: type,
 					holder: bestPlayer,
 					value: bestStreak,
 					seasonName: null,
 					date: null,
-				});
-				break;
+				};
 			}
+			default:
+				return null;
 		}
-	}
+	};
 
-	return records;
+	const results = await Promise.all(types.map(queryForType));
+	return results.filter((r): r is RecordEntry => r !== null);
 }
 
 export async function getSeasonHighlights(

@@ -118,7 +118,12 @@ export const mcpRouter = new Hono<HonoEnv>().use("*", mcpAuthMiddleware).post("/
 		);
 	}
 
-	const body = await c.req.json<MCPRequest>();
+	let body: MCPRequest;
+	try {
+		body = await c.req.json<MCPRequest>();
+	} catch {
+		return c.json(createError(null, { code: -32700, message: "Parse error: invalid JSON" }), 400);
+	}
 	const { id, method, params = {} } = body;
 
 	if (method === "initialize") {
