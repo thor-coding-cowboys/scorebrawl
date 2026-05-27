@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { proxyToWorker } from "./proxy.js";
 import { runLoginFlow } from "./auth.js";
+import { runInstall } from "./install.js";
 
 const args = process.argv.slice(2);
 
@@ -12,6 +13,15 @@ if (args[0] === "login") {
 		})
 		.catch((err) => {
 			console.error("Login failed:", err instanceof Error ? err.message : String(err));
+			process.exit(1);
+		});
+} else if (args[0] === "install") {
+	const agentName = args[1];
+	const useLocal = args.includes("--local");
+	runInstall(agentName, useLocal)
+		.then(() => process.exit(0))
+		.catch((err) => {
+			console.error("Install failed:", err instanceof Error ? err.message : String(err));
 			process.exit(1);
 		});
 } else {
