@@ -166,13 +166,16 @@ export async function getMatches(
 	}));
 }
 
-export async function getSeasonStandings(ctx: ToolExecutorContext, args: { seasonSlug: string }) {
+export async function getSeasonStandings(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; seasonSlug: string }
+) {
 	const { db } = ctx;
 
 	const seasonData = await db
 		.select({ id: season.id, name: season.name, scoreType: season.scoreType })
 		.from(season)
-		.where(eq(season.slug, args.seasonSlug))
+		.where(and(eq(season.slug, args.seasonSlug), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (seasonData.length === 0) return { season: null, standings: [] };
@@ -1291,7 +1294,10 @@ export async function getRecentMatches(
 	}));
 }
 
-export async function getMatchById(ctx: ToolExecutorContext, args: { matchId: string }) {
+export async function getMatchById(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; matchId: string }
+) {
 	const { db } = ctx;
 
 	const [matchData] = await db
@@ -1304,7 +1310,7 @@ export async function getMatchById(ctx: ToolExecutorContext, args: { matchId: st
 		})
 		.from(match)
 		.innerJoin(season, eq(season.id, match.seasonId))
-		.where(eq(match.id, args.matchId))
+		.where(and(eq(match.id, args.matchId), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (!matchData) return { error: `Match "${args.matchId}" not found` };
@@ -1354,14 +1360,14 @@ export async function getMatchById(ctx: ToolExecutorContext, args: { matchId: st
 
 export async function getFixtures(
 	ctx: ToolExecutorContext,
-	args: { seasonSlug: string; playerName?: string }
+	args: { leagueId: string; seasonSlug: string; playerName?: string }
 ) {
 	const { db } = ctx;
 
 	const seasonData = await db
 		.select({ id: season.id })
 		.from(season)
-		.where(eq(season.slug, args.seasonSlug))
+		.where(and(eq(season.slug, args.seasonSlug), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (seasonData.length === 0) return { error: `Season "${args.seasonSlug}" not found` };
@@ -1417,7 +1423,10 @@ export async function getFixtures(
 	return result;
 }
 
-export async function getSeasonProgress(ctx: ToolExecutorContext, args: { seasonSlug: string }) {
+export async function getSeasonProgress(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; seasonSlug: string }
+) {
 	const { db } = ctx;
 
 	const seasonData = await db
@@ -1428,7 +1437,7 @@ export async function getSeasonProgress(ctx: ToolExecutorContext, args: { season
 			endDate: season.endDate,
 		})
 		.from(season)
-		.where(eq(season.slug, args.seasonSlug))
+		.where(and(eq(season.slug, args.seasonSlug), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (seasonData.length === 0) return { error: `Season "${args.seasonSlug}" not found` };
@@ -1829,13 +1838,16 @@ export async function getPlayerPeak(
 
 // ─── Phase 4: Team ──────────────────────────────────────────────────────────
 
-export async function getTeamStandings(ctx: ToolExecutorContext, args: { seasonSlug: string }) {
+export async function getTeamStandings(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; seasonSlug: string }
+) {
 	const { db } = ctx;
 
 	const seasonData = await db
 		.select({ id: season.id, name: season.name })
 		.from(season)
-		.where(eq(season.slug, args.seasonSlug))
+		.where(and(eq(season.slug, args.seasonSlug), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (seasonData.length === 0) return { error: `Season "${args.seasonSlug}" not found` };
@@ -1873,11 +1885,11 @@ export async function getTeamStandings(ctx: ToolExecutorContext, args: { seasonS
 
 export async function getTeamStats(
 	ctx: ToolExecutorContext,
-	args: { seasonSlug?: string; teamName?: string }
+	args: { leagueId: string; seasonSlug?: string; teamName?: string }
 ) {
 	const { db } = ctx;
 
-	const conditions = [];
+	const conditions = [eq(season.leagueId, args.leagueId)];
 	if (args.seasonSlug) conditions.push(eq(season.slug, args.seasonSlug));
 
 	const teams = await db
@@ -2372,13 +2384,16 @@ export async function getLeagueRecords(
 	return records;
 }
 
-export async function getSeasonHighlights(ctx: ToolExecutorContext, args: { seasonSlug: string }) {
+export async function getSeasonHighlights(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; seasonSlug: string }
+) {
 	const { db } = ctx;
 
 	const seasonData = await db
 		.select({ id: season.id, name: season.name })
 		.from(season)
-		.where(eq(season.slug, args.seasonSlug))
+		.where(and(eq(season.slug, args.seasonSlug), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (seasonData.length === 0) return { error: `Season "${args.seasonSlug}" not found` };
@@ -2738,7 +2753,10 @@ export async function getActiveSessions(
 	});
 }
 
-export async function getSessionLineup(ctx: ToolExecutorContext, args: { sessionId: string }) {
+export async function getSessionLineup(
+	ctx: ToolExecutorContext,
+	args: { leagueId: string; sessionId: string }
+) {
 	const { db } = ctx;
 
 	const [session] = await db
@@ -2748,7 +2766,8 @@ export async function getSessionLineup(ctx: ToolExecutorContext, args: { session
 			seasonId: gameSession.seasonId,
 		})
 		.from(gameSession)
-		.where(eq(gameSession.id, args.sessionId))
+		.innerJoin(season, eq(season.id, gameSession.seasonId))
+		.where(and(eq(gameSession.id, args.sessionId), eq(season.leagueId, args.leagueId)))
 		.limit(1);
 
 	if (!session) return { error: `Session "${args.sessionId}" not found` };
