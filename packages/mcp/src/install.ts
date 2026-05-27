@@ -1,8 +1,11 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { loadConfig } from "./config.js";
+
+const PACKAGE_DIR = dirname(fileURLToPath(import.meta.url));
 
 interface Agent {
 	name: string;
@@ -40,8 +43,7 @@ function getMcpEntry(useLocal: boolean): Record<string, unknown> {
 	const baseUrl = loadConfig().apiBaseUrl;
 
 	if (useLocal) {
-		// Use local build path for development
-		const localPath = join(process.cwd(), "dist", "index.js");
+		const localPath = join(PACKAGE_DIR, "index.js");
 		return {
 			command: "node",
 			args: [localPath],
@@ -80,7 +82,7 @@ function installToClaude(useLocal: boolean): void {
 	const baseUrl = loadConfig().apiBaseUrl;
 
 	if (useLocal) {
-		const localPath = join(process.cwd(), "dist", "index.js");
+		const localPath = join(PACKAGE_DIR, "index.js");
 		execFileSync(
 			"claude",
 			["mcp", "add", "scorebrawl", "-e", `SCOREBRAWL_API_URL=${baseUrl}`, "--", "node", localPath],
