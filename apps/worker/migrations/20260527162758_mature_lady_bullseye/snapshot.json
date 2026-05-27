@@ -1,8 +1,8 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "b4db9b30-328a-404e-bd08-3ff635ac536b",
-	"prevIds": ["726189c5-eae8-4919-a3c7-5b76a1389070"],
+	"id": "d8e39f9b-79c1-4c65-a114-5f77b5e53790",
+	"prevIds": ["7aef9082-02ef-4514-b5e0-c2028b987453"],
 	"ddl": [
 		{
 			"name": "account",
@@ -109,15 +109,11 @@
 			"entityType": "tables"
 		},
 		{
-			"name": "ai_conversation",
+			"name": "mcp_auth_code",
 			"entityType": "tables"
 		},
 		{
-			"name": "ai_message",
-			"entityType": "tables"
-		},
-		{
-			"name": "ai_user_settings",
+			"name": "mcp_token",
 			"entityType": "tables"
 		},
 		{
@@ -2676,9 +2672,9 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "id",
+			"name": "code",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "text",
@@ -2688,7 +2684,7 @@
 			"generated": null,
 			"name": "user_id",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "text",
@@ -2696,19 +2692,29 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "league_id",
+			"name": "organization_id",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
-			"type": "text",
+			"type": "integer",
 			"notNull": true,
 			"autoincrement": false,
-			"default": "'New conversation'",
+			"default": null,
 			"generated": null,
-			"name": "title",
+			"name": "expires_at",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "consumed_at",
+			"entityType": "columns",
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "integer",
@@ -2718,7 +2724,7 @@
 			"generated": null,
 			"name": "created_at",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "integer",
@@ -2728,7 +2734,7 @@
 			"generated": null,
 			"name": "updated_at",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "integer",
@@ -2738,7 +2744,7 @@
 			"generated": null,
 			"name": "deleted_at",
 			"entityType": "columns",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
 			"type": "text",
@@ -2748,7 +2754,7 @@
 			"generated": null,
 			"name": "id",
 			"entityType": "columns",
-			"table": "ai_message"
+			"table": "mcp_token"
 		},
 		{
 			"type": "text",
@@ -2756,119 +2762,9 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "conversation_id",
+			"name": "token_hash",
 			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": true,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "role",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": true,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "content",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "tool_name",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "tool_args",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "tool_result",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "tool_call_id",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "reasoning_content",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "integer",
-			"notNull": true,
-			"autoincrement": false,
-			"default": "(unixepoch())",
-			"generated": null,
-			"name": "created_at",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "integer",
-			"notNull": true,
-			"autoincrement": false,
-			"default": "(unixepoch())",
-			"generated": null,
-			"name": "updated_at",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "integer",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "deleted_at",
-			"entityType": "columns",
-			"table": "ai_message"
-		},
-		{
-			"type": "text",
-			"notNull": false,
-			"autoincrement": false,
-			"default": null,
-			"generated": null,
-			"name": "id",
-			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"type": "text",
@@ -2878,7 +2774,7 @@
 			"generated": null,
 			"name": "user_id",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"type": "text",
@@ -2886,29 +2782,39 @@
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "provider",
+			"name": "organization_id",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
-			"type": "text",
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "last_used_at",
+			"entityType": "columns",
+			"table": "mcp_token"
+		},
+		{
+			"type": "integer",
 			"notNull": true,
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "model",
+			"name": "expires_at",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
-			"type": "text",
-			"notNull": true,
+			"type": "integer",
+			"notNull": false,
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
-			"name": "encrypted_api_key",
+			"name": "revoked_at",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"type": "integer",
@@ -2918,7 +2824,7 @@
 			"generated": null,
 			"name": "created_at",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"type": "integer",
@@ -2928,7 +2834,7 @@
 			"generated": null,
 			"name": "updated_at",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"type": "integer",
@@ -2938,7 +2844,7 @@
 			"generated": null,
 			"name": "deleted_at",
 			"entityType": "columns",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
 		},
 		{
 			"columns": ["user_id"],
@@ -3365,31 +3271,20 @@
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_ai_conversation_user_id_user_id_fk",
+			"name": "fk_mcp_auth_code_user_id_user_id_fk",
 			"entityType": "fks",
-			"table": "ai_conversation"
+			"table": "mcp_auth_code"
 		},
 		{
-			"columns": ["league_id"],
+			"columns": ["organization_id"],
 			"tableTo": "league",
 			"columnsTo": ["id"],
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_ai_conversation_league_id_league_id_fk",
+			"name": "fk_mcp_auth_code_organization_id_league_id_fk",
 			"entityType": "fks",
-			"table": "ai_conversation"
-		},
-		{
-			"columns": ["conversation_id"],
-			"tableTo": "ai_conversation",
-			"columnsTo": ["id"],
-			"onUpdate": "NO ACTION",
-			"onDelete": "cascade",
-			"nameExplicit": false,
-			"name": "fk_ai_message_conversation_id_ai_conversation_id_fk",
-			"entityType": "fks",
-			"table": "ai_message"
+			"table": "mcp_auth_code"
 		},
 		{
 			"columns": ["user_id"],
@@ -3398,9 +3293,20 @@
 			"onUpdate": "NO ACTION",
 			"onDelete": "cascade",
 			"nameExplicit": false,
-			"name": "fk_ai_user_settings_user_id_user_id_fk",
+			"name": "fk_mcp_token_user_id_user_id_fk",
 			"entityType": "fks",
-			"table": "ai_user_settings"
+			"table": "mcp_token"
+		},
+		{
+			"columns": ["organization_id"],
+			"tableTo": "league",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "cascade",
+			"nameExplicit": false,
+			"name": "fk_mcp_token_organization_id_league_id_fk",
+			"entityType": "fks",
+			"table": "mcp_token"
 		},
 		{
 			"columns": ["id"],
@@ -3585,24 +3491,17 @@
 			"entityType": "pks"
 		},
 		{
-			"columns": ["id"],
+			"columns": ["code"],
 			"nameExplicit": false,
-			"name": "ai_conversation_pk",
-			"table": "ai_conversation",
+			"name": "mcp_auth_code_pk",
+			"table": "mcp_auth_code",
 			"entityType": "pks"
 		},
 		{
 			"columns": ["id"],
 			"nameExplicit": false,
-			"name": "ai_message_pk",
-			"table": "ai_message",
-			"entityType": "pks"
-		},
-		{
-			"columns": ["id"],
-			"nameExplicit": false,
-			"name": "ai_user_settings_pk",
-			"table": "ai_user_settings",
+			"name": "mcp_token_pk",
+			"table": "mcp_token",
 			"entityType": "pks"
 		},
 		{
@@ -4278,60 +4177,6 @@
 			"table": "session_player"
 		},
 		{
-			"columns": [
-				{
-					"value": "user_id",
-					"isExpression": false
-				},
-				{
-					"value": "league_id",
-					"isExpression": false
-				},
-				{
-					"value": "updated_at",
-					"isExpression": false
-				}
-			],
-			"isUnique": false,
-			"where": null,
-			"origin": "manual",
-			"name": "ai_conversation_user_league_idx",
-			"entityType": "indexes",
-			"table": "ai_conversation"
-		},
-		{
-			"columns": [
-				{
-					"value": "conversation_id",
-					"isExpression": false
-				},
-				{
-					"value": "created_at",
-					"isExpression": false
-				}
-			],
-			"isUnique": false,
-			"where": null,
-			"origin": "manual",
-			"name": "ai_message_conversation_idx",
-			"entityType": "indexes",
-			"table": "ai_message"
-		},
-		{
-			"columns": [
-				{
-					"value": "user_id",
-					"isExpression": false
-				}
-			],
-			"isUnique": true,
-			"where": null,
-			"origin": "manual",
-			"name": "ai_user_settings_user_idx",
-			"entityType": "indexes",
-			"table": "ai_user_settings"
-		},
-		{
 			"columns": ["token"],
 			"nameExplicit": false,
 			"name": "session_token_unique",
@@ -4344,6 +4189,13 @@
 			"name": "user_email_unique",
 			"entityType": "uniques",
 			"table": "user"
+		},
+		{
+			"columns": ["token_hash"],
+			"nameExplicit": false,
+			"name": "mcp_token_token_hash_unique",
+			"entityType": "uniques",
+			"table": "mcp_token"
 		},
 		{
 			"value": "(user_id IS NOT NULL OR guest_id IS NOT NULL)",

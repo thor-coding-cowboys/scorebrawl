@@ -1,1 +1,0 @@
-ALTER TABLE `game_session` ADD `mode_settings` text;

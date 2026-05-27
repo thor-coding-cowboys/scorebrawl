@@ -1,1 +1,0 @@
-ALTER TABLE `ai_message` ADD `reasoning_content` text;

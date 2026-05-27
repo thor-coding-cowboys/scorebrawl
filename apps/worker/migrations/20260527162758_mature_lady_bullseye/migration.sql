@@ -1,0 +1,1 @@
+ALTER TABLE `mcp_token` ADD `expires_at` integer NOT NULL;
