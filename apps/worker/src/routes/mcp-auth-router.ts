@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { and, eq, gt, isNull } from "drizzle-orm";
+
 import { HTTPException } from "hono/http-exception";
 import type { HonoEnv } from "../middleware/context";
 import { enforceAuthMiddleware } from "../middleware/auth";
@@ -37,9 +38,9 @@ export const mcpAuthRouter = new Hono<HonoEnv>()
 		}
 
 		const now = new Date();
-		const [row] = await db
-			.select()
-			.from(mcpAuthCode)
+		const [consumed] = await db
+			.update(mcpAuthCode)
+			.set({ consumedAt: now })
 			.where(
 				and(
 					eq(mcpAuthCode.code, code),
@@ -47,22 +48,23 @@ export const mcpAuthRouter = new Hono<HonoEnv>()
 					gt(mcpAuthCode.expiresAt, now)
 				)
 			)
-			.limit(1);
+			.returning({
+				userId: mcpAuthCode.userId,
+				organizationId: mcpAuthCode.organizationId,
+			});
 
-		if (!row) {
+		if (!consumed) {
 			throw new HTTPException(400, { message: "Invalid or expired code." });
 		}
-
-		await db.update(mcpAuthCode).set({ consumedAt: now }).where(eq(mcpAuthCode.code, code));
 
 		const token = generateToken();
 		const tokenHash = await hashToken(token);
 		await db.insert(mcpToken).values({
 			id: createId(),
 			tokenHash,
-			userId: row.userId,
-			organizationId: row.organizationId,
+			userId: consumed.userId,
+			organizationId: consumed.organizationId,
 		});
 
-		return c.json({ token, organizationId: row.organizationId });
+		return c.json({ token, organizationId: consumed.organizationId });
 	});
