@@ -77,7 +77,7 @@ const toolExecutors: Record<string, (ctx: any, args: any) => Promise<unknown>> =
 	get_busiest_periods: getBusiestPeriods,
 	get_active_sessions: getActiveSessions,
 	get_session_lineup: getSessionLineup,
-	execute_query: executeQuery,
+	query_database: executeQuery,
 };
 
 interface MCPRequest {
@@ -132,11 +132,13 @@ export const mcpRouter = new Hono<HonoEnv>().use("*", mcpAuthMiddleware).post("/
 	}
 
 	if (method === "tools/list") {
-		const mcpTools = tools.map((tool) => ({
-			name: tool.name,
-			description: tool.description,
-			inputSchema: tool.parameters,
-		}));
+		const mcpTools = tools
+			.filter((tool) => tool.name !== "render_chart")
+			.map((tool) => ({
+				name: tool.name,
+				description: tool.description,
+				inputSchema: tool.parameters,
+			}));
 		return c.json(createResponse(id, { tools: mcpTools }));
 	}
 
