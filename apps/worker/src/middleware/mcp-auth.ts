@@ -51,10 +51,6 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		throw new HTTPException(401, { message: "Unauthorized" });
 	}
 
-	if (row.expiresAt < new Date()) {
-		throw new HTTPException(401, { message: "Token expired." });
-	}
-
 	c.set("authentication", {
 		user: {
 			id: row.userId,
@@ -82,7 +78,6 @@ export const mcpAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		},
 	} as AuthType);
 
-	// Best-effort last-used bump (no await blocking the request)
 	c.executionCtx.waitUntil(
 		db.update(mcpToken).set({ lastUsedAt: new Date() }).where(eq(mcpToken.id, row.tokenId))
 	);

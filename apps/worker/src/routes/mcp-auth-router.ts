@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { HTTPException } from "hono/http-exception";
@@ -11,12 +13,20 @@ import { createId } from "../utils/id-util";
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
 const TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
+const authorizeSchema = z.object({
+	organizationId: z.string().optional(),
+});
+
+const exchangeSchema = z.object({
+	code: z.string().min(1),
+});
+
 export const mcpAuthRouter = new Hono<HonoEnv>()
-	.post("/authorize", enforceAuthMiddleware, async (c) => {
+	.post("/authorize", enforceAuthMiddleware, zValidator("json", authorizeSchema), async (c) => {
 		const db = c.get("db");
 		const auth = c.get("authentication");
-		const body = (await c.req.json().catch(() => ({}))) as { organizationId?: string };
-		const organizationId = body.organizationId ?? auth.session.activeOrganizationId;
+		const { organizationId: bodyOrgId } = c.req.valid("json");
+		const organizationId = bodyOrgId ?? auth.session.activeOrganizationId;
 		if (!organizationId) {
 			throw new HTTPException(400, { message: "No active league selected." });
 		}
@@ -31,12 +41,9 @@ export const mcpAuthRouter = new Hono<HonoEnv>()
 
 		return c.json({ code, organizationId });
 	})
-	.post("/exchange", async (c) => {
+	.post("/exchange", zValidator("json", exchangeSchema), async (c) => {
 		const db = c.get("db");
-		const { code } = (await c.req.json().catch(() => ({}))) as { code?: string };
-		if (!code || typeof code !== "string") {
-			throw new HTTPException(400, { message: "Missing code." });
-		}
+		const { code } = c.req.valid("json");
 
 		const now = new Date();
 		const [consumed] = await db

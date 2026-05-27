@@ -1,6 +1,5 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { user } from "./auth-schema";
-import { league } from "./auth-schema";
+import { user, league } from "./auth-schema";
 import { timestampAuditFields } from "./common";
 
 export const mcpAuthCode = sqliteTable("mcp_auth_code", {

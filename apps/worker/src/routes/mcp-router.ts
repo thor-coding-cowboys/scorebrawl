@@ -41,6 +41,8 @@ import {
 } from "../services/mcp-tools/tool-executors";
 import { executeQuery } from "../services/mcp-tools/query-builder";
 
+const CLIENT_ONLY_TOOLS = new Set(["render_chart"]);
+
 const toolExecutors: Record<string, (ctx: any, args: any) => Promise<unknown>> = {
 	get_players: getPlayers,
 	get_matches: getMatches,
@@ -138,7 +140,7 @@ export const mcpRouter = new Hono<HonoEnv>().use("*", mcpAuthMiddleware).post("/
 
 	if (method === "tools/list") {
 		const mcpTools = tools
-			.filter((tool) => tool.name !== "render_chart")
+			.filter((tool) => !CLIENT_ONLY_TOOLS.has(tool.name))
 			.map((tool) => ({
 				name: tool.name,
 				description: tool.description,

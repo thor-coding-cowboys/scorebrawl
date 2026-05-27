@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { loadConfig } from "./config.js";
 
 interface Agent {
@@ -78,17 +78,30 @@ function installToOpenCode(useLocal: boolean): void {
 
 function installToClaude(useLocal: boolean): void {
 	const baseUrl = loadConfig().apiBaseUrl;
-	const envFlag = `-e SCOREBRAWL_API_URL=${baseUrl}`;
 
 	if (useLocal) {
 		const localPath = join(process.cwd(), "dist", "index.js");
-		const cmd = `claude mcp add scorebrawl ${envFlag} -- node ${localPath}`;
-		console.log(`Running: ${cmd}`);
-		execSync(cmd, { stdio: "inherit" });
+		execFileSync(
+			"claude",
+			["mcp", "add", "scorebrawl", "-e", `SCOREBRAWL_API_URL=${baseUrl}`, "--", "node", localPath],
+			{ stdio: "inherit" }
+		);
 	} else {
-		const cmd = `claude mcp add scorebrawl ${envFlag} -- npx -y @scorebrawl/mcp`;
-		console.log(`Running: ${cmd}`);
-		execSync(cmd, { stdio: "inherit" });
+		execFileSync(
+			"claude",
+			[
+				"mcp",
+				"add",
+				"scorebrawl",
+				"-e",
+				`SCOREBRAWL_API_URL=${baseUrl}`,
+				"--",
+				"npx",
+				"-y",
+				"@scorebrawl/mcp",
+			],
+			{ stdio: "inherit" }
+		);
 	}
 }
 
