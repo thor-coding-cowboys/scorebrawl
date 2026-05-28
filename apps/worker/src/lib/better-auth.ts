@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, admin } from "better-auth/plugins";
+import { organization, admin, bearer, deviceAuthorization } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
@@ -320,6 +320,11 @@ export function createAuth({
 				rpID,
 				rpName: "Scorebrawl",
 				origin: passkeyOrigin,
+			}),
+			bearer(),
+			deviceAuthorization({
+				verificationUri: "/device",
+				schema: {},
 			}),
 		],
 	});
