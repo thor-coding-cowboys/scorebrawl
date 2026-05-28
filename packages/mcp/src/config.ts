@@ -21,22 +21,22 @@ function ensureConfigDir() {
 }
 
 export function loadConfig(): MCPConfig {
-	const envUrl = process.env.SCOREBRAWL_API_URL;
-	if (envUrl) {
-		return { ...DEFAULT_CONFIG, apiBaseUrl: envUrl };
-	}
-
 	ensureConfigDir();
+	let config = DEFAULT_CONFIG;
 	if (existsSync(CONFIG_FILE)) {
 		try {
 			const raw = readFileSync(CONFIG_FILE, "utf-8");
 			const parsed = JSON.parse(raw) as Partial<MCPConfig>;
-			return { ...DEFAULT_CONFIG, ...parsed };
+			config = { ...DEFAULT_CONFIG, ...parsed };
 		} catch {
-			return DEFAULT_CONFIG;
+			// ignore
 		}
 	}
-	return DEFAULT_CONFIG;
+	const envUrl = process.env.SCOREBRAWL_API_URL;
+	if (envUrl) {
+		config.apiBaseUrl = envUrl;
+	}
+	return config;
 }
 
 export function saveConfig(config: Partial<MCPConfig>): void {

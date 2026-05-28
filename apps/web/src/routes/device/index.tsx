@@ -174,7 +174,11 @@ function DevicePage() {
 								}}
 							>
 								<SelectTrigger>
-									<SelectValue>{selectedOrgId ? orgs.find(o => o.id === selectedOrgId)?.name : "Select a league"}</SelectValue>
+									<SelectValue>
+										{selectedOrgId
+											? orgs.find((o) => o.id === selectedOrgId)?.name
+											: "Select a league"}
+									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									{orgs.map((org) => (
