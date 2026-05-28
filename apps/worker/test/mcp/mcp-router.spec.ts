@@ -1,13 +1,13 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { SELF } from "cloudflare:test";
-import { bearerHeaders, createAuthContext, createMcpToken } from "../setup/auth-context-util";
+import { bearerHeaders, createAuthContext } from "../setup/auth-context-util";
 
 describe("mcp router", () => {
-	let mcpToken: string;
+	let sessionToken: string;
 
 	beforeEach(async () => {
 		const ctx = await createAuthContext();
-		mcpToken = await createMcpToken({ userId: ctx.user.id, organizationId: ctx.league.id });
+		sessionToken = ctx.sessionToken;
 	});
 
 	const mcpRequest = (method: string, params?: Record<string, unknown>) => ({
@@ -31,7 +31,7 @@ describe("mcp router", () => {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				...bearerHeaders("scbr_not_a_real_token"),
+				...bearerHeaders("not_a_real_token"),
 			},
 			body: JSON.stringify(mcpRequest("tools/list")),
 		});
@@ -43,7 +43,7 @@ describe("mcp router", () => {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				...bearerHeaders(mcpToken),
+				...bearerHeaders(sessionToken),
 			},
 			body: JSON.stringify(mcpRequest("initialize")),
 		});
@@ -57,7 +57,7 @@ describe("mcp router", () => {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				...bearerHeaders(mcpToken),
+				...bearerHeaders(sessionToken),
 			},
 			body: JSON.stringify(mcpRequest("tools/list")),
 		});
@@ -73,7 +73,7 @@ describe("mcp router", () => {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				...bearerHeaders(mcpToken),
+				...bearerHeaders(sessionToken),
 			},
 			body: JSON.stringify(
 				mcpRequest("tools/call", {
@@ -83,7 +83,6 @@ describe("mcp router", () => {
 			),
 		});
 		expect(res.status).toBe(200);
-		// Don't crash on no players — just confirm the route resolved to the right org.
 		const body = (await res.json()) as { result: { content: Array<{ type: string }> } };
 		expect(Array.isArray(body.result.content)).toBe(true);
 	});

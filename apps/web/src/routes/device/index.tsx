@@ -163,7 +163,11 @@ function DevicePage() {
 					{state === "org-select" && (
 						<div className="space-y-4">
 							<p className="text-sm">Select a league to scope this session to:</p>
-							<Select onValueChange={(value: string | null) => { if (value) void handleOrgSelect(value); }}>
+							<Select
+								onValueChange={(value: string | null) => {
+									if (value) void handleOrgSelect(value);
+								}}
+							>
 								<SelectTrigger>
 									<SelectValue />
 								</SelectTrigger>
