@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, like, or } from "drizzle-orm";
 import type { getDb } from "../../db";
 import { user } from "../../db/schema/auth-schema";
 import {
@@ -40,10 +40,39 @@ interface MatchPlayerRow {
 async function fetchMatchPlayerRows(
 	db: ReturnType<typeof getDb>,
 	leagueId: string,
-	seasonSlug?: string
+	seasonSlug?: string,
+	playerName?: string
 ): Promise<MatchPlayerRow[]> {
 	const conditions = [eq(season.leagueId, leagueId)];
 	if (seasonSlug) conditions.push(eq(season.slug, seasonSlug));
+
+	if (playerName) {
+		const nameLower = playerName.toLowerCase();
+		const pattern = `%${nameLower}%`;
+
+		const playerMatchRows = await db
+			.select({ matchId: match.id })
+			.from(match)
+			.innerJoin(season, eq(season.id, match.seasonId))
+			.innerJoin(matchPlayer, eq(matchPlayer.matchId, match.id))
+			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
+			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.leftJoin(user, eq(user.id, player.userId))
+			.leftJoin(guest, eq(guest.id, player.guestId))
+			.where(
+				and(
+					...conditions,
+					or(
+						like(sql`LOWER(${user.name})`, pattern),
+						like(sql`LOWER(${guest.displayName})`, pattern)
+					)
+				)
+			);
+
+		const matchIds = [...new Set(playerMatchRows.map((r) => r.matchId))];
+		if (matchIds.length === 0) return [];
+		conditions.push(inArray(match.id, matchIds));
+	}
 
 	return db
 		.select({
@@ -71,7 +100,7 @@ async function fetchMatchPlayerRows(
 		.orderBy(desc(match.createdAt));
 }
 
-function playerName(row: Pick<MatchPlayerRow, "userName" | "guestName">): string {
+function resolvePlayerName(row: Pick<MatchPlayerRow, "userName" | "guestName">): string {
 	return row.userName ?? row.guestName ?? "Unknown";
 }
 
@@ -277,17 +306,22 @@ export async function getPlayerStats(
 	const { db } = ctx;
 	const nameLower = args.playerName.toLowerCase();
 
-	const allMatchPlayers = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const allMatchPlayers = await fetchMatchPlayerRows(
+		db,
+		args.leagueId,
+		args.seasonSlug,
+		args.playerName
+	);
 
 	const targetPlayerMatches = allMatchPlayers.filter((mp) =>
-		playerName(mp).toLowerCase().includes(nameLower)
+		resolvePlayerName(mp).toLowerCase().includes(nameLower)
 	);
 
 	if (targetPlayerMatches.length === 0) {
 		return { error: `No matches found for player "${args.playerName}"` };
 	}
 
-	const resolvedName = playerName(targetPlayerMatches[0]!);
+	const resolvedName = resolvePlayerName(targetPlayerMatches[0]!);
 
 	const opponentStats = new Map<string, { wins: number; losses: number; draws: number }>();
 
@@ -296,7 +330,7 @@ export async function getPlayerStats(
 			(mp) => mp.matchId === pm.matchId && mp.isHomeTeam !== pm.isHomeTeam
 		);
 		for (const opp of opponents) {
-			const oppName = playerName(opp);
+			const oppName = resolvePlayerName(opp);
 			const stats = opponentStats.get(oppName) ?? { wins: 0, losses: 0, draws: 0 };
 			if (pm.result === "W") stats.wins++;
 			else if (pm.result === "L") stats.losses++;
@@ -339,24 +373,63 @@ export async function getHeadToHead(
 	const name1Lower = args.player1Name.toLowerCase();
 	const name2Lower = args.player2Name.toLowerCase();
 
-	const allMatchPlayers = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const conditions = [eq(season.leagueId, args.leagueId)];
+	if (args.seasonSlug) conditions.push(eq(season.slug, args.seasonSlug));
 
-	const p1Matches = new Set(
-		allMatchPlayers
-			.filter((mp) => playerName(mp).toLowerCase().includes(name1Lower))
-			.map((mp) => mp.matchId)
-	);
-	const p2Matches = new Set(
-		allMatchPlayers
-			.filter((mp) => playerName(mp).toLowerCase().includes(name2Lower))
-			.map((mp) => mp.matchId)
-	);
+	const findPlayerMatchIds = async (name: string) => {
+		const rows = await db
+			.select({ matchId: match.id })
+			.from(match)
+			.innerJoin(season, eq(season.id, match.seasonId))
+			.innerJoin(matchPlayer, eq(matchPlayer.matchId, match.id))
+			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
+			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.leftJoin(user, eq(user.id, player.userId))
+			.leftJoin(guest, eq(guest.id, player.guestId))
+			.where(
+				and(
+					...conditions,
+					or(
+						like(sql`LOWER(${user.name})`, `%${name}%`),
+						like(sql`LOWER(${guest.displayName})`, `%${name}%`)
+					)
+				)
+			);
+		return [...new Set(rows.map((r) => r.matchId))];
+	};
 
-	const sharedMatchIds = [...p1Matches].filter((id) => p2Matches.has(id));
+	const p1MatchIds = await findPlayerMatchIds(name1Lower);
+	const p2MatchIds = await findPlayerMatchIds(name2Lower);
+	const sharedMatchIds = p1MatchIds.filter((id) => p2MatchIds.includes(id));
 
 	if (sharedMatchIds.length === 0) {
 		return { error: `No matches found between "${args.player1Name}" and "${args.player2Name}"` };
 	}
+
+	const allMatchPlayers = await db
+		.select({
+			matchId: matchPlayer.matchId,
+			seasonPlayerId: matchPlayer.seasonPlayerId,
+			createdAt: match.createdAt,
+			result: matchPlayer.result,
+			scoreBefore: matchPlayer.scoreBefore,
+			scoreAfter: matchPlayer.scoreAfter,
+			isHomeTeam: matchPlayer.homeTeam,
+			homeScore: match.homeScore,
+			awayScore: match.awayScore,
+			seasonName: season.name,
+			userName: user.name,
+			guestName: guest.displayName,
+		})
+		.from(matchPlayer)
+		.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
+		.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+		.innerJoin(match, eq(match.id, matchPlayer.matchId))
+		.innerJoin(season, eq(season.id, match.seasonId))
+		.leftJoin(user, eq(user.id, player.userId))
+		.leftJoin(guest, eq(guest.id, player.guestId))
+		.where(inArray(match.id, sharedMatchIds))
+		.orderBy(desc(match.createdAt));
 
 	let p1Wins = 0;
 	let p2Wins = 0;
@@ -373,8 +446,12 @@ export async function getHeadToHead(
 
 	for (const matchId of sharedMatchIds) {
 		const matchEntries = allMatchPlayers.filter((mp) => mp.matchId === matchId);
-		const p1Entry = matchEntries.find((mp) => playerName(mp).toLowerCase().includes(name1Lower));
-		const p2Entry = matchEntries.find((mp) => playerName(mp).toLowerCase().includes(name2Lower));
+		const p1Entry = matchEntries.find((mp) =>
+			resolvePlayerName(mp).toLowerCase().includes(name1Lower)
+		);
+		const p2Entry = matchEntries.find((mp) =>
+			resolvePlayerName(mp).toLowerCase().includes(name2Lower)
+		);
 		if (!p1Entry || !p2Entry) continue;
 
 		if (p1Entry.isHomeTeam === p2Entry.isHomeTeam) continue;
@@ -394,10 +471,14 @@ export async function getHeadToHead(
 		});
 	}
 
-	const p1Row = allMatchPlayers.find((mp) => playerName(mp).toLowerCase().includes(name1Lower));
-	const p2Row = allMatchPlayers.find((mp) => playerName(mp).toLowerCase().includes(name2Lower));
-	const p1Name = p1Row ? playerName(p1Row) : args.player1Name;
-	const p2Name = p2Row ? playerName(p2Row) : args.player2Name;
+	const p1Row = allMatchPlayers.find((mp) =>
+		resolvePlayerName(mp).toLowerCase().includes(name1Lower)
+	);
+	const p2Row = allMatchPlayers.find((mp) =>
+		resolvePlayerName(mp).toLowerCase().includes(name2Lower)
+	);
+	const p1Name = p1Row ? resolvePlayerName(p1Row) : args.player1Name;
+	const p2Name = p2Row ? resolvePlayerName(p2Row) : args.player2Name;
 
 	return {
 		player1: p1Name,
@@ -416,7 +497,7 @@ export async function getScoringStats(
 ) {
 	const { db } = ctx;
 
-	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug, args.playerName);
 
 	if (rows.length === 0) return [];
 
@@ -432,7 +513,7 @@ export async function getScoringStats(
 	>();
 
 	for (const row of rows) {
-		const name = playerName(row);
+		const name = resolvePlayerName(row);
 		if (args.playerName && !name.toLowerCase().includes(args.playerName.toLowerCase())) {
 			continue;
 		}
@@ -483,9 +564,9 @@ export async function getStreaks(
 	const { db } = ctx;
 	const nameLower = args.playerName.toLowerCase();
 
-	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug, args.playerName);
 
-	const playerMatches = rows.filter((r) => playerName(r).toLowerCase().includes(nameLower));
+	const playerMatches = rows.filter((r) => resolvePlayerName(r).toLowerCase().includes(nameLower));
 
 	if (playerMatches.length === 0) {
 		return { error: `No matches found for player "${args.playerName}"` };
@@ -530,7 +611,7 @@ export async function getFormGuide(
 	const { db } = ctx;
 	const limit = Math.min(args.matches ?? 10, 20);
 
-	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug, args.playerName);
 
 	function computeForm(playerRows: MatchPlayerRow[]) {
 		const lastN = playerRows.slice(0, limit);
@@ -550,7 +631,7 @@ export async function getFormGuide(
 
 	if (args.playerName) {
 		const nameLower = args.playerName.toLowerCase();
-		const playerRows = rows.filter((r) => playerName(r).toLowerCase().includes(nameLower));
+		const playerRows = rows.filter((r) => resolvePlayerName(r).toLowerCase().includes(nameLower));
 
 		if (playerRows.length === 0) {
 			return { error: `No matches found for player "${args.playerName}"` };
@@ -575,7 +656,7 @@ export async function getFormGuide(
 
 	const byPlayer = new Map<string, MatchPlayerRow[]>();
 	for (const row of rows) {
-		const name = playerName(row);
+		const name = resolvePlayerName(row);
 		const arr = byPlayer.get(name) ?? [];
 		arr.push(row);
 		byPlayer.set(name, arr);
@@ -601,7 +682,7 @@ export async function getEloProgression(
 	const { db } = ctx;
 	const limit = Math.min(args.limit ?? 20, 50);
 
-	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug, args.playerName);
 
 	function buildTimeline(playerRows: MatchPlayerRow[]) {
 		let biggestGain = { matchId: "", change: 0 };
@@ -623,7 +704,7 @@ export async function getEloProgression(
 
 	if (args.playerName) {
 		const nameLower = args.playerName.toLowerCase();
-		const playerRows = rows.filter((r) => playerName(r).toLowerCase().includes(nameLower));
+		const playerRows = rows.filter((r) => resolvePlayerName(r).toLowerCase().includes(nameLower));
 
 		if (playerRows.length === 0) {
 			return { error: `No matches found for player "${args.playerName}"` };
@@ -642,7 +723,7 @@ export async function getEloProgression(
 
 	const byPlayer = new Map<string, MatchPlayerRow[]>();
 	for (const row of rows) {
-		const name = playerName(row);
+		const name = resolvePlayerName(row);
 		const arr = byPlayer.get(name) ?? [];
 		arr.push(row);
 		byPlayer.set(name, arr);
@@ -671,11 +752,11 @@ export async function getTeamChemistry(
 	const { db } = ctx;
 	const nameLower = args.playerName.toLowerCase();
 
-	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug);
+	const rows = await fetchMatchPlayerRows(db, args.leagueId, args.seasonSlug, args.playerName);
 
 	const targetMatches = new Map<string, { isHomeTeam: boolean; result: string }>();
 	for (const row of rows) {
-		if (playerName(row).toLowerCase().includes(nameLower) && row.result) {
+		if (resolvePlayerName(row).toLowerCase().includes(nameLower) && row.result) {
 			targetMatches.set(row.matchId, { isHomeTeam: row.isHomeTeam, result: row.result });
 		}
 	}
@@ -693,7 +774,7 @@ export async function getTeamChemistry(
 		const matchInfo = targetMatches.get(row.matchId);
 		if (!matchInfo) continue;
 
-		const name = playerName(row);
+		const name = resolvePlayerName(row);
 		if (name.toLowerCase().includes(nameLower)) continue;
 
 		if (row.isHomeTeam === matchInfo.isHomeTeam) {
