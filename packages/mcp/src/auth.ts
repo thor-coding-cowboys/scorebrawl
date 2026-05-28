@@ -1,120 +1,121 @@
-import { createServer } from "node:http";
-import { join } from "node:path";
-import { readFileSync, existsSync } from "node:fs";
-import { homedir } from "node:os";
+import { createAuthClient } from "better-auth/client";
+import { deviceAuthorizationClient } from "better-auth/client/plugins";
 import { loadConfig, saveConfig } from "./config.js";
-import { allowLocalhostTls } from "./util.js";
 
-export async function getToken(): Promise<string | null> {
-	const configPath = join(homedir(), ".config", "scorebrawl", "mcp.json");
-	if (existsSync(configPath)) {
-		try {
-			const raw = readFileSync(configPath, "utf-8");
-			const parsed = JSON.parse(raw) as { sessionToken?: string };
-			return parsed.sessionToken ?? null;
-		} catch {
-			return null;
-		}
-	}
-	return null;
-}
-
-export async function setToken(token: string): Promise<void> {
-	saveConfig({ sessionToken: token } as Record<string, string>);
-}
-
-export async function deleteToken(): Promise<void> {
-	saveConfig({ sessionToken: undefined } as unknown as Record<string, string>);
-}
-
-export async function runLoginFlow(): Promise<void> {
+function getAuthClient() {
 	const config = loadConfig();
-	allowLocalhostTls(config.apiBaseUrl);
-	const callbackPort = await getAvailablePort();
-	const callbackUrl = `http://localhost:${callbackPort}/callback`;
-	const loginUrl = `${config.apiBaseUrl}/auth/mcp-login?callback=${encodeURIComponent(callbackUrl)}`;
-
-	return new Promise((resolve, reject) => {
-		const server = createServer(async (req, res) => {
-			const url = new URL(req.url ?? "/", `http://localhost:${callbackPort}`);
-			if (url.pathname !== "/callback") {
-				res.writeHead(404);
-				res.end("Not found");
-				return;
-			}
-
-			const code = url.searchParams.get("code");
-			if (!code) {
-				res.writeHead(400, { "Content-Type": "text/plain" });
-				res.end("Missing code parameter. Please try again.");
-				server.close();
-				reject(new Error("Callback did not include an authorization code."));
-				return;
-			}
-
-			try {
-				const exchangeRes = await fetch(`${config.apiBaseUrl}/api/mcp-auth/exchange`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ code }),
-				});
-				if (!exchangeRes.ok) {
-					const text = await exchangeRes.text();
-					throw new Error(`Exchange failed (${exchangeRes.status}): ${text}`);
-				}
-				const { token } = (await exchangeRes.json()) as { token: string };
-				if (!token || typeof token !== "string") {
-					throw new Error("Exchange response did not include a token.");
-				}
-				await setToken(token);
-
-				res.writeHead(200, { "Content-Type": "text/html" });
-				res.end(`
-					<html>
-						<body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-							<div style="text-align: center;">
-								<h1>Scorebrawl MCP</h1>
-								<p>You can close this window and return to your terminal.</p>
-							</div>
-						</body>
-					</html>
-				`);
-				server.close();
-				resolve();
-			} catch (err) {
-				res.writeHead(500, { "Content-Type": "text/plain" });
-				res.end(err instanceof Error ? err.message : "Exchange failed.");
-				server.close();
-				reject(err instanceof Error ? err : new Error("Exchange failed."));
-			}
-		});
-
-		server.listen(callbackPort, async () => {
-			console.log(`Opening browser to authenticate...`);
-			try {
-				const { default: open } = await import("open");
-				await open(loginUrl);
-			} catch {
-				console.log(`Please open this URL in your browser:`);
-				console.log(loginUrl);
-			}
-		});
-
-		setTimeout(() => {
-			server.close();
-			reject(new Error("Login timed out. Please try again."));
-		}, 300_000);
+	return createAuthClient({
+		baseURL: config.apiBaseUrl,
+		plugins: [deviceAuthorizationClient()],
 	});
 }
 
-async function getAvailablePort(): Promise<number> {
-	const { createServer } = await import("node:net");
-	return new Promise((resolve) => {
-		const server = createServer();
-		server.listen(0, () => {
-			const address = server.address();
-			const port = typeof address === "object" && address ? address.port : 0;
-			server.close(() => resolve(port));
-		});
+export async function getToken(): Promise<string | null> {
+	return loadConfig().accessToken ?? null;
+}
+
+export async function setToken(token: string): Promise<void> {
+	saveConfig({ accessToken: token });
+}
+
+export async function deleteToken(): Promise<void> {
+	saveConfig({ accessToken: undefined });
+}
+
+export async function runLoginFlow(): Promise<void> {
+	const authClient = getAuthClient();
+	const { data, error } = await authClient.device.code({
+		client_id: "scorebrawl-mcp",
+		scope: "openid",
+	});
+
+	if (error || !data) {
+		console.error(
+			"Failed to start device flow:",
+			error?.error_description ?? (error as any)?.error ?? "unknown",
+		);
+		process.exit(1);
+	}
+
+	const {
+		device_code,
+		user_code,
+		verification_uri,
+		verification_uri_complete,
+		interval = 5,
+	} = data;
+	const urlToOpen =
+		verification_uri_complete ?? `${verification_uri}?user_code=${user_code}`;
+
+	console.log(`\nOpen this URL in your browser:\n  ${urlToOpen}`);
+	console.log(`\nOr visit: ${verification_uri}`);
+	console.log(`And enter code: ${user_code}\n`);
+
+	try {
+		const { execFileSync } = await import("node:child_process");
+		const opener = process.platform === "darwin" ? "open" : "xdg-open";
+		execFileSync(opener, [urlToOpen], { stdio: "ignore" });
+	} catch {
+		/* ignore */
+	}
+
+	console.log("Waiting for authorization...");
+
+	let pollingInterval = interval;
+	await new Promise<void>((resolve) => {
+		const poll = async () => {
+			try {
+				const { data: tokenData, error: tokenError } =
+					await authClient.device.token({
+						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+						device_code,
+						client_id: "scorebrawl-mcp",
+					});
+
+				if (tokenData?.access_token) {
+					await setToken(tokenData.access_token);
+					console.log("Logged in.");
+					resolve();
+					return;
+				}
+
+				if (tokenError) {
+					const errCode = (tokenError as any).error;
+					switch (errCode) {
+						case "authorization_pending":
+							break;
+						case "slow_down":
+							pollingInterval += 5;
+							break;
+						case "access_denied":
+							console.error("Access denied.");
+							process.exit(1);
+							break;
+						case "expired_token":
+							console.error(
+								"Device code expired. Run 'npx @scorebrawl/mcp login' again.",
+							);
+							process.exit(1);
+							break;
+						default:
+							console.error(
+								"Auth error:",
+								(tokenError as any).error_description ?? errCode,
+							);
+							process.exit(1);
+					}
+				}
+
+				setTimeout(poll, pollingInterval * 1000);
+			} catch (err) {
+				console.error(
+					"Network error during polling:",
+					err instanceof Error ? err.message : err,
+				);
+				process.exit(1);
+			}
+		};
+
+		setTimeout(poll, pollingInterval * 1000);
 	});
 }

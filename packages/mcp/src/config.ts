@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 export interface MCPConfig {
 	apiBaseUrl: string;
+	accessToken?: string;
 }
 
 const CONFIG_DIR = join(homedir(), ".config", "scorebrawl");

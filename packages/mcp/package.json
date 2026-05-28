@@ -15,7 +15,7 @@
 		"prepublishOnly": "bun run build"
 	},
 	"dependencies": {
-		"open": "^10.0.0"
+		"better-auth": "catalog:"
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
