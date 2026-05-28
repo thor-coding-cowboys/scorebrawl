@@ -32,7 +32,7 @@ export async function runLoginFlow(): Promise<void> {
 	if (error || !data) {
 		console.error(
 			"Failed to start device flow:",
-			error?.error_description ?? (error as any)?.error ?? "unknown",
+			error?.error_description ?? (error as any)?.error ?? "unknown"
 		);
 		process.exit(1);
 	}
@@ -44,8 +44,7 @@ export async function runLoginFlow(): Promise<void> {
 		verification_uri_complete,
 		interval = 5,
 	} = data;
-	const urlToOpen =
-		verification_uri_complete ?? `${verification_uri}?user_code=${user_code}`;
+	const urlToOpen = verification_uri_complete ?? `${verification_uri}?user_code=${user_code}`;
 
 	console.log(`\nOpen this URL in your browser:\n  ${urlToOpen}`);
 	console.log(`\nOr visit: ${verification_uri}`);
@@ -65,12 +64,11 @@ export async function runLoginFlow(): Promise<void> {
 	await new Promise<void>((resolve) => {
 		const poll = async () => {
 			try {
-				const { data: tokenData, error: tokenError } =
-					await authClient.device.token({
-						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-						device_code,
-						client_id: "scorebrawl-mcp",
-					});
+				const { data: tokenData, error: tokenError } = await authClient.device.token({
+					grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+					device_code,
+					client_id: "scorebrawl-mcp",
+				});
 
 				if (tokenData?.access_token) {
 					await setToken(tokenData.access_token);
@@ -92,26 +90,18 @@ export async function runLoginFlow(): Promise<void> {
 							process.exit(1);
 							break;
 						case "expired_token":
-							console.error(
-								"Device code expired. Run 'npx @scorebrawl/mcp login' again.",
-							);
+							console.error("Device code expired. Run 'npx @scorebrawl/mcp login' again.");
 							process.exit(1);
 							break;
 						default:
-							console.error(
-								"Auth error:",
-								(tokenError as any).error_description ?? errCode,
-							);
+							console.error("Auth error:", (tokenError as any).error_description ?? errCode);
 							process.exit(1);
 					}
 				}
 
 				setTimeout(poll, pollingInterval * 1000);
 			} catch (err) {
-				console.error(
-					"Network error during polling:",
-					err instanceof Error ? err.message : err,
-				);
+				console.error("Network error during polling:", err instanceof Error ? err.message : err);
 				process.exit(1);
 			}
 		};
