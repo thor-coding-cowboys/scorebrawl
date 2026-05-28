@@ -9,6 +9,6 @@ export function allowLocalhostTls(apiBaseUrl: string): void {
 			process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 		}
 	} catch {
-		// Invalid URL — leave TLS as-is
+		return;
 	}
 }

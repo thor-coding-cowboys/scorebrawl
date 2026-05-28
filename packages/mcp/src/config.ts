@@ -29,7 +29,7 @@ export function loadConfig(): MCPConfig {
 			const parsed = JSON.parse(raw) as Partial<MCPConfig>;
 			config = { ...DEFAULT_CONFIG, ...parsed };
 		} catch {
-			// ignore
+			/* empty */
 		}
 	}
 	const envUrl = process.env.SCOREBRAWL_API_URL;
