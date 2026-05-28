@@ -89,10 +89,10 @@ async function main() {
 		const result = await client.session.prompt({
 			sessionID: sessionId,
 			model: {
-				// providerID: "opencode-go",
-				// modelID: "minimax-m2.7",
-				providerID: "opencode",
-				modelID: "big-pickle",
+				providerID: "opencode-go",
+				modelID: "minimax-m2.7",
+				// providerID: "opencode",
+				// modelID: "big-pickle",
 			},
 			parts: [
 				{
