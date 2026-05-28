@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../middleware/context";
-import { mcpAuthMiddleware } from "../middleware/mcp-auth";
 import { tools } from "../services/mcp-tools/tool-registry";
 import {
 	getPlayers,
@@ -103,8 +102,17 @@ function createError(id: string | number | null, error: MCPError) {
 	return { jsonrpc: "2.0" as const, id, error };
 }
 
-export const mcpRouter = new Hono<HonoEnv>().use("*", mcpAuthMiddleware).post("/", async (c) => {
-	const auth = c.get("authentication")!;
+export const mcpRouter = new Hono<HonoEnv>().post("/", async (c) => {
+	const session = await c.get("betterAuth").api.getSession({
+		headers: c.req.raw.headers,
+	});
+	if (!session) {
+		return c.json(
+			{ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized" } },
+			401
+		);
+	}
+	const auth = { user: session.user, session: session.session };
 	const db = c.get("db");
 	const env = c.env;
 	const userAssets = c.get("userAssets");
