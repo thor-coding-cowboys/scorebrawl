@@ -24,7 +24,6 @@ import { Route as AuthenticatedSidebarProfileRouteImport } from './routes/_authe
 import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
 import { Route as AuthAuthForgotPasswordRouteImport } from './routes/_auth/auth/forgot-password'
-import { Route as AuthenticatedAuthMcpLoginIndexRouteImport } from './routes/_authenticated/auth/mcp-login/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
 import { Route as AuthenticatedAdminLeaguesIndexRouteImport } from './routes/_authenticated/admin/leagues/index'
 import { Route as AuthenticatedSidebarLeaguesSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/route'
@@ -123,12 +122,6 @@ const AuthAuthForgotPasswordRoute = AuthAuthForgotPasswordRouteImport.update({
   path: '/auth/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
-const AuthenticatedAuthMcpLoginIndexRoute =
-  AuthenticatedAuthMcpLoginIndexRouteImport.update({
-    id: '/auth/mcp-login/',
-    path: '/auth/mcp-login/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminUsersIndexRoute =
   AuthenticatedAdminUsersIndexRouteImport.update({
     id: '/users/',
@@ -271,7 +264,6 @@ export interface FileRoutesByFullPath {
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
-  '/auth/mcp-login': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -304,7 +296,6 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
-  '/auth/mcp-login': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
@@ -340,7 +331,6 @@ export interface FileRoutesById {
   '/_authenticated/_sidebar/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/_authenticated/admin/leagues/': typeof AuthenticatedAdminLeaguesIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
-  '/_authenticated/auth/mcp-login/': typeof AuthenticatedAuthMcpLoginIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/_authenticated/_sidebar/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/_authenticated/_sidebar/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -376,7 +366,6 @@ export interface FileRouteTypes {
     | '/leagues/$slug'
     | '/admin/leagues'
     | '/admin/users'
-    | '/auth/mcp-login'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug/teams'
@@ -409,7 +398,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/admin/leagues'
     | '/admin/users'
-    | '/auth/mcp-login'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug'
@@ -444,7 +432,6 @@ export interface FileRouteTypes {
     | '/_authenticated/_sidebar/leagues/$slug'
     | '/_authenticated/admin/leagues/'
     | '/_authenticated/admin/users/'
-    | '/_authenticated/auth/mcp-login/'
     | '/_authenticated/_sidebar/leagues/$slug/invitations'
     | '/_authenticated/_sidebar/leagues/$slug/members'
     | '/_authenticated/_sidebar/leagues/$slug/teams'
@@ -578,13 +565,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthAuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
-    }
-    '/_authenticated/auth/mcp-login/': {
-      id: '/_authenticated/auth/mcp-login/'
-      path: '/auth/mcp-login'
-      fullPath: '/auth/mcp-login'
-      preLoaderRoute: typeof AuthenticatedAuthMcpLoginIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/users/': {
       id: '/_authenticated/admin/users/'
@@ -861,7 +841,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingCreateLeagueRoute: typeof AuthenticatedOnboardingCreateLeagueRoute
   AuthenticatedLeaguesIndexRoute: typeof AuthenticatedLeaguesIndexRoute
   AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
-  AuthenticatedAuthMcpLoginIndexRoute: typeof AuthenticatedAuthMcpLoginIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -871,7 +850,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedOnboardingCreateLeagueRoute,
   AuthenticatedLeaguesIndexRoute: AuthenticatedLeaguesIndexRoute,
   AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
-  AuthenticatedAuthMcpLoginIndexRoute: AuthenticatedAuthMcpLoginIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

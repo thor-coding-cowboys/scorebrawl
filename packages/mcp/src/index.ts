@@ -68,10 +68,9 @@ function startMcpServer() {
 			return;
 		}
 
-		// Handle notifications (no response needed)
 		if (request.id === undefined || request.id === null) {
 			if (request.method === "notifications/initialized") {
-				return; // No-op
+				return;
 			}
 		}
 

@@ -125,7 +125,6 @@ export async function runInstall(agentName?: string, useLocal = false): Promise<
 			console.error(`Supported: ${AGENTS.map((a) => a.name).join(", ")}`);
 			process.exit(1);
 		}
-		// Verify the agent is actually installed
 		if (!detected.some((d) => d.name === target!.name)) {
 			console.error(`${target.name} is not installed (no ~/${target.dir} directory found).`);
 			process.exit(1);
