@@ -40,9 +40,11 @@ function DevicePage() {
 	const [loginError, setLoginError] = useState("");
 	const [loginLoading, setLoginLoading] = useState(false);
 	const [orgs, setOrgs] = useState<Org[]>([]);
+	const [selectedOrgId, setSelectedOrgId] = useState<string>("");
 	const [approveError, setApproveError] = useState("");
 	const [approveLoading, setApproveLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
+	const [verified, setVerified] = useState(false);
 
 	const verifyAndFetchOrgs = useCallback(async () => {
 		setState("loading");
@@ -57,6 +59,7 @@ function DevicePage() {
 		}
 		const { data: orgList } = await authClient.organization.list();
 		setOrgs((orgList ?? []) as Org[]);
+		setVerified(true);
 		setState("org-select");
 	}, [code]);
 
@@ -64,10 +67,10 @@ function DevicePage() {
 		if (sessionPending) return;
 		if (!session) {
 			setState("login");
-		} else {
+		} else if (!verified) {
 			void verifyAndFetchOrgs();
 		}
-	}, [sessionPending, session, verifyAndFetchOrgs]);
+	}, [sessionPending, session, verified, verifyAndFetchOrgs]);
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -88,6 +91,7 @@ function DevicePage() {
 	};
 
 	const handleOrgSelect = async (orgId: string) => {
+		setSelectedOrgId(orgId);
 		await authClient.organization.setActive({ organizationId: orgId });
 		setState("approve");
 	};
@@ -160,16 +164,17 @@ function DevicePage() {
 						<p className="text-sm text-muted-foreground">Verifying device code...</p>
 					)}
 
-					{state === "org-select" && (
+					{(state === "org-select" || state === "approve") && (
 						<div className="space-y-4">
 							<p className="text-sm">Select a league to scope this session to:</p>
 							<Select
+								value={selectedOrgId || null}
 								onValueChange={(value: string | null) => {
 									if (value) void handleOrgSelect(value);
 								}}
 							>
 								<SelectTrigger>
-									<SelectValue />
+									<SelectValue>{selectedOrgId ? orgs.find(o => o.id === selectedOrgId)?.name : "Select a league"}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									{orgs.map((org) => (
