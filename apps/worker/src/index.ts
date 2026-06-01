@@ -8,6 +8,7 @@ import { getDb } from "./db";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
+import { mcpRouter } from "./routes/mcp-router";
 import { sseRouter } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
 import {
@@ -28,6 +29,7 @@ const app = new Hono<HonoEnv>()
 	.route("/api/sse", sseRouter)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
+	.route("/api/mcp", mcpRouter)
 	.use("/api/trpc/*", trpcServer)
 	.use("*", async (c, next) => {
 		return enforceAuthMiddleware(c, next);

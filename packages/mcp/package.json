@@ -1,0 +1,27 @@
+{
+	"name": "@scorebrawl/mcp",
+	"version": "0.1.0",
+	"description": "Scorebrawl MCP server for agent harnesses",
+	"bin": {
+		"scorebrawl-mcp": "./dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"prepublishOnly": "bun run build"
+	},
+	"dependencies": {
+		"better-auth": "catalog:"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	}
+}

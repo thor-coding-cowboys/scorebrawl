@@ -192,3 +192,7 @@ export async function createUser(overrides: UserInput = {}): Promise<{
 		},
 	};
 }
+
+export function bearerHeaders(token: string): Record<string, string> {
+	return { Authorization: `Bearer ${token}` };
+}
