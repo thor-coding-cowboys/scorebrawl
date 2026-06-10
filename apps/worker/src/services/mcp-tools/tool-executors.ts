@@ -55,10 +55,19 @@ async function fetchMatchPlayerRows(
 			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
 			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.innerJoin(match, eq(match.id, matchPlayer.matchId))
+			.innerJoin(season, eq(season.id, match.seasonId))
 			.leftJoin(user, eq(user.id, player.userId))
 			.leftJoin(guest, eq(guest.id, player.guestId))
 			.where(
-				or(like(sql`LOWER(${user.name})`, pattern), like(sql`LOWER(${guest.displayName})`, pattern))
+				and(
+					eq(season.leagueId, leagueId),
+					seasonSlug ? eq(season.slug, seasonSlug) : undefined,
+					or(
+						like(sql`LOWER(${user.name})`, pattern),
+						like(sql`LOWER(${guest.displayName})`, pattern)
+					)
+				)
 			);
 
 		conditions.push(inArray(match.id, playerMatchSubquery));
@@ -372,12 +381,18 @@ export async function getHeadToHead(
 			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
 			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.innerJoin(match, eq(match.id, matchPlayer.matchId))
+			.innerJoin(season, eq(season.id, match.seasonId))
 			.leftJoin(user, eq(user.id, player.userId))
 			.leftJoin(guest, eq(guest.id, player.guestId))
 			.where(
-				or(
-					like(sql`LOWER(${user.name})`, `%${name}%`),
-					like(sql`LOWER(${guest.displayName})`, `%${name}%`)
+				and(
+					eq(season.leagueId, args.leagueId),
+					args.seasonSlug ? eq(season.slug, args.seasonSlug) : undefined,
+					or(
+						like(sql`LOWER(${user.name})`, `%${name}%`),
+						like(sql`LOWER(${guest.displayName})`, `%${name}%`)
+					)
 				)
 			);
 	};
