@@ -50,18 +50,19 @@ async function fetchMatchPlayerRows(
 		const nameLower = playerName.toLowerCase();
 		const pattern = `%${nameLower}%`;
 
-		const playerMatchRows = await db
-			.select({ matchId: match.id })
-			.from(match)
-			.innerJoin(season, eq(season.id, match.seasonId))
-			.innerJoin(matchPlayer, eq(matchPlayer.matchId, match.id))
+		const playerMatchSubquery = db
+			.select({ matchId: matchPlayer.matchId })
+			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
 			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.innerJoin(match, eq(match.id, matchPlayer.matchId))
+			.innerJoin(season, eq(season.id, match.seasonId))
 			.leftJoin(user, eq(user.id, player.userId))
 			.leftJoin(guest, eq(guest.id, player.guestId))
 			.where(
 				and(
-					...conditions,
+					eq(season.leagueId, leagueId),
+					seasonSlug ? eq(season.slug, seasonSlug) : undefined,
 					or(
 						like(sql`LOWER(${user.name})`, pattern),
 						like(sql`LOWER(${guest.displayName})`, pattern)
@@ -69,9 +70,7 @@ async function fetchMatchPlayerRows(
 				)
 			);
 
-		const matchIds = [...new Set(playerMatchRows.map((r) => r.matchId))];
-		if (matchIds.length === 0) return [];
-		conditions.push(inArray(match.id, matchIds));
+		conditions.push(inArray(match.id, playerMatchSubquery));
 	}
 
 	return db
@@ -376,35 +375,33 @@ export async function getHeadToHead(
 	const conditions = [eq(season.leagueId, args.leagueId)];
 	if (args.seasonSlug) conditions.push(eq(season.slug, args.seasonSlug));
 
-	const findPlayerMatchIds = async (name: string) => {
-		const rows = await db
-			.select({ matchId: match.id })
-			.from(match)
-			.innerJoin(season, eq(season.id, match.seasonId))
-			.innerJoin(matchPlayer, eq(matchPlayer.matchId, match.id))
+	const buildPlayerSubquery = (name: string) => {
+		return db
+			.select({ matchId: matchPlayer.matchId })
+			.from(matchPlayer)
 			.innerJoin(seasonPlayer, eq(seasonPlayer.id, matchPlayer.seasonPlayerId))
 			.innerJoin(player, eq(player.id, seasonPlayer.playerId))
+			.innerJoin(match, eq(match.id, matchPlayer.matchId))
+			.innerJoin(season, eq(season.id, match.seasonId))
 			.leftJoin(user, eq(user.id, player.userId))
 			.leftJoin(guest, eq(guest.id, player.guestId))
 			.where(
 				and(
-					...conditions,
+					eq(season.leagueId, args.leagueId),
+					args.seasonSlug ? eq(season.slug, args.seasonSlug) : undefined,
 					or(
 						like(sql`LOWER(${user.name})`, `%${name}%`),
 						like(sql`LOWER(${guest.displayName})`, `%${name}%`)
 					)
 				)
 			);
-		return [...new Set(rows.map((r) => r.matchId))];
 	};
 
-	const p1MatchIds = await findPlayerMatchIds(name1Lower);
-	const p2MatchIds = await findPlayerMatchIds(name2Lower);
-	const sharedMatchIds = p1MatchIds.filter((id) => p2MatchIds.includes(id));
+	const p1Subquery = buildPlayerSubquery(name1Lower);
+	const p2Subquery = buildPlayerSubquery(name2Lower);
 
-	if (sharedMatchIds.length === 0) {
-		return { error: `No matches found between "${args.player1Name}" and "${args.player2Name}"` };
-	}
+	conditions.push(inArray(match.id, p1Subquery));
+	conditions.push(inArray(match.id, p2Subquery));
 
 	const allMatchPlayers = await db
 		.select({
@@ -428,8 +425,13 @@ export async function getHeadToHead(
 		.innerJoin(season, eq(season.id, match.seasonId))
 		.leftJoin(user, eq(user.id, player.userId))
 		.leftJoin(guest, eq(guest.id, player.guestId))
-		.where(inArray(match.id, sharedMatchIds))
+		.where(and(...conditions))
 		.orderBy(desc(match.createdAt));
+
+	const sharedMatchIds = [...new Set(allMatchPlayers.map((mp) => mp.matchId))];
+	if (sharedMatchIds.length === 0) {
+		return { error: `No matches found between "${args.player1Name}" and "${args.player2Name}"` };
+	}
 
 	let p1Wins = 0;
 	let p2Wins = 0;
