@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const scheme = process.env.CI ? "http" : "https";
+const port = process.env.PORTLESS_PORT || "1355";
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -20,7 +23,9 @@ export default defineConfig({
 	],
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
-		baseURL: `https://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`,
+		baseURL: `${scheme}://scorebrawl.localhost:${port}`,
+		/* CI runs over plain HTTP; local runs over portless HTTPS (self-signed) */
+		ignoreHTTPSErrors: true,
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
 	},
@@ -36,7 +41,7 @@ export default defineConfig({
 	/* Run your local dev server before starting the tests */
 	webServer: {
 		command: "bun run dev",
-		url: `https://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`,
+		url: `${scheme}://scorebrawl.localhost:${port}`,
 		reuseExistingServer: !process.env.CI,
 		cwd: "../..",
 		timeout: 120_000,

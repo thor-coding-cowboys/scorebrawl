@@ -259,14 +259,14 @@ describe("diversityShuffle", () => {
 		expect(sameTeamRate).toBeLessThan(0.05);
 	});
 
-	it("always picks optimal team splits when available", () => {
+	it("strongly prefers optimal team splits when available", () => {
 		const items = ["a", "b", "c", "d"];
 		const pairWeights = new Map<string, number>();
 		pairWeights.set("a|b", 100);
 		pairWeights.set("c|d", 100);
 
-		const iterations = 100;
-		let anyBadSplit = false;
+		const iterations = 2000;
+		let badSplitCount = 0;
 		for (let i = 0; i < iterations; i++) {
 			const shuffled = diversityShuffle([...items], pairWeights);
 			// Check if a,b or c,d ended up on same team (bad splits)
@@ -279,14 +279,14 @@ describe("diversityShuffle", () => {
 			const cdSameTeam = Math.floor(cIdx / 2) === Math.floor(dIdx / 2);
 
 			if (abSameTeam || cdSameTeam) {
-				anyBadSplit = true;
-				break;
+				badSplitCount++;
 			}
 		}
 
-		// Should never pick a split with weighted pairs together
-		// when splits with score=0 are available
-		expect(anyBadSplit).toBe(false);
+		// Weighted random selection gives optimal splits overwhelming weight,
+		// but every split keeps a small chance (see diversityShuffle), so bad
+		// splits should be far rarer than the ~33% a uniform shuffle would give.
+		expect(badSplitCount / iterations).toBeLessThan(0.05);
 	});
 });
 
