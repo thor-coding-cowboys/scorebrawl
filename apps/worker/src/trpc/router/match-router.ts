@@ -99,6 +99,75 @@ function broadcastStreakEvents(
 	);
 }
 
+async function finalizeMatchCreation({
+	ctx,
+	seasonSlug,
+	seasonId,
+	createdMatch,
+	seasonPlayerIds,
+}: {
+	ctx: {
+		db: Parameters<typeof seasonPlayerRepository.getStanding>[0]["db"];
+		env: Pick<Env, "SEASON_SSE" | "ACHIEVEMENT_QUEUE">;
+		waitUntil: (promise: Promise<unknown>) => void;
+		organization: { slug: string };
+		authentication: { user: { id: string; name: string } };
+	};
+	seasonSlug: string;
+	seasonId: string;
+	createdMatch: { id: string };
+	seasonPlayerIds: string[];
+}) {
+	const standings = await seasonPlayerRepository.getStanding({
+		db: ctx.db,
+		seasonId,
+	});
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
+			type: "match:insert",
+			data: {
+				match: createdMatch,
+				standings,
+			},
+			user: {
+				id: ctx.authentication.user.id,
+				name: ctx.authentication.user.name,
+			},
+		})
+	);
+
+	const [streakPlayers, streakTeams] = await Promise.all([
+		matchRepository.checkStreakThresholds({
+			db: ctx.db,
+			seasonPlayerIds,
+		}),
+		matchRepository.checkTeamStreakThresholds({
+			db: ctx.db,
+			matchId: createdMatch.id,
+		}),
+	]);
+
+	broadcastStreakEvents(
+		ctx.waitUntil.bind(ctx),
+		ctx.env,
+		ctx.organization.slug,
+		seasonSlug,
+		streakPlayers,
+		streakTeams,
+		{
+			id: ctx.authentication.user.id,
+			name: ctx.authentication.user.name,
+		}
+	);
+
+	await ctx.env.ACHIEVEMENT_QUEUE.send({
+		seasonPlayerIds,
+	} satisfies AchievementQueueMessage);
+
+	return createdMatch;
+}
+
 export const matchRouter = {
 	createFromFixture: leagueMemberProcedure
 		.input(
@@ -282,58 +351,119 @@ export const matchRouter = {
 						userId: ctx.authentication.user.id,
 					},
 				})
-				.then(async (createdMatch) => {
-					const standings = await seasonPlayerRepository.getStanding({
+				.then(async (createdMatch) =>
+					finalizeMatchCreation({
+						ctx,
+						seasonSlug: input.seasonSlug,
+						seasonId: comp.id,
+						createdMatch,
+						seasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],
+					})
+				);
+		}),
+
+	createDarts: leagueMemberProcedure
+		.input(
+			z.object({
+				id: matchIdSchema,
+				seasonSlug: z.string(),
+				gameType: z.enum(["x01", "cricket", "shanghai", "gotcha"]),
+				winnerId: z.string(),
+				loserIds: z.array(z.string()).min(1).max(5),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const comp = await seasonRepository.getBySlug({
+				db: ctx.db,
+				seasonSlug: input.seasonSlug,
+				leagueId: ctx.organizationId,
+			});
+
+			if (comp.closed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "This season is closed",
+				});
+			}
+
+			if (comp.scoreType !== "1-v-n-elo") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Darts games can only be recorded in 1-v-n-elo seasons",
+				});
+			}
+
+			const allIds = [input.winnerId, ...input.loserIds];
+			if (allIds.length < 2 || allIds.length > 6) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A darts game needs between 2 and 6 players",
+				});
+			}
+
+			if (input.loserIds.includes(input.winnerId)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Winner cannot also be a loser",
+				});
+			}
+
+			if (new Set(allIds).size !== allIds.length) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Duplicate players in game",
+				});
+			}
+
+			const seasonPlayers = await seasonPlayerRepository.findAll({
+				db: ctx.db,
+				seasonId: comp.id,
+			});
+			const validIds = new Set(seasonPlayers.map((p) => p.id));
+			if (!allIds.every((id) => validIds.has(id))) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "All players must be in this season",
+				});
+			}
+
+			if (input.id) {
+				try {
+					await matchRepository.findById({
 						db: ctx.db,
+						matchId: input.id,
 						seasonId: comp.id,
 					});
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "A match with this ID already exists",
+					});
+				} catch (error) {
+					if (error instanceof TRPCError) throw error;
+				}
+			}
 
-					ctx.waitUntil(
-						broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-							type: "match:insert",
-							data: {
-								match: createdMatch,
-								standings,
-							},
-							user: {
-								id: ctx.authentication.user.id,
-								name: ctx.authentication.user.name,
-							},
-						})
-					);
+			const createdMatch = await matchRepository.create({
+				db: ctx.db,
+				input: {
+					id: input.id,
+					seasonId: comp.id,
+					homeScore: 1,
+					awayScore: input.loserIds.length,
+					homeTeamPlayerIds: [input.winnerId],
+					awayTeamPlayerIds: input.loserIds,
+					gameType: input.gameType,
+					userId: ctx.authentication.user.id,
+				},
+			});
 
-					const [streakPlayers, streakTeams] = await Promise.all([
-						matchRepository.checkStreakThresholds({
-							db: ctx.db,
-							seasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],
-						}),
-						matchRepository.checkTeamStreakThresholds({
-							db: ctx.db,
-							matchId: createdMatch.id,
-						}),
-					]);
-
-					broadcastStreakEvents(
-						ctx.waitUntil.bind(ctx),
-						ctx.env,
-						ctx.organization.slug,
-						input.seasonSlug,
-						streakPlayers,
-						streakTeams,
-						{
-							id: ctx.authentication.user.id,
-							name: ctx.authentication.user.name,
-						}
-					);
-
-					// Dispatch achievement calculation
-					const seasonPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
-					await ctx.env.ACHIEVEMENT_QUEUE.send({
-						seasonPlayerIds,
-					} satisfies AchievementQueueMessage);
-
-					return createdMatch;
-				});
+			return finalizeMatchCreation({
+				ctx,
+				seasonSlug: input.seasonSlug,
+				seasonId: comp.id,
+				createdMatch,
+				seasonPlayerIds: allIds,
+			});
 		}),
 
 	remove: seasonProcedure
