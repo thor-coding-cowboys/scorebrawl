@@ -64,7 +64,7 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
    ```bash
    bun run dev
    ```
-   The app uses [portless](https://github.com/vercel-labs/portless) for stable local URLs. Once running, access the app at `http://scorebrawl.localhost:1355`.
+   The app uses [portless](https://github.com/vercel-labs/portless) for stable local URLs. Once running, access the app at `https://scorebrawl.localhost:1355`.
 
 ### 📝 Available Scripts
 

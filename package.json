@@ -36,7 +36,6 @@
 		"@typescript/native-preview": "catalog:",
 		"oxfmt": "0.34.0",
 		"oxlint": "^1.49.0",
-		"portless": "^0.4.1",
 		"turbo": "^2.8.7",
 		"typescript": "catalog:"
 	},
