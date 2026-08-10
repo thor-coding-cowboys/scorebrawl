@@ -20,9 +20,7 @@ export default defineConfig({
 	],
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
-		baseURL: process.env.CI
-			? `http://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`
-			: "https://scorebrawl.localhost",
+		baseURL: `https://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`,
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
 	},
@@ -38,17 +36,17 @@ export default defineConfig({
 	/* Run your local dev server before starting the tests */
 	webServer: {
 		command: "bun run dev",
-		url: process.env.CI
-			? `http://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`
-			: "https://scorebrawl.localhost",
+		url: `https://scorebrawl.localhost:${process.env.PORTLESS_PORT || "1355"}`,
 		reuseExistingServer: !process.env.CI,
 		cwd: "../..",
 		timeout: 120_000,
 		stdout: "pipe",
 		stderr: "pipe",
-		// Wait for Vite to report ready (Vite 6 uses "VITE v" message)
+		ignoreHTTPSErrors: true,
+		// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
+		// Regex must tolerate ANSI color codes present in piped output.
 		wait: {
-			stdout: /VITE v[\d.]+\s+ready/i,
+			stdout: /VITE[^\n]*?ready/i,
 		},
 	},
 });

@@ -1425,7 +1425,7 @@ git commit -m "feat(seed): add seeded 1-v-n-elo darts season"
 **Files:**
 - Create: `apps/e2e/tests/darts-match-crud.spec.ts`
 
-- [ ] **Step 1: Write the spec**
+- [x] **Step 1: Write the spec**
 
 Create `apps/e2e/tests/darts-match-crud.spec.ts`, mirroring `seeded-match-crud.spec.ts` but for the seeded `Darts Season`:
 
@@ -1520,12 +1520,12 @@ test.describe("Darts Match CRUD", () => {
 
 Note: verify the actual testids used by `RemoveMatchDialog` (`remove-match-dialog`, `remove-match-confirm-button`) by reading `remove-match-dialog.tsx` before finalizing. The `remove` path already reverts per-player scores in `matchRepository.remove`, so rollback works for darts matches unchanged.
 
-- [ ] **Step 2: Run the e2e test**
+- [x] **Step 2: Run the e2e test**
 
 Run: `bun run test:e2e -- darts-match-crud` (from `apps/e2e`)
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/e2e/tests/darts-match-crud.spec.ts
@@ -1536,16 +1536,16 @@ git commit -m "test(e2e): add darts match CRUD e2e"
 
 ### Task 12: Post-change verification
 
-- [ ] **Step 1: Full check + tests**
+- [x] **Step 1: Full check + tests**
 
 Run from repo root: `bun check && bun run test`
 Expected: all pass (worker unit + integration, util, lint, format).
 
-- [ ] **Step 2: Typecheck both apps explicitly**
+- [x] **Step 2: Typecheck both apps explicitly**
 
 Run: `bun typecheck` (from `apps/web`) and `bun typecheck` (from `apps/worker`)
 Expected: PASS.
 
 - [ ] **Step 3: Manual UI verification**
 
-Run `bun dev` and open `http://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Create a `1-v-N Darts ELO` season, then record a 4-player game via the darts dialog and confirm the standings update and match row shows the game type. Use the **agent-browser** skill if browser automation is desired.
+Run `bun dev` and open `https://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Create a `1-v-N Darts ELO` season, then record a 4-player game via the darts dialog and confirm the standings update and match row shows the game type. Use the **agent-browser** skill if browser automation is desired.
