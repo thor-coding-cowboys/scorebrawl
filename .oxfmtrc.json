@@ -24,6 +24,7 @@
 		"**/.wrangler/**",
 		"**/*.tsbuildinfo",
 		".claude/**",
-		".deprecated/**"
+		".deprecated/**",
+		"docs/superpowers/**"
 	]
 }
