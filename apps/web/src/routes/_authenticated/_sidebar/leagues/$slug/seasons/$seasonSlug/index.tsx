@@ -62,7 +62,7 @@ function SeasonDashboardPage() {
 		}
 	}, [error, navigate, slug]);
 
-	const isEloSeason = season?.scoreType === "elo";
+	const isEloSeason = season?.scoreType === "elo" || season?.scoreType === "1-v-n-elo";
 	const isSeasonLocked = season?.closed || season?.archived;
 
 	const { data: activeSession } = useQuery({
