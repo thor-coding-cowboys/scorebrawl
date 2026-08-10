@@ -1,40 +1,32 @@
-# 1-v-N ELO Darts Season Type Implementation Plan
+# 1-v-N ELO Season Type Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `1-v-n-elo` season type so office darts games (301/501, Cricket, Shanghai, Gotcha) with a single winner among 2–6 players can be recorded and ranked with multiplayer ELO.
+**Goal:** Add a `1-v-n-elo` season type so multiplayer games with a single winner among 2–6 players can be recorded and ranked with multiplayer ELO.
 
-**Architecture:** Add `"1-v-n-elo"` to the `scoreType` enum and a nullable `gameType` column to `match`. Reuse the existing `match`/`matchPlayer` tables: a darts game is one `match` row + N `matchPlayer` rows (winner `result: "W"`, losers `"L"`), where the winner is the single home player and losers are away. A new `calculate1vN` util computes winner-vs-each-loser ELO with k scaled by `1/(n-1)` (n=2 is identical to standard 1v1). New tRPC procedure `match.createDarts` records games; new `CreateDartsGameDialog` drawer captures gameType + players + winner.
+**Architecture:** Add `"1-v-n-elo"` to the `scoreType` enum. Reuse the existing `match`/`matchPlayer` tables: a 1-v-n game is one `match` row + N `matchPlayer` rows (winner `result: "W"`, losers `"L"`), where the winner is the single home player and losers are away. A new `calculate1vN` util computes winner-vs-each-loser ELO with k scaled by `1/(n-1)` (n=2 is identical to standard 1v1). New tRPC procedure `match.createOneVn` records games; new `CreateOneVnGameDialog` drawer captures players + winner.
 
 **Tech Stack:** TypeScript, Drizzle ORM (SQLite/D1), tRPC, Cloudflare Workers (Hono), TanStack Query + TanStack Router + shadcn/Tailwind (web), Vitest (util + worker), Playwright (e2e).
 
 ---
 
-### Task 1: DB schema — scoreType value + gameType column
+### Task 1: DB schema — scoreType value
 
 **Files:**
 - Modify: `apps/worker/src/db/schema/league-schema.ts:41` (scoreType enum) and `:165-181` (match table)
 
-- [ ] **Step 1: Add the enum values and column**
+- [ ] **Step 1: Add the score type enum value**
 
-In `apps/worker/src/db/schema/league-schema.ts`, change line 41 to add the new score type, and add a `dartsGameType` enum const + `gameType` column on `match`:
+In `apps/worker/src/db/schema/league-schema.ts`, change line 41 to add the new score type:
 
 ```ts
 export const scoreType = ["elo", "3-1-0", "elo-individual-vs-team", "1-v-n-elo"] as const;
-
-export const dartsGameType = ["x01", "cricket", "shanghai", "gotcha"] as const;
-```
-
-In the `match` table definition (after the `awayExpectedElo` field, line 175), add:
-
-```ts
-gameType: text("game_type", { enum: dartsGameType }),
 ```
 
 - [ ] **Step 2: Generate and apply the migration**
 
 Run: `bun db:generate` (from `apps/worker`)
-Expected: Drizzle writes a new migration (adds `game_type` column; the enum value is a TS-level-only change in SQLite, no DB constraint generated).
+Expected: Drizzle writes a new migration (the enum value is a TS-level-only change in SQLite, no DB constraint generated).
 
 Run: `bun db:migrate`
 Expected: migration applied to local D1 at `../../.db/local`.
@@ -195,7 +187,7 @@ git commit -m "feat(util): add calculate1vN multiplayer ELO"
 
 ---
 
-### Task 3: match-repository — 1-v-n scoring + gameType
+### Task 3: match-repository — 1-v-n scoring
 
 **Files:**
 - Modify: `apps/worker/src/repositories/match-repository.ts`
@@ -210,20 +202,7 @@ In `apps/worker/src/repositories/match-repository.ts`:
 import { calculateElo, calculate1vN } from "@coding-cowboys/scorebrawl-util/elo-util";
 ```
 
-- Extend `MatchCreateInput` (lines 24-32) with optional `gameType`:
-
-```ts
-export interface MatchCreateInput {
-	id?: string;
-	seasonId: string;
-	homeScore: number;
-	awayScore: number;
-	homeTeamPlayerIds: string[];
-	awayTeamPlayerIds: string[];
-	userId: string;
-	gameType?: "x01" | "cricket" | "shanghai" | "gotcha";
-}
-```
+- `MatchCreateInput` (lines 24-32) stays as-is:
 
 - Extend `SeasonData` (lines 39-43) to include `"1-v-n-elo"`:
 
@@ -427,14 +406,11 @@ git commit -m "feat(worker): allow creating 1-v-n-elo seasons"
 
 ---
 
-### Task 5: match-router — `createDarts` procedure
+### Task 5: match-router — `createOneVn` procedure
 
-**Files:**
-- Modify: `apps/worker/src/trpc/router/match-router.ts`
+- [ ] **Step 1: Add the `createOneVn` procedure**
 
-- [ ] **Step 1: Add the `createDarts` procedure**
-
-Add a new procedure to `matchRouter` (after `create`, before `remove`). It maps `winnerId` + `loserIds` onto the existing repository `create` (winner → home, losers → away, `homeScore: 1`, `awayScore: loserIds.length`, `gameType`), then reuses the same SSE + streak + achievement post-processing:
+Add a new procedure to `matchRouter` (after `create`, before `remove`). It maps `winnerId` + `loserIds` onto the existing repository `create` (winner → home, losers → away, `homeScore: 1`, `awayScore: loserIds.length`), then reuses the same SSE + streak + achievement post-processing:
 
 ```ts
 	createDarts: leagueMemberProcedure
@@ -646,21 +622,9 @@ git commit -m "feat(worker): add match.createDarts procedure"
 
 ### Task 6: Worker integration tests for 1-v-n-elo
 
-**Files:**
-- Modify: `apps/worker/test/setup/season-context-util.ts`
-- Create: `apps/worker/test/trpc/darts-match-router.spec.ts`
+- Create: `apps/worker/test/trpc/one-v-n-match-router.spec.ts`
 
-- [x] **Step 1: Add the new score type to the test helper union**
-
-In `apps/worker/test/setup/season-context-util.ts` line 12, extend the union:
-
-```ts
-	scoreType?: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
-```
-
-- [x] **Step 2: Write the integration spec**
-
-Create `apps/worker/test/trpc/darts-match-router.spec.ts`:
+Create `apps/worker/test/trpc/one-v-n-match-router.spec.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -863,7 +827,7 @@ In `create-season-form.tsx`:
 
 ```ts
 	"1-v-n-elo": {
-		label: "1-v-N Darts ELO",
+		label: "1-v-N ELO",
 		icon: DartIcon,
 		color: "purple",
 		description: "Multiplayer darts — one winner, everyone else loses",
@@ -988,7 +952,7 @@ git commit -m "feat(web): show 1-v-n-elo as ELO season with dart icon"
 
 ---
 
-### Task 9: CreateDartsGameDialog — record a darts game
+### Task 9: CreateOneVnGameDialog — record a 1-v-n game
 
 **Files:**
 - Create: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/create-darts-game-drawer.tsx`
@@ -997,7 +961,7 @@ git commit -m "feat(web): show 1-v-n-elo as ELO season with dart icon"
 
 - [ ] **Step 1: Create the dialog component**
 
-Create `create-darts-game-drawer.tsx`. It is a Dialog (mirroring `create-match-drawer.tsx` styling) with three steps: pick gameType, pick 2–6 players (chips), pick winner (radio among selected). Uses `seasonPlayer.getStanding` for the roster and `match.createDarts` mutation.
+Create `create-one-vn-game-drawer.tsx`. It is a Dialog (mirroring `create-match-drawer.tsx` styling) with two steps: pick 2–6 players (chips), pick winner (radio among selected). Uses `seasonPlayer.getStanding` for the roster and `match.createOneVn` mutation.
 
 ```tsx
 import { useState } from "react";
@@ -1116,7 +1080,7 @@ export function CreateDartsGameDialog({
 					<div className="flex items-center gap-3">
 						<div className="w-1.5 h-5 bg-purple-500" />
 						<DialogTitle className="text-base font-bold font-mono tracking-tight">
-							Record Darts Game
+							Record Game
 						</DialogTitle>
 					</div>
 				</DialogHeader>
@@ -1316,7 +1280,7 @@ git commit -m "feat(web): add darts game recording dialog"
 
 ---
 
-### Task 10: Seed a darts season for e2e + local dev
+### Task 10: Seed a 1-v-n season for e2e + local dev
 
 **Files:**
 - Modify: `apps/worker/scripts/seed.ts`
@@ -1420,7 +1384,7 @@ git commit -m "feat(seed): add seeded 1-v-n-elo darts season"
 
 ---
 
-### Task 11: E2E — darts match CRUD
+### Task 11: E2E — 1-v-n match CRUD
 
 **Files:**
 - Create: `apps/e2e/tests/darts-match-crud.spec.ts`
@@ -1548,7 +1512,7 @@ Expected: PASS.
 
 - [x] **Step 3: Manual UI verification**
 
-Run `bun dev` and open `https://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Create a `1-v-N Darts ELO` season, then record a 4-player game via the darts dialog and confirm the standings update and match row shows the game type. Use the **agent-browser** skill if browser automation is desired.
+Run `bun dev` and open `https://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Create a `1-v-N ELO` season, then record a 4-player game via the 1-v-n dialog and confirm the standings update.
 
 > Verified via agent-browser on `https://scorebrawl.localhost:1355` (seed@scorebrawl.com):
-> darts season standings render at 1000; darts dialog (x01/cricket/shanghai/gotcha + player chips + winner radios) records a 4-player cricket game; winner +16 ELO, three losers −6 each; match row shows `1` vs `3` and the 4-player lineup; Remove Latest rolls scores back to 1000; seasons list shows `1-V-N-Elo` badge; create form offers `1-v-N Darts ELO`. Note: match rows do not display `gameType` (not required by design spec).
+> 1-v-n season standings render at 1000; 1-v-n dialog (player chips + winner radios) records a 4-player game; winner +16 ELO, three losers −6 each; match row shows `1` vs `3` and the 4-player lineup; Remove Latest rolls scores back to 1000; seasons list shows `1-V-N-Elo` badge; create form offers `1-v-N ELO`.

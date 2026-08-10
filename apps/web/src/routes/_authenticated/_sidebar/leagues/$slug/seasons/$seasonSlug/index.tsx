@@ -16,7 +16,7 @@ import { LatestMatches } from "../-components/season/latest-matches";
 import { Fixtures } from "../-components/season/fixtures";
 import { OverviewCard } from "../-components/season/overview-card";
 import { CreateMatchDialog } from "../-components/match/create-match-drawer";
-import { CreateDartsGameDialog } from "../-components/match/create-darts-game-drawer";
+import { CreateOneVnGameDialog } from "../-components/match/create-one-vn-game-drawer";
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
 import { SessionHistory } from "../-components/session/session-history";
 import { StartSessionDialog } from "../-components/session/start-session-dialog";
@@ -190,7 +190,7 @@ function SeasonDashboardPage() {
 				)}
 			</div>
 			{isEloSeason && seasonId && season?.scoreType === "1-v-n-elo" && (
-				<CreateDartsGameDialog
+				<CreateOneVnGameDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
 					seasonId={seasonId}

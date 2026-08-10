@@ -81,7 +81,7 @@ test.describe("Team Page", () => {
 	test("should navigate to team detail from team standings", async ({ page }) => {
 		// Navigate to the season dashboard where team standings are shown.
 		// Target the seeded ELO season explicitly: the seed also has an active
-		// darts (1-v-n-elo) season without teams, so the league-root redirect
+		// 1-v-n (1-v-n-elo) season without teams, so the league-root redirect
 		// is not guaranteed to land on a team-bearing season.
 		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/season-1`);
 

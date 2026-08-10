@@ -12,29 +12,26 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert01Icon } from "@hugeicons/core-free-icons";
 
-const dartsGameTypes = ["x01", "cricket", "shanghai", "gotcha"] as const;
-
-const createDartsSchema = z.object({
-	gameType: z.enum(dartsGameTypes),
+const createOneVnSchema = z.object({
 	winnerId: z.string().min(1, "Select the winner"),
 	playerIds: z.array(z.string()).min(2, "Select at least 2 players").max(6, "At most 6 players"),
 });
 
-type CreateDartsFormValues = z.infer<typeof createDartsSchema>;
+type CreateOneVnFormValues = z.infer<typeof createOneVnSchema>;
 
-interface CreateDartsGameDialogProps {
+interface CreateOneVnGameDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
 	seasonId: string;
 	seasonSlug: string;
 }
 
-export function CreateDartsGameDialog({
+export function CreateOneVnGameDialog({
 	isOpen,
 	onClose,
 	seasonId,
 	seasonSlug,
-}: CreateDartsGameDialogProps) {
+}: CreateOneVnGameDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
@@ -48,23 +45,21 @@ export function CreateDartsGameDialog({
 		watch,
 		reset,
 		formState: { errors },
-	} = useForm<CreateDartsFormValues>({
-		resolver: zodResolver(createDartsSchema),
+	} = useForm<CreateOneVnFormValues>({
+		resolver: zodResolver(createOneVnSchema),
 		defaultValues: {
-			gameType: "x01",
 			winnerId: "",
 			playerIds: [],
 		},
 	});
 
-	const gameType = watch("gameType");
 	const playerIds = watch("playerIds");
 	const winnerId = watch("winnerId");
 
 	const createMutation = useMutation(
-		trpc.match.createDarts.mutationOptions({
+		trpc.match.createOneVn.mutationOptions({
 			onSuccess: () => {
-				toast.success("Darts game recorded");
+				toast.success("Game recorded");
 				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
@@ -74,7 +69,7 @@ export function CreateDartsGameDialog({
 				onClose();
 			},
 			onError: (err) => {
-				toast.error(err instanceof Error ? err.message : "Failed to record darts game");
+				toast.error(err instanceof Error ? err.message : "Failed to record game");
 			},
 		})
 	);
@@ -85,11 +80,10 @@ export function CreateDartsGameDialog({
 		if (winnerId === id) setValue("winnerId", "");
 	};
 
-	const onSubmit = (values: CreateDartsFormValues) => {
+	const onSubmit = (values: CreateOneVnFormValues) => {
 		const loserIds = values.playerIds.filter((id) => id !== values.winnerId);
 		createMutation.mutate({
 			seasonSlug,
-			gameType: values.gameType,
 			winnerId: values.winnerId,
 			loserIds,
 		});
@@ -101,44 +95,19 @@ export function CreateDartsGameDialog({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className="sm:max-w-lg max-h-[95vh] overflow-hidden p-0"
-				data-testid="create-darts-dialog"
+				data-testid="create-one-vn-dialog"
 			>
 				<DialogHeader className="relative z-10 p-4 pb-3 border-b border-border">
 					<div className="flex items-center gap-3">
 						<div className="w-1.5 h-5 bg-purple-500" />
 						<DialogTitle className="text-base font-bold font-mono tracking-tight">
-							Record Darts Game
+							Record Game
 						</DialogTitle>
 					</div>
 				</DialogHeader>
 
 				<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-80px)] p-4">
 					<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-						{/* Game type */}
-						<div>
-							<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
-								Game
-							</span>
-							<div className="grid grid-cols-4 gap-2 mt-1.5">
-								{dartsGameTypes.map((type) => (
-									<button
-										key={type}
-										type="button"
-										onClick={() => setValue("gameType", type)}
-										data-testid={`darts-game-type-${type}`}
-										className={cn(
-											"py-1.5 text-xs font-mono rounded-md border transition-colors",
-											gameType === type
-												? "border-purple-500 bg-purple-500/10 text-purple-400"
-												: "border-border text-muted-foreground"
-										)}
-									>
-										{type === "x01" ? "x01" : type}
-									</button>
-								))}
-							</div>
-						</div>
-
 						{/* Players */}
 						<div>
 							<span className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
@@ -150,7 +119,7 @@ export function CreateDartsGameDialog({
 										key={p.id}
 										type="button"
 										onClick={() => togglePlayer(p.id)}
-										data-testid={`darts-player-${p.id}`}
+										data-testid={`one-vn-player-${p.id}`}
 										className={cn(
 											"flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs transition-colors",
 											playerIds.includes(p.id)
@@ -185,7 +154,7 @@ export function CreateDartsGameDialog({
 											value={p.id}
 											checked={winnerId === p.id}
 											onChange={() => setValue("winnerId", p.id)}
-											data-testid={`darts-winner-${p.id}`}
+											data-testid={`one-vn-winner-${p.id}`}
 										/>
 										<AvatarWithFallback src={p.image} name={p.name} size="sm" />
 										<span>{p.name}</span>
@@ -222,7 +191,7 @@ export function CreateDartsGameDialog({
 								glowColor={glowColors.blue}
 								className="flex-1 font-mono"
 								disabled={createMutation.isPending || selectedPlayers.length < 2 || !winnerId}
-								data-testid="darts-submit-button"
+								data-testid="one-vn-submit-button"
 							>
 								{createMutation.isPending ? "Recording..." : "Record Game"}
 							</GlowButton>

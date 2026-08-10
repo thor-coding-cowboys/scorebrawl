@@ -97,10 +97,10 @@ const scoreTypeConfig = {
 		description: "Win 3pts • Draw 1pt • Loss 0pts",
 	},
 	"1-v-n-elo": {
-		label: "1-v-N Darts ELO",
+		label: "1-v-N ELO",
 		icon: DartFreeIcons,
 		color: "purple",
-		description: "Multiplayer darts — one winner, everyone else loses",
+		description: "Multiplayer — one winner, everyone else loses",
 	},
 };
 

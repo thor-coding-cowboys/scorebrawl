@@ -29,7 +29,6 @@ export interface MatchCreateInput {
 	homeTeamPlayerIds: string[];
 	awayTeamPlayerIds: string[];
 	userId: string;
-	gameType?: "x01" | "cricket" | "shanghai" | "gotcha";
 }
 
 type CalculateMatchTeamResult = {
@@ -261,7 +260,6 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			awayScore: input.awayScore,
 			homeExpectedElo: eloResult.homeTeam.winningOdds,
 			awayExpectedElo: eloResult.awayTeam.winningOdds,
-			gameType: input.gameType ?? null,
 			createdBy: input.userId,
 			updatedBy: input.userId,
 			createdAt: now,
@@ -418,7 +416,6 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			seasonId: input.seasonId,
 			homeScore: input.homeScore,
 			awayScore: input.awayScore,
-			gameType: input.gameType ?? null,
 			createdAt: now,
 		};
 	});
@@ -740,7 +737,6 @@ export const getBySeasonId = async ({
 				seasonId: match.seasonId,
 				homeScore: match.homeScore,
 				awayScore: match.awayScore,
-				gameType: match.gameType,
 				createdAt: match.createdAt,
 			})
 			.from(match)
@@ -834,7 +830,6 @@ export const getBySeasonId = async ({
 			seasonId: m.seasonId,
 			homeScore: m.homeScore,
 			awayScore: m.awayScore,
-			gameType: m.gameType,
 			createdAt: m.createdAt,
 			homeTeam: {
 				name: homeTeamData?.teamName ?? null,
@@ -880,7 +875,6 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 				seasonId: match.seasonId,
 				homeScore: match.homeScore,
 				awayScore: match.awayScore,
-				gameType: match.gameType,
 				createdAt: match.createdAt,
 			})
 			.from(match)

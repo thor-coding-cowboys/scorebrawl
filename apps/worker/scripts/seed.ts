@@ -48,9 +48,9 @@ const SEED_SEASON = {
 	kFactor: 32,
 };
 
-const SEED_DARTS_SEASON = {
-	name: "Darts Season",
-	slug: "darts-1",
+const SEED_ONE_VN_SEASON = {
+	name: "1-v-N Season",
+	slug: "1-v-n-1",
 	initialScore: 1000,
 	scoreType: "1-v-n-elo" as const,
 	kFactor: 32,
@@ -807,25 +807,25 @@ async function seedDatabase(
 
 		let seasonId: string;
 
-		// Create the darts (1-v-n-elo) season
-		const [existingDartsSeason] = await db
+		// Create the 1-v-n-elo season
+		const [existingOneVnSeason] = await db
 			.select({ id: season.id })
 			.from(season)
-			.where(eq(season.slug, SEED_DARTS_SEASON.slug));
-		let dartsSeasonId: string | undefined;
-		if (existingDartsSeason) {
-			console.log(dim(`  ○ Darts season already exists: ${SEED_DARTS_SEASON.name}`));
-			dartsSeasonId = existingDartsSeason.id;
+			.where(eq(season.slug, SEED_ONE_VN_SEASON.slug));
+		let oneVnSeasonId: string | undefined;
+		if (existingOneVnSeason) {
+			console.log(dim(`  ○ 1-v-n season already exists: ${SEED_ONE_VN_SEASON.name}`));
+			oneVnSeasonId = existingOneVnSeason.id;
 		} else {
-			const dartsSeasonIdValue = createId();
-			dartsSeasonId = dartsSeasonIdValue;
+			const oneVnSeasonIdValue = createId();
+			oneVnSeasonId = oneVnSeasonIdValue;
 			await db.insert(season).values({
-				id: dartsSeasonIdValue,
-				name: SEED_DARTS_SEASON.name,
-				slug: SEED_DARTS_SEASON.slug,
-				initialScore: SEED_DARTS_SEASON.initialScore,
-				scoreType: SEED_DARTS_SEASON.scoreType,
-				kFactor: SEED_DARTS_SEASON.kFactor,
+				id: oneVnSeasonIdValue,
+				name: SEED_ONE_VN_SEASON.name,
+				slug: SEED_ONE_VN_SEASON.slug,
+				initialScore: SEED_ONE_VN_SEASON.initialScore,
+				scoreType: SEED_ONE_VN_SEASON.scoreType,
+				kFactor: SEED_ONE_VN_SEASON.kFactor,
 				startDate: new Date(),
 				endDate: null,
 				leagueId: leagueId,
@@ -838,7 +838,7 @@ async function seedDatabase(
 			});
 			console.log(
 				green(
-					`  ✓ Darts season created: ${SEED_DARTS_SEASON.name} (slug: ${SEED_DARTS_SEASON.slug})`
+					`  ✓ 1-v-n season created: ${SEED_ONE_VN_SEASON.name} (slug: ${SEED_ONE_VN_SEASON.slug})`
 				)
 			);
 		}
@@ -881,12 +881,12 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
-				if (dartsSeasonId) {
+				if (oneVnSeasonId) {
 					await db.insert(seasonPlayer).values({
 						id: createId(),
-						seasonId: dartsSeasonId,
+						seasonId: oneVnSeasonId,
 						playerId: ownerPlayerId,
-						score: SEED_DARTS_SEASON.initialScore,
+						score: SEED_ONE_VN_SEASON.initialScore,
 						disabled: false,
 						createdAt: now,
 						updatedAt: now,
@@ -970,12 +970,12 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
-				if (dartsSeasonId) {
+				if (oneVnSeasonId) {
 					await db.insert(seasonPlayer).values({
 						id: createId(),
-						seasonId: dartsSeasonId,
+						seasonId: oneVnSeasonId,
 						playerId: newPlayerId,
-						score: SEED_DARTS_SEASON.initialScore,
+						score: SEED_ONE_VN_SEASON.initialScore,
 						disabled: false,
 						createdAt: now,
 						updatedAt: now,

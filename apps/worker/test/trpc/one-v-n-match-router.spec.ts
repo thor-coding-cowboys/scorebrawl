@@ -3,12 +3,12 @@ import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
 
-describe("darts 1-v-n-elo", () => {
-	async function createDartsSeason(ctx: Awaited<ReturnType<typeof createAuthContext>>) {
+describe("1-v-n-elo", () => {
+	async function createOneVnSeason(ctx: Awaited<ReturnType<typeof createAuthContext>>) {
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 		await createPlayers(ctx, 4);
 		const season = await client.season.create.mutate({
-			name: "Darts Season",
+			name: "1-v-N Season",
 			initialScore: 1000,
 			scoreType: "1-v-n-elo",
 			kFactor: 32,
@@ -25,7 +25,7 @@ describe("darts 1-v-n-elo", () => {
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 		await createPlayers(ctx, 2);
 		const season = await client.season.create.mutate({
-			name: "Darts Season",
+			name: "1-v-N Season",
 			initialScore: 1000,
 			scoreType: "1-v-n-elo",
 			kFactor: 32,
@@ -41,7 +41,7 @@ describe("darts 1-v-n-elo", () => {
 		await createPlayers(ctx, 2);
 		await expect(
 			client.season.create.mutate({
-				name: "Darts Season",
+				name: "1-v-N Season",
 				initialScore: 1000,
 				scoreType: "1-v-n-elo",
 				kFactor: 32,
@@ -51,14 +51,13 @@ describe("darts 1-v-n-elo", () => {
 		).rejects.toThrow("1-v-n-elo seasons do not use rounds");
 	});
 
-	it("records a 1v1 darts game and updates ratings", async () => {
+	it("records a 1v1 game and updates ratings", async () => {
 		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
+		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);
 		const [p0, p1] = seasonPlayers;
 
-		const match = await client.match.createDarts.mutate({
+		const match = await client.match.createOneVn.mutate({
 			seasonSlug: season.slug,
-			gameType: "x01",
 			winnerId: p0.id,
 			loserIds: [p1.id],
 		});
@@ -76,12 +75,11 @@ describe("darts 1-v-n-elo", () => {
 
 	it("records a 4-player game: winner up, all losers down", async () => {
 		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
+		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);
 		const [p0, p1, p2, p3] = seasonPlayers;
 
-		await client.match.createDarts.mutate({
+		await client.match.createOneVn.mutate({
 			seasonSlug: season.slug,
-			gameType: "cricket",
 			winnerId: p0.id,
 			loserIds: [p1.id, p2.id, p3.id],
 		});
@@ -96,30 +94,14 @@ describe("darts 1-v-n-elo", () => {
 		expect(standing[0]?.id).toBe(p0.id);
 	});
 
-	it("rejects invalid gameType", async () => {
-		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
-		const [p0, p1] = seasonPlayers;
-
-		await expect(
-			client.match.createDarts.mutate({
-				seasonSlug: season.slug,
-				gameType: "bogus" as never,
-				winnerId: p0.id,
-				loserIds: [p1.id],
-			})
-		).rejects.toThrow();
-	});
-
 	it("rejects winner also in losers", async () => {
 		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
+		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);
 		const [p0, p1] = seasonPlayers;
 
 		await expect(
-			client.match.createDarts.mutate({
+			client.match.createOneVn.mutate({
 				seasonSlug: season.slug,
-				gameType: "x01",
 				winnerId: p0.id,
 				loserIds: [p0.id, p1.id],
 			})
@@ -128,27 +110,25 @@ describe("darts 1-v-n-elo", () => {
 
 	it("rejects a player not in the season", async () => {
 		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
+		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);
 		const [p0, p1] = seasonPlayers;
 
 		await expect(
-			client.match.createDarts.mutate({
+			client.match.createOneVn.mutate({
 				seasonSlug: season.slug,
-				gameType: "x01",
 				winnerId: p0.id,
 				loserIds: [p1.id, "nonexistent-id"],
 			})
 		).rejects.toThrow("All players must be in this season");
 	});
 
-	it("lists a darts match with gameType", async () => {
+	it("lists a recorded 1-v-n match", async () => {
 		const ctx = await createAuthContext();
-		const { client, season, seasonPlayers } = await createDartsSeason(ctx);
+		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);
 		const [p0, p1, p2] = seasonPlayers;
 
-		await client.match.createDarts.mutate({
+		await client.match.createOneVn.mutate({
 			seasonSlug: season.slug,
-			gameType: "shanghai",
 			winnerId: p0.id,
 			loserIds: [p1.id, p2.id],
 		});
@@ -158,6 +138,6 @@ describe("darts 1-v-n-elo", () => {
 			limit: 10,
 			offset: 0,
 		});
-		expect(result.matches[0]?.gameType).toBe("shanghai");
+		expect(result.matches).toHaveLength(1);
 	});
 });

@@ -362,12 +362,11 @@ export const matchRouter = {
 				);
 		}),
 
-	createDarts: leagueMemberProcedure
+	createOneVn: leagueMemberProcedure
 		.input(
 			z.object({
 				id: matchIdSchema,
 				seasonSlug: z.string(),
-				gameType: z.enum(["x01", "cricket", "shanghai", "gotcha"]),
 				winnerId: z.string(),
 				loserIds: z.array(z.string()).min(1).max(5),
 			})
@@ -389,7 +388,7 @@ export const matchRouter = {
 			if (comp.scoreType !== "1-v-n-elo") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Darts games can only be recorded in 1-v-n-elo seasons",
+					message: "1-v-n games can only be recorded in 1-v-n-elo seasons",
 				});
 			}
 
@@ -397,7 +396,7 @@ export const matchRouter = {
 			if (allIds.length < 2 || allIds.length > 6) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "A darts game needs between 2 and 6 players",
+					message: "A 1-v-n game needs between 2 and 6 players",
 				});
 			}
 
@@ -452,7 +451,6 @@ export const matchRouter = {
 					awayScore: input.loserIds.length,
 					homeTeamPlayerIds: [input.winnerId],
 					awayTeamPlayerIds: input.loserIds,
-					gameType: input.gameType,
 					userId: ctx.authentication.user.id,
 				},
 			});

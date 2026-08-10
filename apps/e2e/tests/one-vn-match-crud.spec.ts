@@ -1,12 +1,12 @@
 import { test, expect, signIn, SEED_USER, SEED_LEAGUE } from "./fixtures/auth";
 
-test.describe("Darts Match CRUD", () => {
+test.describe("1-v-n Match CRUD", () => {
 	test.beforeEach(async ({ page }) => {
 		await signIn(page, SEED_USER.email, SEED_USER.password);
 	});
 
-	test("records a darts game, verifies ELO change, then removes it", async ({ page }) => {
-		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/darts-1`);
+	test("records a 1-v-n game, verifies ELO change, then removes it", async ({ page }) => {
+		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/1-v-n-1`);
 
 		await expect(page.locator('[data-testid="standings-table"]:visible')).toBeVisible({
 			timeout: 10000,
@@ -28,15 +28,12 @@ test.describe("Darts Match CRUD", () => {
 			}
 		}
 
-		// Open darts dialog
+		// Open 1-v-n dialog
 		await page.getByTestId("create-match-button").click();
-		await expect(page.getByTestId("create-darts-dialog")).toBeVisible();
-
-		// Select game type
-		await page.getByTestId("darts-game-type-cricket").click();
+		await expect(page.getByTestId("create-one-vn-dialog")).toBeVisible();
 
 		// Select 4 players
-		const playerButtons = page.locator('[data-testid^="darts-player-"]');
+		const playerButtons = page.locator('[data-testid^="one-vn-player-"]');
 		const firstFour = await playerButtons.all();
 		for (const btn of firstFour.slice(0, 4)) {
 			await btn.click();
@@ -44,13 +41,13 @@ test.describe("Darts Match CRUD", () => {
 
 		// Pick winner = first selected player
 		const firstPlayerTestId = await firstFour[0].getAttribute("data-testid");
-		const firstPlayerId = firstPlayerTestId?.replace("darts-player-", "");
+		const firstPlayerId = firstPlayerTestId?.replace("one-vn-player-", "");
 		if (firstPlayerId) {
-			await page.getByTestId(`darts-winner-${firstPlayerId}`).check();
+			await page.getByTestId(`one-vn-winner-${firstPlayerId}`).check();
 		}
 
-		await page.getByTestId("darts-submit-button").click();
-		await expect(page.getByTestId("create-darts-dialog")).not.toBeVisible();
+		await page.getByTestId("one-vn-submit-button").click();
+		await expect(page.getByTestId("create-one-vn-dialog")).not.toBeVisible();
 
 		// Winner's standings score should have increased
 		await expect(page.getByTestId("standings-table").first()).toBeVisible();
@@ -64,14 +61,14 @@ test.describe("Darts Match CRUD", () => {
 		}
 
 		// Remove the match via the matches page
-		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/darts-1/matches`);
+		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/1-v-n-1/matches`);
 		await expect(page.getByText("Remove Latest")).toBeVisible();
 		await page.getByText("Remove Latest").click();
 		await expect(page.getByTestId("remove-match-dialog")).toBeVisible();
 		await page.getByTestId("remove-match-confirm-button").click();
 
 		// Winner's score should be rolled back
-		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/darts-1`);
+		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/1-v-n-1`);
 		if (firstPlayerId) {
 			await expect
 				.poll(async () => {
