@@ -10,6 +10,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchRow } from "../-components/match/match-row";
 import { CreateMatchDialog } from "../-components/match/create-match-drawer";
+import { CreateDartsGameDialog } from "../-components/match/create-darts-game-drawer";
 import { RemoveMatchDialog } from "../-components/match/remove-match-dialog";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
@@ -250,7 +251,15 @@ function MatchesPage() {
 					)}
 				</div>
 			</div>
-			{seasonId && (
+			{seasonId && season?.scoreType === "1-v-n-elo" && (
+				<CreateDartsGameDialog
+					isOpen={isCreateMatchOpen}
+					onClose={() => setIsCreateMatchOpen(false)}
+					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+				/>
+			)}
+			{seasonId && season?.scoreType !== "1-v-n-elo" && (
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
