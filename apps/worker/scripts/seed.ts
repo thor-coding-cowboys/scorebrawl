@@ -48,6 +48,14 @@ const SEED_SEASON = {
 	kFactor: 32,
 };
 
+const SEED_DARTS_SEASON = {
+	name: "Darts Season",
+	slug: "darts-1",
+	initialScore: 1000,
+	scoreType: "1-v-n-elo" as const,
+	kFactor: 32,
+};
+
 const DEFAULT_MEMBER_COUNT = 20;
 const DEFAULT_MATCH_COUNT = 100;
 
@@ -795,6 +803,42 @@ async function seedDatabase(
 
 		let seasonId: string;
 
+		// Create the darts (1-v-n-elo) season
+		const [existingDartsSeason] = await db
+			.select({ id: season.id })
+			.from(season)
+			.where(eq(season.slug, SEED_DARTS_SEASON.slug));
+		let dartsSeasonId: string | undefined;
+		if (existingDartsSeason) {
+			console.log(dim(`  ○ Darts season already exists: ${SEED_DARTS_SEASON.name}`));
+			dartsSeasonId = existingDartsSeason.id;
+		} else {
+			const dartsSeasonIdValue = createId();
+			dartsSeasonId = dartsSeasonIdValue;
+			await db.insert(season).values({
+				id: dartsSeasonIdValue,
+				name: SEED_DARTS_SEASON.name,
+				slug: SEED_DARTS_SEASON.slug,
+				initialScore: SEED_DARTS_SEASON.initialScore,
+				scoreType: SEED_DARTS_SEASON.scoreType,
+				kFactor: SEED_DARTS_SEASON.kFactor,
+				startDate: new Date(),
+				endDate: null,
+				leagueId: leagueId,
+				archived: false,
+				closed: false,
+				createdBy: SEED_USER.id,
+				updatedBy: SEED_USER.id,
+				createdAt: now,
+				updatedAt: now,
+			});
+			console.log(
+				green(
+					`  ✓ Darts season created: ${SEED_DARTS_SEASON.name} (slug: ${SEED_DARTS_SEASON.slug})`
+				)
+			);
+		}
+
 		if (existingSeason) {
 			console.log(dim(`  ○ Season already exists: ${SEED_SEASON.name}`));
 			seasonId = existingSeason.id;
@@ -833,6 +877,17 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
+				if (dartsSeasonId) {
+					await db.insert(seasonPlayer).values({
+						id: createId(),
+						seasonId: dartsSeasonId,
+						playerId: ownerPlayerId,
+						score: SEED_DARTS_SEASON.initialScore,
+						disabled: false,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
 				console.log(green("  ✓ Owner added as season player"));
 			}
 			createdCount++;
@@ -911,6 +966,17 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
+				if (dartsSeasonId) {
+					await db.insert(seasonPlayer).values({
+						id: createId(),
+						seasonId: dartsSeasonId,
+						playerId: newPlayerId,
+						score: SEED_DARTS_SEASON.initialScore,
+						disabled: false,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
 
 				membersCreated++;
 				console.log(green(`  ✓ Member ${i + 1}/${effectiveMemberCount}: ${name} (${email})`));
