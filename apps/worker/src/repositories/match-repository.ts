@@ -1,6 +1,6 @@
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
-import { calculateElo } from "@coding-cowboys/scorebrawl-util/elo-util";
+import { calculateElo, calculate1vN } from "@coding-cowboys/scorebrawl-util/elo-util";
 import type { DrizzleDB } from "../db";
 import { withTransaction } from "../db";
 import { user } from "../db/schema/auth-schema";
@@ -29,6 +29,7 @@ export interface MatchCreateInput {
 	homeTeamPlayerIds: string[];
 	awayTeamPlayerIds: string[];
 	userId: string;
+	gameType?: "x01" | "cricket" | "shanghai" | "gotcha";
 }
 
 type CalculateMatchTeamResult = {
@@ -37,7 +38,7 @@ type CalculateMatchTeamResult = {
 };
 
 type SeasonData = {
-	scoreType: "elo" | "3-1-0" | "elo-individual-vs-team";
+	scoreType: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
 	kFactor: number;
 	initialScore: number;
 };
@@ -71,6 +72,18 @@ const calculateMatchResult = ({
 
 	if (seasonData.scoreType === "3-1-0") {
 		return calculate310(homePlayers, homeScore, awayScore, awayPlayers);
+	}
+
+	if (seasonData.scoreType === "1-v-n-elo") {
+		const result = calculate1vN({
+			kFactor: seasonData.kFactor,
+			winner: homePlayers[0],
+			losers: awayPlayers,
+		});
+		return {
+			homeTeam: { winningOdds: 0.5, players: [result.winner] },
+			awayTeam: { winningOdds: 0.5, players: result.losers },
+		};
 	}
 
 	throw new Error("Invalid score type");
@@ -248,6 +261,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			awayScore: input.awayScore,
 			homeExpectedElo: eloResult.homeTeam.winningOdds,
 			awayExpectedElo: eloResult.awayTeam.winningOdds,
+			gameType: input.gameType ?? null,
 			createdBy: input.userId,
 			updatedBy: input.userId,
 			createdAt: now,
@@ -258,7 +272,10 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		let homeMatchResult: (typeof matchResult)[number];
 		let awayMatchResult: (typeof matchResult)[number];
 
-		if (input.homeScore > input.awayScore) {
+		if (seasonData.scoreType === "1-v-n-elo") {
+			homeMatchResult = "W";
+			awayMatchResult = "L";
+		} else if (input.homeScore > input.awayScore) {
 			homeMatchResult = "W";
 			awayMatchResult = "L";
 		} else if (input.homeScore < input.awayScore) {
@@ -401,6 +418,7 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			seasonId: input.seasonId,
 			homeScore: input.homeScore,
 			awayScore: input.awayScore,
+			gameType: input.gameType ?? null,
 			createdAt: now,
 		};
 	});
@@ -722,6 +740,7 @@ export const getBySeasonId = async ({
 				seasonId: match.seasonId,
 				homeScore: match.homeScore,
 				awayScore: match.awayScore,
+				gameType: match.gameType,
 				createdAt: match.createdAt,
 			})
 			.from(match)
@@ -815,6 +834,7 @@ export const getBySeasonId = async ({
 			seasonId: m.seasonId,
 			homeScore: m.homeScore,
 			awayScore: m.awayScore,
+			gameType: m.gameType,
 			createdAt: m.createdAt,
 			homeTeam: {
 				name: homeTeamData?.teamName ?? null,
@@ -860,6 +880,7 @@ export const getMatchWithPlayers = async ({ db, matchId }: { db: DrizzleDB; matc
 				seasonId: match.seasonId,
 				homeScore: match.homeScore,
 				awayScore: match.awayScore,
+				gameType: match.gameType,
 				createdAt: match.createdAt,
 			})
 			.from(match)
