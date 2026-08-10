@@ -38,7 +38,9 @@ export const achievementType = [
 	"season_winner",
 ] as const;
 
-export const scoreType = ["elo", "3-1-0", "elo-individual-vs-team"] as const;
+export const scoreType = ["elo", "3-1-0", "elo-individual-vs-team", "1-v-n-elo"] as const;
+
+export const dartsGameType = ["x01", "cricket", "shanghai", "gotcha"] as const;
 
 export const matchResult = ["W", "L", "D"] as const;
 
@@ -173,6 +175,7 @@ export const match = sqliteTable(
 		awayScore: integer("away_score").notNull(),
 		homeExpectedElo: real("home_expected_elo"),
 		awayExpectedElo: real("away_expected_elo"),
+		gameType: text("game_type", { enum: dartsGameType }),
 		createdBy: text("created_by").notNull(),
 		updatedBy: text("updated_by").notNull(),
 		...timestampAuditFields,
