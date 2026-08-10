@@ -186,7 +186,7 @@ Note: `calculateExpectedScore` is already imported at the top of the file. `EloP
 Run: `bun run test` (from `packages/util`)
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/util/src/elo-util/index.ts packages/util/src/elo-util/elo-util.spec.ts
@@ -650,7 +650,7 @@ git commit -m "feat(worker): add match.createDarts procedure"
 - Modify: `apps/worker/test/setup/season-context-util.ts`
 - Create: `apps/worker/test/trpc/darts-match-router.spec.ts`
 
-- [ ] **Step 1: Add the new score type to the test helper union**
+- [x] **Step 1: Add the new score type to the test helper union**
 
 In `apps/worker/test/setup/season-context-util.ts` line 12, extend the union:
 
@@ -658,7 +658,7 @@ In `apps/worker/test/setup/season-context-util.ts` line 12, extend the union:
 	scoreType?: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
 ```
 
-- [ ] **Step 2: Write the integration spec**
+- [x] **Step 2: Write the integration spec**
 
 Create `apps/worker/test/trpc/darts-match-router.spec.ts`:
 
@@ -826,22 +826,24 @@ describe("darts 1-v-n-elo", () => {
 
 Note: if `season.rounds` is not returned by `season.getBySlug` (it is, per `season-router.ts:31`), adjust the assertion accordingly.
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `bun run test -- darts-match-router` (from `apps/worker`)
 Expected: PASS.
 
-- [ ] **Step 4: Run the full worker test suite to catch regressions**
+- [x] **Step 4: Run the full worker test suite to catch regressions**
 
 Run: `bun run test` (from `apps/worker`)
 Expected: all existing tests still PASS (match-router, season-router specs exercise the refactored `create` path).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/worker/test/setup/season-context-util.ts apps/worker/test/trpc/darts-match-router.spec.ts
 git commit -m "test(worker): add 1-v-n-elo season and match integration tests"
 ```
+
+> **Note (infra fix bundled in this commit):** all worker specs were failing with 401 before any test code ran. Root cause: `apps/worker/.env` sets `BETTER_AUTH_URL=https://scorebrawl.localhost`, which vitest-pool-workers loads into the worker env, so better-auth emits `__Secure-better-auth.session_token` cookies while the test helpers hardcode the unprefixed name → session lookup returned null. Fixed in `apps/worker/vitest.config.ts` by overriding `BETTER_AUTH_URL: "http://localhost"` in the test bindings so all auth instances (helpers + worker via `SELF.fetch`) use plain cookies. Verified: `test/trpc/match-router.spec.ts` (12 tests) and `test/trpc/darts-match-router.spec.ts` (8 tests) pass; full worker suite 174/174 pass.
 
 ---
 
@@ -1305,7 +1307,7 @@ Expected: PASS.
 
 Run: `bun dev` (from `apps/web`) once to let TanStack Router regenerate route types for the new file.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/create-darts-game-drawer.tsx apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/index.tsx apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches.tsx
