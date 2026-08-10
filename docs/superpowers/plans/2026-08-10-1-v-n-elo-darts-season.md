@@ -1546,6 +1546,9 @@ Expected: all pass (worker unit + integration, util, lint, format).
 Run: `bun typecheck` (from `apps/web`) and `bun typecheck` (from `apps/worker`)
 Expected: PASS.
 
-- [ ] **Step 3: Manual UI verification**
+- [x] **Step 3: Manual UI verification**
 
 Run `bun dev` and open `https://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Create a `1-v-N Darts ELO` season, then record a 4-player game via the darts dialog and confirm the standings update and match row shows the game type. Use the **agent-browser** skill if browser automation is desired.
+
+> Verified via agent-browser on `https://scorebrawl.localhost:1355` (seed@scorebrawl.com):
+> darts season standings render at 1000; darts dialog (x01/cricket/shanghai/gotcha + player chips + winner radios) records a 4-player cricket game; winner +16 ELO, three losers −6 each; match row shows `1` vs `3` and the 4-player lineup; Remove Latest rolls scores back to 1000; seasons list shows `1-V-N-Elo` badge; create form offers `1-v-N Darts ELO`. Note: match rows do not display `gameType` (not required by design spec).
