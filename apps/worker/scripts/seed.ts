@@ -267,7 +267,11 @@ function getLocalDbPath(workerDir: string): string | null {
 
 	const files = readdirSync(d1Dir);
 	const sqliteFile = files.find(
-		(f) => f.endsWith(".sqlite") && !f.includes("-shm") && !f.includes("-wal")
+		(f) =>
+			f.endsWith(".sqlite") &&
+			!f.includes("-shm") &&
+			!f.includes("-wal") &&
+			!f.startsWith("metadata")
 	);
 	if (!sqliteFile) {
 		return null;
