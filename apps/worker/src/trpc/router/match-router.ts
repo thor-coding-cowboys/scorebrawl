@@ -368,7 +368,7 @@ export const matchRouter = {
 				id: matchIdSchema,
 				seasonSlug: z.string(),
 				winnerId: z.string(),
-				loserIds: z.array(z.string()).min(1).max(5),
+				loserIds: z.array(z.string()).min(1),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -393,10 +393,10 @@ export const matchRouter = {
 			}
 
 			const allIds = [input.winnerId, ...input.loserIds];
-			if (allIds.length < 2 || allIds.length > 6) {
+			if (allIds.length < 2) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "A 1-v-n game needs between 2 and 6 players",
+					message: "A 1-v-n game needs at least 2 players",
 				});
 			}
 

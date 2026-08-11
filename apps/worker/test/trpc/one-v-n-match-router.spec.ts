@@ -94,6 +94,39 @@ describe("1-v-n-elo", () => {
 		expect(standing[0]?.id).toBe(p0.id);
 	});
 
+	it("records a game with more than 6 players", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+		await createPlayers(ctx, 8);
+		const season = await client.season.create.mutate({
+			name: "1-v-N Season",
+			initialScore: 1000,
+			scoreType: "1-v-n-elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+		const seasonPlayers = await client.seasonPlayer.getAll.query({
+			seasonSlug: season.slug,
+		});
+		const [winner, ...losers] = seasonPlayers;
+
+		const match = await client.match.createOneVn.mutate({
+			seasonSlug: season.slug,
+			winnerId: winner.id,
+			loserIds: losers.map((p) => p.id),
+		});
+
+		expect(match).toBeDefined();
+		expect(match.homeScore).toBe(1);
+		expect(match.awayScore).toBe(7);
+
+		const standing = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		expect(standing.find((p) => p.id === winner.id)?.score).toBeGreaterThan(1000);
+		for (const loser of losers) {
+			expect(standing.find((p) => p.id === loser.id)?.score).toBeLessThan(1000);
+		}
+	});
+
 	it("rejects winner also in losers", async () => {
 		const ctx = await createAuthContext();
 		const { client, season, seasonPlayers } = await createOneVnSeason(ctx);

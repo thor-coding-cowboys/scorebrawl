@@ -14,7 +14,7 @@ import { Alert01Icon } from "@hugeicons/core-free-icons";
 
 const createOneVnSchema = z.object({
 	winnerId: z.string().min(1, "Select the winner"),
-	playerIds: z.array(z.string()).min(2, "Select at least 2 players").max(6, "At most 6 players"),
+	playerIds: z.array(z.string()).min(2, "Select at least 2 players"),
 });
 
 type CreateOneVnFormValues = z.infer<typeof createOneVnSchema>;
