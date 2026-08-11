@@ -141,18 +141,18 @@ export const calculate1vN = ({
 	losers: { id: string; scoreAfter: number }[];
 } => {
 	const scaledK = kFactor / losers.length;
-	let winnerScoreAfter = winner.score;
 
-	const loserResults = losers.map((loser) => {
+	const loserChanges = losers.map((loser) => {
 		const expectedWinner = calculateExpectedScore(winner.score, loser.score);
 		const delta = scaledK * (1 - expectedWinner);
-		winnerScoreAfter += delta;
-		return { id: loser.id, scoreAfter: loser.score - delta };
+		return -Math.round(delta);
 	});
 
+	const winnerChange = -loserChanges.reduce((sum, change) => sum + change, 0);
+
 	return {
-		winner: { id: winner.id, scoreAfter: winnerScoreAfter },
-		losers: loserResults,
+		winner: { id: winner.id, scoreAfter: winner.score + winnerChange },
+		losers: losers.map((loser, i) => ({ id: loser.id, scoreAfter: loser.score + loserChanges[i] })),
 	};
 };
 

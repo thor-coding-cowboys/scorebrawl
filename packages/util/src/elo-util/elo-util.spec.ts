@@ -310,9 +310,9 @@ describe("elo-util", () => {
 				],
 			});
 
-			expect(result.winner.scoreAfter).toBeCloseTo(1016, 1);
+			expect(result.winner.scoreAfter).toBe(1015);
 			for (const loser of result.losers) {
-				expect(loser.scoreAfter).toBeCloseTo(994.67, 1);
+				expect(loser.scoreAfter).toBe(995);
 			}
 		});
 
