@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       - name: 🥟 Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
@@ -30,7 +30,7 @@ jobs:
         run: bun install
 
       - name: ⚡ Setup Turbo cache
-        uses: rharkor/caching-for-turbo@cda201ff2b32699a2ae9f59704db029e3dde4fbd
+        uses: rharkor/caching-for-turbo@2238fae6eb9a9936f92356f54cb3660200d105e7 # v2.5.1
 
       - name: 🎭 Install Playwright
         run: bunx playwright install chromium --with-deps

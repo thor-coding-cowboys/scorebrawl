@@ -261,7 +261,7 @@ export async function deleteQueue(queueName: string): Promise<CleanupResult> {
 
 		if (queueExists) {
 			debug(`Deleting queue ${queueName}...`);
-			const cmd = $`bun wrangler queues delete ${queueName} --force`;
+			const cmd = $`bun wrangler queues delete ${queueName}`;
 			if (!debugMode) {
 				cmd.quiet();
 			}
