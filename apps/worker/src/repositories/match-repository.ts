@@ -1,6 +1,6 @@
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
-import { calculateElo } from "@coding-cowboys/scorebrawl-util/elo-util";
+import { calculateElo, calculate1vN } from "@coding-cowboys/scorebrawl-util/elo-util";
 import type { DrizzleDB } from "../db";
 import { withTransaction } from "../db";
 import { user } from "../db/schema/auth-schema";
@@ -37,7 +37,7 @@ type CalculateMatchTeamResult = {
 };
 
 type SeasonData = {
-	scoreType: "elo" | "3-1-0" | "elo-individual-vs-team";
+	scoreType: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
 	kFactor: number;
 	initialScore: number;
 };
@@ -71,6 +71,18 @@ const calculateMatchResult = ({
 
 	if (seasonData.scoreType === "3-1-0") {
 		return calculate310(homePlayers, homeScore, awayScore, awayPlayers);
+	}
+
+	if (seasonData.scoreType === "1-v-n-elo") {
+		const result = calculate1vN({
+			kFactor: seasonData.kFactor,
+			winner: homePlayers[0],
+			losers: awayPlayers,
+		});
+		return {
+			homeTeam: { winningOdds: 0.5, players: [result.winner] },
+			awayTeam: { winningOdds: 0.5, players: result.losers },
+		};
 	}
 
 	throw new Error("Invalid score type");
@@ -258,7 +270,10 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 		let homeMatchResult: (typeof matchResult)[number];
 		let awayMatchResult: (typeof matchResult)[number];
 
-		if (input.homeScore > input.awayScore) {
+		if (seasonData.scoreType === "1-v-n-elo") {
+			homeMatchResult = "W";
+			awayMatchResult = "L";
+		} else if (input.homeScore > input.awayScore) {
 			homeMatchResult = "W";
 			awayMatchResult = "L";
 		} else if (input.homeScore < input.awayScore) {

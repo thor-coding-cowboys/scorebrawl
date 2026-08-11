@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "bunx portless scorebrawl vite",
+		"dev": "PORTLESS_PORT=1355 PORTLESS_HTTPS=${CI:+0} ${CI:+bunx }portless scorebrawl vite",
 		"build": "tsc -b && vite build",
 		"preview": "vite preview",
 		"typecheck": "tsgo --noEmit",

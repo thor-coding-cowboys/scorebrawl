@@ -35,7 +35,12 @@ export default defineWorkersConfig({
 				singleWorker: true,
 				wrangler: { configPath: testConfigPath },
 				miniflare: {
-					bindings: { TEST_MIGRATIONS: migrations },
+					bindings: {
+						TEST_MIGRATIONS: migrations,
+						// Override BETTER_AUTH_URL from .env (https) so better-auth uses
+						// plain (non __Secure-) cookies matching the test auth helpers.
+						BETTER_AUTH_URL: "http://localhost",
+					},
 					logLevel: "warn",
 				},
 			},

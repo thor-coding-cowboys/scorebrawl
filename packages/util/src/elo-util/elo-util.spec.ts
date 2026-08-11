@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateElo, calculateEloMatch, determineMatchResult } from "./index.js";
+import { calculate1vN, calculateElo, calculateEloMatch, determineMatchResult } from "./index.js";
 
 describe("elo-util", () => {
 	describe("calculateElo", () => {
@@ -284,6 +284,73 @@ describe("elo-util", () => {
 			const result = determineMatchResult(2, 2);
 			expect(result.homeResult).toBe("D");
 			expect(result.awayResult).toBe("D");
+		});
+	});
+
+	describe("calculate1vN", () => {
+		it("n=2 matches standard 1v1 ELO", () => {
+			const result = calculate1vN({
+				kFactor: 32,
+				winner: { id: "w", score: 1000 },
+				losers: [{ id: "l1", score: 1000 }],
+			});
+
+			expect(result.winner.scoreAfter).toBe(1016);
+			expect(result.losers[0].scoreAfter).toBe(984);
+		});
+
+		it("n=4 with equal ratings: winner gains k*(1/2) total, losers split", () => {
+			const result = calculate1vN({
+				kFactor: 32,
+				winner: { id: "w", score: 1000 },
+				losers: [
+					{ id: "l1", score: 1000 },
+					{ id: "l2", score: 1000 },
+					{ id: "l3", score: 1000 },
+				],
+			});
+
+			expect(result.winner.scoreAfter).toBe(1015);
+			for (const loser of result.losers) {
+				expect(loser.scoreAfter).toBe(995);
+			}
+		});
+
+		it("rating changes sum to ~0 (zero-sum)", () => {
+			const losers = [
+				{ id: "l1", score: 1000 },
+				{ id: "l2", score: 900 },
+				{ id: "l3", score: 1000 },
+				{ id: "l4", score: 800 },
+			];
+			const result = calculate1vN({
+				kFactor: 32,
+				winner: { id: "w", score: 1100 },
+				losers,
+			});
+
+			const winnerDelta = result.winner.scoreAfter - 1100;
+			const losersDelta = losers.reduce(
+				(sum, l, i) => sum + (result.losers[i].scoreAfter - l.score),
+				0
+			);
+			expect(winnerDelta + losersDelta).toBeCloseTo(0, 5);
+		});
+
+		it("higher-rated winner gains less than lower-rated winner", () => {
+			const strong = calculate1vN({
+				kFactor: 32,
+				winner: { id: "w", score: 1500 },
+				losers: [{ id: "l1", score: 1000 }],
+			});
+			const weak = calculate1vN({
+				kFactor: 32,
+				winner: { id: "w", score: 1000 },
+				losers: [{ id: "l1", score: 1000 }],
+			});
+
+			expect(strong.winner.scoreAfter - 1500).toBeLessThan(weak.winner.scoreAfter - 1000);
+			expect(strong.losers[0].scoreAfter - 1000).toBeGreaterThan(weak.losers[0].scoreAfter - 1000);
 		});
 	});
 });

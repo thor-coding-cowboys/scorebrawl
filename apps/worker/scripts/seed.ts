@@ -48,6 +48,14 @@ const SEED_SEASON = {
 	kFactor: 32,
 };
 
+const SEED_ONE_VN_SEASON = {
+	name: "1-v-N Season",
+	slug: "1-v-n-1",
+	initialScore: 1000,
+	scoreType: "1-v-n-elo" as const,
+	kFactor: 32,
+};
+
 const DEFAULT_MEMBER_COUNT = 20;
 const DEFAULT_MATCH_COUNT = 100;
 
@@ -259,7 +267,11 @@ function getLocalDbPath(workerDir: string): string | null {
 
 	const files = readdirSync(d1Dir);
 	const sqliteFile = files.find(
-		(f) => f.endsWith(".sqlite") && !f.includes("-shm") && !f.includes("-wal")
+		(f) =>
+			f.endsWith(".sqlite") &&
+			!f.includes("-shm") &&
+			!f.includes("-wal") &&
+			!f.startsWith("metadata")
 	);
 	if (!sqliteFile) {
 		return null;
@@ -795,6 +807,42 @@ async function seedDatabase(
 
 		let seasonId: string;
 
+		// Create the 1-v-n-elo season
+		const [existingOneVnSeason] = await db
+			.select({ id: season.id })
+			.from(season)
+			.where(eq(season.slug, SEED_ONE_VN_SEASON.slug));
+		let oneVnSeasonId: string | undefined;
+		if (existingOneVnSeason) {
+			console.log(dim(`  ○ 1-v-n season already exists: ${SEED_ONE_VN_SEASON.name}`));
+			oneVnSeasonId = existingOneVnSeason.id;
+		} else {
+			const oneVnSeasonIdValue = createId();
+			oneVnSeasonId = oneVnSeasonIdValue;
+			await db.insert(season).values({
+				id: oneVnSeasonIdValue,
+				name: SEED_ONE_VN_SEASON.name,
+				slug: SEED_ONE_VN_SEASON.slug,
+				initialScore: SEED_ONE_VN_SEASON.initialScore,
+				scoreType: SEED_ONE_VN_SEASON.scoreType,
+				kFactor: SEED_ONE_VN_SEASON.kFactor,
+				startDate: new Date(),
+				endDate: null,
+				leagueId: leagueId,
+				archived: false,
+				closed: false,
+				createdBy: SEED_USER.id,
+				updatedBy: SEED_USER.id,
+				createdAt: now,
+				updatedAt: now,
+			});
+			console.log(
+				green(
+					`  ✓ 1-v-n season created: ${SEED_ONE_VN_SEASON.name} (slug: ${SEED_ONE_VN_SEASON.slug})`
+				)
+			);
+		}
+
 		if (existingSeason) {
 			console.log(dim(`  ○ Season already exists: ${SEED_SEASON.name}`));
 			seasonId = existingSeason.id;
@@ -833,6 +881,17 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
+				if (oneVnSeasonId) {
+					await db.insert(seasonPlayer).values({
+						id: createId(),
+						seasonId: oneVnSeasonId,
+						playerId: ownerPlayerId,
+						score: SEED_ONE_VN_SEASON.initialScore,
+						disabled: false,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
 				console.log(green("  ✓ Owner added as season player"));
 			}
 			createdCount++;
@@ -911,6 +970,17 @@ async function seedDatabase(
 					createdAt: now,
 					updatedAt: now,
 				});
+				if (oneVnSeasonId) {
+					await db.insert(seasonPlayer).values({
+						id: createId(),
+						seasonId: oneVnSeasonId,
+						playerId: newPlayerId,
+						score: SEED_ONE_VN_SEASON.initialScore,
+						disabled: false,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
 
 				membersCreated++;
 				console.log(green(`  ✓ Member ${i + 1}/${effectiveMemberCount}: ${name} (${email})`));

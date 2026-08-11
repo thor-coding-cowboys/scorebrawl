@@ -216,44 +216,44 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 	const seasonId = input.id ?? newId("season");
 
 	return withTransaction(db, async (tx) => {
-		const values =
-			input.scoreType === "elo"
-				? {
-						id: seasonId,
-						name: input.name,
-						slug,
-						leagueId: input.leagueId,
-						startDate: input.startDate,
-						endDate: input.endDate ?? null,
-						initialScore: input.initialScore,
-						kFactor: input.kFactor,
-						scoreType: "elo" as const,
-						rounds: null,
-						createdAt: now,
-						updatedAt: now,
-						createdBy: input.userId,
-						updatedBy: input.userId,
-						archived: false,
-						closed: false,
-					}
-				: {
-						id: seasonId,
-						name: input.name,
-						slug,
-						leagueId: input.leagueId,
-						startDate: input.startDate,
-						endDate: input.endDate ?? null,
-						initialScore: 0,
-						kFactor: -1,
-						rounds: input.rounds ?? null,
-						scoreType: "3-1-0" as const,
-						createdAt: now,
-						updatedAt: now,
-						createdBy: input.userId,
-						updatedBy: input.userId,
-						archived: false,
-						closed: false,
-					};
+		const isEloBased = input.scoreType === "elo" || input.scoreType === "1-v-n-elo";
+		const values = isEloBased
+			? {
+					id: seasonId,
+					name: input.name,
+					slug,
+					leagueId: input.leagueId,
+					startDate: input.startDate,
+					endDate: input.endDate ?? null,
+					initialScore: input.initialScore,
+					kFactor: input.kFactor,
+					scoreType: input.scoreType as (typeof scoreType)[number],
+					rounds: null,
+					createdAt: now,
+					updatedAt: now,
+					createdBy: input.userId,
+					updatedBy: input.userId,
+					archived: false,
+					closed: false,
+				}
+			: {
+					id: seasonId,
+					name: input.name,
+					slug,
+					leagueId: input.leagueId,
+					startDate: input.startDate,
+					endDate: input.endDate ?? null,
+					initialScore: 0,
+					kFactor: -1,
+					rounds: input.rounds ?? null,
+					scoreType: "3-1-0" as const,
+					createdAt: now,
+					updatedAt: now,
+					createdBy: input.userId,
+					updatedBy: input.userId,
+					archived: false,
+					closed: false,
+				};
 
 		const comps = await tx.insert(season).values(values).returning();
 		const comp = comps[0];

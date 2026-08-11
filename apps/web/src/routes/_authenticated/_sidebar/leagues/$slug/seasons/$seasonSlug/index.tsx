@@ -16,6 +16,7 @@ import { LatestMatches } from "../-components/season/latest-matches";
 import { Fixtures } from "../-components/season/fixtures";
 import { OverviewCard } from "../-components/season/overview-card";
 import { CreateMatchDialog } from "../-components/match/create-match-drawer";
+import { CreateOneVnGameDialog } from "../-components/match/create-one-vn-game-drawer";
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
 import { SessionHistory } from "../-components/session/session-history";
 import { StartSessionDialog } from "../-components/session/start-session-dialog";
@@ -62,7 +63,7 @@ function SeasonDashboardPage() {
 		}
 	}, [error, navigate, slug]);
 
-	const isEloSeason = season?.scoreType === "elo";
+	const isEloSeason = season?.scoreType === "elo" || season?.scoreType === "1-v-n-elo";
 	const isSeasonLocked = season?.closed || season?.archived;
 
 	const { data: activeSession } = useQuery({
@@ -188,7 +189,15 @@ function SeasonDashboardPage() {
 					</div>
 				)}
 			</div>
-			{isEloSeason && seasonId && (
+			{isEloSeason && seasonId && season?.scoreType === "1-v-n-elo" && (
+				<CreateOneVnGameDialog
+					isOpen={isCreateMatchOpen}
+					onClose={() => setIsCreateMatchOpen(false)}
+					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+				/>
+			)}
+			{isEloSeason && seasonId && season?.scoreType === "elo" && (
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}

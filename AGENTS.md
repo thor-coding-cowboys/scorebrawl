@@ -139,7 +139,7 @@ Reference: https://www.better-auth.com/llms.txt
 
 ## UI Verification
 
-Use **agent-browser** skill for UI verification. App uses **portless** — always runs on `http://scorebrawl.localhost:1355`. Use this URL when testing with browser agent. Log in as `seed@scorebrawl.com` to verify changes.
+Use **agent-browser** skill for UI verification. App uses **portless** — always runs on `https://scorebrawl.localhost:1355`. Use this URL when testing with browser agent. Log in as `seed@scorebrawl.com` to verify changes.
 
 ## Code Quality
 

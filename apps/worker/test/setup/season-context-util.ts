@@ -9,7 +9,7 @@ export interface SeasonInput {
 	name?: string;
 	slug?: string;
 	initialScore?: number;
-	scoreType?: "elo" | "3-1-0" | "elo-individual-vs-team";
+	scoreType?: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
 	kFactor?: number;
 	rounds?: number;
 }

@@ -38,7 +38,7 @@ export const achievementType = [
 	"season_winner",
 ] as const;
 
-export const scoreType = ["elo", "3-1-0", "elo-individual-vs-team"] as const;
+export const scoreType = ["elo", "3-1-0", "elo-individual-vs-team", "1-v-n-elo"] as const;
 
 export const matchResult = ["W", "L", "D"] as const;
 

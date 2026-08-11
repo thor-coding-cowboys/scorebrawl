@@ -11,6 +11,7 @@ import {
 	AwardIcon,
 	Award01Icon,
 	Target01Icon,
+	DartFreeIcons,
 	Clock01Icon,
 	Add01Icon,
 	SecurityLockIcon,
@@ -79,6 +80,8 @@ function getScoreTypeIcon(scoreType: string) {
 			return Award01Icon; // Trophy for ELO
 		case "3-1-0":
 			return Target01Icon; // Dart for 3-1-0 Points System
+		case "1-v-n-elo":
+			return DartFreeIcons;
 		default:
 			return AwardIcon; // Fallback
 	}
@@ -90,6 +93,8 @@ function getScoreTypeColor(scoreType: string) {
 			return "text-emerald-500"; // Green for ELO
 		case "3-1-0":
 			return "text-blue-500"; // Blue for 3-1-0 Points System
+		case "1-v-n-elo":
+			return "text-purple-500";
 		default:
 			return "text-primary"; // Fallback
 	}
@@ -101,6 +106,8 @@ function getScoreTypeBgColor(scoreType: string) {
 			return "bg-emerald-500/10"; // Green background for ELO
 		case "3-1-0":
 			return "bg-blue-500/10"; // Blue background for 3-1-0 Points System
+		case "1-v-n-elo":
+			return "bg-purple-500/10";
 		default:
 			return "bg-primary/10"; // Fallback
 	}

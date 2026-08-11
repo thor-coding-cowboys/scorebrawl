@@ -5,7 +5,7 @@ import {
 	type TeamWithScore,
 } from "@ihs7/ts-elo";
 
-export type ScoreType = "elo" | "3-1-0" | "elo-individual-vs-team";
+export type ScoreType = "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo";
 
 export interface EloPlayer {
 	id: string;
@@ -125,6 +125,34 @@ const calculate310 = (input: Calc310Input): EloMatchResult => {
 				scoreAfter: p.score + (awayScore > homeScore ? 3 : awayScore === homeScore ? 1 : 0),
 			})),
 		},
+	};
+};
+
+export const calculate1vN = ({
+	kFactor,
+	winner,
+	losers,
+}: {
+	kFactor: number;
+	winner: EloPlayer;
+	losers: EloPlayer[];
+}): {
+	winner: { id: string; scoreAfter: number };
+	losers: { id: string; scoreAfter: number }[];
+} => {
+	const scaledK = kFactor / losers.length;
+
+	const loserChanges = losers.map((loser) => {
+		const expectedWinner = calculateExpectedScore(winner.score, loser.score);
+		const delta = scaledK * (1 - expectedWinner);
+		return -Math.round(delta);
+	});
+
+	const winnerChange = -loserChanges.reduce((sum, change) => sum + change, 0);
+
+	return {
+		winner: { id: winner.id, scoreAfter: winner.score + winnerChange },
+		losers: losers.map((loser, i) => ({ id: loser.id, scoreAfter: loser.score + loserChanges[i] })),
 	};
 };
 

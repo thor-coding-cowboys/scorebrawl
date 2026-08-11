@@ -95,7 +95,7 @@ export const seasonRouter = {
 					.regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens")
 					.optional(),
 				initialScore: z.number().int(),
-				scoreType: z.enum(["elo", "3-1-0"]),
+				scoreType: z.enum(["elo", "3-1-0", "1-v-n-elo"]),
 				kFactor: z.number().int(),
 				startDate: z.date(),
 				endDate: z.date().optional(),
@@ -104,6 +104,13 @@ export const seasonRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			validateStartBeforeEnd(input);
+
+			if (input.scoreType === "1-v-n-elo" && input.rounds) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "1-v-n-elo seasons do not use rounds",
+				});
+			}
 
 			// If an ID is provided, verify it doesn't already exist
 			if (input.id) {
