@@ -14,7 +14,8 @@ import {
 	Alert02Icon,
 } from "@hugeicons/core-free-icons";
 import { useTRPC } from "@/lib/trpc";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SESSION_QUERY_KEY } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/accept-invitation/$invitationId")({
 	component: AcceptInvitationPage,
@@ -23,10 +24,17 @@ export const Route = createFileRoute("/accept-invitation/$invitationId")({
 function AcceptInvitationPage() {
 	const { invitationId } = Route.useParams();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const [isAccepting, setIsAccepting] = useState(false);
 	const trpc = useTRPC();
 
-	const { data: session, isPending: isSessionLoading } = authClient.useSession();
+	const {
+		data: session,
+		isPending: isSessionLoading,
+		refetch: refetchSession,
+	} = authClient.useSession();
+	const { refetch: refetchOrganizations } = authClient.useListOrganizations();
+	const { refetch: refetchActiveMember } = authClient.useActiveMember();
 	const isAuthenticated = !!session?.user;
 
 	const {
@@ -91,7 +99,18 @@ function AcceptInvitationPage() {
 				}
 			} else if (data) {
 				toast.success("You have joined the league!");
-				void navigate({ to: "/leagues" });
+				// acceptInvitation doesn't refresh the client session/org caches, so
+				// invalidate them to reflect the accepted invite in the session
+				await queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+				await queryClient.invalidateQueries({
+					queryKey: trpc.member.listPendingInvitations.queryKey(),
+				});
+				await queryClient.invalidateQueries({ queryKey: trpc.league.list.queryKey() });
+				await Promise.all([refetchSession(), refetchOrganizations(), refetchActiveMember()]);
+				const leagueSlug = invitation?.league?.slug;
+				void navigate(
+					leagueSlug ? { to: "/leagues/$slug", params: { slug: leagueSlug } } : { to: "/leagues" }
+				);
 			}
 		} catch {
 			toast.error("An error occurred while accepting the invitation");
@@ -117,6 +136,9 @@ function AcceptInvitationPage() {
 				toast.error(error.message || "Failed to decline invitation");
 			} else {
 				toast.success("Invitation declined");
+				await queryClient.invalidateQueries({
+					queryKey: trpc.member.listPendingInvitations.queryKey(),
+				});
 			}
 			void navigate({ to: "/" });
 		} catch {
