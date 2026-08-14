@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M005Y7JD8JX3FVESZYBPQPWB",
+  "session_id": "ses_fffb51f4fffehZO6baGTJSWkUk",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-14T13:04:26.915658Z",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/src/hooks/use-season-sse.ts",
+    "apps/web/src/hooks/use-season-sse.tsx"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "f395023dfefd",
+  "checkpoint_transcript_start": 9,
+  "transcript_lines_at_start": 9,
+  "compact_transcript_start": 9,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-14T13:04:26.905663Z",
+    "agent_lines": 288,
+    "agent_removed": 248,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 288,
+    "total_lines_changed": 536,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

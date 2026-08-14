@@ -1,0 +1,982 @@
+{
+  "info": {
+    "id": "ses_fffb51f4fffehZO6baGTJSWkUk",
+    "slug": "tidy-lagoon",
+    "projectID": "50dab81c140d4987abb4ff6eeb4b71ce9ccf8f28",
+    "directory": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+    "path": "",
+    "parentID": "ses_ffffb07aaffezkqyQMVywCU71E",
+    "title": "Review spec compliance Task 1 (@general subagent)",
+    "version": "1.14.41",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "permission": [
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1786711302320,
+      "updated": 1786711398711
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1786711302326
+        },
+        "tools": {
+          "task": false
+        },
+        "agent": "general",
+        "model": {
+          "providerID": "opencode-go",
+          "modelID": "deepseek-v4-pro"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire\n\n## What Was Requested\n\nTask 1 of the \"Subtle Toast Notifications\" plan: make `calculateAchievements` (in `apps/worker/src/services/achievement-calculation.ts`) return the newly-earned achievements instead of `undefined`. Specifically:\n\n1. Change `calculateAchievements` signature to return `Promise<NewAchievement[]>` (empty array when `seasonPlayerIds` is empty).\n2. Add exported type `NewAchievement = { playerId: string; name: string; image: string | null; type: AchievementType }`.\n3. Resolve player info (`name` via `COALESCE(user.name, guest.displayName)`, `image` via `user.image`) using joins across `seasonPlayer` → `player` → `user`/`guest`.\n4. Filter out already-earned achievements (query `playerAchievement` by the involved playerIds, build a `playerId:type` set, keep only new ones) before insert; still use `onConflictDoNothing` on insert.\n5. Return only the newly-earned achievements (idempotent — a second call with no new achievements returns `[]`).\n6. Keep the middle section of the function (match-results/goals/streak queries and loops) and helper functions unchanged.\n7. Two new tests added to `apps/worker/test/services/achievement-calculation.spec.ts`: (a) \"returns newly earned achievements with player info\" asserting `5_win_streak` present, `10_win_streak` absent, and the win-streak entry has correct `playerId` and a truthy `name`; (b) \"omits already-earned achievements on subsequent calls\" asserting the second call returns `[]`.\n\nThe commit under review is HEAD (`e147b8a`, \"feat: return newly-earned achievements from calculateAchievements\"). Its parent (`ea491b4`) is the base.\n\n## What Implementer Claims They Built\n\n- `calculateAchievements` now returns `Promise<NewAchievement[]>`.\n- Resolves player info via joins.\n- Replaced onConflictDoNothing-only insert with an explicit \"already earned\" pre-filter.\n- Added `NewAchievement` export type.\n- 20 tests pass.\n\n## CRITICAL: Do Not Trust the Report\n\nVerify everything independently by reading the actual code.\n\n**DO NOT:** take their word for it, trust completeness claims, or accept their interpretation.\n**DO:** read the actual diff (`git diff ea491b4 e147b8a`), compare implementation to the 7 requirements above line by line, check for missing pieces and extra/unneeded work.\n\n## Your Job\n\nRead the diff and the relevant files, then verify:\n\n- **Missing requirements:** anything skipped?\n- **Extra/unneeded work:** did they add features beyond the spec (e.g., touching the queue message type `AchievementQueueMessage`, or changing unrelated behavior)?\n- **Misunderstandings:** right feature, wrong way?\n- **Correctness of the idempotency filter:** does the pre-filter actually return only newly-earned achievements, and is the second-call behavior correct? Is the empty-`playerIds` short-circuit correct?\n- **Tests actually verify behavior** (not mocks).\n\nReport:\n- ✅ Spec compliant (if everything matches after code inspection), OR\n- ❌ Issues found: [list specifically with file:line references]",
+          "id": "prt_0004ae0b7001plEQlvOY4CjVLf",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae0b6001kQZAt87fjEI5NY"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.003981497,
+        "tokens": {
+          "total": 16372,
+          "input": 8805,
+          "output": 128,
+          "reasoning": 15,
+          "cache": {
+            "write": 0,
+            "read": 7424
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711302634,
+          "completed": 1786711306331
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004ae1ea002tTheuWiuZPcbTV",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004ae535001YZkwLE41XL7P41",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae1ea002tTheuWiuZPcbTV"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me start by reading the diff and relevant files to verify the implementation.",
+          "time": {
+            "start": 1786711304982,
+            "end": 1786711305379
+          },
+          "id": "prt_0004aeb16001NLPaELXCfrBzg9",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae1ea002tTheuWiuZPcbTV"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_VUYZZf4vzPHhOm7Exrcg2299",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff ea491b4 e147b8a",
+              "description": "Show diff between base and HEAD"
+            },
+            "output": "diff --git a/apps/worker/src/services/achievement-calculation.ts b/apps/worker/src/services/achievement-calculation.ts\nindex 43d5e2f..f7f1d76 100644\n--- a/apps/worker/src/services/achievement-calculation.ts\n+++ b/apps/worker/src/services/achievement-calculation.ts\n@@ -1,9 +1,12 @@\n-import { sql, inArray } from \"drizzle-orm\";\n+import { sql, inArray, eq } from \"drizzle-orm\";\n import type { DrizzleDB } from \"../db\";\n+import { user } from \"../db/schema/auth-schema\";\n import {\n \tmatchPlayer,\n \tseasonPlayer,\n \tplayerAchievement,\n+\tplayer,\n+\tguest,\n \ttype achievementType,\n } from \"../db/schema/league-schema\";\n \n@@ -13,6 +16,13 @@ type AchievementQueueMessage = {\n \tseasonPlayerIds: string[];\n };\n \n+export type NewAchievement = {\n+\tplayerId: string;\n+\tname: string;\n+\timage: string | null;\n+\ttype: AchievementType;\n+};\n+\n export type { AchievementQueueMessage };\n \n const streakThresholds: Partial<Record<AchievementType, number>> = {\n@@ -30,8 +40,11 @@ const streakThresholds: Partial<Record<AchievementType, number>> = {\n \t\"8_goals_5_games\": 8,\n };\n \n-export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {\n-\tif (seasonPlayerIds.length === 0) return;\n+export async function calculateAchievements(\n+\tdb: DrizzleDB,\n+\tseasonPlayerIds: string[]\n+): Promise<NewAchievement[]> {\n+\tif (seasonPlayerIds.length === 0) return [];\n \n \t// Single query: get all match results for all players, ordered by creation time\n \tconst allMatchResults = await db\n@@ -116,16 +129,21 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t}\n \t}\n \n-\t// Resolve seasonPlayerId -> playerId for achievement storage\n-\tconst playerIdMap = await db\n+\t// Resolve seasonPlayerId -> player info for achievement storage + broadcast\n+\tconst playerInfo = await db\n \t\t.select({\n \t\t\tseasonPlayerId: seasonPlayer.id,\n \t\t\tplayerId: seasonPlayer.playerId,\n+\t\t\tname: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as(\"name\"),\n+\t\t\timage: user.image,\n \t\t})\n \t\t.from(seasonPlayer)\n+\t\t.innerJoin(player, eq(seasonPlayer.playerId, player.id))\n+\t\t.leftJoin(user, eq(player.userId, user.id))\n+\t\t.leftJoin(guest, eq(player.guestId, guest.id))\n \t\t.where(inArray(seasonPlayer.id, seasonPlayerIds));\n \n-\tconst seasonToPlayerMap = new Map(playerIdMap.map((p) => [p.seasonPlayerId, p.playerId]));\n+\tconst seasonToPlayerMap = new Map(playerInfo.map((p) => [p.seasonPlayerId, p]));\n \n \t// Group match results by season player\n \tconst resultsByPlayer = new Map<string, typeof allMatchResults>();\n@@ -139,11 +157,11 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t}\n \n \t// Calculate achievements per player\n-\tconst achievementsToInsert: { playerId: string; type: AchievementType }[] = [];\n+\tconst achievementsToInsert: NewAchievement[] = [];\n \n \tfor (const spId of seasonPlayerIds) {\n-\t\tconst playerId = seasonToPlayerMap.get(spId);\n-\t\tif (!playerId) continue;\n+\t\tconst info = seasonToPlayerMap.get(spId);\n+\t\tif (!info) continue;\n \n \t\tconst earned: AchievementType[] = [];\n \t\tconst matches = resultsByPlayer.get(spId) || [];\n@@ -187,17 +205,34 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t}\n \n \t\tfor (const achievement of earned) {\n-\t\t\tachievementsToInsert.push({ playerId, type: achievement });\n+\t\t\tachievementsToInsert.push({\n+\t\t\t\tplayerId: info.playerId,\n+\t\t\t\tname: info.name,\n+\t\t\t\timage: info.image,\n+\t\t\t\ttype: achievement,\n+\t\t\t});\n \t\t}\n \t}\n \n-\t// Batch insert all achievements (idempotent via onConflictDoNothing)\n-\tif (achievementsToInsert.length > 0) {\n+\t// Filter out achievements already earned (idempotent, no re-broadcast)\n+\tconst playerIds = [...new Set(achievementsToInsert.map((a) => a.playerId))];\n+\tconst existing = playerIds.length\n+\t\t? await db\n+\t\t\t\t.select({ playerId: playerAchievement.playerId, type: playerAchievement.type })\n+\t\t\t\t.from(playerAchievement)\n+\t\t\t\t.where(inArray(playerAchievement.playerId, playerIds))\n+\t\t: [];\n+\tconst existingSet = new Set(existing.map((e) => `${e.playerId}:${e.type}`));\n+\tconst newAchievements = achievementsToInsert.filter(\n+\t\t(a) => !existingSet.has(`${a.playerId}:${a.type}`)\n+\t);\n+\n+\tif (newAchievements.length > 0) {\n \t\tconst now = new Date();\n \t\tawait db\n \t\t\t.insert(playerAchievement)\n \t\t\t.values(\n-\t\t\t\tachievementsToInsert.map((a) => ({\n+\t\t\t\tnewAchievements.map((a) => ({\n \t\t\t\t\tid: crypto.randomUUID(),\n \t\t\t\t\tplayerId: a.playerId,\n \t\t\t\t\ttype: a.type,\n@@ -207,6 +242,8 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t\t)\n \t\t\t.onConflictDoNothing();\n \t}\n+\n+\treturn newAchievements;\n }\n \n function checkGoalsScoredStreak(earned: AchievementType[], lastFiveGoals: number[]) {\ndiff --git a/apps/worker/test/services/achievement-calculation.spec.ts b/apps/worker/test/services/achievement-calculation.spec.ts\nindex 960b2c7..a6bf4c2 100644\n--- a/apps/worker/test/services/achievement-calculation.spec.ts\n+++ b/apps/worker/test/services/achievement-calculation.spec.ts\n@@ -362,4 +362,40 @@ describe(\"achievement calculation\", () => {\n \t\t\texpect(types).toContain(\"5_win_streak\");\n \t\t});\n \t});\n+\n+\tdescribe(\"return value\", () => {\n+\t\tit(\"returns newly earned achievements with player info\", async () => {\n+\t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n+\n+\t\t\tfor (let i = 0; i < 5; i++) {\n+\t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n+\t\t\t}\n+\n+\t\t\tconst db = getDb(env.DB);\n+\t\t\tconst result = await calculateAchievements(db, [home.id]);\n+\n+\t\t\tconst types = result.map((a) => a.type);\n+\t\t\texpect(types).toContain(\"5_win_streak\");\n+\t\t\texpect(types).not.toContain(\"10_win_streak\");\n+\n+\t\t\tconst winStreak = result.find((a) => a.type === \"5_win_streak\");\n+\t\t\texpect(winStreak?.playerId).toBe(home.playerId);\n+\t\t\texpect(winStreak?.name).toBeTruthy();\n+\t\t});\n+\n+\t\tit(\"omits already-earned achievements on subsequent calls\", async () => {\n+\t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n+\n+\t\t\tfor (let i = 0; i < 5; i++) {\n+\t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n+\t\t\t}\n+\n+\t\t\tconst db = getDb(env.DB);\n+\t\t\tconst first = await calculateAchievements(db, [home.id]);\n+\t\t\texpect(first.map((a) => a.type)).toContain(\"5_win_streak\");\n+\n+\t\t\tconst second = await calculateAchievements(db, [home.id]);\n+\t\t\texpect(second).toHaveLength(0);\n+\t\t});\n+\t});\n });\n",
+            "metadata": {
+              "output": "diff --git a/apps/worker/src/services/achievement-calculation.ts b/apps/worker/src/services/achievement-calculation.ts\nindex 43d5e2f..f7f1d76 100644\n--- a/apps/worker/src/services/achievement-calculation.ts\n+++ b/apps/worker/src/services/achievement-calculation.ts\n@@ -1,9 +1,12 @@\n-import { sql, inArray } from \"drizzle-orm\";\n+import { sql, inArray, eq } from \"drizzle-orm\";\n import type { DrizzleDB } from \"../db\";\n+import { user } from \"../db/schema/auth-schema\";\n import {\n \tmatchPlayer,\n \tseasonPlayer,\n \tplayerAchievement,\n+\tplayer,\n+\tguest,\n \ttype achievementType,\n } from \"../db/schema/league-schema\";\n \n@@ -13,6 +16,13 @@ type AchievementQueueMessage = {\n \tseasonPlayerIds: string[];\n };\n \n+export type NewAchievement = {\n+\tplayerId: string;\n+\tname: string;\n+\timage: string | null;\n+\ttype: AchievementType;\n+};\n+\n export type { AchievementQueueMessage };\n \n const streakThresholds: Partial<Record<AchievementType, number>> = {\n@@ -30,8 +40,11 @@ const streakThresholds: Partial<Record<AchievementType, number>> = {\n \t\"8_goals_5_games\": 8,\n };\n \n-export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {\n-\tif (seasonPlayerIds.length === 0) return;\n+export async function calculateAchievements(\n+\tdb: DrizzleDB,\n+\tseasonPlayerIds: string[]\n+): Promise<NewAchievement[]> {\n+\tif (seasonPlayerIds.length === 0) return [];\n \n \t// Single query: get all match results for all players, ordered by creation time\n \tconst allMatchResults = await db\n@@ -116,16 +129,21 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t}\n \t}\n \n-\t// Resolve seasonPlayerId -> playerId for achievement storage\n-\tconst playerIdMap = await db\n+\t// Resolve seasonPlayerId -> player info for achievement storage + broadcast\n+\tconst playerInfo = await db\n \t\t.select({\n \t\t\tseasonPlayerId: seasonPlayer.id,\n \t\t\tplayerId: seasonPlayer.playerId,\n+\t\t\tname: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as(\"name\"),\n+\t\t\timage: user.image,\n \t\t})\n \t\t.from(seasonPlayer)\n+\t\t.innerJoin(player, eq(seasonPlayer.playerId, player.id))\n+\t\t.leftJoin(user, eq(player.userId, user.id))\n+\t\t.leftJoin(guest, eq(player.guestId, guest.id))\n \t\t.where(inArray(seasonPlayer.id, seasonPlayerIds));\n \n-\tconst seasonToPlayerMap = new Map(playerIdMap.map((p) => [p.seasonPlayerId, p.playerId]));\n+\tconst seasonToPlayerMap = new Map(playerInfo.map((p) => [p.seasonPlayerId, p]));\n \n \t// Group match results by season player\n \tconst resultsByPlayer = new Map<string, typeof allMatchResults>();\n@@ -139,11 +157,11 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t}\n \n \t// Calculate achievements per player\n-\tconst achievementsToInsert: { playerId: string; type: AchievementType }[] = [];\n+\tconst achievementsToInsert: NewAchievement[] = [];\n \n \tfor (const spId of seasonPlayerIds) {\n-\t\tconst playerId = seasonToPlayerMap.get(spId);\n-\t\tif (!playerId) continue;\n+\t\tconst info = seasonToPlayerMap.get(spId);\n+\t\tif (!info) continue;\n \n \t\tconst earned: AchievementType[] = [];\n \t\tconst matches = resultsByPlayer.get(spId) || [];\n@@ -187,17 +205,34 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t}\n \n \t\tfor (const achievement of earned) {\n-\t\t\tachievementsToInsert.push({ playerId, type: achievement });\n+\t\t\tachievementsToInsert.push({\n+\t\t\t\tplayerId: info.playerId,\n+\t\t\t\tname: info.name,\n+\t\t\t\timage: info.image,\n+\t\t\t\ttype: achievement,\n+\t\t\t});\n \t\t}\n \t}\n \n-\t// Batch insert all achievements (idempotent via onConflictDoNothing)\n-\tif (achievementsToInsert.length > 0) {\n+\t// Filter out achievements already earned (idempotent, no re-broadcast)\n+\tconst playerIds = [...new Set(achievementsToInsert.map((a) => a.playerId))];\n+\tconst existing = playerIds.length\n+\t\t? await db\n+\t\t\t\t.select({ playerId: playerAchievement.playerId, type: playerAchievement.type })\n+\t\t\t\t.from(playerAchievement)\n+\t\t\t\t.where(inArray(playerAchievement.playerId, playerIds))\n+\t\t: [];\n+\tconst existingSet = new Set(existing.map((e) => `${e.playerId}:${e.type}`));\n+\tconst newAchievements = achievementsToInsert.filter(\n+\t\t(a) => !existingSet.has(`${a.playerId}:${a.type}`)\n+\t);\n+\n+\tif (newAchievements.length > 0) {\n \t\tconst now = new Date();\n \t\tawait db\n \t\t\t.insert(playerAchievement)\n \t\t\t.values(\n-\t\t\t\tachievementsToInsert.map((a) => ({\n+\t\t\t\tnewAchievements.map((a) => ({\n \t\t\t\t\tid: crypto.randomUUID(),\n \t\t\t\t\tplayerId: a.playerId,\n \t\t\t\t\ttype: a.type,\n@@ -207,6 +242,8 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri\n \t\t\t)\n \t\t\t.onConflictDoNothing();\n \t}\n+\n+\treturn newAchievements;\n }\n \n function checkGoalsScoredStreak(earned: AchievementType[], lastFiveGoals: number[]) {\ndiff --git a/apps/worker/test/services/achievement-calculation.spec.ts b/apps/worker/test/services/achievement-calculation.spec.ts\nindex 960b2c7..a6bf4c2 100644\n--- a/apps/worker/test/services/achievement-calculation.spec.ts\n+++ b/apps/worker/test/services/achievement-calculation.spec.ts\n@@ -362,4 +362,40 @@ describe(\"achievement calculation\", () => {\n \t\t\texpect(types).toContain(\"5_win_streak\");\n \t\t});\n \t});\n+\n+\tdescribe(\"return value\", () => {\n+\t\tit(\"returns newly earned achievements with player info\", async () => {\n+\t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n+\n+\t\t\tfor (let i = 0; i < 5; i++) {\n+\t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n+\t\t\t}\n+\n+\t\t\tconst db = getDb(env.DB);\n+\t\t\tconst result = await calculateAchievements(db, [home.id]);\n+\n+\t\t\tconst types = result.map((a) => a.type);\n+\t\t\texpect(types).toContain(\"5_win_streak\");\n+\t\t\texpect(types).not.toContain(\"10_win_streak\");\n+\n+\t\t\tconst winStreak = result.find((a) => a.type === \"5_win_streak\");\n+\t\t\texpect(winStreak?.playerId).toBe(home.playerId);\n+\t\t\texpect(winStreak?.name).toBeTruthy();\n+\t\t});\n+\n+\t\tit(\"omits already-earned achievements on subsequent calls\", async () => {\n+\t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n+\n+\t\t\tfor (let i = 0; i < 5; i++) {\n+\t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n+\t\t\t}\n+\n+\t\t\tconst db = getDb(env.DB);\n+\t\t\tconst first = await calculateAchievements(db, [home.id]);\n+\t\t\texpect(first.map((a) => a.type)).toContain(\"5_win_streak\");\n+\n+\t\t\tconst second = await calculateAchievements(db, [home.id]);\n+\t\t\texpect(second).toHaveLength(0);\n+\t\t});\n+\t});\n });\n",
+              "exit": 0,
+              "description": "Show diff between base and HEAD",
+              "truncated": false
+            },
+            "title": "Show diff between base and HEAD",
+            "time": {
+              "start": 1786711305795,
+              "end": 1786711305798
+            }
+          },
+          "id": "prt_0004aeca5001O7jewaQIpvt6E2",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae1ea002tTheuWiuZPcbTV"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_BTVHpz1W064jF4evd6a72076",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log --oneline -5",
+              "description": "Show recent commit history"
+            },
+            "output": "e147b8a feat: return newly-earned achievements from calculateAchievements\nea491b4 docs: add subtle toast notifications implementation plan\n3ae1a67 fix: reflect accepted invite in session after accepting (#650)\nfebedbb fix: preview cleanup queue deletion + update actions to node24 (#649)\nd057627 feat: 1-v-N ELO season type (#648)\n",
+            "metadata": {
+              "output": "e147b8a feat: return newly-earned achievements from calculateAchievements\nea491b4 docs: add subtle toast notifications implementation plan\n3ae1a67 fix: reflect accepted invite in session after accepting (#650)\nfebedbb fix: preview cleanup queue deletion + update actions to node24 (#649)\nd057627 feat: 1-v-N ELO season type (#648)\n",
+              "exit": 0,
+              "description": "Show recent commit history",
+              "truncated": false
+            },
+            "title": "Show recent commit history",
+            "time": {
+              "start": 1786711306141,
+              "end": 1786711306142
+            }
+          },
+          "id": "prt_0004aee3d001uMVGlC7RCEMfsV",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae1ea002tTheuWiuZPcbTV"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16372,
+            "input": 8805,
+            "output": 128,
+            "reasoning": 15,
+            "cache": {
+              "write": 0,
+              "read": 7424
+            }
+          },
+          "cost": 0.003981497,
+          "id": "prt_0004af0260010HuzkpcdOyyN6a",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004ae1ea002tTheuWiuZPcbTV"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001100318,
+        "tokens": {
+          "total": 18499,
+          "input": 2092,
+          "output": 136,
+          "reasoning": 15,
+          "cache": {
+            "write": 0,
+            "read": 16256
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711306333,
+          "completed": 1786711309120
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004af05d001Tws7raurwXd143",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004af43000147Ng7yd76RaL9G",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004af05d001Tws7raurwXd143"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me read the full implementation file and the test file to verify everything.",
+          "time": {
+            "start": 1786711307787,
+            "end": 1786711308114
+          },
+          "id": "prt_0004af60b0012YvtllUlA3Av6E",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004af05d001Tws7raurwXd143"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_nxf2NYTnaxA7Gi8Sf0N01822",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/services/achievement-calculation.ts"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/services/achievement-calculation.ts</path>\n<type>file</type>\n<content>\n1: import { sql, inArray, eq } from \"drizzle-orm\";\n2: import type { DrizzleDB } from \"../db\";\n3: import { user } from \"../db/schema/auth-schema\";\n4: import {\n5: \tmatchPlayer,\n6: \tseasonPlayer,\n7: \tplayerAchievement,\n8: \tplayer,\n9: \tguest,\n10: \ttype achievementType,\n11: } from \"../db/schema/league-schema\";\n12: \n13: type AchievementType = (typeof achievementType)[number];\n14: \n15: type AchievementQueueMessage = {\n16: \tseasonPlayerIds: string[];\n17: };\n18: \n19: export type NewAchievement = {\n20: \tplayerId: string;\n21: \tname: string;\n22: \timage: string | null;\n23: \ttype: AchievementType;\n24: };\n25: \n26: export type { AchievementQueueMessage };\n27: \n28: const streakThresholds: Partial<Record<AchievementType, number>> = {\n29: \t\"5_win_streak\": 5,\n30: \t\"10_win_streak\": 10,\n31: \t\"15_win_streak\": 15,\n32: \t\"3_win_loss_redemption\": 3,\n33: \t\"5_win_loss_redemption\": 5,\n34: \t\"8_win_loss_redemption\": 8,\n35: \t\"5_clean_sheet_streak\": 5,\n36: \t\"10_clean_sheet_streak\": 10,\n37: \t\"15_clean_sheet_streak\": 15,\n38: \t\"3_goals_5_games\": 3,\n39: \t\"5_goals_5_games\": 5,\n40: \t\"8_goals_5_games\": 8,\n41: };\n42: \n43: export async function calculateAchievements(\n44: \tdb: DrizzleDB,\n45: \tseasonPlayerIds: string[]\n46: ): Promise<NewAchievement[]> {\n47: \tif (seasonPlayerIds.length === 0) return [];\n48: \n49: \t// Single query: get all match results for all players, ordered by creation time\n50: \tconst allMatchResults = await db\n51: \t\t.select({\n52: \t\t\tseasonPlayerId: matchPlayer.seasonPlayerId,\n53: \t\t\tresult: matchPlayer.result,\n54: \t\t\thomeTeam: matchPlayer.homeTeam,\n55: \t\t\tmatchId: matchPlayer.matchId,\n56: \t\t\tcreatedAt: matchPlayer.createdAt,\n57: \t\t})\n58: \t\t.from(matchPlayer)\n59: \t\t.where(inArray(matchPlayer.seasonPlayerId, seasonPlayerIds))\n60: \t\t.orderBy(matchPlayer.createdAt);\n61: \n62: \t// Single query: get goals conceded per match for each player\n63: \t// Goals conceded = sum of opponent goals in the same match\n64: \t// For a home player, conceded goals = match.awayScore; for away player = match.homeScore\n65: \t// We can derive this from the match scores via match table\n66: \tconst matchIds = [...new Set(allMatchResults.map((r) => r.matchId))];\n67: \n68: \tconst goalsConcededMap = new Map<string, Map<string, number>>();\n69: \tif (matchIds.length > 0) {\n70: \t\tconst goalsConceded = await db.all<{\n71: \t\t\tseasonPlayerId: string;\n72: \t\t\tmatchId: string;\n73: \t\t\tgoalsConceded: number;\n74: \t\t}>(sql`\n75: \t\t\tSELECT \n76: \t\t\t\tmp.season_player_id as seasonPlayerId,\n77: \t\t\t\tmp.match_id as matchId,\n78: \t\t\t\tCASE WHEN mp.home_team = 1 THEN m.away_score ELSE m.home_score END as goalsConceded\n79: \t\t\tFROM match_player mp\n80: \t\t\tINNER JOIN match m ON mp.match_id = m.id\n81: \t\t\tWHERE mp.season_player_id IN (${sql.join(\n82: \t\t\t\tseasonPlayerIds.map((id) => sql`${id}`),\n83: \t\t\t\tsql`, `\n84: \t\t\t)})\n85: \t\t`);\n86: \n87: \t\tfor (const row of goalsConceded) {\n88: \t\t\tlet playerMap = goalsConcededMap.get(row.seasonPlayerId);\n89: \t\t\tif (!playerMap) {\n90: \t\t\t\tplayerMap = new Map();\n91: \t\t\t\tgoalsConcededMap.set(row.seasonPlayerId, playerMap);\n92: \t\t\t}\n93: \t\t\tplayerMap.set(row.matchId, row.goalsConceded);\n94: \t\t}\n95: \t}\n96: \n97: \t// Single query: get last 5 matches goals scored per player\n98: \t// Goals scored for home player = match.homeScore; for away = match.awayScore\n99: \tconst last5GoalsMap = new Map<string, number[]>();\n100: \tif (matchIds.length > 0) {\n101: \t\tconst last5Goals = await db.all<{\n102: \t\t\tseasonPlayerId: string;\n103: \t\t\tgoalsScored: number;\n104: \t\t\trn: number;\n105: \t\t}>(sql`\n106: \t\t\tSELECT seasonPlayerId, goalsScored, rn FROM (\n107: \t\t\t\tSELECT \n108: \t\t\t\t\tmp.season_player_id as seasonPlayerId,\n109: \t\t\t\t\tCASE WHEN mp.home_team = 1 THEN m.home_score ELSE m.away_score END as goalsScored,\n110: \t\t\t\t\tROW_NUMBER() OVER (PARTITION BY mp.season_player_id ORDER BY mp.created_at DESC) as rn\n111: \t\t\t\tFROM match_player mp\n112: \t\t\t\tINNER JOIN match m ON mp.match_id = m.id\n113: \t\t\t\tWHERE mp.season_player_id IN (${sql.join(\n114: \t\t\t\t\tseasonPlayerIds.map((id) => sql`${id}`),\n115: \t\t\t\t\tsql`, `\n116: \t\t\t\t)})\n117: \t\t\t)\n118: \t\t\tWHERE rn <= 5\n119: \t\t\tORDER BY seasonPlayerId, rn\n120: \t\t`);\n121: \n122: \t\tfor (const row of last5Goals) {\n123: \t\t\tlet goals = last5GoalsMap.get(row.seasonPlayerId);\n124: \t\t\tif (!goals) {\n125: \t\t\t\tgoals = [];\n126: \t\t\t\tlast5GoalsMap.set(row.seasonPlayerId, goals);\n127: \t\t\t}\n128: \t\t\tgoals.push(row.goalsScored);\n129: \t\t}\n130: \t}\n131: \n132: \t// Resolve seasonPlayerId -> player info for achievement storage + broadcast\n133: \tconst playerInfo = await db\n134: \t\t.select({\n135: \t\t\tseasonPlayerId: seasonPlayer.id,\n136: \t\t\tplayerId: seasonPlayer.playerId,\n137: \t\t\tname: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as(\"name\"),\n138: \t\t\timage: user.image,\n139: \t\t})\n140: \t\t.from(seasonPlayer)\n141: \t\t.innerJoin(player, eq(seasonPlayer.playerId, player.id))\n142: \t\t.leftJoin(user, eq(player.userId, user.id))\n143: \t\t.leftJoin(guest, eq(player.guestId, guest.id))\n144: \t\t.where(inArray(seasonPlayer.id, seasonPlayerIds));\n145: \n146: \tconst seasonToPlayerMap = new Map(playerInfo.map((p) => [p.seasonPlayerId, p]));\n147: \n148: \t// Group match results by season player\n149: \tconst resultsByPlayer = new Map<string, typeof allMatchResults>();\n150: \tfor (const r of allMatchResults) {\n151: \t\tlet playerResults = resultsByPlayer.get(r.seasonPlayerId);\n152: \t\tif (!playerResults) {\n153: \t\t\tplayerResults = [];\n154: \t\t\tresultsByPlayer.set(r.seasonPlayerId, playerResults);\n155: \t\t}\n156: \t\tplayerResults.push(r);\n157: \t}\n158: \n159: \t// Calculate achievements per player\n160: \tconst achievementsToInsert: NewAchievement[] = [];\n161: \n162: \tfor (const spId of seasonPlayerIds) {\n163: \t\tconst info = seasonToPlayerMap.get(spId);\n164: \t\tif (!info) continue;\n165: \n166: \t\tconst earned: AchievementType[] = [];\n167: \t\tconst matches = resultsByPlayer.get(spId) || [];\n168: \t\tconst concededForPlayer = goalsConcededMap.get(spId) || new Map();\n169: \n170: \t\t// Check redemption achievements (pattern matching on result string)\n171: \t\tcheckRedemptionAchievements(earned, matches);\n172: \n173: \t\t// Check goals scored in last 5 games\n174: \t\tconst lastFiveGoals = last5GoalsMap.get(spId) || [];\n175: \t\tcheckGoalsScoredStreak(earned, lastFiveGoals);\n176: \n177: \t\t// Check win streaks and clean sheet streaks\n178: \t\tlet currentWinStreak = 0;\n179: \t\tlet currentCleanSheetStreak = 0;\n180: \n181: \t\tfor (const m of matches) {\n182: \t\t\tif (m.result === \"W\") {\n183: \t\t\t\tcurrentWinStreak++;\n184: \t\t\t} else {\n185: \t\t\t\tcurrentWinStreak = 0;\n186: \t\t\t}\n187: \n188: \t\t\tcheckStreakAchievement(earned, currentWinStreak, [\n189: \t\t\t\t\"5_win_streak\",\n190: \t\t\t\t\"10_win_streak\",\n191: \t\t\t\t\"15_win_streak\",\n192: \t\t\t]);\n193: \n194: \t\t\tconst goalsConceded = concededForPlayer.get(m.matchId) ?? -1;\n195: \t\t\tif (goalsConceded === 0) {\n196: \t\t\t\tcurrentCleanSheetStreak++;\n197: \t\t\t\tcheckStreakAchievement(earned, currentCleanSheetStreak, [\n198: \t\t\t\t\t\"5_clean_sheet_streak\",\n199: \t\t\t\t\t\"10_clean_sheet_streak\",\n200: \t\t\t\t\t\"15_clean_sheet_streak\",\n201: \t\t\t\t]);\n202: \t\t\t} else {\n203: \t\t\t\tcurrentCleanSheetStreak = 0;\n204: \t\t\t}\n205: \t\t}\n206: \n207: \t\tfor (const achievement of earned) {\n208: \t\t\tachievementsToInsert.push({\n209: \t\t\t\tplayerId: info.playerId,\n210: \t\t\t\tname: info.name,\n211: \t\t\t\timage: info.image,\n212: \t\t\t\ttype: achievement,\n213: \t\t\t});\n214: \t\t}\n215: \t}\n216: \n217: \t// Filter out achievements already earned (idempotent, no re-broadcast)\n218: \tconst playerIds = [...new Set(achievementsToInsert.map((a) => a.playerId))];\n219: \tconst existing = playerIds.length\n220: \t\t? await db\n221: \t\t\t\t.select({ playerId: playerAchievement.playerId, type: playerAchievement.type })\n222: \t\t\t\t.from(playerAchievement)\n223: \t\t\t\t.where(inArray(playerAchievement.playerId, playerIds))\n224: \t\t: [];\n225: \tconst existingSet = new Set(existing.map((e) => `${e.playerId}:${e.type}`));\n226: \tconst newAchievements = achievementsToInsert.filter(\n227: \t\t(a) => !existingSet.has(`${a.playerId}:${a.type}`)\n228: \t);\n229: \n230: \tif (newAchievements.length > 0) {\n231: \t\tconst now = new Date();\n232: \t\tawait db\n233: \t\t\t.insert(playerAchievement)\n234: \t\t\t.values(\n235: \t\t\t\tnewAchievements.map((a) => ({\n236: \t\t\t\t\tid: crypto.randomUUID(),\n237: \t\t\t\t\tplayerId: a.playerId,\n238: \t\t\t\t\ttype: a.type,\n239: \t\t\t\t\tcreatedAt: now,\n240: \t\t\t\t\tupdatedAt: now,\n241: \t\t\t\t}))\n242: \t\t\t)\n243: \t\t\t.onConflictDoNothing();\n244: \t}\n245: \n246: \treturn newAchievements;\n247: }\n248: \n249: function checkGoalsScoredStreak(earned: AchievementType[], lastFiveGoals: number[]) {\n250: \tif (lastFiveGoals.length < 5) return;\n251: \n252: \tif (lastFiveGoals.every((n) => n >= 8)) {\n253: \t\tearned.push(\"8_goals_5_games\", \"5_goals_5_games\", \"3_goals_5_games\");\n254: \t} else if (lastFiveGoals.every((n) => n >= 5)) {\n255: \t\tearned.push(\"5_goals_5_games\", \"3_goals_5_games\");\n256: \t} else if (lastFiveGoals.every((n) => n >= 3)) {\n257: \t\tearned.push(\"3_goals_5_games\");\n258: \t}\n259: }\n260: \n261: function checkStreakAchievement(\n262: \tearned: AchievementType[],\n263: \tcurrentStreak: number,\n264: \tstreakAchievements: AchievementType[]\n265: ) {\n266: \tfor (const achievement of streakAchievements) {\n267: \t\tif (currentStreak === streakThresholds[achievement] && !earned.includes(achievement)) {\n268: \t\t\tearned.push(achievement);\n269: \t\t}\n270: \t}\n271: }\n272: \n273: function checkRedemptionAchievements(earned: AchievementType[], matches: { result: string }[]) {\n274: \tconst resultString = matches.map((m) => m.result).join(\"\");\n275: \n276: \tconst redemptionAchievements: AchievementType[] = [\n277: \t\t\"3_win_loss_redemption\",\n278: \t\t\"5_win_loss_redemption\",\n279: \t\t\"8_win_loss_redemption\",\n280: \t];\n281: \n282: \tfor (const achievement of redemptionAchievements) {\n283: \t\tconst count = streakThresholds[achievement];\n284: \t\tif (!count) continue;\n285: \t\t// Pattern: N consecutive losses followed by N consecutive wins\n286: \t\tconst pattern = \"L\".repeat(count) + \"W\".repeat(count);\n287: \t\tif (resultString.includes(pattern)) {\n288: \t\t\tearned.push(achievement);\n289: \t\t}\n290: \t}\n291: }\n\n(End of file - total 291 lines)\n</content>",
+            "metadata": {
+              "preview": "import { sql, inArray, eq } from \"drizzle-orm\";\nimport type { DrizzleDB } from \"../db\";\nimport { user } from \"../db/schema/auth-schema\";\nimport {\n\tmatchPlayer,\n\tseasonPlayer,\n\tplayerAchievement,\n\tplayer,\n\tguest,\n\ttype achievementType,\n} from \"../db/schema/league-schema\";\n\ntype AchievementType = (typeof achievementType)[number];\n\ntype AchievementQueueMessage = {\n\tseasonPlayerIds: string[];\n};\n\nexport type NewAchievement = {\n\tplayerId: string;",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "apps/worker/src/services/achievement-calculation.ts",
+            "time": {
+              "start": 1786711308486,
+              "end": 1786711308502
+            }
+          },
+          "id": "prt_0004af754001hGrn4OH0h1sU1m",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004af05d001Tws7raurwXd143"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_FHwFcNqEoRNkeVq8O0Wd1835",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/test/services/achievement-calculation.spec.ts"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/test/services/achievement-calculation.spec.ts</path>\n<type>file</type>\n<content>\n1: import { env } from \"cloudflare:test\";\n2: import { eq } from \"drizzle-orm\";\n3: import { describe, expect, it } from \"vitest\";\n4: import { getDb } from \"../../src/db/index\";\n5: import { playerAchievement } from \"../../src/db/schema/league-schema\";\n6: import { calculateAchievements } from \"../../src/services/achievement-calculation\";\n7: import { createAuthContext } from \"../setup/auth-context-util\";\n8: import { createPlayers } from \"../setup/season-context-util\";\n9: import { createTRPCTestClient } from \"../trpc/trpc-test-client\";\n10: \n11: async function setupLeagueWithSeason() {\n12: \tconst ctx = await createAuthContext();\n13: \tconst client = createTRPCTestClient({ sessionToken: ctx.sessionToken });\n14: \tawait createPlayers(ctx, 2);\n15: \n16: \tconst season = await client.season.create.mutate({\n17: \t\tname: \"Achievement Test Season\",\n18: \t\tinitialScore: 1000,\n19: \t\tscoreType: \"elo\",\n20: \t\tkFactor: 32,\n21: \t\tstartDate: new Date(),\n22: \t});\n23: \n24: \tconst seasonPlayers = await client.seasonPlayer.getAll.query({\n25: \t\tseasonSlug: season.slug,\n26: \t});\n27: \n28: \t// seasonPlayers[i].playerId is the underlying player ID used for achievement storage\n29: \tconst home = seasonPlayers[0];\n30: \tconst away = seasonPlayers[1];\n31: \n32: \treturn { client, season, home, away };\n33: }\n34: \n35: async function createMatch(\n36: \tclient: ReturnType<typeof createTRPCTestClient>,\n37: \tseasonSlug: string,\n38: \thomeSeasonPlayerId: string,\n39: \tawaySeasonPlayerId: string,\n40: \thomeScore: number,\n41: \tawayScore: number\n42: ) {\n43: \treturn client.match.create.mutate({\n44: \t\tseasonSlug,\n45: \t\thomeScore,\n46: \t\tawayScore,\n47: \t\thomeTeamPlayerIds: [homeSeasonPlayerId],\n48: \t\tawayTeamPlayerIds: [awaySeasonPlayerId],\n49: \t});\n50: }\n51: \n52: async function getAchievements(playerId: string) {\n53: \tconst db = getDb(env.DB);\n54: \treturn db.select().from(playerAchievement).where(eq(playerAchievement.playerId, playerId));\n55: }\n56: \n57: describe(\"achievement calculation\", () => {\n58: \tit(\"returns early with no errors for empty input\", async () => {\n59: \t\tconst db = getDb(env.DB);\n60: \t\tawait calculateAchievements(db, []);\n61: \t});\n62: \n63: \tit(\"awards no achievements when player has fewer than 5 matches\", async () => {\n64: \t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n65: \n66: \t\tfor (let i = 0; i < 4; i++) {\n67: \t\t\tawait createMatch(client, season.slug, home.id, away.id, 3, 0);\n68: \t\t}\n69: \n70: \t\tconst db = getDb(env.DB);\n71: \t\tawait calculateAchievements(db, [home.id]);\n72: \n73: \t\tconst achievements = await getAchievements(home.playerId);\n74: \t\texpect(achievements).toHaveLength(0);\n75: \t});\n76: \n77: \tdescribe(\"win streak achievements\", () => {\n78: \t\tit(\"awards 5_win_streak after 5 consecutive wins\", async () => {\n79: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n80: \n81: \t\t\tfor (let i = 0; i < 5; i++) {\n82: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n83: \t\t\t}\n84: \n85: \t\t\tconst db = getDb(env.DB);\n86: \t\t\tawait calculateAchievements(db, [home.id]);\n87: \n88: \t\t\tconst achievements = await getAchievements(home.playerId);\n89: \t\t\tconst types = achievements.map((a) => a.type);\n90: \t\t\texpect(types).toContain(\"5_win_streak\");\n91: \t\t\texpect(types).not.toContain(\"10_win_streak\");\n92: \t\t});\n93: \n94: \t\tit(\"awards 10_win_streak after 10 consecutive wins\", async () => {\n95: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n96: \n97: \t\t\tfor (let i = 0; i < 10; i++) {\n98: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n99: \t\t\t}\n100: \n101: \t\t\tconst db = getDb(env.DB);\n102: \t\t\tawait calculateAchievements(db, [home.id]);\n103: \n104: \t\t\tconst achievements = await getAchievements(home.playerId);\n105: \t\t\tconst types = achievements.map((a) => a.type);\n106: \t\t\texpect(types).toContain(\"5_win_streak\");\n107: \t\t\texpect(types).toContain(\"10_win_streak\");\n108: \t\t\texpect(types).not.toContain(\"15_win_streak\");\n109: \t\t});\n110: \n111: \t\tit(\"does not award win streak when streak is broken by a loss\", async () => {\n112: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n113: \n114: \t\t\tfor (let i = 0; i < 3; i++) {\n115: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n116: \t\t\t}\n117: \t\t\tawait createMatch(client, season.slug, home.id, away.id, 0, 2);\n118: \t\t\tfor (let i = 0; i < 3; i++) {\n119: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n120: \t\t\t}\n121: \n122: \t\t\tconst db = getDb(env.DB);\n123: \t\t\tawait calculateAchievements(db, [home.id]);\n124: \n125: \t\t\tconst achievements = await getAchievements(home.playerId);\n126: \t\t\tconst types = achievements.map((a) => a.type);\n127: \t\t\texpect(types).not.toContain(\"5_win_streak\");\n128: \t\t});\n129: \t});\n130: \n131: \tdescribe(\"clean sheet streak achievements\", () => {\n132: \t\tit(\"awards 5_clean_sheet_streak after 5 consecutive clean sheets\", async () => {\n133: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n134: \n135: \t\t\tfor (let i = 0; i < 5; i++) {\n136: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n137: \t\t\t}\n138: \n139: \t\t\tconst db = getDb(env.DB);\n140: \t\t\tawait calculateAchievements(db, [home.id]);\n141: \n142: \t\t\tconst achievements = await getAchievements(home.playerId);\n143: \t\t\tconst types = achievements.map((a) => a.type);\n144: \t\t\texpect(types).toContain(\"5_clean_sheet_streak\");\n145: \t\t\texpect(types).toContain(\"5_win_streak\");\n146: \t\t});\n147: \n148: \t\tit(\"does not award clean sheet streak when a goal is conceded mid-streak\", async () => {\n149: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n150: \n151: \t\t\tfor (let i = 0; i < 3; i++) {\n152: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n153: \t\t\t}\n154: \t\t\tawait createMatch(client, season.slug, home.id, away.id, 3, 1);\n155: \t\t\tfor (let i = 0; i < 3; i++) {\n156: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n157: \t\t\t}\n158: \n159: \t\t\tconst db = getDb(env.DB);\n160: \t\t\tawait calculateAchievements(db, [home.id]);\n161: \n162: \t\t\tconst achievements = await getAchievements(home.playerId);\n163: \t\t\tconst types = achievements.map((a) => a.type);\n164: \t\t\texpect(types).not.toContain(\"5_clean_sheet_streak\");\n165: \t\t});\n166: \t});\n167: \n168: \tdescribe(\"redemption achievements\", () => {\n169: \t\tit(\"awards 3_win_loss_redemption for 3 losses followed by 3 wins\", async () => {\n170: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n171: \n172: \t\t\tfor (let i = 0; i < 3; i++) {\n173: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 0, 2);\n174: \t\t\t}\n175: \t\t\tfor (let i = 0; i < 3; i++) {\n176: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n177: \t\t\t}\n178: \n179: \t\t\tconst db = getDb(env.DB);\n180: \t\t\tawait calculateAchievements(db, [home.id]);\n181: \n182: \t\t\tconst achievements = await getAchievements(home.playerId);\n183: \t\t\tconst types = achievements.map((a) => a.type);\n184: \t\t\texpect(types).toContain(\"3_win_loss_redemption\");\n185: \t\t});\n186: \n187: \t\tit(\"awards 5_win_loss_redemption for 5 losses followed by 5 wins\", async () => {\n188: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n189: \n190: \t\t\tfor (let i = 0; i < 5; i++) {\n191: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 0, 2);\n192: \t\t\t}\n193: \t\t\tfor (let i = 0; i < 5; i++) {\n194: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n195: \t\t\t}\n196: \n197: \t\t\tconst db = getDb(env.DB);\n198: \t\t\tawait calculateAchievements(db, [home.id]);\n199: \n200: \t\t\tconst achievements = await getAchievements(home.playerId);\n201: \t\t\tconst types = achievements.map((a) => a.type);\n202: \t\t\texpect(types).toContain(\"3_win_loss_redemption\");\n203: \t\t\texpect(types).toContain(\"5_win_loss_redemption\");\n204: \t\t\texpect(types).toContain(\"5_win_streak\");\n205: \t\t});\n206: \n207: \t\tit(\"does not award redemption when pattern is not contiguous\", async () => {\n208: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n209: \n210: \t\t\tfor (let i = 0; i < 3; i++) {\n211: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 0, 2);\n212: \t\t\t}\n213: \t\t\tawait createMatch(client, season.slug, home.id, away.id, 1, 1);\n214: \t\t\tfor (let i = 0; i < 3; i++) {\n215: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n216: \t\t\t}\n217: \n218: \t\t\tconst db = getDb(env.DB);\n219: \t\t\tawait calculateAchievements(db, [home.id]);\n220: \n221: \t\t\tconst achievements = await getAchievements(home.playerId);\n222: \t\t\tconst types = achievements.map((a) => a.type);\n223: \t\t\texpect(types).not.toContain(\"3_win_loss_redemption\");\n224: \t\t});\n225: \t});\n226: \n227: \tdescribe(\"goals scored achievements\", () => {\n228: \t\tit(\"awards 3_goals_5_games when all last 5 games have 3+ goals\", async () => {\n229: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n230: \n231: \t\t\tfor (let i = 0; i < 5; i++) {\n232: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 3, 0);\n233: \t\t\t}\n234: \n235: \t\t\tconst db = getDb(env.DB);\n236: \t\t\tawait calculateAchievements(db, [home.id]);\n237: \n238: \t\t\tconst achievements = await getAchievements(home.playerId);\n239: \t\t\tconst types = achievements.map((a) => a.type);\n240: \t\t\texpect(types).toContain(\"3_goals_5_games\");\n241: \t\t});\n242: \n243: \t\tit(\"awards 5_goals_5_games when all last 5 games have 5+ goals\", async () => {\n244: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n245: \n246: \t\t\tfor (let i = 0; i < 5; i++) {\n247: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 5, 0);\n248: \t\t\t}\n249: \n250: \t\t\tconst db = getDb(env.DB);\n251: \t\t\tawait calculateAchievements(db, [home.id]);\n252: \n253: \t\t\tconst achievements = await getAchievements(home.playerId);\n254: \t\t\tconst types = achievements.map((a) => a.type);\n255: \t\t\texpect(types).toContain(\"3_goals_5_games\");\n256: \t\t\texpect(types).toContain(\"5_goals_5_games\");\n257: \t\t});\n258: \n259: \t\tit(\"awards 8_goals_5_games when all last 5 games have 8+ goals\", async () => {\n260: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n261: \n262: \t\t\tfor (let i = 0; i < 5; i++) {\n263: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 8, 0);\n264: \t\t\t}\n265: \n266: \t\t\tconst db = getDb(env.DB);\n267: \t\t\tawait calculateAchievements(db, [home.id]);\n268: \n269: \t\t\tconst achievements = await getAchievements(home.playerId);\n270: \t\t\tconst types = achievements.map((a) => a.type);\n271: \t\t\texpect(types).toContain(\"3_goals_5_games\");\n272: \t\t\texpect(types).toContain(\"5_goals_5_games\");\n273: \t\t\texpect(types).toContain(\"8_goals_5_games\");\n274: \t\t});\n275: \n276: \t\tit(\"does not award goals achievement when fewer than 5 games played\", async () => {\n277: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n278: \n279: \t\t\tfor (let i = 0; i < 4; i++) {\n280: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 10, 0);\n281: \t\t\t}\n282: \n283: \t\t\tconst db = getDb(env.DB);\n284: \t\t\tawait calculateAchievements(db, [home.id]);\n285: \n286: \t\t\tconst achievements = await getAchievements(home.playerId);\n287: \t\t\tconst types = achievements.map((a) => a.type);\n288: \t\t\texpect(types).not.toContain(\"3_goals_5_games\");\n289: \t\t});\n290: \n291: \t\tit(\"does not award goals achievement when one of last 5 games has too few goals\", async () => {\n292: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n293: \n294: \t\t\tfor (let i = 0; i < 4; i++) {\n295: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 5, 0);\n296: \t\t\t}\n297: \t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 0);\n298: \n299: \t\t\tconst db = getDb(env.DB);\n300: \t\t\tawait calculateAchievements(db, [home.id]);\n301: \n302: \t\t\tconst achievements = await getAchievements(home.playerId);\n303: \t\t\tconst types = achievements.map((a) => a.type);\n304: \t\t\texpect(types).not.toContain(\"5_goals_5_games\");\n305: \t\t});\n306: \t});\n307: \n308: \tdescribe(\"idempotency\", () => {\n309: \t\tit(\"does not duplicate achievements when called multiple times\", async () => {\n310: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n311: \n312: \t\t\tfor (let i = 0; i < 5; i++) {\n313: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n314: \t\t\t}\n315: \n316: \t\t\tconst db = getDb(env.DB);\n317: \t\t\tawait calculateAchievements(db, [home.id]);\n318: \t\t\tawait calculateAchievements(db, [home.id]);\n319: \n320: \t\t\tconst achievements = await getAchievements(home.playerId);\n321: \t\t\tconst winStreakCount = achievements.filter((a) => a.type === \"5_win_streak\").length;\n322: \t\t\texpect(winStreakCount).toBe(1);\n323: \t\t});\n324: \t});\n325: \n326: \tdescribe(\"multiple players\", () => {\n327: \t\tit(\"calculates achievements for multiple season players in one call\", async () => {\n328: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n329: \n330: \t\t\tfor (let i = 0; i < 5; i++) {\n331: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n332: \t\t\t}\n333: \n334: \t\t\tconst db = getDb(env.DB);\n335: \t\t\tawait calculateAchievements(db, [home.id, away.id]);\n336: \n337: \t\t\tconst homeAchievements = await getAchievements(home.playerId);\n338: \t\t\tconst homeTypes = homeAchievements.map((a) => a.type);\n339: \t\t\texpect(homeTypes).toContain(\"5_win_streak\");\n340: \n341: \t\t\tconst awayAchievements = await getAchievements(away.playerId);\n342: \t\t\tconst awayTypes = awayAchievements.map((a) => a.type);\n343: \t\t\texpect(awayTypes).not.toContain(\"5_win_streak\");\n344: \t\t});\n345: \t});\n346: \n347: \tdescribe(\"away player achievements\", () => {\n348: \t\tit(\"awards clean sheet streak to away player when they concede 0\", async () => {\n349: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n350: \n351: \t\t\t// Away player wins 0-2 five times (concedes 0 = homeScore)\n352: \t\t\tfor (let i = 0; i < 5; i++) {\n353: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 0, 2);\n354: \t\t\t}\n355: \n356: \t\t\tconst db = getDb(env.DB);\n357: \t\t\tawait calculateAchievements(db, [away.id]);\n358: \n359: \t\t\tconst achievements = await getAchievements(away.playerId);\n360: \t\t\tconst types = achievements.map((a) => a.type);\n361: \t\t\texpect(types).toContain(\"5_clean_sheet_streak\");\n362: \t\t\texpect(types).toContain(\"5_win_streak\");\n363: \t\t});\n364: \t});\n365: \n366: \tdescribe(\"return value\", () => {\n367: \t\tit(\"returns newly earned achievements with player info\", async () => {\n368: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n369: \n370: \t\t\tfor (let i = 0; i < 5; i++) {\n371: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n372: \t\t\t}\n373: \n374: \t\t\tconst db = getDb(env.DB);\n375: \t\t\tconst result = await calculateAchievements(db, [home.id]);\n376: \n377: \t\t\tconst types = result.map((a) => a.type);\n378: \t\t\texpect(types).toContain(\"5_win_streak\");\n379: \t\t\texpect(types).not.toContain(\"10_win_streak\");\n380: \n381: \t\t\tconst winStreak = result.find((a) => a.type === \"5_win_streak\");\n382: \t\t\texpect(winStreak?.playerId).toBe(home.playerId);\n383: \t\t\texpect(winStreak?.name).toBeTruthy();\n384: \t\t});\n385: \n386: \t\tit(\"omits already-earned achievements on subsequent calls\", async () => {\n387: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n388: \n389: \t\t\tfor (let i = 0; i < 5; i++) {\n390: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n391: \t\t\t}\n392: \n393: \t\t\tconst db = getDb(env.DB);\n394: \t\t\tconst first = await calculateAchievements(db, [home.id]);\n395: \t\t\texpect(first.map((a) => a.type)).toContain(\"5_win_streak\");\n396: \n397: \t\t\tconst second = await calculateAchievements(db, [home.id]);\n398: \t\t\texpect(second).toHaveLength(0);\n399: \t\t});\n400: \t});\n401: });\n\n(End of file - total 401 lines)\n</content>",
+            "metadata": {
+              "preview": "import { env } from \"cloudflare:test\";\nimport { eq } from \"drizzle-orm\";\nimport { describe, expect, it } from \"vitest\";\nimport { getDb } from \"../../src/db/index\";\nimport { playerAchievement } from \"../../src/db/schema/league-schema\";\nimport { calculateAchievements } from \"../../src/services/achievement-calculation\";\nimport { createAuthContext } from \"../setup/auth-context-util\";\nimport { createPlayers } from \"../setup/season-context-util\";\nimport { createTRPCTestClient } from \"../trpc/trpc-test-client\";\n\nasync function setupLeagueWithSeason() {\n\tconst ctx = await createAuthContext();\n\tconst client = createTRPCTestClient({ sessionToken: ctx.sessionToken });\n\tawait createPlayers(ctx, 2);\n\n\tconst season = await client.season.create.mutate({\n\t\tname: \"Achievement Test Season\",\n\t\tinitialScore: 1000,\n\t\tscoreType: \"elo\",\n\t\tkFactor: 32,",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "apps/worker/test/services/achievement-calculation.spec.ts",
+            "time": {
+              "start": 1786711308855,
+              "end": 1786711308865
+            }
+          },
+          "id": "prt_0004af90e001OuAlJKE6Vndmm1",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004af05d001Tws7raurwXd143"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 18499,
+            "input": 2092,
+            "output": 136,
+            "reasoning": 15,
+            "cache": {
+              "write": 0,
+              "read": 16256
+            }
+          },
+          "cost": 0.001100318,
+          "id": "prt_0004afb05001u3BTuVysEvzJ4K",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004af05d001Tws7raurwXd143"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.004000086,
+        "tokens": {
+          "total": 27240,
+          "input": 8574,
+          "output": 190,
+          "reasoning": 44,
+          "cache": {
+            "write": 0,
+            "read": 18432
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711309121,
+          "completed": 1786711312732
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004afb41002q6IkM56jBpJ1wZ",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004affa70012zEX3ybfczzr3H",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004afb41002q6IkM56jBpJ1wZ"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me verify the schema to ensure the joins are correct — `player.userId`, `player.guestId`, `user.name`, `guest.displayName`, `user.image`. Let me check the schema files.",
+          "time": {
+            "start": 1786711310716,
+            "end": 1786711311286
+          },
+          "id": "prt_0004b017c00187k4jjrgkmfdMK",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004afb41002q6IkM56jBpJ1wZ"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_qbnEVZ5OQ9UlrOPj7jSM4606",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show ea491b4:apps/worker/src/services/achievement-calculation.ts | sed -n '1,60p'",
+              "description": "Show base version of calculation file header"
+            },
+            "output": "import { sql, inArray } from \"drizzle-orm\";\nimport type { DrizzleDB } from \"../db\";\nimport {\n\tmatchPlayer,\n\tseasonPlayer,\n\tplayerAchievement,\n\ttype achievementType,\n} from \"../db/schema/league-schema\";\n\ntype AchievementType = (typeof achievementType)[number];\n\ntype AchievementQueueMessage = {\n\tseasonPlayerIds: string[];\n};\n\nexport type { AchievementQueueMessage };\n\nconst streakThresholds: Partial<Record<AchievementType, number>> = {\n\t\"5_win_streak\": 5,\n\t\"10_win_streak\": 10,\n\t\"15_win_streak\": 15,\n\t\"3_win_loss_redemption\": 3,\n\t\"5_win_loss_redemption\": 5,\n\t\"8_win_loss_redemption\": 8,\n\t\"5_clean_sheet_streak\": 5,\n\t\"10_clean_sheet_streak\": 10,\n\t\"15_clean_sheet_streak\": 15,\n\t\"3_goals_5_games\": 3,\n\t\"5_goals_5_games\": 5,\n\t\"8_goals_5_games\": 8,\n};\n\nexport async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {\n\tif (seasonPlayerIds.length === 0) return;\n\n\t// Single query: get all match results for all players, ordered by creation time\n\tconst allMatchResults = await db\n\t\t.select({\n\t\t\tseasonPlayerId: matchPlayer.seasonPlayerId,\n\t\t\tresult: matchPlayer.result,\n\t\t\thomeTeam: matchPlayer.homeTeam,\n\t\t\tmatchId: matchPlayer.matchId,\n\t\t\tcreatedAt: matchPlayer.createdAt,\n\t\t})\n\t\t.from(matchPlayer)\n\t\t.where(inArray(matchPlayer.seasonPlayerId, seasonPlayerIds))\n\t\t.orderBy(matchPlayer.createdAt);\n\n\t// Single query: get goals conceded per match for each player\n\t// Goals conceded = sum of opponent goals in the same match\n\t// For a home player, conceded goals = match.awayScore; for away player = match.homeScore\n\t// We can derive this from the match scores via match table\n\tconst matchIds = [...new Set(allMatchResults.map((r) => r.matchId))];\n\n\tconst goalsConcededMap = new Map<string, Map<string, number>>();\n\tif (matchIds.length > 0) {\n\t\tconst goalsConceded = await db.all<{\n\t\t\tseasonPlayerId: string;\n\t\t\tmatchId: string;\n\t\t\tgoalsConceded: number;\n",
+            "metadata": {
+              "output": "import { sql, inArray } from \"drizzle-orm\";\nimport type { DrizzleDB } from \"../db\";\nimport {\n\tmatchPlayer,\n\tseasonPlayer,\n\tplayerAchievement,\n\ttype achievementType,\n} from \"../db/schema/league-schema\";\n\ntype AchievementType = (typeof achievementType)[number];\n\ntype AchievementQueueMessage = {\n\tseasonPlayerIds: string[];\n};\n\nexport type { AchievementQueueMessage };\n\nconst streakThresholds: Partial<Record<AchievementType, number>> = {\n\t\"5_win_streak\": 5,\n\t\"10_win_streak\": 10,\n\t\"15_win_streak\": 15,\n\t\"3_win_loss_redemption\": 3,\n\t\"5_win_loss_redemption\": 5,\n\t\"8_win_loss_redemption\": 8,\n\t\"5_clean_sheet_streak\": 5,\n\t\"10_clean_sheet_streak\": 10,\n\t\"15_clean_sheet_streak\": 15,\n\t\"3_goals_5_games\": 3,\n\t\"5_goals_5_games\": 5,\n\t\"8_goals_5_games\": 8,\n};\n\nexport async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {\n\tif (seasonPlayerIds.length === 0) return;\n\n\t// Single query: get all match results for all players, ordered by creation time\n\tconst allMatchResults = await db\n\t\t.select({\n\t\t\tseasonPlayerId: matchPlayer.seasonPlayerId,\n\t\t\tresult: matchPlayer.result,\n\t\t\thomeTeam: matchPlayer.homeTeam,\n\t\t\tmatchId: matchPlayer.matchId,\n\t\t\tcreatedAt: matchPlayer.createdAt,\n\t\t})\n\t\t.from(matchPlayer)\n\t\t.where(inArray(matchPlayer.seasonPlayerId, seasonPlayerIds))\n\t\t.orderBy(matchPlayer.createdAt);\n\n\t// Single query: get goals conceded per match for each player\n\t// Goals conceded = sum of opponent goals in the same match\n\t// For a home player, conceded goals = match.awayScore; for away player = match.homeScore\n\t// We can derive this from the match scores via match table\n\tconst matchIds = [...new Set(allMatchResults.map((r) => r.matchId))];\n\n\tconst goalsConcededMap = new Map<string, Map<string, number>>();\n\tif (matchIds.length > 0) {\n\t\tconst goalsConceded = await db.all<{\n\t\t\tseasonPlayerId: string;\n\t\t\tmatchId: string;\n\t\t\tgoalsConceded: number;\n",
+              "exit": 0,
+              "description": "Show base version of calculation file header",
+              "truncated": false
+            },
+            "title": "Show base version of calculation file header",
+            "time": {
+              "start": 1786711311907,
+              "end": 1786711311909
+            }
+          },
+          "id": "prt_0004b03b7001Ko59fspPz0j0Wi",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004afb41002q6IkM56jBpJ1wZ"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_1FKT6giPxCa9zJDzVSJm2412",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "userId|guestId|displayName|image",
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema",
+              "include": "*.ts"
+            },
+            "output": "Found 22 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/user-preferences-schema.ts:\n  Line 6: \tuserId: text(\"user_id\")\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/league-schema.ts:\n  Line 19: \t\tdisplayName: text(\"display_name\").notNull(),\n\n  Line 49: \t\tuserId: text(\"user_id\").references(() => user.id, { onDelete: \"cascade\" }),\n\n  Line 50: \t\tguestId: text(\"guest_id\").references(() => guest.id, { onDelete: \"cascade\" }),\n\n  Line 60: \t\t\t.on(table.leagueId, table.userId)\n\n  Line 61: \t\t\t.where(sql`${table.userId} IS NOT NULL`),\n\n  Line 63: \t\t\t.on(table.leagueId, table.guestId)\n\n  Line 64: \t\t\t.where(sql`${table.guestId} IS NOT NULL`),\n\n  Line 65: \t\tindex(\"player_user_id_idx\").on(table.userId),\n\n  Line 66: \t\tindex(\"player_guest_id_idx\").on(table.guestId),\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/device-code-schema.ts:\n  Line 7: \tuserId: text(\"user_id\"),\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/auth-schema.ts:\n  Line 9: \timage: text(\"image\"),\n\n  Line 37: \t\tuserId: text(\"user_id\")\n\n  Line 43: \t(table) => [index(\"session_userId_idx\").on(table.userId)]\n\n  Line 52: \t\tuserId: text(\"user_id\")\n\n  Line 73: \t(table) => [index(\"account_userId_idx\").on(table.userId)]\n\n  Line 114: \t\tuserId: text(\"user_id\")\n\n  Line 122: \t\tindex(\"member_userId_idx\").on(table.userId),\n\n  Line 156: \t\tuserId: text(\"user_id\")\n\n  Line 168: \t\tindex(\"passkey_userId_idx\").on(table.userId),\n\n  Line 181: \t\tuserId: text(\"user_id\")\n\n  Line 202: \t(table) => [index(\"apikey_key_idx\").on(table.key), index(\"apikey_userId_idx\").on(table.userId)]\n",
+            "metadata": {
+              "matches": 22,
+              "truncated": false
+            },
+            "title": "userId|guestId|displayName|image",
+            "time": {
+              "start": 1786711312504,
+              "end": 1786711312525
+            }
+          },
+          "id": "prt_0004b0669001a3KyoPVyZqLA7l",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004afb41002q6IkM56jBpJ1wZ"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 27240,
+            "input": 8574,
+            "output": 190,
+            "reasoning": 44,
+            "cache": {
+              "write": 0,
+              "read": 18432
+            }
+          },
+          "cost": 0.004000086,
+          "id": "prt_0004b0920001xD8ULdFD5eY5cw",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004afb41002q6IkM56jBpJ1wZ"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000822643,
+        "tokens": {
+          "total": 28596,
+          "input": 1255,
+          "output": 169,
+          "reasoning": 36,
+          "cache": {
+            "write": 0,
+            "read": 27136
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711312733,
+          "completed": 1786711316145
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004b095d001eQGUl5pGuM5ct5",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004b0d7c001DXcfzWsFYQDryI",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b095d001eQGUl5pGuM5ct5"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me verify the schema definitions more fully: `player` table with `userId`/`guestId`, `user.name` and `user.image`, `guest.displayName`.",
+          "time": {
+            "start": 1786711314260,
+            "end": 1786711314940
+          },
+          "id": "prt_0004b0f54001aWEBzEa6CGMmt8",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b095d001eQGUl5pGuM5ct5"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_QlxbwAho7lT8KSrk6Soj2393",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/league-schema.ts",
+              "limit": 75
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/league-schema.ts</path>\n<type>file</type>\n<content>\n1: import {\n2: \tsqliteTable,\n3: \ttext,\n4: \tinteger,\n5: \treal,\n6: \tindex,\n7: \tuniqueIndex,\n8: \tcheck,\n9: } from \"drizzle-orm/sqlite-core\";\n10: import { sql } from \"drizzle-orm\";\n11: import { user, league } from \"./auth-schema\";\n12: import { timestampAuditFields } from \"./common\";\n13: \n14: export const guest = sqliteTable(\n15: \t\"guest\",\n16: \t{\n17: \t\tid: text(\"id\").primaryKey(),\n18: \t\temail: text(\"email\").notNull().unique(),\n19: \t\tdisplayName: text(\"display_name\").notNull(),\n20: \t\t...timestampAuditFields,\n21: \t},\n22: \t(table) => [index(\"guest_email_idx\").on(table.email)]\n23: );\n24: \n25: export const achievementType = [\n26: \t\"5_win_streak\",\n27: \t\"10_win_streak\",\n28: \t\"15_win_streak\",\n29: \t\"3_win_loss_redemption\",\n30: \t\"5_win_loss_redemption\",\n31: \t\"8_win_loss_redemption\",\n32: \t\"5_clean_sheet_streak\",\n33: \t\"10_clean_sheet_streak\",\n34: \t\"15_clean_sheet_streak\",\n35: \t\"3_goals_5_games\",\n36: \t\"5_goals_5_games\",\n37: \t\"8_goals_5_games\",\n38: \t\"season_winner\",\n39: ] as const;\n40: \n41: export const scoreType = [\"elo\", \"3-1-0\", \"elo-individual-vs-team\", \"1-v-n-elo\"] as const;\n42: \n43: export const matchResult = [\"W\", \"L\", \"D\"] as const;\n44: \n45: export const player = sqliteTable(\n46: \t\"player\",\n47: \t{\n48: \t\tid: text(\"id\").primaryKey(),\n49: \t\tuserId: text(\"user_id\").references(() => user.id, { onDelete: \"cascade\" }),\n50: \t\tguestId: text(\"guest_id\").references(() => guest.id, { onDelete: \"cascade\" }),\n51: \t\tleagueId: text(\"league_id\")\n52: \t\t\t.notNull()\n53: \t\t\t.references(() => league.id, { onDelete: \"cascade\" }),\n54: \t\tdisabled: integer(\"disabled\", { mode: \"boolean\" }).default(false).notNull(),\n55: \t\t...timestampAuditFields,\n56: \t},\n57: \t(table) => [\n58: \t\tcheck(\"player_user_or_guest_check\", sql`(user_id IS NOT NULL OR guest_id IS NOT NULL)`),\n59: \t\tuniqueIndex(\"player_organization_user_uidx\")\n60: \t\t\t.on(table.leagueId, table.userId)\n61: \t\t\t.where(sql`${table.userId} IS NOT NULL`),\n62: \t\tuniqueIndex(\"player_organization_guest_uidx\")\n63: \t\t\t.on(table.leagueId, table.guestId)\n64: \t\t\t.where(sql`${table.guestId} IS NOT NULL`),\n65: \t\tindex(\"player_user_id_idx\").on(table.userId),\n66: \t\tindex(\"player_guest_id_idx\").on(table.guestId),\n67: \t]\n68: );\n69: \n70: export const leagueTeam = sqliteTable(\n71: \t\"league_team\",\n72: \t{\n73: \t\tid: text(\"id\").primaryKey(),\n74: \t\tname: text(\"name\").notNull(),\n75: \t\tlogo: text(\"logo\"),\n\n(Showing lines 1-75 of 385. Use offset=76 to continue.)\n</content>",
+            "metadata": {
+              "preview": "import {\n\tsqliteTable,\n\ttext,\n\tinteger,\n\treal,\n\tindex,\n\tuniqueIndex,\n\tcheck,\n} from \"drizzle-orm/sqlite-core\";\nimport { sql } from \"drizzle-orm\";\nimport { user, league } from \"./auth-schema\";\nimport { timestampAuditFields } from \"./common\";\n\nexport const guest = sqliteTable(\n\t\"guest\",\n\t{\n\t\tid: text(\"id\").primaryKey(),\n\t\temail: text(\"email\").notNull().unique(),\n\t\tdisplayName: text(\"display_name\").notNull(),\n\t\t...timestampAuditFields,",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "apps/worker/src/db/schema/league-schema.ts",
+            "time": {
+              "start": 1786711315427,
+              "end": 1786711315431
+            }
+          },
+          "id": "prt_0004b11fe0015bMM6VtRb62PHZ",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b095d001eQGUl5pGuM5ct5"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_ZWewmQigazPtHjopHyax7243",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/auth-schema.ts",
+              "limit": 30
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/db/schema/auth-schema.ts</path>\n<type>file</type>\n<content>\n1: import { sql } from \"drizzle-orm\";\n2: import { sqliteTable, text, integer, index, uniqueIndex } from \"drizzle-orm/sqlite-core\";\n3: \n4: export const user = sqliteTable(\"user\", {\n5: \tid: text(\"id\").primaryKey(),\n6: \tname: text(\"name\").notNull(),\n7: \temail: text(\"email\").notNull().unique(),\n8: \temailVerified: integer(\"email_verified\", { mode: \"boolean\" }).default(false).notNull(),\n9: \timage: text(\"image\"),\n10: \tcreatedAt: integer(\"created_at\", { mode: \"timestamp_ms\" })\n11: \t\t.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)\n12: \t\t.notNull(),\n13: \tupdatedAt: integer(\"updated_at\", { mode: \"timestamp_ms\" })\n14: \t\t.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)\n15: \t\t.$onUpdate(() => /* @__PURE__ */ new Date())\n16: \t\t.notNull(),\n17: \trole: text(\"role\"),\n18: \tbanned: integer(\"banned\", { mode: \"boolean\" }).default(false),\n19: \tbanReason: text(\"ban_reason\"),\n20: \tbanExpires: integer(\"ban_expires\", { mode: \"timestamp_ms\" }),\n21: });\n22: \n23: export const session = sqliteTable(\n24: \t\"session\",\n25: \t{\n26: \t\tid: text(\"id\").primaryKey(),\n27: \t\texpiresAt: integer(\"expires_at\", { mode: \"timestamp_ms\" }).notNull(),\n28: \t\ttoken: text(\"token\").notNull().unique(),\n29: \t\tcreatedAt: integer(\"created_at\", { mode: \"timestamp_ms\" })\n30: \t\t\t.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)\n\n(Showing lines 1-30 of 203. Use offset=31 to continue.)\n</content>",
+            "metadata": {
+              "preview": "import { sql } from \"drizzle-orm\";\nimport { sqliteTable, text, integer, index, uniqueIndex } from \"drizzle-orm/sqlite-core\";\n\nexport const user = sqliteTable(\"user\", {\n\tid: text(\"id\").primaryKey(),\n\tname: text(\"name\").notNull(),\n\temail: text(\"email\").notNull().unique(),\n\temailVerified: integer(\"email_verified\", { mode: \"boolean\" }).default(false).notNull(),\n\timage: text(\"image\"),\n\tcreatedAt: integer(\"created_at\", { mode: \"timestamp_ms\" })\n\t\t.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)\n\t\t.notNull(),\n\tupdatedAt: integer(\"updated_at\", { mode: \"timestamp_ms\" })\n\t\t.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)\n\t\t.$onUpdate(() => /* @__PURE__ */ new Date())\n\t\t.notNull(),\n\trole: text(\"role\"),\n\tbanned: integer(\"banned\", { mode: \"boolean\" }).default(false),\n\tbanReason: text(\"ban_reason\"),\n\tbanExpires: integer(\"ban_expires\", { mode: \"timestamp_ms\" }),",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "apps/worker/src/db/schema/auth-schema.ts",
+            "time": {
+              "start": 1786711315909,
+              "end": 1786711315920
+            }
+          },
+          "id": "prt_0004b1426001oVXkh59lxExCV6",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b095d001eQGUl5pGuM5ct5"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 28596,
+            "input": 1255,
+            "output": 169,
+            "reasoning": 36,
+            "cache": {
+              "write": 0,
+              "read": 27136
+            }
+          },
+          "cost": 0.000822643,
+          "id": "prt_0004b166c001QsF2vfacFcu3d5",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b095d001eQGUl5pGuM5ct5"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001431092,
+        "tokens": {
+          "total": 30822,
+          "input": 1504,
+          "output": 156,
+          "reasoning": 618,
+          "cache": {
+            "write": 0,
+            "read": 28544
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711316146,
+          "completed": 1786711325396
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004b16b2001SgVBG59ujXtdVY",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004b1ae4001ygef2ugCe30b1i",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b16b2001SgVBG59ujXtdVY"
+        },
+        {
+          "type": "reasoning",
+          "text": "Schema checks out:\n- `player.userId`, `player.guestId` exist.\n- `user.name` (notNull), `user.image` (nullable) exist.\n- `guest.displayName` (notNull) exists.\n\nThe join `COALESCE(user.name, guest.displayName)` — user.name is notNull, so COALESCE is fine; for a guest player, user.name is NULL (from leftJoin), so guest.displayName is used. Correct.\n\nNow let me verify the type checking and that tests pass. Also check whether there's a caller of `calculateAchievements` that might now break due to return type change (from `undefined` to `Promise<NewAchievement[]>`). Let me search for callers.\n\nAlso need to check: the spec says \"Keep the middle section of the function (match-results/goals/streak queries and loops) and helper functions unchanged.\" The diff shows the middle section is unchanged, helpers unchanged. Good.\n\nRequirement 2: \"Add exported type NewAchievement\". Done at line 19.\n\nRequirement 1: signature returns `Promise<NewAchievement[]>`, empty array when `seasonPlayerIds` empty. Done (line 43-47).\n\nRequirement 3: resolve player info via joins. Done (lines 133-146).\n\nRequirement 4: filter already-earned by querying `playerAchievement` by involved playerIds, build `playerId:type` set, keep only new ones, still use onConflictDoNothing. Done (lines 217-243).\n\nRequirement 5: return only newly-earned (idempotent). Done (returns `newAchievements`).\n\nRequirement 6: middle section unchanged. Let me verify by diff - the diff only changed the header, the playerInfo section (was playerIdMap), and the insert section. The middle section (goalsConceded, last5Goals, resultsByPlayer, loops) is unchanged. Helpers unchanged. Good.\n\nRequirement 7: two new tests. Both present. Good.\n\nNow the tests use `home.playerId` and `home.id` (seasonPlayerId). The test calls `calculateAchievements(db, [home.id])` where home.id is the seasonPlayer id (from seasonPlayer.getAll). And `home.playerId` is the underlying player. Correct.\n\nNow let me verify the tests actually run and pass, and check the typecheck. Let me also check if there's an issue: the \"already-earned\" query uses `inArray(playerAchievement.playerId, playerIds)`. playerIds is derived from `achievementsToInsert` (newly computed achievements). This is fine.\n\nOne subtle issue: the existing query selects `{ playerId, type }` without unique constraint handling. The playerAchievement table likely has a unique constraint on (playerId, type). The existing set is built correctly.\n\nNow check the caller. Let me search for `calculateAchievements` usage.",
+          "time": {
+            "start": 1786711317762,
+            "end": 1786711324248
+          },
+          "id": "prt_0004b1d02001zQMfayDtmbkbwV",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b16b2001SgVBG59ujXtdVY"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_WzJCHRENwvlbUQlyFIra2640",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "calculateAchievements",
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src"
+            },
+            "output": "Found 3 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/services/achievement-calculation.ts:\n  Line 43: export async function calculateAchievements(\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/index.ts:\n  Line 15: \tcalculateAchievements,\n\n  Line 46: \t\t\t\t\tawait calculateAchievements(db, body.seasonPlayerIds);\n",
+            "metadata": {
+              "matches": 3,
+              "truncated": false
+            },
+            "title": "calculateAchievements",
+            "time": {
+              "start": 1786711324691,
+              "end": 1786711324719
+            }
+          },
+          "id": "prt_0004b365a001zIyQgeJOc0gjZl",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b16b2001SgVBG59ujXtdVY"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_k9g6bEURQRcu7iTeAlQU3420",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "NewAchievement|AchievementQueueMessage",
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+            },
+            "output": "Found 37 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/services/achievement-calculation.ts:\n  Line 15: type AchievementQueueMessage = {\n\n  Line 19: export type NewAchievement = {\n\n  Line 26: export type { AchievementQueueMessage };\n\n  Line 46: ): Promise<NewAchievement[]> {\n\n  Line 160: \tconst achievementsToInsert: NewAchievement[] = [];\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md:\n  Line 17: - `src/services/achievement-calculation.ts` (modify) — `calculateAchievements` returns newly-earned achievements with player name/image; add `buildAchievementUnlockEvents`; extend `AchievementQueueMessage` with `leagueSlug`/`seasonSlug`.\n\n  Line 119: type AchievementQueueMessage = {\n\n  Line 123: export type NewAchievement = {\n\n  Line 130: export type { AchievementQueueMessage };\n\n  Line 146: ): Promise<NewAchievement[]> {\n\n  Line 202: \tconst achievementsToInsert: NewAchievement[] = [];\n\n  Line 317: type AchievementQueueMessage = {\n\n  Line 321: export type NewAchievement = {\n\n  Line 328: export type { AchievementQueueMessage };\n\n  Line 334: export type AchievementQueueMessage = {\n\n  Line 340: export type NewAchievement = {\n\n  Line 348: \tnewAchievements: NewAchievement[]\n\n  Line 400: \tasync queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {\n\n  Line 433: \ttype AchievementQueueMessage,\n\n  Line 446: \t} satisfies AchievementQueueMessage);\n\n  Line 456: \t} satisfies AchievementQueueMessage);\n\n  Line 466: \t\t\t} satisfies AchievementQueueMessage);\n\n  Line 478: \t\t\t} satisfies AchievementQueueMessage);\n\n  Line 491: \t\t\t} satisfies AchievementQueueMessage);\n\n  Line 504: \t\t\t} satisfies AchievementQueueMessage);\n\n  Line 723: import type { AchievementQueueMessage } from \"../../services/achievement-calculation\";\n\n  Line 807: \t} satisfies AchievementQueueMessage);\n\n  Line 865: \t\t\t} satisfies AchievementQueueMessage);\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/docs/superpowers/plans/2026-08-10-1-v-n-elo-darts-season.md:\n  Line 519: \t\tenv: Parameters<typeof broadcastSeasonEvent>[0] & { ACHIEVEMENT_QUEUE: { send: (m: AchievementQueueMessage) => Promise<unknown> } };\n\n  Line 574: \t} satisfies AchievementQueueMessage);\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/trpc/router/session-router.ts:\n  Line 12: import type { AchievementQueueMessage } from \"../../services/achievement-calculation\";\n\n  Line 295: \t\t\t} satisfies AchievementQueueMessage);\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/trpc/router/match-router.ts:\n  Line 9: import type { AchievementQueueMessage } from \"../../services/achievement-calculation\";\n\n  Line 166: \t} satisfies AchievementQueueMessage);\n\n  Line 281: \t\t\t} satisfies AchievementQueueMessage);\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/worker/src/index.ts:\n  Line 16: \ttype AchievementQueueMessage,\n\n  Line 40: \tasync queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {\n",
+            "metadata": {
+              "matches": 37,
+              "truncated": false
+            },
+            "title": "NewAchievement|AchievementQueueMessage",
+            "time": {
+              "start": 1786711325138,
+              "end": 1786711325174
+            }
+          },
+          "id": "prt_0004b385b001Sa3YTKAUtcTwfl",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b16b2001SgVBG59ujXtdVY"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 30822,
+            "input": 1504,
+            "output": 156,
+            "reasoning": 618,
+            "cache": {
+              "write": 0,
+              "read": 28544
+            }
+          },
+          "cost": 0.001431092,
+          "id": "prt_0004b3a990011iNM4tzjxoktR2",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b16b2001SgVBG59ujXtdVY"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000902625,
+        "tokens": {
+          "total": 32159,
+          "input": 1059,
+          "output": 180,
+          "reasoning": 200,
+          "cache": {
+            "write": 0,
+            "read": 30720
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711325397,
+          "completed": 1786711334278
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004b3ad5002RgcVYeGj0bfLWz",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004b3efb001HNx0tqzqUwUJJC",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b3ad5002RgcVYeGj0bfLWz"
+        },
+        {
+          "type": "reasoning",
+          "text": "The caller in `index.ts` line 46 calls `await calculateAchievements(db, body.seasonPlayerIds);` without using the return value. That's fine — the return type change doesn't break the caller.\n\nThe queue message type `AchievementQueueMessage` was NOT modified. The spec explicitly said: \"Extra/unneeded work: did they add features beyond the spec (e.g., touching the queue message type `AchievementQueueMessage`...\". So they did NOT touch it — good, that's what we want to verify (no extra work).\n\nThe plan doc mentions extending `AchievementQueueMessage` with `leagueSlug`/`seasonSlug` as part of the broader plan, but Task 1 only required the calculateAchievements change. So not touching it is correct for Task 1.\n\nNow let me run the typecheck and the tests to verify 20 tests pass. Actually, let me run the tests specifically for the achievement calculation spec.",
+          "time": {
+            "start": 1786711327524,
+            "end": 1786711329894
+          },
+          "id": "prt_0004b4324001kKtO5FyAx9n0Yf",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b3ad5002RgcVYeGj0bfLWz"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_wy8nDQJeQVKPkKbjM5cC0669",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun run test apps/worker/test/services/achievement-calculation.spec.ts 2>&1 | tail -40",
+              "description": "Run achievement calculation tests",
+              "timeout": 180000
+            },
+            "output": "$ turbo run test apps/worker/test/services/achievement-calculation.spec.ts\n• turbo 2.10.9\n  x Missing tasks in project\n  `->   x Could not find task `apps/worker/test/services/achievement-\n        | calculation.spec.ts` in project\n\nerror: script \"test\" exited with code 1\n",
+            "metadata": {
+              "output": "$ turbo run test apps/worker/test/services/achievement-calculation.spec.ts\n• turbo 2.10.9\n  x Missing tasks in project\n  `->   x Could not find task `apps/worker/test/services/achievement-\n        | calculation.spec.ts` in project\n\nerror: script \"test\" exited with code 1\n",
+              "exit": 0,
+              "description": "Run achievement calculation tests",
+              "truncated": false
+            },
+            "title": "Run achievement calculation tests",
+            "time": {
+              "start": 1786711332396,
+              "end": 1786711332397
+            }
+          },
+          "id": "prt_0004b4c680017lTw5ryko3TodX",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b3ad5002RgcVYeGj0bfLWz"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_NEweAeJCmfv3HZZQNtLJ4471",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun typecheck 2>&1 | tail -30",
+              "description": "Run typecheck",
+              "timeout": 180000
+            },
+            "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@scorebrawl/mcp:typecheck: cache miss, executing ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: cache miss, executing d7a814b477958cf4\n@coding-cowboys/scorebrawl-util:typecheck: cache miss, executing 2d9928e837249e12\n@coding-cowboys/scorebrawl-web:typecheck: cache miss, executing 1942c34e1f8ad7de\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    0 cached, 4 total\n  Time:    1.555s \n\n",
+            "metadata": {
+              "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@scorebrawl/mcp:typecheck: cache miss, executing ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: cache miss, executing d7a814b477958cf4\n@coding-cowboys/scorebrawl-util:typecheck: cache miss, executing 2d9928e837249e12\n@coding-cowboys/scorebrawl-web:typecheck: cache miss, executing 1942c34e1f8ad7de\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    0 cached, 4 total\n  Time:    1.555s \n\n",
+              "exit": 0,
+              "description": "Run typecheck",
+              "truncated": false
+            },
+            "title": "Run typecheck",
+            "time": {
+              "start": 1786711334173,
+              "end": 1786711334174
+            }
+          },
+          "id": "prt_0004b4f2f001HdT4UsRCi7JCKL",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b3ad5002RgcVYeGj0bfLWz"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 32159,
+            "input": 1059,
+            "output": 180,
+            "reasoning": 200,
+            "cache": {
+              "write": 0,
+              "read": 30720
+            }
+          },
+          "cost": 0.000902625,
+          "id": "prt_0004b5d53001V968AvpUoF8syE",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b3ad5002RgcVYeGj0bfLWz"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000435319,
+        "tokens": {
+          "total": 32716,
+          "input": 443,
+          "output": 111,
+          "reasoning": 34,
+          "cache": {
+            "write": 0,
+            "read": 32128
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711334280,
+          "completed": 1786711378822
+        },
+        "finish": "tool-calls",
+        "id": "msg_0004b5d88001dXHMn8hUFDiS0l",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004b619c001mtv1xTuJG22Quq",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b5d88001dXHMn8hUFDiS0l"
+        },
+        {
+          "type": "reasoning",
+          "text": "Typecheck passes. Now let me run the test properly. The test command is `bun run test`. Let me check the root package.json for the test script.",
+          "time": {
+            "start": 1786711335631,
+            "end": 1786711336188
+          },
+          "id": "prt_0004b62cf001L7O8blRTfhI5b6",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b5d88001dXHMn8hUFDiS0l"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_623DZV1SJmhri4bQpvo41450",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun run test 2>&1 | grep -E \"achievement|Test Files|Tests|passed|failed\" | tail -40",
+              "description": "Run full test suite and filter results",
+              "timeout": 300000
+            },
+            "output": "@coding-cowboys/scorebrawl-util:test:  Test Files  2 passed (2)\n@coding-cowboys/scorebrawl-util:test:       Tests  35 passed (35)\n@coding-cowboys/scorebrawl-worker:test:  ✓ test/services/achievement-calculation.spec.ts (20 tests) 5562ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > win streak achievements > awards 10_win_streak after 10 consecutive wins  323ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > redemption achievements > awards 5_win_loss_redemption for 5 losses followed by 5 wins  425ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > redemption achievements > does not award redemption when pattern is not contiguous  308ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > goals scored achievements > does not award goals achievement when one of last 5 games has too few goals  308ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > idempotency > does not duplicate achievements when called multiple times  313ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > multiple players > calculates achievements for multiple season players in one call  305ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > away player achievements > awards clean sheet streak to away player when they concede 0  325ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > return value > returns newly earned achievements with player info  327ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > return value > omits already-earned achievements on subsequent calls  351ms\n@coding-cowboys/scorebrawl-worker:test:  ✓ test/trpc/achievement-router.spec.ts (2 tests) 281ms\n@coding-cowboys/scorebrawl-worker:test:  Test Files  19 passed (19)\n@coding-cowboys/scorebrawl-worker:test:       Tests  176 passed (176)\n",
+            "metadata": {
+              "output": "@coding-cowboys/scorebrawl-util:test:  Test Files  2 passed (2)\n@coding-cowboys/scorebrawl-util:test:       Tests  35 passed (35)\n@coding-cowboys/scorebrawl-worker:test:  ✓ test/services/achievement-calculation.spec.ts (20 tests) 5562ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > win streak achievements > awards 10_win_streak after 10 consecutive wins  323ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > redemption achievements > awards 5_win_loss_redemption for 5 losses followed by 5 wins  425ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > redemption achievements > does not award redemption when pattern is not contiguous  308ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > goals scored achievements > does not award goals achievement when one of last 5 games has too few goals  308ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > idempotency > does not duplicate achievements when called multiple times  313ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > multiple players > calculates achievements for multiple season players in one call  305ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > away player achievements > awards clean sheet streak to away player when they concede 0  325ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > return value > returns newly earned achievements with player info  327ms\n@coding-cowboys/scorebrawl-worker:test:    ✓ achievement calculation > return value > omits already-earned achievements on subsequent calls  351ms\n@coding-cowboys/scorebrawl-worker:test:  ✓ test/trpc/achievement-router.spec.ts (2 tests) 281ms\n@coding-cowboys/scorebrawl-worker:test:  Test Files  19 passed (19)\n@coding-cowboys/scorebrawl-worker:test:       Tests  176 passed (176)\n",
+              "exit": 0,
+              "description": "Run full test suite and filter results",
+              "truncated": false
+            },
+            "title": "Run full test suite and filter results",
+            "time": {
+              "start": 1786711378725,
+              "end": 1786711378726
+            }
+          },
+          "id": "prt_0004b64fd001QjQMm6R5OEvUUh",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b5d88001dXHMn8hUFDiS0l"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 32716,
+            "input": 443,
+            "output": 111,
+            "reasoning": 34,
+            "cache": {
+              "write": 0,
+              "read": 32128
+            }
+          },
+          "cost": 0.000435319,
+          "id": "prt_0004c0b57001p6q8uSv6ILupz7",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004b5d88001dXHMn8hUFDiS0l"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004ae0b6001kQZAt87fjEI5NY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001709115,
+        "tokens": {
+          "total": 34756,
+          "input": 575,
+          "output": 556,
+          "reasoning": 985,
+          "cache": {
+            "write": 0,
+            "read": 32640
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711378823,
+          "completed": 1786711396711
+        },
+        "finish": "stop",
+        "id": "msg_0004c0b87002pEKLNhgRcb6NRv",
+        "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk"
+      },
+      "parts": [
+        {
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-start",
+          "id": "prt_0004c0f55001uFTLd0pcUWri8x",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004c0b87002pEKLNhgRcb6NRv"
+        },
+        {
+          "type": "reasoning",
+          "text": "All tests pass: 20 tests in the achievement-calculation spec, including the two new ones. Typecheck passes.\n\nLet me do a final verification of each requirement:\n\n1. ✅ Signature `Promise<NewAchievement[]>` (line 43-46), empty array short-circuit (line 47).\n2. ✅ `NewAchievement` type exported (line 19-24).\n3. ✅ Player info resolved via joins (innerJoin player, leftJoin user, leftJoin guest) with `COALESCE(user.name, guest.displayName)` for name and `user.image` for image (lines 133-144).\n4. ✅ Pre-filter: query `playerAchievement` by involved playerIds (line 218-224), build `playerId:type` set (line 225), keep new ones (line 226-228), still `onConflictDoNothing` (line 243).\n5. ✅ Returns `newAchievements` (line 246), idempotent.\n6. ✅ Middle section and helpers unchanged (diff only touched header, playerInfo section, insert section).\n7. ✅ Two new tests present and passing.\n\nExtra work check: The queue message type `AchievementQueueMessage` was NOT touched. No extra features.\n\nOne subtle consideration: The `NewAchievement` type uses `type: AchievementType` (the full AchievementType which includes `season_winner`). The spec said `type: AchievementType` where AchievementType is the existing type. That's fine, matches.\n\nAnother subtle point: The `name` field type is `string` (not `string | null`). The spec said `name: string`. COALESCE of user.name (notNull) and guest.displayName (notNull) → always non-null string. Correct.\n\nPotential issue to consider: the existing pre-filter query selects `playerAchievement.playerId` and `.type`. There's a unique index on (playerId, type)? Let me not over-verify; it works.\n\nAnother consideration: is there a subtle correctness issue with the idempotency filter when `playerIds` is empty? `existing` is `[]`, `existingSet` empty, `newAchievements` = achievementsToInsert (could be empty). Returns `[]`. Fine.\n\nOne more subtle thing: The `existing` query only queries for the `playerIds` derived from `achievementsToInsert`, which is correct - only the players who are about to earn achievements need to be checked.\n\nAlso, potential concern about `innerJoin(player, ...)` vs the original code. Original code just did `db.select().from(seasonPlayer)` with `where(inArray(seasonPlayer.id, ...))` and no join. Now adding innerJoin(player) and leftJoins. Since every seasonPlayer should have a player (seasonPlayer.playerId references player.id), innerJoin is safe. But wait — could there be a seasonPlayer with a null playerId? Let me check seasonPlayer schema.\n\nActually, `seasonPlayer.playerId` — let me verify it's notNull. In the original code, `playerIdMap` selected `seasonPlayer.playerId` directly from seasonPlayer without join, and if playerId was null, the map would have a null playerId and `if (!playerId) continue`. Now with innerJoin(player, eq(seasonPlayer.playerId, player.id)), if seasonPlayer.playerId were null, the innerJoin would exclude that row entirely, and `info` would be undefined → `continue`. Same behavior (skip). Fine.\n\nLet me quickly verify seasonPlayer.playerId is notNull to confirm innerJoin won't drop any real rows. Actually it doesn't matter for correctness — innerJoin is fine either way since a null playerId season player can't earn achievements anyway. But let me just quickly confirm no regression. Actually the tests all pass including multi-player and away-player tests, so behavior is verified.\n\nI'm confident. Let me write the report.\n\nLet me also double check the test asserts `winStreak?.playerId).toBe(home.playerId)` — home is `seasonPlayers[0]` from `seasonPlayer.getAll`. home.playerId is the underlying player id. home.id is seasonPlayer id. The test passes `[home.id]` (seasonPlayer id) to calculateAchievements. The result's `playerId` should be the resolved `seasonPlayer.playerId` = `home.playerId`. Test passes, confirming the join correctly maps seasonPlayer → player. Good.\n\nEverything checks out. Report: spec compliant.\n\nActually, let me note one minor thing: the spec requirement 4 says \"Filter out already-earned achievements ... before insert; still use onConflictDoNothing on insert.\" Both done. \n\nI'm confident it's fully compliant.",
+          "time": {
+            "start": 1786711380861,
+            "end": 1786711391337
+          },
+          "id": "prt_0004c137d001JbRzk0S9dmTbVn",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004c0b87002pEKLNhgRcb6NRv"
+        },
+        {
+          "type": "text",
+          "text": "✅ **Spec compliant.** Verified by reading the diff and full files, plus running typecheck and tests.\n\nRequirement-by-requirement:\n\n1. **Signature + empty short-circuit** — `calculateAchievements(db, seasonPlayerIds): Promise<NewAchievement[]>` with `if (seasonPlayerIds.length === 0) return [];` (`achievement-calculation.ts:43-47`). ✅\n2. **`NewAchievement` export** — exported type with `playerId`, `name`, `image: string | null`, `type: AchievementType` (`:19-24`). ✅\n3. **Player info via joins** — `innerJoin(player)` + `leftJoin(user)` + `leftJoin(guest)`, `name` via `COALESCE(user.name, guest.displayName)`, `image` via `user.image` (`:133-144`). Schema fields (`player.userId`/`guestId`, `user.name`/`image`, `guest.displayName`) all confirmed present. ✅\n4. **Idempotency pre-filter** — queries `playerAchievement` by the involved `playerIds` (`:218-224`), builds a `playerId:type` set (`:225`), keeps only new ones (`:226-228`), still `onConflictDoNothing` on insert (`:243`). ✅\n5. **Returns only newly-earned** — returns `newAchievements` (`:246`); second call yields `[]` (test-confirmed). ✅\n6. **Middle section + helpers unchanged** — diff only touches the imports/type header, the `playerInfo` resolution, and the insert/filter block; goals/streak/redemption loops and `checkGoalsScoredStreak`/`checkStreakAchievement`/`checkRedemptionAchievements` untouched. ✅\n7. **Two new tests** — both present and passing, asserting real behavior (no mocks): `5_win_streak` present / `10_win_streak` absent / correct `playerId` / truthy `name`, and second-call `toHaveLength(0)`. ✅\n\n**No extra work:** `AchievementQueueMessage` was not touched; no changes to `index.ts` caller, routers, or unrelated behavior. The caller at `index.ts:46` ignores the return value, so the signature change is backward-compatible.\n\n**Evidence:** `bun typecheck` passes (4/4), and `bun run test` shows `achievement-calculation.spec.ts (20 tests)` passing (176 worker tests total).",
+          "time": {
+            "start": 1786711391340,
+            "end": 1786711396596
+          },
+          "id": "prt_0004c3c6c001STduidqplJt3ev",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004c0b87002pEKLNhgRcb6NRv"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "853c9c066db8f56f7392a1a8aa9a8dffad77ec85",
+          "type": "step-finish",
+          "tokens": {
+            "total": 34756,
+            "input": 575,
+            "output": 556,
+            "reasoning": 985,
+            "cache": {
+              "write": 0,
+              "read": 32640
+            }
+          },
+          "cost": 0.001709115,
+          "id": "prt_0004c5135001aYkfA5CcywD0WY",
+          "sessionID": "ses_fffb51f4fffehZO6baGTJSWkUk",
+          "messageID": "msg_0004c0b87002pEKLNhgRcb6NRv"
+        }
+      ]
+    }
+  ]
+}
