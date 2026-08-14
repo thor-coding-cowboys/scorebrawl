@@ -7,7 +7,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MatchScoreDisplay, type MatchDisplayPlayer } from "./match-score-display";
+import { MatchScoreDisplay } from "./match-score-display";
+import type { MatchDisplayPlayer } from "@/lib/match-names";
 
 interface MatchInfo {
 	id: string;
