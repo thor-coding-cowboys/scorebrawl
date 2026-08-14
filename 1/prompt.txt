@@ -1,0 +1,28 @@
+You are a code quality reviewer. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+Review the implementation of Task 1 of the "Subtle Toast Notifications" plan.
+
+WHAT_WAS_IMPLEMENTED: `calculateAchievements` in `apps/worker/src/services/achievement-calculation.ts` now returns `Promise<NewAchievement[]>` (newly-earned achievements with `playerId`, `name`, `image`, `type`) instead of `undefined`. It resolves player info via joins and filters out already-earned achievements before insert. Two new tests added.
+
+PLAN_OR_REQUIREMENTS: Task 1 from `docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md`.
+
+BASE_SHA: ea491b4
+HEAD_SHA: e147b8a
+
+DESCRIPTION: Make achievement calculation return newly-earned achievements (with player name/image) so a later task can broadcast `achievement:unlock` events.
+
+Run `git diff ea491b4 e147b8a` to see the changes.
+
+Review for standard code quality concerns (clarity, naming, correctness, maintainability, test quality), plus:
+- Does each file have one clear responsibility with a well-defined interface?
+- Are units decomposed so they can be understood/tested independently?
+- Is the implementation following the plan's file structure?
+- Did this change create large new files or significantly grow existing ones? (Focus on what THIS change contributed.)
+
+Specifically scrutinize:
+- The empty-`playerIds` short-circuit for the existing-achievements query (is it correct and necessary?).
+- Whether the `name`/`image` resolution is correct for guest players.
+- Naming consistency (`NewAchievement`, `achievementsToInsert` vs `newAchievements`).
+- Whether the tests are meaningful and not over-mocked.
+
+Return: Strengths, Issues (Critical/Important/Minor), Assessment (Approved / Needs changes).
