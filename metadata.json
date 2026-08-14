@@ -3,7 +3,7 @@
   "checkpoint_id": "01M005KFSFHZ69A9RFQSQJ0791",
   "strategy": "manual-commit",
   "branch": "feat/subtle-toast-notifications",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "apps/web/src/lib/achievements.ts",
     "apps/web/src/lib/match-names.ts",
@@ -46,6 +46,13 @@
       "transcript": "/4/full.jsonl",
       "compact_transcript": "/4/transcript.jsonl",
       "content_hash": "/4/content_hash.txt",
+      "prompt": ""
+    },
+    {
+      "metadata": "/5/metadata.json",
+      "transcript": "/5/full.jsonl",
+      "compact_transcript": "/5/transcript.jsonl",
+      "content_hash": "/5/content_hash.txt",
       "prompt": ""
     }
   ],
