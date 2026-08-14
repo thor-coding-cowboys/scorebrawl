@@ -1,9 +1,12 @@
-import { sql, inArray } from "drizzle-orm";
+import { sql, inArray, eq } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
+import { user } from "../db/schema/auth-schema";
 import {
 	matchPlayer,
 	seasonPlayer,
 	playerAchievement,
+	player,
+	guest,
 	type achievementType,
 } from "../db/schema/league-schema";
 
@@ -11,6 +14,13 @@ type AchievementType = (typeof achievementType)[number];
 
 type AchievementQueueMessage = {
 	seasonPlayerIds: string[];
+};
+
+export type NewAchievement = {
+	playerId: string;
+	name: string;
+	image: string | null;
+	type: AchievementType;
 };
 
 export type { AchievementQueueMessage };
@@ -30,8 +40,11 @@ const streakThresholds: Partial<Record<AchievementType, number>> = {
 	"8_goals_5_games": 8,
 };
 
-export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {
-	if (seasonPlayerIds.length === 0) return;
+export async function calculateAchievements(
+	db: DrizzleDB,
+	seasonPlayerIds: string[]
+): Promise<NewAchievement[]> {
+	if (seasonPlayerIds.length === 0) return [];
 
 	// Single query: get all match results for all players, ordered by creation time
 	const allMatchResults = await db
@@ -116,16 +129,21 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 		}
 	}
 
-	// Resolve seasonPlayerId -> playerId for achievement storage
-	const playerIdMap = await db
+	// Resolve seasonPlayerId -> player info for achievement storage + broadcast
+	const playerInfo = await db
 		.select({
 			seasonPlayerId: seasonPlayer.id,
 			playerId: seasonPlayer.playerId,
+			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as("name"),
+			image: user.image,
 		})
 		.from(seasonPlayer)
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+		.leftJoin(user, eq(player.userId, user.id))
+		.leftJoin(guest, eq(player.guestId, guest.id))
 		.where(inArray(seasonPlayer.id, seasonPlayerIds));
 
-	const seasonToPlayerMap = new Map(playerIdMap.map((p) => [p.seasonPlayerId, p.playerId]));
+	const seasonToPlayerMap = new Map(playerInfo.map((p) => [p.seasonPlayerId, p]));
 
 	// Group match results by season player
 	const resultsByPlayer = new Map<string, typeof allMatchResults>();
@@ -139,11 +157,11 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 	}
 
 	// Calculate achievements per player
-	const achievementsToInsert: { playerId: string; type: AchievementType }[] = [];
+	const achievementsToInsert: NewAchievement[] = [];
 
 	for (const spId of seasonPlayerIds) {
-		const playerId = seasonToPlayerMap.get(spId);
-		if (!playerId) continue;
+		const info = seasonToPlayerMap.get(spId);
+		if (!info) continue;
 
 		const earned: AchievementType[] = [];
 		const matches = resultsByPlayer.get(spId) || [];
@@ -187,17 +205,34 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 		}
 
 		for (const achievement of earned) {
-			achievementsToInsert.push({ playerId, type: achievement });
+			achievementsToInsert.push({
+				playerId: info.playerId,
+				name: info.name,
+				image: info.image,
+				type: achievement,
+			});
 		}
 	}
 
-	// Batch insert all achievements (idempotent via onConflictDoNothing)
-	if (achievementsToInsert.length > 0) {
+	// Filter out achievements already earned (idempotent, no re-broadcast)
+	const playerIds = [...new Set(achievementsToInsert.map((a) => a.playerId))];
+	const existing = playerIds.length
+		? await db
+				.select({ playerId: playerAchievement.playerId, type: playerAchievement.type })
+				.from(playerAchievement)
+				.where(inArray(playerAchievement.playerId, playerIds))
+		: [];
+	const existingSet = new Set(existing.map((e) => `${e.playerId}:${e.type}`));
+	const newAchievements = achievementsToInsert.filter(
+		(a) => !existingSet.has(`${a.playerId}:${a.type}`)
+	);
+
+	if (newAchievements.length > 0) {
 		const now = new Date();
 		await db
 			.insert(playerAchievement)
 			.values(
-				achievementsToInsert.map((a) => ({
+				newAchievements.map((a) => ({
 					id: crypto.randomUUID(),
 					playerId: a.playerId,
 					type: a.type,
@@ -207,6 +242,8 @@ export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: stri
 			)
 			.onConflictDoNothing();
 	}
+
+	return newAchievements;
 }
 
 function checkGoalsScoredStreak(earned: AchievementType[], lastFiveGoals: number[]) {

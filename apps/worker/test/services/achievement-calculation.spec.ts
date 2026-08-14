@@ -362,4 +362,40 @@ describe("achievement calculation", () => {
 			expect(types).toContain("5_win_streak");
 		});
 	});
+
+	describe("return value", () => {
+		it("returns newly earned achievements with player info", async () => {
+			const { client, season, home, away } = await setupLeagueWithSeason();
+
+			for (let i = 0; i < 5; i++) {
+				await createMatch(client, season.slug, home.id, away.id, 2, 1);
+			}
+
+			const db = getDb(env.DB);
+			const result = await calculateAchievements(db, [home.id]);
+
+			const types = result.map((a) => a.type);
+			expect(types).toContain("5_win_streak");
+			expect(types).not.toContain("10_win_streak");
+
+			const winStreak = result.find((a) => a.type === "5_win_streak");
+			expect(winStreak?.playerId).toBe(home.playerId);
+			expect(winStreak?.name).toBeTruthy();
+		});
+
+		it("omits already-earned achievements on subsequent calls", async () => {
+			const { client, season, home, away } = await setupLeagueWithSeason();
+
+			for (let i = 0; i < 5; i++) {
+				await createMatch(client, season.slug, home.id, away.id, 2, 1);
+			}
+
+			const db = getDb(env.DB);
+			const first = await calculateAchievements(db, [home.id]);
+			expect(first.map((a) => a.type)).toContain("5_win_streak");
+
+			const second = await calculateAchievements(db, [home.id]);
+			expect(second).toHaveLength(0);
+		});
+	});
 });
