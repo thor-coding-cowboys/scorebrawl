@@ -22,7 +22,7 @@
     ],
     "time": {
       "created": 1786711509740,
-      "updated": 1786711566514
+      "updated": 1786711587786
     }
   },
   "messages": [
@@ -1284,21 +1284,24 @@
           "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
           "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
         },
-        "cost": 0,
+        "cost": 0.000501932,
         "tokens": {
-          "input": 0,
-          "output": 0,
-          "reasoning": 0,
+          "total": 54004,
+          "input": 292,
+          "output": 168,
+          "reasoning": 40,
           "cache": {
-            "read": 0,
-            "write": 0
+            "write": 0,
+            "read": 53504
           }
         },
         "modelID": "deepseek-v4-pro",
         "providerID": "opencode-go",
         "time": {
-          "created": 1786711566390
+          "created": 1786711566390,
+          "completed": 1786711587669
         },
+        "finish": "tool-calls",
         "id": "msg_0004ee836001bcfJ05iEIU3Hgl",
         "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36"
       },
@@ -1337,22 +1340,117 @@
           "tool": "bash",
           "callID": "call_00_FT4TKPnaxlAIWX9QDjRE3790",
           "state": {
-            "metadata": {
-              "output": "",
-              "description": "Stage and commit Task 2 changes"
-            },
-            "status": "running",
+            "status": "completed",
             "input": {
               "command": "git add apps/worker/src/durable-objects/season-sse.ts apps/worker/src/services/achievement-calculation.ts apps/worker/src/trpc/router/match-router.ts apps/worker/src/trpc/router/session-router.ts apps/worker/src/index.ts apps/worker/test/services/achievement-calculation.spec.ts && git commit -m \"feat: emit achievement:unlock SSE event from queue consumer\" && git status --short",
               "description": "Stage and commit Task 2 changes"
             },
+            "output": "[feat/subtle-toast-notifications bd4cd2d] feat: emit achievement:unlock SSE event from queue consumer\n 6 files changed, 54 insertions(+), 5 deletions(-)\n?? .entire/\n?? .opencode/\n",
+            "metadata": {
+              "output": "[feat/subtle-toast-notifications bd4cd2d] feat: emit achievement:unlock SSE event from queue consumer\n 6 files changed, 54 insertions(+), 5 deletions(-)\n?? .entire/\n?? .opencode/\n",
+              "exit": 0,
+              "description": "Stage and commit Task 2 changes",
+              "truncated": false
+            },
+            "title": "Stage and commit Task 2 changes",
             "time": {
-              "start": 1786711570180
+              "start": 1786711587561,
+              "end": 1786711587563
             }
           },
           "id": "prt_0004ef3fd001r7GX5WsfW22hOz",
           "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36",
           "messageID": "msg_0004ee836001bcfJ05iEIU3Hgl"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "ea1efe0e3f4a1dc11aca3f6f716e7d785e42cf15",
+          "type": "step-finish",
+          "tokens": {
+            "total": 54004,
+            "input": 292,
+            "output": 168,
+            "reasoning": 40,
+            "cache": {
+              "write": 0,
+              "read": 53504
+            }
+          },
+          "cost": 0.000501932,
+          "id": "prt_0004f3b220016Z4VsdPRyONTLg",
+          "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36",
+          "messageID": "msg_0004ee836001bcfJ05iEIU3Hgl"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0004e0af1001tFPOpsEEa5WSdg",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000557699,
+        "tokens": {
+          "total": 54396,
+          "input": 183,
+          "output": 325,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 53888
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711587671,
+          "completed": 1786711592866
+        },
+        "finish": "stop",
+        "id": "msg_0004f3b570017gqlVjAF3wr7HC",
+        "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36"
+      },
+      "parts": [
+        {
+          "snapshot": "ea1efe0e3f4a1dc11aca3f6f716e7d785e42cf15",
+          "type": "step-start",
+          "id": "prt_0004f4008001A4J498zGsAxLK3",
+          "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36",
+          "messageID": "msg_0004f3b570017gqlVjAF3wr7HC"
+        },
+        {
+          "type": "text",
+          "text": "**Status:** DONE\n\n**What I implemented:**\n- Added `leagueSlug`/`seasonSlug` to `AchievementQueueMessage` and added `buildAchievementUnlockEvents` in `achievement-calculation.ts`.\n- Added `\"achievement:unlock\"` to the `SeasonSSEEvent` type union in `season-sse.ts`.\n- Wired the queue consumer to broadcast unlock events via `broadcastSeasonEvent` in `index.ts`.\n- Passed `leagueSlug`/`seasonSlug` in match-router (both `finalizeMatchCreation` and `createFromFixture`) and session-router (`recordResult`).\n- Added two tests for `buildAchievementUnlockEvents`.\n\n**Test/typecheck results:**\n- `bun run --cwd apps/worker test -- achievement-calculation.spec.ts` → 22 passed.\n- `bun typecheck` → 4 successful (worker compiled with `tsgo --noEmit`).\n- `bun oxc` → only pre-existing warnings; new `no-await-in-loop` warning in `index.ts` is the intended `for ... await broadcastSeasonEvent` from the plan.\n\n**Files changed:** the 6 specified (season-sse.ts, achievement-calculation.ts, match-router.ts, session-router.ts, index.ts, achievement-calculation.spec.ts).\n\n**Self-review:** Matches plan exactly; seed branch, `msg.ack()`/`msg.retry()`, and error handling untouched.\n\n**Concerns:** None.",
+          "time": {
+            "start": 1786711589676,
+            "end": 1786711592755
+          },
+          "id": "prt_0004f432c001S0OpQIMKeyXuMU",
+          "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36",
+          "messageID": "msg_0004f3b570017gqlVjAF3wr7HC"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "ea1efe0e3f4a1dc11aca3f6f716e7d785e42cf15",
+          "type": "step-finish",
+          "tokens": {
+            "total": 54396,
+            "input": 183,
+            "output": 325,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 53888
+            }
+          },
+          "cost": 0.000557699,
+          "id": "prt_0004f4f6a001p0B9cKNcM4FLhV",
+          "sessionID": "ses_fffb1f513ffeBUX0z1NMrzCD36",
+          "messageID": "msg_0004f3b570017gqlVjAF3wr7HC"
         }
       ]
     }
