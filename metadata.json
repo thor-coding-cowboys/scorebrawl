@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M005KFSFHZ69A9RFQSQJ0791",
+  "strategy": "manual-commit",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/src/lib/achievements.ts",
+    "apps/web/src/lib/match-names.ts",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 25535,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 165376,
+    "output_tokens": 2280,
+    "api_call_count": 7
+  }
+}
