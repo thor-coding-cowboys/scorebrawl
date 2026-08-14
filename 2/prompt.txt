@@ -1,0 +1,32 @@
+You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+## What Was Requested
+
+Task 4 of the "Subtle Toast Notifications" plan — a pure refactor of the frontend, no behavior change:
+
+1. Create `apps/web/src/lib/achievements.ts` with `formatAchievementName(type: string): string` (the same implementation that was previously local to the player detail page).
+2. Create `apps/web/src/lib/match-names.ts` exporting `MatchDisplayPlayer` interface (`{ id, name, image, teamName, teamLogo, homeTeam }`), `getTeamInfo`, `getSideLabel`, and `buildMatchResultToast` (with an EN DASH `–` score separator; 1-v-n-elo returns `"{winner} won the match"`).
+3. `match-score-display.tsx`: import `getTeamInfo`/`getSideLabel`/`MatchDisplayPlayer` from `@/lib/match-names`, remove the local `MatchDisplayPlayer`/`getTeamInfo`/`getSideLabel` definitions, and re-export `MatchDisplayPlayer` (so other importers keep working). Keep `getAssetUrl`, `TeamIcon`, `formatTimestamp`, `ScoreLine`, `MatchScoreDisplay` unchanged.
+4. `match-row.tsx` and `remove-match-dialog.tsx`: import `MatchDisplayPlayer` from `@/lib/match-names` instead of `./match-score-display`.
+5. `$leaguePlayerId/index.tsx`: import `formatAchievementName` from `@/lib/achievements`, remove the local function.
+
+Commit under review: `43e9b4d` ("refactor: extract shared match naming and achievement helpers"). Base: `56938ac`.
+
+## What Implementer Claims
+
+All 6 files created/modified; helpers are byte-identical copies; no behavior change; typecheck+lint pass.
+
+## CRITICAL: Do Not Trust the Report
+
+Verify independently. Run `git diff 56938ac 43e9b4d` and read the actual code.
+
+Check:
+- Are the helper implementations byte-identical to the removed local code (getTeamInfo/getSideLabel/formatAchievementName logic unchanged)?
+- Is the en dash preserved in `buildMatchResultToast`?
+- Did `match-score-display.tsx` keep `getAssetUrl`/`TeamIcon`/`formatTimestamp`/`ScoreLine`/`MatchScoreDisplay` intact, with no dangling references to the removed local functions?
+- Do `match-row.tsx` / `remove-match-dialog.tsx` still compile with the new import path?
+- Any extra/unneeded changes beyond the spec?
+
+Report:
+- ✅ Spec compliant, OR
+- ❌ Issues found: [list with file:line]

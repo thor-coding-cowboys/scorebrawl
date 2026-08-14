@@ -1,0 +1,1265 @@
+{
+  "info": {
+    "id": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+    "slug": "stellar-falcon",
+    "projectID": "50dab81c140d4987abb4ff6eeb4b71ce9ccf8f28",
+    "directory": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+    "path": "",
+    "parentID": "ses_ffffb07aaffezkqyQMVywCU71E",
+    "title": "Review spec compliance Task 4 (@general subagent)",
+    "version": "1.14.41",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "permission": [
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1786712330412,
+      "updated": 1786712387567
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1786712330417
+        },
+        "tools": {
+          "task": false
+        },
+        "agent": "general",
+        "model": {
+          "providerID": "opencode-go",
+          "modelID": "deepseek-v4-pro"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire\n\n## What Was Requested\n\nTask 4 of the \"Subtle Toast Notifications\" plan — a pure refactor of the frontend, no behavior change:\n\n1. Create `apps/web/src/lib/achievements.ts` with `formatAchievementName(type: string): string` (the same implementation that was previously local to the player detail page).\n2. Create `apps/web/src/lib/match-names.ts` exporting `MatchDisplayPlayer` interface (`{ id, name, image, teamName, teamLogo, homeTeam }`), `getTeamInfo`, `getSideLabel`, and `buildMatchResultToast` (with an EN DASH `–` score separator; 1-v-n-elo returns `\"{winner} won the match\"`).\n3. `match-score-display.tsx`: import `getTeamInfo`/`getSideLabel`/`MatchDisplayPlayer` from `@/lib/match-names`, remove the local `MatchDisplayPlayer`/`getTeamInfo`/`getSideLabel` definitions, and re-export `MatchDisplayPlayer` (so other importers keep working). Keep `getAssetUrl`, `TeamIcon`, `formatTimestamp`, `ScoreLine`, `MatchScoreDisplay` unchanged.\n4. `match-row.tsx` and `remove-match-dialog.tsx`: import `MatchDisplayPlayer` from `@/lib/match-names` instead of `./match-score-display`.\n5. `$leaguePlayerId/index.tsx`: import `formatAchievementName` from `@/lib/achievements`, remove the local function.\n\nCommit under review: `43e9b4d` (\"refactor: extract shared match naming and achievement helpers\"). Base: `56938ac`.\n\n## What Implementer Claims\n\nAll 6 files created/modified; helpers are byte-identical copies; no behavior change; typecheck+lint pass.\n\n## CRITICAL: Do Not Trust the Report\n\nVerify independently. Run `git diff 56938ac 43e9b4d` and read the actual code.\n\nCheck:\n- Are the helper implementations byte-identical to the removed local code (getTeamInfo/getSideLabel/formatAchievementName logic unchanged)?\n- Is the en dash preserved in `buildMatchResultToast`?\n- Did `match-score-display.tsx` keep `getAssetUrl`/`TeamIcon`/`formatTimestamp`/`ScoreLine`/`MatchScoreDisplay` intact, with no dangling references to the removed local functions?\n- Do `match-row.tsx` / `remove-match-dialog.tsx` still compile with the new import path?\n- Any extra/unneeded changes beyond the spec?\n\nReport:\n- ✅ Spec compliant, OR\n- ❌ Issues found: [list with file:line]",
+          "id": "prt_0005a90b1001vMkXWXvRJfijaT",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a90b0002Hwl05wRKSxW1G1"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000525074,
+        "tokens": {
+          "total": 16330,
+          "input": 606,
+          "output": 139,
+          "reasoning": 97,
+          "cache": {
+            "write": 0,
+            "read": 15488
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712330749,
+          "completed": 1786712334519
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005a91fd001Sv0ZEZY3ESewT3",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005a9506001UtukO25bKi7Pko",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a91fd001Sv0ZEZY3ESewT3"
+        },
+        {
+          "type": "reasoning",
+          "text": "I need to verify an implementation matches its specification. Let me run git diff and read the actual code. This is a code review task, not creative work, so no brainstorming needed. Let me check if any skill applies - this is reviewing a commit against a spec. The \"receiving-code-review\" or \"requesting-code-review\" skills might apply, but actually this is me performing a review. Let me just do the verification directly.\n\nLet me start by running git diff.",
+          "time": {
+            "start": 1786712332296,
+            "end": 1786712333540
+          },
+          "id": "prt_0005a9808001br1brvcWWEHXw5",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a91fd001Sv0ZEZY3ESewT3"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_JsekB3vP9z79K5Gfm7gv1751",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff 56938ac 43e9b4d --stat",
+              "description": "Show diff stat between base and commit"
+            },
+            "output": " apps/web/src/lib/achievements.ts                   |  3 ++\n apps/web/src/lib/match-names.ts                    | 41 ++++++++++++++++++++++\n .../$slug/players/$leaguePlayerId/index.tsx        |  5 +--\n .../$slug/seasons/-components/match/match-row.tsx  |  3 +-\n .../-components/match/match-score-display.tsx      | 27 ++------------\n .../-components/match/remove-match-dialog.tsx      |  3 +-\n 6 files changed, 52 insertions(+), 30 deletions(-)\n",
+            "metadata": {
+              "output": " apps/web/src/lib/achievements.ts                   |  3 ++\n apps/web/src/lib/match-names.ts                    | 41 ++++++++++++++++++++++\n .../$slug/players/$leaguePlayerId/index.tsx        |  5 +--\n .../$slug/seasons/-components/match/match-row.tsx  |  3 +-\n .../-components/match/match-score-display.tsx      | 27 ++------------\n .../-components/match/remove-match-dialog.tsx      |  3 +-\n 6 files changed, 52 insertions(+), 30 deletions(-)\n",
+              "exit": 0,
+              "description": "Show diff stat between base and commit",
+              "truncated": false
+            },
+            "title": "Show diff stat between base and commit",
+            "time": {
+              "start": 1786712333959,
+              "end": 1786712333961
+            }
+          },
+          "id": "prt_0005a9ce5001b55D7cHcxND7bm",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a91fd001Sv0ZEZY3ESewT3"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_xnrcxptcHIzEX9pSlXdq8159",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log --oneline -3 43e9b4d",
+              "description": "Show recent commits"
+            },
+            "output": "43e9b4d refactor: extract shared match naming and achievement helpers\n56938ac feat: enrich match:insert SSE payload with scoreType and players\nbd4cd2d feat: emit achievement:unlock SSE event from queue consumer\n",
+            "metadata": {
+              "output": "43e9b4d refactor: extract shared match naming and achievement helpers\n56938ac feat: enrich match:insert SSE payload with scoreType and players\nbd4cd2d feat: emit achievement:unlock SSE event from queue consumer\n",
+              "exit": 0,
+              "description": "Show recent commits",
+              "truncated": false
+            },
+            "title": "Show recent commits",
+            "time": {
+              "start": 1786712334339,
+              "end": 1786712334340
+            }
+          },
+          "id": "prt_0005a9e6e001szN3DckANpqcRq",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a91fd001Sv0ZEZY3ESewT3"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16330,
+            "input": 606,
+            "output": 139,
+            "reasoning": 97,
+            "cache": {
+              "write": 0,
+              "read": 15488
+            }
+          },
+          "cost": 0.000525074,
+          "id": "prt_0005aa07a001DBxKZFrVjy9Ilu",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005a91fd001Sv0ZEZY3ESewT3"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000236843,
+        "tokens": {
+          "total": 16592,
+          "input": 263,
+          "output": 73,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 16256
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712334520,
+          "completed": 1786712336850
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005aa0b8001h4IKOTD3ZYrLv7",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005aa440001eeO0frZYSt5GiE",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa0b8001h4IKOTD3ZYrLv7"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_ET_TnVD1pe8H74eKYIi2kNL9911",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff 56938ac 43e9b4d",
+              "description": "Show full diff"
+            },
+            "output": "diff --git a/apps/web/src/lib/achievements.ts b/apps/web/src/lib/achievements.ts\nnew file mode 100644\nindex 0000000..25055f7\n--- /dev/null\n+++ b/apps/web/src/lib/achievements.ts\n@@ -0,0 +1,3 @@\n+export function formatAchievementName(type: string): string {\n+\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n+}\ndiff --git a/apps/web/src/lib/match-names.ts b/apps/web/src/lib/match-names.ts\nnew file mode 100644\nindex 0000000..5536b11\n--- /dev/null\n+++ b/apps/web/src/lib/match-names.ts\n@@ -0,0 +1,41 @@\n+export interface MatchDisplayPlayer {\n+\tid: string;\n+\tname: string;\n+\timage: string | null;\n+\tteamName: string | null;\n+\tteamLogo: string | null;\n+\thomeTeam: boolean;\n+}\n+\n+export function getTeamInfo(\n+\tplayers: MatchDisplayPlayer[]\n+): { name: string; logo: string | null } | null {\n+\tif (players.length <= 1) return null;\n+\tconst teamName = players[0]?.teamName;\n+\tconst teamLogo = players[0]?.teamLogo ?? null;\n+\tif (teamName) return { name: teamName, logo: teamLogo };\n+\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n+}\n+\n+export function getSideLabel(players: MatchDisplayPlayer[]): string {\n+\tif (players.length === 0) return \"Unknown\";\n+\tconst teamInfo = getTeamInfo(players);\n+\tif (teamInfo) return teamInfo.name;\n+\treturn players.map((p) => p.name).join(\", \");\n+}\n+\n+export function buildMatchResultToast(opts: {\n+\tscoreType: string;\n+\tplayers: MatchDisplayPlayer[];\n+\thomeScore: number;\n+\tawayScore: number;\n+}): string {\n+\tconst home = opts.players.filter((p) => p.homeTeam);\n+\tconst away = opts.players.filter((p) => !p.homeTeam);\n+\n+\tif (opts.scoreType === \"1-v-n-elo\") {\n+\t\treturn `${getSideLabel(home)} won the match`;\n+\t}\n+\n+\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n+}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\nindex 9e2aee9..f8f3d54 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n@@ -7,6 +7,7 @@ import { Badge } from \"@/components/ui/badge\";\n import { Skeleton } from \"@/components/ui/skeleton\";\n import { useTRPC, trpcClient } from \"@/lib/trpc\";\n import { truncateSlug } from \"@/lib/utils\";\n+import { formatAchievementName } from \"@/lib/achievements\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import {\n \tTarget01Icon,\n@@ -712,7 +713,3 @@ function PlayerProfilePage() {\n \t\t</>\n \t);\n }\n-\n-function formatAchievementName(type: string): string {\n-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n-}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\nindex b2049b1..8e55734 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n@@ -1,4 +1,5 @@\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchPlayer {\n \tid: string;\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\nindex 73117aa..fa114e1 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n@@ -3,6 +3,9 @@ import { cn } from \"@/lib/utils\";\n import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n+import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n+\n+export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n const getAssetUrl = (key: string | null | undefined): string | null => {\n \tif (!key) return null;\n@@ -34,30 +37,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n \t);\n }\n \n-export interface MatchDisplayPlayer {\n-\tid: string;\n-\tname: string;\n-\timage: string | null;\n-\tteamName: string | null;\n-\tteamLogo: string | null;\n-\thomeTeam: boolean;\n-}\n-\n-function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n-\tif (players.length <= 1) return null;\n-\tconst teamName = players[0]?.teamName;\n-\tconst teamLogo = players[0]?.teamLogo ?? null;\n-\tif (teamName) return { name: teamName, logo: teamLogo };\n-\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n-}\n-\n-function getSideLabel(players: MatchDisplayPlayer[]): string {\n-\tif (players.length === 0) return \"Unknown\";\n-\tconst teamInfo = getTeamInfo(players);\n-\tif (teamInfo) return teamInfo.name;\n-\treturn players.map((p) => p.name).join(\", \");\n-}\n-\n function formatTimestamp(date: Date) {\n \tconst now = new Date();\n \tconst matchDate = new Date(date);\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\nindex 6762528..38a29cb 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n@@ -7,7 +7,8 @@ import { HugeiconsIcon } from \"@hugeicons/react\";\n import { useMutation, useQuery } from \"@tanstack/react-query\";\n import { useState } from \"react\";\n import { toast } from \"sonner\";\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchInfo {\n \tid: string;\n",
+            "metadata": {
+              "output": "diff --git a/apps/web/src/lib/achievements.ts b/apps/web/src/lib/achievements.ts\nnew file mode 100644\nindex 0000000..25055f7\n--- /dev/null\n+++ b/apps/web/src/lib/achievements.ts\n@@ -0,0 +1,3 @@\n+export function formatAchievementName(type: string): string {\n+\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n+}\ndiff --git a/apps/web/src/lib/match-names.ts b/apps/web/src/lib/match-names.ts\nnew file mode 100644\nindex 0000000..5536b11\n--- /dev/null\n+++ b/apps/web/src/lib/match-names.ts\n@@ -0,0 +1,41 @@\n+export interface MatchDisplayPlayer {\n+\tid: string;\n+\tname: string;\n+\timage: string | null;\n+\tteamName: string | null;\n+\tteamLogo: string | null;\n+\thomeTeam: boolean;\n+}\n+\n+export function getTeamInfo(\n+\tplayers: MatchDisplayPlayer[]\n+): { name: string; logo: string | null } | null {\n+\tif (players.length <= 1) return null;\n+\tconst teamName = players[0]?.teamName;\n+\tconst teamLogo = players[0]?.teamLogo ?? null;\n+\tif (teamName) return { name: teamName, logo: teamLogo };\n+\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n+}\n+\n+export function getSideLabel(players: MatchDisplayPlayer[]): string {\n+\tif (players.length === 0) return \"Unknown\";\n+\tconst teamInfo = getTeamInfo(players);\n+\tif (teamInfo) return teamInfo.name;\n+\treturn players.map((p) => p.name).join(\", \");\n+}\n+\n+export function buildMatchResultToast(opts: {\n+\tscoreType: string;\n+\tplayers: MatchDisplayPlayer[];\n+\thomeScore: number;\n+\tawayScore: number;\n+}): string {\n+\tconst home = opts.players.filter((p) => p.homeTeam);\n+\tconst away = opts.players.filter((p) => !p.homeTeam);\n+\n+\tif (opts.scoreType === \"1-v-n-elo\") {\n+\t\treturn `${getSideLabel(home)} won the match`;\n+\t}\n+\n+\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n+}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\nindex 9e2aee9..f8f3d54 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n@@ -7,6 +7,7 @@ import { Badge } from \"@/components/ui/badge\";\n import { Skeleton } from \"@/components/ui/skeleton\";\n import { useTRPC, trpcClient } from \"@/lib/trpc\";\n import { truncateSlug } from \"@/lib/utils\";\n+import { formatAchievementName } from \"@/lib/achievements\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import {\n \tTarget01Icon,\n@@ -712,7 +713,3 @@ function PlayerProfilePage() {\n \t\t</>\n \t);\n }\n-\n-function formatAchievementName(type: string): string {\n-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n-}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\nindex b2049b1..8e55734 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n@@ -1,4 +1,5 @@\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchPlayer {\n \tid: string;\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\nindex 73117aa..fa114e1 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n@@ -3,6 +3,9 @@ import { cn } from \"@/lib/utils\";\n import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n+import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n+\n+export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n const getAssetUrl = (key: string | null | undefined): string | null => {\n \tif (!key) return null;\n@@ -34,30 +37,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n \t);\n }\n \n-export interface MatchDisplayPlayer {\n-\tid: string;\n-\tname: string;\n-\timage: string | null;\n-\tteamName: string | null;\n-\tteamLogo: string | null;\n-\thomeTeam: boolean;\n-}\n-\n-function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n-\tif (players.length <= 1) return null;\n-\tconst teamName = players[0]?.teamName;\n-\tconst teamLogo = players[0]?.teamLogo ?? null;\n-\tif (teamName) return { name: teamName, logo: teamLogo };\n-\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n-}\n-\n-function getSideLabel(players: MatchDisplayPlayer[]): string {\n-\tif (players.length === 0) return \"Unknown\";\n-\tconst teamInfo = getTeamInfo(players);\n-\tif (teamInfo) return teamInfo.name;\n-\treturn players.map((p) => p.name).join(\", \");\n-}\n-\n function formatTimestamp(date: Date) {\n \tconst now = new Date();\n \tconst matchDate = new Date(date);\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\nindex 6762528..38a29cb 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n@@ -7,7 +7,8 @@ import { HugeiconsIcon } from \"@hugeicons/react\";\n import { useMutation, useQuery } from \"@tanstack/react-query\";\n import { useState } from \"react\";\n import { toast } from \"sonner\";\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchInfo {\n \tid: string;\n",
+              "exit": 0,
+              "description": "Show full diff",
+              "truncated": false
+            },
+            "title": "Show full diff",
+            "time": {
+              "start": 1786712336680,
+              "end": 1786712336682
+            }
+          },
+          "id": "prt_0005aa7a800112wKX0L4zjiC5Z",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa0b8001h4IKOTD3ZYrLv7"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16592,
+            "input": 263,
+            "output": 73,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 16256
+            }
+          },
+          "cost": 0.000236843,
+          "id": "prt_0005aa999001k4H1LT2ttnSGLa",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa0b8001h4IKOTD3ZYrLv7"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001131261,
+        "tokens": {
+          "total": 18731,
+          "input": 1975,
+          "output": 192,
+          "reasoning": 52,
+          "cache": {
+            "write": 0,
+            "read": 16512
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712336852,
+          "completed": 1786712341098
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005aa9d40015H0SnPyDEFVUMq",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005aad36001JtEkGAukyRj240",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa9d40015H0SnPyDEFVUMq"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me verify the details. Let me read the original local code from base commit 56938ac to compare byte-identical.\n\nLet me check the base version of match-score-display.tsx to verify the removed local code, and the achievements function.",
+          "time": {
+            "start": 1786712338913,
+            "end": 1786712339712
+          },
+          "id": "prt_0005ab1e1001IXrLnzINVioWo1",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa9d40015H0SnPyDEFVUMq"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_Gd91TIFc1R0HL5Z9PLp53974",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show 56938ac:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx",
+              "description": "Show base match-score-display.tsx"
+            },
+            "output": "fatal: path 'apps/web/src/routes/_authenticated/_sidebar/leagues//seasons/-components/match/match-score-display.tsx' does not exist in '56938ac'\n",
+            "metadata": {
+              "output": "fatal: path 'apps/web/src/routes/_authenticated/_sidebar/leagues//seasons/-components/match/match-score-display.tsx' does not exist in '56938ac'\n",
+              "exit": 128,
+              "description": "Show base match-score-display.tsx",
+              "truncated": false
+            },
+            "title": "Show base match-score-display.tsx",
+            "time": {
+              "start": 1786712340279,
+              "end": 1786712340281
+            }
+          },
+          "id": "prt_0005ab501001LjbJdXRIsL7qJl",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa9d40015H0SnPyDEFVUMq"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_iZtmNM1ffNHJx5Y45gmI1564",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show 56938ac:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx | grep -n -A3 \"formatAchievementName\"",
+              "description": "Show base formatAchievementName function"
+            },
+            "output": "fatal: path 'apps/web/src/routes/_authenticated/_sidebar/leagues//players//index.tsx' does not exist in '56938ac'\n",
+            "metadata": {
+              "output": "fatal: path 'apps/web/src/routes/_authenticated/_sidebar/leagues//players//index.tsx' does not exist in '56938ac'\n",
+              "exit": 1,
+              "description": "Show base formatAchievementName function",
+              "truncated": false
+            },
+            "title": "Show base formatAchievementName function",
+            "time": {
+              "start": 1786712340900,
+              "end": 1786712340903
+            }
+          },
+          "id": "prt_0005ab742001lhZeWTFYaK77fv",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa9d40015H0SnPyDEFVUMq"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 18731,
+            "input": 1975,
+            "output": 192,
+            "reasoning": 52,
+            "cache": {
+              "write": 0,
+              "read": 16512
+            }
+          },
+          "cost": 0.001131261,
+          "id": "prt_0005aba2c001R3rmMuvbLwR3TR",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aa9d40015H0SnPyDEFVUMq"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000322219,
+        "tokens": {
+          "total": 19049,
+          "input": 137,
+          "output": 197,
+          "reasoning": 27,
+          "cache": {
+            "write": 0,
+            "read": 18688
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712341100,
+          "completed": 1786712344893
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005aba6c00114kBdqLUBDwH43",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005abe2d0012YnVoHfyyHUZOm",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aba6c00114kBdqLUBDwH43"
+        },
+        {
+          "type": "reasoning",
+          "text": "The path has `$slug` and `$leaguePlayerId` which are being interpreted by shell. I need to quote them.",
+          "time": {
+            "start": 1786712342952,
+            "end": 1786712343440
+          },
+          "id": "prt_0005ac1a8001iN5MaPuG8QNs57",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aba6c00114kBdqLUBDwH43"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_0fH5Sh6uIlht32o1tHHj8490",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show '56938ac:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx'",
+              "description": "Show base match-score-display.tsx"
+            },
+            "output": "import { useState } from \"react\";\nimport { cn } from \"@/lib/utils\";\nimport { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\nimport { HugeiconsIcon } from \"@hugeicons/react\";\nimport { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n\nconst getAssetUrl = (key: string | null | undefined): string | null => {\n\tif (!key) return null;\n\tif (key.startsWith(\"http://\") || key.startsWith(\"https://\")) return key;\n\treturn `/api/user-assets/${key}`;\n};\n\nfunction TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n\tconst [hasError, setHasError] = useState(false);\n\tconst logoUrl = getAssetUrl(logo);\n\n\tif (!logoUrl || hasError) {\n\t\treturn (\n\t\t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10\">\n\t\t\t\t<HugeiconsIcon icon={UserMultipleIcon} className=\"size-4 text-blue-500\" />\n\t\t\t</div>\n\t\t);\n\t}\n\n\treturn (\n\t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden\">\n\t\t\t<img\n\t\t\t\tsrc={logoUrl}\n\t\t\t\talt={name}\n\t\t\t\tclassName=\"h-full w-full object-cover\"\n\t\t\t\tonError={() => setHasError(true)}\n\t\t\t/>\n\t\t</div>\n\t);\n}\n\nexport interface MatchDisplayPlayer {\n\tid: string;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n\thomeTeam: boolean;\n}\n\nfunction getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n\nfunction getSideLabel(players: MatchDisplayPlayer[]): string {\n\tif (players.length === 0) return \"Unknown\";\n\tconst teamInfo = getTeamInfo(players);\n\tif (teamInfo) return teamInfo.name;\n\treturn players.map((p) => p.name).join(\", \");\n}\n\nfunction formatTimestamp(date: Date) {\n\tconst now = new Date();\n\tconst matchDate = new Date(date);\n\tconst isToday = now.toDateString() === matchDate.toDateString();\n\n\tif (isToday) {\n\t\tconst diffMs = now.getTime() - matchDate.getTime();\n\t\tconst diffMinutes = Math.floor(diffMs / (1000 * 60));\n\t\tif (diffMinutes < 60) {\n\t\t\treturn { primary: diffMinutes <= 1 ? \"1m ago\" : `${diffMinutes}m ago` };\n\t\t}\n\t\treturn { primary: `${Math.floor(diffMinutes / 60)}h ago` };\n\t}\n\n\treturn {\n\t\tprimary: matchDate.toLocaleDateString(\"en-US\", { month: \"short\", day: \"numeric\" }),\n\t\tsecondary: matchDate.toLocaleTimeString(\"en-US\", { hour: \"numeric\", minute: \"2-digit\" }),\n\t};\n}\n\nfunction ScoreLine({\n\tplayers,\n\tscore,\n\tisWinner,\n\tisMuted,\n\t\"data-testid\": dataTestId,\n}: {\n\tplayers: MatchDisplayPlayer[];\n\tscore: number;\n\tisWinner: boolean;\n\tisMuted: boolean;\n\t\"data-testid\"?: string;\n}) {\n\tconst teamInfo = getTeamInfo(players);\n\n\treturn (\n\t\t<div className=\"flex items-center justify-between gap-2 min-w-0 overflow-hidden\">\n\t\t\t<div className=\"flex items-center gap-2 min-w-0 overflow-hidden\">\n\t\t\t\t<div className=\"flex gap-1 shrink-0\">\n\t\t\t\t\t{teamInfo ? (\n\t\t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n\t\t\t\t\t) : (\n\t\t\t\t\t\tplayers.map((player) => (\n\t\t\t\t\t\t\t<AvatarWithFallback key={player.id} src={player.image} name={player.name} size=\"sm\" />\n\t\t\t\t\t\t))\n\t\t\t\t\t)}\n\t\t\t\t</div>\n\t\t\t\t<span\n\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\"text-sm truncate\",\n\t\t\t\t\t\tisWinner && \"font-semibold text-foreground\",\n\t\t\t\t\t\tisMuted && \"text-muted-foreground\",\n\t\t\t\t\t\t!isWinner && !isMuted && \"text-foreground\"\n\t\t\t\t\t)}\n\t\t\t\t>\n\t\t\t\t\t{getSideLabel(players)}\n\t\t\t\t</span>\n\t\t\t</div>\n\t\t\t<div\n\t\t\t\tdata-testid={dataTestId}\n\t\t\t\tclassName={cn(\n\t\t\t\t\t\"flex h-7 w-7 items-center justify-center rounded-md border text-sm tabular-nums shrink-0 bg-primary/10\",\n\t\t\t\t\tisWinner && \"font-bold text-foreground\",\n\t\t\t\t\tisMuted && \"text-muted-foreground font-medium\",\n\t\t\t\t\t!isWinner && !isMuted && \"font-medium text-foreground\"\n\t\t\t\t)}\n\t\t\t>\n\t\t\t\t{score}\n\t\t\t</div>\n\t\t</div>\n\t);\n}\n\ninterface MatchScoreDisplayProps {\n\tmatchId: string;\n\thomeScore: number;\n\tawayScore: number;\n\tcreatedAt: Date;\n\thomePlayers: MatchDisplayPlayer[];\n\tawayPlayers: MatchDisplayPlayer[];\n\tcompact?: boolean;\n}\n\nexport function MatchScoreDisplay({\n\tmatchId,\n\thomeScore,\n\tawayScore,\n\tcreatedAt,\n\thomePlayers,\n\tawayPlayers,\n\tcompact,\n}: MatchScoreDisplayProps) {\n\tconst homeWins = homeScore > awayScore;\n\tconst awayWins = awayScore > homeScore;\n\tconst timestamp = formatTimestamp(createdAt);\n\n\tif (compact) {\n\t\treturn (\n\t\t\t<div className=\"flex flex-col min-w-0\" data-testid={`match-row-${matchId}`}>\n\t\t\t\t<div className=\"flex flex-col gap-2 min-w-0\">\n\t\t\t\t\t<ScoreLine\n\t\t\t\t\t\tplayers={homePlayers}\n\t\t\t\t\t\tscore={homeScore}\n\t\t\t\t\t\tisWinner={homeWins}\n\t\t\t\t\t\tisMuted={awayWins}\n\t\t\t\t\t/>\n\t\t\t\t\t<ScoreLine\n\t\t\t\t\t\tplayers={awayPlayers}\n\t\t\t\t\t\tscore={awayScore}\n\t\t\t\t\t\tisWinner={awayWins}\n\t\t\t\t\t\tisMuted={homeWins}\n\t\t\t\t\t/>\n\t\t\t\t</div>\n\t\t\t\t<div\n\t\t\t\t\tclassName=\"text-xs text-muted-foreground text-right mt-3 pt-3 border-t border-border\"\n\t\t\t\t\tdata-testid={`match-date-${matchId}`}\n\t\t\t\t>\n\t\t\t\t\t{timestamp.primary}\n\t\t\t\t\t{timestamp.secondary && ` · ${timestamp.secondary}`}\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t);\n\t}\n\n\treturn (\n\t\t<div className=\"flex items-center min-w-0 overflow-hidden\" data-testid={`match-row-${matchId}`}>\n\t\t\t<div className=\"flex flex-col items-start shrink-0 w-16 md:w-20 mr-3 md:mr-4\">\n\t\t\t\t<span className=\"text-xs text-muted-foreground\" data-testid={`match-date-${matchId}`}>\n\t\t\t\t\t{timestamp.primary}\n\t\t\t\t</span>\n\t\t\t\t{timestamp.secondary && (\n\t\t\t\t\t<span className=\"hidden md:block text-[11px] text-muted-foreground/60\">\n\t\t\t\t\t\t{timestamp.secondary}\n\t\t\t\t\t</span>\n\t\t\t\t)}\n\t\t\t</div>\n\n\t\t\t<div className=\"flex flex-col gap-2 min-w-0 flex-1\">\n\t\t\t\t<ScoreLine\n\t\t\t\t\tplayers={homePlayers}\n\t\t\t\t\tscore={homeScore}\n\t\t\t\t\tisWinner={homeWins}\n\t\t\t\t\tisMuted={awayWins}\n\t\t\t\t\tdata-testid={`match-score-${matchId}-home`}\n\t\t\t\t/>\n\t\t\t\t<ScoreLine\n\t\t\t\t\tplayers={awayPlayers}\n\t\t\t\t\tscore={awayScore}\n\t\t\t\t\tisWinner={awayWins}\n\t\t\t\t\tisMuted={homeWins}\n\t\t\t\t\tdata-testid={`match-score-${matchId}-away`}\n\t\t\t\t/>\n\t\t\t</div>\n\t\t</div>\n\t);\n}\n",
+            "metadata": {
+              "output": "import { useState } from \"react\";\nimport { cn } from \"@/lib/utils\";\nimport { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\nimport { HugeiconsIcon } from \"@hugeicons/react\";\nimport { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n\nconst getAssetUrl = (key: string | null | undefined): string | null => {\n\tif (!key) return null;\n\tif (key.startsWith(\"http://\") || key.startsWith(\"https://\")) return key;\n\treturn `/api/user-assets/${key}`;\n};\n\nfunction TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n\tconst [hasError, setHasError] = useState(false);\n\tconst logoUrl = getAssetUrl(logo);\n\n\tif (!logoUrl || hasError) {\n\t\treturn (\n\t\t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10\">\n\t\t\t\t<HugeiconsIcon icon={UserMultipleIcon} className=\"size-4 text-blue-500\" />\n\t\t\t</div>\n\t\t);\n\t}\n\n\treturn (\n\t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden\">\n\t\t\t<img\n\t\t\t\tsrc={logoUrl}\n\t\t\t\talt={name}\n\t\t\t\tclassName=\"h-full w-full object-cover\"\n\t\t\t\tonError={() => setHasError(true)}\n\t\t\t/>\n\t\t</div>\n\t);\n}\n\nexport interface MatchDisplayPlayer {\n\tid: string;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n\thomeTeam: boolean;\n}\n\nfunction getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n\nfunction getSideLabel(players: MatchDisplayPlayer[]): string {\n\tif (players.length === 0) return \"Unknown\";\n\tconst teamInfo = getTeamInfo(players);\n\tif (teamInfo) return teamInfo.name;\n\treturn players.map((p) => p.name).join(\", \");\n}\n\nfunction formatTimestamp(date: Date) {\n\tconst now = new Date();\n\tconst matchDate = new Date(date);\n\tconst isToday = now.toDateString() === matchDate.toDateString();\n\n\tif (isToday) {\n\t\tconst diffMs = now.getTime() - matchDate.getTime();\n\t\tconst diffMinutes = Math.floor(diffMs / (1000 * 60));\n\t\tif (diffMinutes < 60) {\n\t\t\treturn { primary: diffMinutes <= 1 ? \"1m ago\" : `${diffMinutes}m ago` };\n\t\t}\n\t\treturn { primary: `${Math.floor(diffMinutes / 60)}h ago` };\n\t}\n\n\treturn {\n\t\tprimary: matchDate.toLocaleDateString(\"en-US\", { month: \"short\", day: \"numeric\" }),\n\t\tsecondary: matchDate.toLocaleTimeString(\"en-US\", { hour: \"numeric\", minute: \"2-digit\" }),\n\t};\n}\n\nfunction ScoreLine({\n\tplayers,\n\tscore,\n\tisWinner,\n\tisMuted,\n\t\"data-testid\": dataTestId,\n}: {\n\tplayers: MatchDisplayPlayer[];\n\tscore: number;\n\tisWinner: boolean;\n\tisMuted: boolean;\n\t\"data-testid\"?: string;\n}) {\n\tconst teamInfo = getTeamInfo(players);\n\n\treturn (\n\t\t<div className=\"flex items-center justify-between gap-2 min-w-0 overflow-hidden\">\n\t\t\t<div className=\"flex items-center gap-2 min-w-0 overflow-hidden\">\n\t\t\t\t<div className=\"flex gap-1 shrink-0\">\n\t\t\t\t\t{teamInfo ? (\n\t\t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n\t\t\t\t\t) : (\n\t\t\t\t\t\tplayers.map((player) => (\n\t\t\t\t\t\t\t<AvatarWithFallback key={player.id} src={player.image} name={player.name} size=\"sm\" />\n\t\t\t\t\t\t))\n\t\t\t\t\t)}\n\t\t\t\t</div>\n\t\t\t\t<span\n\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\"text-sm truncate\",\n\t\t\t\t\t\tisWinner && \"font-semibold text-foreground\",\n\t\t\t\t\t\tisMuted && \"text-muted-foreground\",\n\t\t\t\t\t\t!isWinner && !isMuted && \"text-foreground\"\n\t\t\t\t\t)}\n\t\t\t\t>\n\t\t\t\t\t{getSideLabel(players)}\n\t\t\t\t</span>\n\t\t\t</div>\n\t\t\t<div\n\t\t\t\tdata-testid={dataTestId}\n\t\t\t\tclassName={cn(\n\t\t\t\t\t\"flex h-7 w-7 items-center justify-center rounded-md border text-sm tabular-nums shrink-0 bg-primary/10\",\n\t\t\t\t\tisWinner && \"font-bold text-foreground\",\n\t\t\t\t\tisMuted && \"text-muted-foreground font-medium\",\n\t\t\t\t\t!isWinner && !isMuted && \"font-medium text-foreground\"\n\t\t\t\t)}\n\t\t\t>\n\t\t\t\t{score}\n\t\t\t</div>\n\t\t</div>\n\t);\n}\n\ninterface MatchScoreDisplayProps {\n\tmatchId: string;\n\thomeScore: number;\n\tawayScore: number;\n\tcreatedAt: Date;\n\thomePlayers: MatchDisplayPlayer[];\n\tawayPlayers: MatchDisplayPlayer[];\n\tcompact?: boolean;\n}\n\nexport function MatchScoreDisplay({\n\tmatchId,\n\thomeScore,\n\tawayScore,\n\tcreatedAt,\n\thomePlayers,\n\tawayPlayers,\n\tcompact,\n}: MatchScoreDisplayProps) {\n\tconst homeWins = homeScore > awayScore;\n\tconst awayWins = awayScore > homeScore;\n\tconst timestamp = formatTimestamp(createdAt);\n\n\tif (compact) {\n\t\treturn (\n\t\t\t<div className=\"flex flex-col min-w-0\" data-testid={`match-row-${matchId}`}>\n\t\t\t\t<div className=\"flex flex-col gap-2 min-w-0\">\n\t\t\t\t\t<ScoreLine\n\t\t\t\t\t\tplayers={homePlayers}\n\t\t\t\t\t\tscore={homeScore}\n\t\t\t\t\t\tisWinner={homeWins}\n\t\t\t\t\t\tisMuted={awayWins}\n\t\t\t\t\t/>\n\t\t\t\t\t<ScoreLine\n\t\t\t\t\t\tplayers={awayPlayers}\n\t\t\t\t\t\tscore={awayScore}\n\t\t\t\t\t\tisWinner={awayWins}\n\t\t\t\t\t\tisMuted={homeWins}\n\t\t\t\t\t/>\n\t\t\t\t</div>\n\t\t\t\t<div\n\t\t\t\t\tclassName=\"text-xs text-muted-foreground text-right mt-3 pt-3 border-t border-border\"\n\t\t\t\t\tdata-testid={`match-date-${matchId}`}\n\t\t\t\t>\n\t\t\t\t\t{timestamp.primary}\n\t\t\t\t\t{timestamp.secondary && ` · ${timestamp.secondary}`}\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t);\n\t}\n\n\treturn (\n\t\t<div className=\"flex items-center min-w-0 overflow-hidden\" data-testid={`match-row-${matchId}`}>\n\t\t\t<div className=\"flex flex-col items-start shrink-0 w-16 md:w-20 mr-3 md:mr-4\">\n\t\t\t\t<span className=\"text-xs text-muted-foreground\" data-testid={`match-date-${matchId}`}>\n\t\t\t\t\t{timestamp.primary}\n\t\t\t\t</span>\n\t\t\t\t{timestamp.secondary && (\n\t\t\t\t\t<span className=\"hidden md:block text-[11px] text-muted-foreground/60\">\n\t\t\t\t\t\t{timestamp.secondary}\n\t\t\t\t\t</span>\n\t\t\t\t)}\n\t\t\t</div>\n\n\t\t\t<div className=\"flex flex-col gap-2 min-w-0 flex-1\">\n\t\t\t\t<ScoreLine\n\t\t\t\t\tplayers={homePlayers}\n\t\t\t\t\tscore={homeScore}\n\t\t\t\t\tisWinner={homeWins}\n\t\t\t\t\tisMuted={awayWins}\n\t\t\t\t\tdata-testid={`match-score-${matchId}-home`}\n\t\t\t\t/>\n\t\t\t\t<ScoreLine\n\t\t\t\t\tplayers={awayPlayers}\n\t\t\t\t\tscore={awayScore}\n\t\t\t\t\tisWinner={awayWins}\n\t\t\t\t\tisMuted={homeWins}\n\t\t\t\t\tdata-testid={`match-score-${matchId}-away`}\n\t\t\t\t/>\n\t\t\t</div>\n\t\t</div>\n\t);\n}\n",
+              "exit": 0,
+              "description": "Show base match-score-display.tsx",
+              "truncated": false
+            },
+            "title": "Show base match-score-display.tsx",
+            "time": {
+              "start": 1786712344001,
+              "end": 1786712344003
+            }
+          },
+          "id": "prt_0005ac392001k2yGW3UwQ0wzyv",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aba6c00114kBdqLUBDwH43"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_SWOacTOLWtbtAnQXLAHp8922",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show '56938ac:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx' | grep -n -B1 -A3 \"formatAchievementName\"",
+              "description": "Show base formatAchievementName function"
+            },
+            "output": "516-\t\t\t\t\t\t\t\t\t\t\t<p className=\"text-sm font-medium\">\n517:\t\t\t\t\t\t\t\t\t\t\t\t{formatAchievementName(achievement.type)}\n518-\t\t\t\t\t\t\t\t\t\t\t</p>\n519-\t\t\t\t\t\t\t\t\t\t</div>\n520-\t\t\t\t\t\t\t\t\t</div>\n--\n715-\n716:function formatAchievementName(type: string): string {\n717-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n718-}\n",
+            "metadata": {
+              "output": "516-\t\t\t\t\t\t\t\t\t\t\t<p className=\"text-sm font-medium\">\n517:\t\t\t\t\t\t\t\t\t\t\t\t{formatAchievementName(achievement.type)}\n518-\t\t\t\t\t\t\t\t\t\t\t</p>\n519-\t\t\t\t\t\t\t\t\t\t</div>\n520-\t\t\t\t\t\t\t\t\t</div>\n--\n715-\n716:function formatAchievementName(type: string): string {\n717-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n718-}\n",
+              "exit": 0,
+              "description": "Show base formatAchievementName function",
+              "truncated": false
+            },
+            "title": "Show base formatAchievementName function",
+            "time": {
+              "start": 1786712344658,
+              "end": 1786712344660
+            }
+          },
+          "id": "prt_0005ac5e6001JuSbx3vqrDr0GE",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aba6c00114kBdqLUBDwH43"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19049,
+            "input": 137,
+            "output": 197,
+            "reasoning": 27,
+            "cache": {
+              "write": 0,
+              "read": 18688
+            }
+          },
+          "cost": 0.000322219,
+          "id": "prt_0005ac908001EZCkmQFhh7JCON",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005aba6c00114kBdqLUBDwH43"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001517657,
+        "tokens": {
+          "total": 21596,
+          "input": 1973,
+          "output": 168,
+          "reasoning": 511,
+          "cache": {
+            "write": 0,
+            "read": 18944
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712344894,
+          "completed": 1786712352636
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005ac93e001tDwlzeuPez4YEM",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005acca4001KPf7bJxYLmitw2",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ac93e001tDwlzeuPez4YEM"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me verify:\n\n1. `formatAchievementName` — base version: `return type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());`. New version in achievements.ts: `return type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());`. ✅ Byte-identical.\n\n2. `getTeamInfo` — base:\n```\nfunction getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n```\nNew: same logic, but exported. ✅ byte-identical logic.\n\n3. `getSideLabel` — same. ✅\n\n4. `MatchDisplayPlayer` interface — identical fields. ✅\n\n5. `buildMatchResultToast` — this is NEW. The spec says it should have an EN DASH `–` separator and `1-v-n-elo` returns `{winner} won the match`. Let me check the diff: yes `–` is used. And the 1-v-n-elo returns `${getSideLabel(home)} won the match`.\n\nWait — but was `buildMatchResultToast` previously local somewhere? The spec says \"buildMatchResultToast (with an EN DASH – score separator...)\". The task description says the plan Task 4 includes creating `buildMatchResultToast`. But it's a new function. Where did it come from? The spec says \"the same implementation that was previously local\" only for formatAchievementName. For match-names, it says \"exporting MatchDisplayPlayer interface, getTeamInfo, getSideLabel, and buildMatchResultToast\".\n\nLet me check where buildMatchResultToast was previously — it might have been in the remove-match-dialog or somewhere. Actually, the spec says it's a \"pure refactor\" with no behavior change. Let me search for buildMatchResultToast in the base to see if it was duplicated somewhere.\n\nLet me check the base code for any existing buildMatchResultToast usage.",
+          "time": {
+            "start": 1786712346483,
+            "end": 1786712351294
+          },
+          "id": "prt_0005acf730016yeoaAhdPS86jr",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ac93e001tDwlzeuPez4YEM"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_QLzcVXNYNfG702TdHPFI1544",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git grep -n \"buildMatchResultToast\\|won the match\\|–\" 56938ac -- 'apps/web/src'",
+              "description": "Search base for buildMatchResultToast and en dash"
+            },
+            "output": "56938ac:apps/web/src/routes/-components/leagues/seed-league-dialog.tsx:163:\t\t\t\t\t\t\t\t<FieldLabel htmlFor=\"seed-members\">Members (3–50)</FieldLabel>\n56938ac:apps/web/src/routes/-components/leagues/seed-league-dialog.tsx:181:\t\t\t\t\t\t\t\t<FieldLabel htmlFor=\"seed-matches\">Matches (1–500)</FieldLabel>\n",
+            "metadata": {
+              "output": "56938ac:apps/web/src/routes/-components/leagues/seed-league-dialog.tsx:163:\t\t\t\t\t\t\t\t<FieldLabel htmlFor=\"seed-members\">Members (3–50)</FieldLabel>\n56938ac:apps/web/src/routes/-components/leagues/seed-league-dialog.tsx:181:\t\t\t\t\t\t\t\t<FieldLabel htmlFor=\"seed-matches\">Matches (1–500)</FieldLabel>\n",
+              "exit": 0,
+              "description": "Search base for buildMatchResultToast and en dash",
+              "truncated": false
+            },
+            "title": "Search base for buildMatchResultToast and en dash",
+            "time": {
+              "start": 1786712351955,
+              "end": 1786712351961
+            }
+          },
+          "id": "prt_0005ae241001za9mdUTEQXYbUz",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ac93e001tDwlzeuPez4YEM"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_O31Je86LauU9W8lIXeGJ7790",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git grep -rn \"buildMatchResultToast\" 43e9b4d -- 'apps/web/src'",
+              "description": "Search commit for buildMatchResultToast usages"
+            },
+            "output": "43e9b4d:apps/web/src/lib/match-names.ts:27:export function buildMatchResultToast(opts: {\n",
+            "metadata": {
+              "output": "43e9b4d:apps/web/src/lib/match-names.ts:27:export function buildMatchResultToast(opts: {\n",
+              "exit": 0,
+              "description": "Search commit for buildMatchResultToast usages",
+              "truncated": false
+            },
+            "title": "Search commit for buildMatchResultToast usages",
+            "time": {
+              "start": 1786712352455,
+              "end": 1786712352460
+            }
+          },
+          "id": "prt_0005ae4de001r0CpRDsapu1izo",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ac93e001tDwlzeuPez4YEM"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 21596,
+            "input": 1973,
+            "output": 168,
+            "reasoning": 511,
+            "cache": {
+              "write": 0,
+              "read": 18944
+            }
+          },
+          "cost": 0.001517657,
+          "id": "prt_0005ae745001tBLCmA9Z687jvm",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ac93e001tDwlzeuPez4YEM"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000586032,
+        "tokens": {
+          "total": 22204,
+          "input": 232,
+          "output": 190,
+          "reasoning": 278,
+          "cache": {
+            "write": 0,
+            "read": 21504
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712352638,
+          "completed": 1786712359312
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005ae77e001Pv7bYqcBnOH4CF",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005aeb42001tCsX8UVEWfYIQN",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ae77e001Pv7bYqcBnOH4CF"
+        },
+        {
+          "type": "reasoning",
+          "text": "So `buildMatchResultToast` is a new function that's not used anywhere yet. It was part of the spec (Task 4), likely a helper that will be used later or was previously inlined somewhere. Let me check if there was a toast string elsewhere in the codebase that this function duplicates. The spec says \"no behavior change\" but buildMatchResultToast is a NEW export that isn't consumed yet.\n\nActually, wait — let me look at the plan more carefully. The task says it's a \"pure refactor\". But `buildMatchResultToast` is newly added and not used. Let me check if there's an existing toast that builds a match result string elsewhere in the base that should now use this helper. Let me search for toast usage related to match results.\n\nActually, the spec explicitly says: \"Create `apps/web/src/lib/match-names.ts` exporting ... and `buildMatchResultToast`\". So the spec itself asks for this function. It's not used yet — likely to be used in a subsequent task (Task 5+). So creating it unused is spec-compliant.\n\nBut let me verify the en dash. The spec says \"with an EN DASH `–` score separator\". Let me check the actual bytes in match-names.ts to confirm it's U+2013 en dash, not a hyphen.",
+          "time": {
+            "start": 1786712354488,
+            "end": 1786712357850
+          },
+          "id": "prt_0005aeeb80017vjTwpcCZmO2dn",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ae77e001Pv7bYqcBnOH4CF"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_LBiv9Ij2XWtCbRtOH97Y9018",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show '43e9b4d:apps/web/src/lib/match-names.ts' | sed -n '27,41p' | hexdump -C | grep -n \"e2 80 93\" || echo \"NO EN DASH FOUND\"",
+              "description": "Verify en dash bytes in buildMatchResultToast"
+            },
+            "output": "26:00000190  e2 80 93 24 7b 6f 70 74  73 2e 61 77 61 79 53 63  |...${opts.awaySc|\n",
+            "metadata": {
+              "output": "26:00000190  e2 80 93 24 7b 6f 70 74  73 2e 61 77 61 79 53 63  |...${opts.awaySc|\n",
+              "exit": 0,
+              "description": "Verify en dash bytes in buildMatchResultToast",
+              "truncated": false
+            },
+            "title": "Verify en dash bytes in buildMatchResultToast",
+            "time": {
+              "start": 1786712358689,
+              "end": 1786712358690
+            }
+          },
+          "id": "prt_0005afbdb002D3Q8MhslCCV508",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ae77e001Pv7bYqcBnOH4CF"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_R6o245JXgmYYdRDINWFl2815",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show '43e9b4d:apps/web/src/lib/match-names.ts'",
+              "description": "Show final match-names.ts"
+            },
+            "output": "export interface MatchDisplayPlayer {\n\tid: string;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n\thomeTeam: boolean;\n}\n\nexport function getTeamInfo(\n\tplayers: MatchDisplayPlayer[]\n): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n\nexport function getSideLabel(players: MatchDisplayPlayer[]): string {\n\tif (players.length === 0) return \"Unknown\";\n\tconst teamInfo = getTeamInfo(players);\n\tif (teamInfo) return teamInfo.name;\n\treturn players.map((p) => p.name).join(\", \");\n}\n\nexport function buildMatchResultToast(opts: {\n\tscoreType: string;\n\tplayers: MatchDisplayPlayer[];\n\thomeScore: number;\n\tawayScore: number;\n}): string {\n\tconst home = opts.players.filter((p) => p.homeTeam);\n\tconst away = opts.players.filter((p) => !p.homeTeam);\n\n\tif (opts.scoreType === \"1-v-n-elo\") {\n\t\treturn `${getSideLabel(home)} won the match`;\n\t}\n\n\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n}\n",
+            "metadata": {
+              "output": "export interface MatchDisplayPlayer {\n\tid: string;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n\thomeTeam: boolean;\n}\n\nexport function getTeamInfo(\n\tplayers: MatchDisplayPlayer[]\n): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n\nexport function getSideLabel(players: MatchDisplayPlayer[]): string {\n\tif (players.length === 0) return \"Unknown\";\n\tconst teamInfo = getTeamInfo(players);\n\tif (teamInfo) return teamInfo.name;\n\treturn players.map((p) => p.name).join(\", \");\n}\n\nexport function buildMatchResultToast(opts: {\n\tscoreType: string;\n\tplayers: MatchDisplayPlayer[];\n\thomeScore: number;\n\tawayScore: number;\n}): string {\n\tconst home = opts.players.filter((p) => p.homeTeam);\n\tconst away = opts.players.filter((p) => !p.homeTeam);\n\n\tif (opts.scoreType === \"1-v-n-elo\") {\n\t\treturn `${getSideLabel(home)} won the match`;\n\t}\n\n\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n}\n",
+              "exit": 0,
+              "description": "Show final match-names.ts",
+              "truncated": false
+            },
+            "title": "Show final match-names.ts",
+            "time": {
+              "start": 1786712359087,
+              "end": 1786712359089
+            }
+          },
+          "id": "prt_0005aff2b001frppSda2lhkdXJ",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ae77e001Pv7bYqcBnOH4CF"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 22204,
+            "input": 232,
+            "output": 190,
+            "reasoning": 278,
+            "cache": {
+              "write": 0,
+              "read": 21504
+            }
+          },
+          "cost": 0.000586032,
+          "id": "prt_0005b01540015Scug89NcaJazv",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005ae77e001Pv7bYqcBnOH4CF"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000505702,
+        "tokens": {
+          "total": 22872,
+          "input": 478,
+          "output": 211,
+          "reasoning": 39,
+          "cache": {
+            "write": 0,
+            "read": 22144
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712359313,
+          "completed": 1786712363031
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b01910017baXdt86tM8jBO",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b04fc001XaAUmvW58k4S6L",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b01910017baXdt86tM8jBO"
+        },
+        {
+          "type": "reasoning",
+          "text": "En dash confirmed (e2 80 93 = U+2013). ✅\n\nNow let me verify the final match-score-display.tsx has no dangling references and keeps everything intact.",
+          "time": {
+            "start": 1786712360832,
+            "end": 1786712361489
+          },
+          "id": "prt_0005b0780001AeRCPZ2qVZNoOF",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b01910017baXdt86tM8jBO"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_qSuc2DDLYa6GDNPUL03r6582",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git show '43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx' | grep -n \"getTeamInfo\\|getSideLabel\\|getAssetUrl\\|TeamIcon\\|formatTimestamp\\|ScoreLine\\|MatchScoreDisplay\\|MatchDisplayPlayer\"",
+              "description": "Check references in final match-score-display.tsx"
+            },
+            "output": "6:import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n8:export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n10:const getAssetUrl = (key: string | null | undefined): string | null => {\n16:function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n18:\tconst logoUrl = getAssetUrl(logo);\n40:function formatTimestamp(date: Date) {\n60:function ScoreLine({\n67:\tplayers: MatchDisplayPlayer[];\n73:\tconst teamInfo = getTeamInfo(players);\n80:\t\t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n95:\t\t\t\t\t{getSideLabel(players)}\n113:interface MatchScoreDisplayProps {\n118:\thomePlayers: MatchDisplayPlayer[];\n119:\tawayPlayers: MatchDisplayPlayer[];\n123:export function MatchScoreDisplay({\n131:}: MatchScoreDisplayProps) {\n134:\tconst timestamp = formatTimestamp(createdAt);\n140:\t\t\t\t\t<ScoreLine\n146:\t\t\t\t\t<ScoreLine\n178:\t\t\t\t<ScoreLine\n185:\t\t\t\t<ScoreLine\n",
+            "metadata": {
+              "output": "6:import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n8:export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n10:const getAssetUrl = (key: string | null | undefined): string | null => {\n16:function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n18:\tconst logoUrl = getAssetUrl(logo);\n40:function formatTimestamp(date: Date) {\n60:function ScoreLine({\n67:\tplayers: MatchDisplayPlayer[];\n73:\tconst teamInfo = getTeamInfo(players);\n80:\t\t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n95:\t\t\t\t\t{getSideLabel(players)}\n113:interface MatchScoreDisplayProps {\n118:\thomePlayers: MatchDisplayPlayer[];\n119:\tawayPlayers: MatchDisplayPlayer[];\n123:export function MatchScoreDisplay({\n131:}: MatchScoreDisplayProps) {\n134:\tconst timestamp = formatTimestamp(createdAt);\n140:\t\t\t\t\t<ScoreLine\n146:\t\t\t\t\t<ScoreLine\n178:\t\t\t\t<ScoreLine\n185:\t\t\t\t<ScoreLine\n",
+              "exit": 0,
+              "description": "Check references in final match-score-display.tsx",
+              "truncated": false
+            },
+            "title": "Check references in final match-score-display.tsx",
+            "time": {
+              "start": 1786712362388,
+              "end": 1786712362390
+            }
+          },
+          "id": "prt_0005b0a1200177xvSuKR1IcrYN",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b01910017baXdt86tM8jBO"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_v7txdkVJ03kqXECQuH3L2188",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git grep -rn \"MatchDisplayPlayer\" 43e9b4d -- 'apps/web/src'",
+              "description": "Find all MatchDisplayPlayer references in commit"
+            },
+            "output": "43e9b4d:apps/web/src/lib/match-names.ts:1:export interface MatchDisplayPlayer {\n43e9b4d:apps/web/src/lib/match-names.ts:11:\tplayers: MatchDisplayPlayer[]\n43e9b4d:apps/web/src/lib/match-names.ts:20:export function getSideLabel(players: MatchDisplayPlayer[]): string {\n43e9b4d:apps/web/src/lib/match-names.ts:29:\tplayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:2:import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:34:\tconst homePlayers: MatchDisplayPlayer[] = match.homeTeam.players.map((p) => ({\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:43:\tconst awayPlayers: MatchDisplayPlayer[] = match.awayTeam.players.map((p) => ({\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:6:import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:8:export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:67:\tplayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:118:\thomePlayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:119:\tawayPlayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:11:import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:51:\tconst homePlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => p.homeTeam) ??\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:52:\t\t[]) as MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:53:\tconst awayPlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => !p.homeTeam) ??\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:54:\t\t[]) as MatchDisplayPlayer[];\n",
+            "metadata": {
+              "output": "43e9b4d:apps/web/src/lib/match-names.ts:1:export interface MatchDisplayPlayer {\n43e9b4d:apps/web/src/lib/match-names.ts:11:\tplayers: MatchDisplayPlayer[]\n43e9b4d:apps/web/src/lib/match-names.ts:20:export function getSideLabel(players: MatchDisplayPlayer[]): string {\n43e9b4d:apps/web/src/lib/match-names.ts:29:\tplayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:2:import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:34:\tconst homePlayers: MatchDisplayPlayer[] = match.homeTeam.players.map((p) => ({\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:43:\tconst awayPlayers: MatchDisplayPlayer[] = match.awayTeam.players.map((p) => ({\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:6:import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:8:export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:67:\tplayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:118:\thomePlayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:119:\tawayPlayers: MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:11:import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:51:\tconst homePlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => p.homeTeam) ??\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:52:\t\t[]) as MatchDisplayPlayer[];\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:53:\tconst awayPlayers = (matchDetails?.players?.filter((p: MatchDisplayPlayer) => !p.homeTeam) ??\n43e9b4d:apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:54:\t\t[]) as MatchDisplayPlayer[];\n",
+              "exit": 0,
+              "description": "Find all MatchDisplayPlayer references in commit",
+              "truncated": false
+            },
+            "title": "Find all MatchDisplayPlayer references in commit",
+            "time": {
+              "start": 1786712362829,
+              "end": 1786712362830
+            }
+          },
+          "id": "prt_0005b0d64001NujRpPxcl217Y7",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b01910017baXdt86tM8jBO"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 22872,
+            "input": 478,
+            "output": 211,
+            "reasoning": 39,
+            "cache": {
+              "write": 0,
+              "read": 22144
+            }
+          },
+          "cost": 0.000505702,
+          "id": "prt_0005b0fe2001G6AdKM0c0bwlnv",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b01910017baXdt86tM8jBO"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000725957,
+        "tokens": {
+          "total": 24088,
+          "input": 1129,
+          "output": 90,
+          "reasoning": 85,
+          "cache": {
+            "write": 0,
+            "read": 22784
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712363032,
+          "completed": 1786712367852
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b1018002OTNLStEIxehxVK",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b1904001W1eJBhk0TC5Egm",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b1018002OTNLStEIxehxVK"
+        },
+        {
+          "type": "reasoning",
+          "text": "Everything looks consistent. Now let me verify typecheck and lint. Let me run the post-change commands. Actually, as a reviewer, I should verify the claim that typecheck+lint pass. Let me run `bun oxc` and `bun typecheck` as specified in AGENTS.md.\n\nActually, let me be efficient. The key verification is done. Let me run typecheck quickly to confirm compilation.",
+          "time": {
+            "start": 1786712365991,
+            "end": 1786712367105
+          },
+          "id": "prt_0005b1ba7001EE0ScPg4m3Pdev",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b1018002OTNLStEIxehxVK"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_dVJin7KmIXf6gMykzqat8859",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun typecheck 2>&1 | tail -30",
+              "description": "Run typecheck",
+              "timeout": 180000
+            },
+            "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@coding-cowboys/scorebrawl-util:typecheck: cache hit, replaying logs 2d9928e837249e12\n@coding-cowboys/scorebrawl-worker:typecheck: cache hit, replaying logs 0d5022a438026133\n@coding-cowboys/scorebrawl-web:typecheck: cache hit, replaying logs bbe7881b80be9ade\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@scorebrawl/mcp:typecheck: cache hit, replaying logs ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    4 cached, 4 total\n  Time:    16ms >>> FULL TURBO\n\n",
+            "metadata": {
+              "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@coding-cowboys/scorebrawl-util:typecheck: cache hit, replaying logs 2d9928e837249e12\n@coding-cowboys/scorebrawl-worker:typecheck: cache hit, replaying logs 0d5022a438026133\n@coding-cowboys/scorebrawl-web:typecheck: cache hit, replaying logs bbe7881b80be9ade\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@scorebrawl/mcp:typecheck: cache hit, replaying logs ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    4 cached, 4 total\n  Time:    16ms >>> FULL TURBO\n\n",
+              "exit": 0,
+              "description": "Run typecheck",
+              "truncated": false
+            },
+            "title": "Run typecheck",
+            "time": {
+              "start": 1786712367761,
+              "end": 1786712367762
+            }
+          },
+          "id": "prt_0005b20030014JEJA1nGk02pLJ",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b1018002OTNLStEIxehxVK"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 24088,
+            "input": 1129,
+            "output": 90,
+            "reasoning": 85,
+            "cache": {
+              "write": 0,
+              "read": 22784
+            }
+          },
+          "cost": 0.000725957,
+          "id": "prt_0005b22be001wzHNncTpUvh001",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b1018002OTNLStEIxehxVK"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000323872,
+        "tokens": {
+          "total": 24517,
+          "input": 362,
+          "output": 91,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 24064
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712367853,
+          "completed": 1786712371623
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b22ed001OY2y7FfjHT2w1i",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b2671001701c3XyF0Jgd5s",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b22ed001OY2y7FfjHT2w1i"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_ET_vr3NcVTvsuV5LCwx9C5h8292",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun oxc 2>&1 | tail -30",
+              "description": "Run lint/format",
+              "timeout": 120000
+            },
+            "output": "apps/web/src/routes/-components/ui/slider.tsx:16:8: warning eslint(no-underscore-dangle): Unexpected dangling '_' in '`_values`'. help: Remove the dangling '_' or add `_values` to the 'allow' configuration.\n.github/scripts/preview/create-r2-bucket.ts:39:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:21:19: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:24:23: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:39:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:30:19: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:34:23: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:78:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:108:25: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:140:31: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/test/trpc/match-router.spec.ts:172:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/test/trpc/session-router.spec.ts:431:28: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/worker/test/trpc/session-router.spec.ts:447:24: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\n.github/scripts/ci/submit-pr-review.ts:26:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:47:30: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:49:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:57:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:164:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:237:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:922:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:932:28: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:933:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:944:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:954:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:964:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:974:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1073:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1121:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1151:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1156:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\n",
+            "metadata": {
+              "output": "apps/web/src/routes/-components/ui/slider.tsx:16:8: warning eslint(no-underscore-dangle): Unexpected dangling '_' in '`_values`'. help: Remove the dangling '_' or add `_values` to the 'allow' configuration.\n.github/scripts/preview/create-r2-bucket.ts:39:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:21:19: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:24:23: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/one-vn-match-crud.spec.ts:39:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:30:19: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:34:23: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:78:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:108:25: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/e2e/tests/seeded-match-crud.spec.ts:140:31: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/test/trpc/match-router.spec.ts:172:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/test/trpc/session-router.spec.ts:431:28: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/worker/test/trpc/session-router.spec.ts:447:24: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\n.github/scripts/ci/submit-pr-review.ts:26:4: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:47:30: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:49:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:57:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:164:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:237:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:922:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:932:28: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:933:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:944:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:954:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:964:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:974:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1073:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1121:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1151:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1156:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\n",
+              "exit": 0,
+              "description": "Run lint/format",
+              "truncated": false
+            },
+            "title": "Run lint/format",
+            "time": {
+              "start": 1786712371534,
+              "end": 1786712371535
+            }
+          },
+          "id": "prt_0005b2a05001cG3KU9MPl7cv1K",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b22ed001OY2y7FfjHT2w1i"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 24517,
+            "input": 362,
+            "output": 91,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 24064
+            }
+          },
+          "cost": 0.000323872,
+          "id": "prt_0005b317f0014JFZyQqgnylHe6",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b22ed001OY2y7FfjHT2w1i"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001091299,
+        "tokens": {
+          "total": 26554,
+          "input": 1907,
+          "output": 131,
+          "reasoning": 68,
+          "cache": {
+            "write": 0,
+            "read": 24448
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712371625,
+          "completed": 1786712376589
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b31a9001l7F3UCZMKGM0pS",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b35c2001M0nU1HQwwAR2Hc",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b31a9001l7F3UCZMKGM0pS"
+        },
+        {
+          "type": "reasoning",
+          "text": "The lint warnings shown are all pre-existing (in unrelated files like slider.tsx, e2e tests, seed.ts). None are in the 6 files touched by this commit. Let me verify there are no warnings/errors related to the changed files specifically.\n\nLet me check if the oxc output contains any of the changed files.",
+          "time": {
+            "start": 1786712373263,
+            "end": 1786712374322
+          },
+          "id": "prt_0005b380f001l3tTeC25eWy6rF",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b31a9001l7F3UCZMKGM0pS"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_Bo9Wo62UXRCzYr8Vfxro0551",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun oxc 2>&1 | grep -E \"match-names|achievements|match-score-display|match-row|remove-match-dialog|leaguePlayerId\" || echo \"NO ISSUES IN CHANGED FILES\"",
+              "description": "Check lint issues in changed files",
+              "timeout": 120000
+            },
+            "output": "NO ISSUES IN CHANGED FILES\n",
+            "metadata": {
+              "output": "NO ISSUES IN CHANGED FILES\n",
+              "exit": 0,
+              "description": "Check lint issues in changed files",
+              "truncated": false
+            },
+            "title": "Check lint issues in changed files",
+            "time": {
+              "start": 1786712376482,
+              "end": 1786712376483
+            }
+          },
+          "id": "prt_0005b3c34001vHd8qN3yH3X92n",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b31a9001l7F3UCZMKGM0pS"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 26554,
+            "input": 1907,
+            "output": 131,
+            "reasoning": 68,
+            "cache": {
+              "write": 0,
+              "read": 24448
+            }
+          },
+          "cost": 0.001091299,
+          "id": "prt_0005b44da001eYzkD12masNwwY",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b31a9001l7F3UCZMKGM0pS"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005a90b0002Hwl05wRKSxW1G1",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000866868,
+        "tokens": {
+          "total": 27422,
+          "input": 80,
+          "output": 395,
+          "reasoning": 451,
+          "cache": {
+            "write": 0,
+            "read": 26496
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712376590,
+          "completed": 1786712385908
+        },
+        "finish": "stop",
+        "id": "msg_0005b450e001JAzI9y9dc8eUVV",
+        "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b4916001o9L5aiONhXFNql",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b450e001JAzI9y9dc8eUVV"
+        },
+        {
+          "type": "reasoning",
+          "text": "All checks pass. Let me summarize my findings.\n\nVerification results:\n1. ✅ `achievements.ts` `formatAchievementName` — byte-identical to removed local function.\n2. ✅ `match-names.ts` — `MatchDisplayPlayer` interface identical; `getTeamInfo`/`getSideLabel` byte-identical logic (just `export` added); `buildMatchResultToast` has EN DASH (e2 80 93 = U+2013); `1-v-n-elo` returns `${getSideLabel(home)} won the match`.\n3. ✅ `match-score-display.tsx` — imports `getTeamInfo`/`getSideLabel`/`MatchDisplayPlayer` from `@/lib/match-names`, removed local defs, re-exports `MatchDisplayPlayer` via `export type { MatchDisplayPlayer } from \"@/lib/match-names\"`. `getAssetUrl`/`TeamIcon`/`formatTimestamp`/`ScoreLine`/`MatchScoreDisplay` all intact, no dangling references.\n4. ✅ `match-row.tsx` and `remove-match-dialog.tsx` import `MatchDisplayPlayer` from `@/lib/match-names`.\n5. ✅ `$leaguePlayerId/index.tsx` imports `formatAchievementName` from `@/lib/achievements`, removed local function.\n\nNo extra changes. Only 6 files. `buildMatchResultToast` is new (unused yet) but was explicitly requested in the spec.\n\nTypecheck passes, lint passes with no issues in changed files (warnings are pre-existing in unrelated files).\n\nOne note: `buildMatchResultToast` is not consumed anywhere — it's dead code right now. But the spec explicitly asked to create it, so it's spec-compliant. I'll note this as a minor observation but not an issue.\n\nActually, let me double check - is `buildMatchResultToast` actually requested in spec? Yes: \"Create `apps/web/src/lib/match-names.ts` exporting ... and `buildMatchResultToast` (with an EN DASH ...)\". So yes, spec-compliant.\n\n✅ Spec compliant.",
+          "time": {
+            "start": 1786712378429,
+            "end": 1786712382345
+          },
+          "id": "prt_0005b4c3d001NrUoOaHfSf6Gt0",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b450e001JAzI9y9dc8eUVV"
+        },
+        {
+          "type": "text",
+          "text": "✅ **Spec compliant.**\n\nVerified `git diff 56938ac 43e9b4d` and the actual files:\n\n1. **`achievements.ts`** — `formatAchievementName` is byte-identical to the removed local function (`.replace(/_/g, \" \").replace(/\\b\\w/g, ...)`).\n2. **`match-names.ts`** — `MatchDisplayPlayer` interface identical; `getTeamInfo`/`getSideLabel` logic byte-identical (only `export` added). En dash confirmed as UTF-8 `e2 80 93` (U+2013) in `buildMatchResultToast`. `1-v-n-elo` branch returns `` `${getSideLabel(home)} won the match` ``.\n3. **`match-score-display.tsx`** — imports the three helpers from `@/lib/match-names`, removed all local defs, re-exports via `export type { MatchDisplayPlayer } from \"@/lib/match-names\"`. `getAssetUrl`/`TeamIcon`/`formatTimestamp`/`ScoreLine`/`MatchScoreDisplay` intact; no dangling references.\n4. **`match-row.tsx` / `remove-match-dialog.tsx`** — import `MatchDisplayPlayer` from `@/lib/match-names`; all usages compile.\n5. **`$leaguePlayerId/index.tsx`** — imports `formatAchievementName` from `@/lib/achievements`; local function removed.\n\nOnly the 6 expected files changed — no extra modifications. `bun typecheck` and `bun oxc` pass with zero issues in changed files (remaining warnings are pre-existing, unrelated).\n\nMinor note (not a defect): `buildMatchResultToast` is currently unused — expected, since it's created for a later task.",
+          "time": {
+            "start": 1786712382347,
+            "end": 1786712385765
+          },
+          "id": "prt_0005b5b8b001LkNryKVQkq2NLT",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b450e001JAzI9y9dc8eUVV"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 27422,
+            "input": 80,
+            "output": 395,
+            "reasoning": 451,
+            "cache": {
+              "write": 0,
+              "read": 26496
+            }
+          },
+          "cost": 0.000866868,
+          "id": "prt_0005b6934001MIxW5H1A13MJ50",
+          "sessionID": "ses_fffa56f53ffeEIa5rhqVHnPIfG",
+          "messageID": "msg_0005b450e001JAzI9y9dc8eUVV"
+        }
+      ]
+    }
+  ]
+}
