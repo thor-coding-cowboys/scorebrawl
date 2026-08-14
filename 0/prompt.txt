@@ -1,7 +1,1 @@
-We already have some in app notifications - most of which are very aggressive after match registration. Now I'm thinking of implementing more subtle ones - using a toast - yet keep the hot / cold streak ones. 
-
-See this feature spec: https://github.com/thor-coding-cowboys/scorebrawl/blob/0509153289955236d78586977d8a52c762512188/docs/features/01-in-app-notifications.md
-
----
-
-Make sure that notifications follow multi tenancy so they're not seen across leagues and only shown to people that have that specific league open.
+ye
