@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M004FR39YQSFTEQP53SDMBC8",
+  "strategy": "manual-commit",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 172595,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1719296,
+    "output_tokens": 14467,
+    "api_call_count": 23
+  }
+}

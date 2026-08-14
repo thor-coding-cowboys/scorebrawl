@@ -1,0 +1,101 @@
+See: # Subtle Toast Notifications
+
+## Summary
+
+Replace the noisy per-event feedback after match registration with subtle toast notifications driven by the existing season-scoped SSE stream. Keep the full-screen StreakFlyout for hot/cold streak milestones exactly as it works today.
+
+Notifications must be multi-tenant: they are only shown to users who have that specific league/season open, and never leak across leagues.
+
+## Why / Goal
+
+The StreakFlyout already handles the celebratory streak moments (5/10/15 win/loss streaks). Everything else today is either a plain `toast.info("X registered a match")` or nothing at all. Users want richer, calmer feedback for match results, achievements, and session events — without full-screen interruptions and without cross-league leakage.
+
+## Scope
+
+- Enrich the `match:insert` SSE event so toasts can render the actual result (team/player names + score).
+- Emit a new `achievement:unlock` SSE event from the achievement queue consumer.
+- Wire subtle toasts in `use-season-sse.ts` for: match registered (with result), match deleted, session started/ended, achievement unlocked.
+- Keep StreakFlyout behavior and thresholds unchanged.
+- Multi-tenancy via the existing per-league/per-season SSE Durable Object; no new tables or channels.
+
+## Non-goals
+
+- No `notification` table, bell, dropdown, or inbox (future slice, same SSE channel).
+- No own-action toasts — own match creation is already confirmed by the drawer; own events remain suppressed.
+- No change to StreakFlyout thresholds or visuals.
+- No deletion/retention policy.
+
+## Code map
+
+- Events originate in: `apps/worker/src/trpc/router/match-router.ts`, `session-router.ts`
+- Achievement queue: `apps/worker/src/index.ts` (queue consumer), `apps/worker/src/services/achievement-calculation.ts`
+- SSE infra: `apps/worker/src/durable-objects/season-sse.ts`, `apps/worker/src/routes/sse-router.ts`
+- Frontend hook: `apps/web/src/hooks/use-season-sse.ts`
+- Naming conventions to mirror: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx`
+- Achievement display names: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx` (`formatAchievementName`)
+
+## Design
+
+### 1. `match:insert` payload enrichment (worker)
+
+The `match:insert` event today carries `{ match: {id, seasonId, homeScore, awayScore, createdAt}, standings }` — no player names. Enrich it:
+
+```ts
+{
+  type: "match:insert",
+  data: {
+    match: { id, seasonId, homeScore, awayScore, createdAt },
+    scoreType: "elo" | "3-1-0" | "elo-individual-vs-team" | "1-v-n-elo",
+    players: Array<MatchDisplayPlayer>, // { id, name, image, teamName, teamLogo, homeTeam }
+    standings,
+  },
+  user: { id, name },
+}
+```
+
+- The `players` array is shaped exactly like the existing `MatchDisplayPlayer` type (same shape `getMatchWithPlayers` returns) so the frontend can reuse the existing naming logic — no new naming rules.
+- Fetched with a single `IN` query (join `match_player` → `season_player` → `player` → `user`, plus `match_team` → `season_team` → `league_team` for teamName/teamLogo). No N+1.
+- `match:delete` payload is left unchanged — its toast stays "X deleted a match" and needs no names.
+
+### 2. Achievement unlock SSE event (worker queue)
+
+Achievements are computed async in the queue consumer (`index.ts` → `calculateAchievements`), so they never reach the SSE stream today.
+
+- Extend `AchievementQueueMessage` with `leagueSlug` and `seasonSlug`. The routers (`match-router.ts`, `session-router.ts`) already have both at `send()` time.
+- `calculateAchievements` returns the newly-earned achievement types (detected before/at insert; `onConflictDoNothing` dedupes).
+- Queue consumer, for each new achievement: `broadcastSeasonEvent({ type: "achievement:unlock", data: { player: { id, name, image }, type } })`. No `user` field — the queue consumer has no acting user, and the toast is shown to everyone viewing the season regardless of who earned it.
+- Add `"achievement:unlock"` to the `SeasonSSEEvent` type union in `season-sse.ts`.
+
+### 3. Frontend toast wiring (`use-season-sse.ts`)
+
+All toasts fire from within the SSE message handler, so multi-tenancy is inherited (see §4).
+
+- `match:insert` (other users only, `!isOwnEvent`): replace `toast.info("X registered a match")` with a result toast.
+  - **1-v-n** (`scoreType === "1-v-n-elo"`): `"{winnerName} won the match"` — winner is the single home player (home always wins in `createOneVn`).
+  - **All other seasons**: home side vs away side + score, e.g. `"Bluehawks 3–2 Falcons"` or `"Alice & Bob 3–2 Carol & Dan"` — reusing `getSideLabel`: team name if players are in a team, else player name(s).
+- `match:delete` (other users): keep a subtle `toast.info("X deleted a match")`.
+- `session:start` / `session:end` (other users): `toast.info("X started a session")` / `toast.info("X ended a session")`. Existing session-page "Session ended by X" toasts remain.
+- `achievement:unlock` (any user, including the achiever): toast with player avatar + `formatAchievementName(type)`, e.g. "Alice unlocked **5 Win Streak**". Move `formatAchievementName` from the player detail page to a shared helper in `apps/web/src/lib/achievements.ts` so both places import it.
+- `streak` events continue to drive the **StreakFlyout** unchanged.
+
+### 4. Multi-tenancy
+
+- Worker: `broadcastSeasonEvent` targets `SEASON_SSE.idFromName(${leagueSlug}/${seasonSlug})` — a per-league/per-season DO. Events cannot reach another league's sockets.
+- Frontend: `useSeasonSSE` only connects from the season route layout with that league/season's slugs, so toasts fire only for users who have that specific league/season open.
+- Achievement messages now carry `leagueSlug`/`seasonSlug` so the queue consumer broadcasts to the same scoped DO.
+
+### 5. Testing
+
+- `apps/worker/test/services/achievement-calculation.spec.ts`: extend to assert `calculateAchievements` returns newly-earned types and omits already-earned ones.
+- Integration (existing `src/test/trpc/` pattern): `match.create` broadcast payload includes `scoreType` and `players` with names; queue consumer emits `achievement:unlock` for a new achievement.
+- Frontend: unit-test the toast copy builder (1-v-n / team / multi-player naming) if a test harness exists; otherwise verify via `bun run test` + manual check at `https://scorebrawl.localhost:1355`.
+
+## Acceptance criteria
+
+- Registering a match shows a subtle result toast ("TeamA 3–2 TeamB", "Alice & Bob 3–2 Carol & Dan", or "Alice won the match" for 1-v-n) to other users viewing that league/season.
+- A newly earned achievement triggers a toast with the player and achievement name.
+- Session start/end show subtle toasts.
+- StreakFlyout still fires on 5/10/15 streak crossings exactly as today.
+- Toasts never appear for users who don't have that league/season open, and never reference other leagues. 
+
+Implementation plan
