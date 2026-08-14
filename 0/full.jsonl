@@ -22,7 +22,7 @@
     ],
     "time": {
       "created": 1786711796425,
-      "updated": 1786711925118
+      "updated": 1786711954777
     }
   },
   "messages": [
@@ -2568,21 +2568,24 @@
           "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
           "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
         },
-        "cost": 0,
+        "cost": 0.000478297,
         "tokens": {
-          "input": 0,
-          "output": 0,
+          "total": 80060,
+          "input": 197,
+          "output": 119,
           "reasoning": 0,
           "cache": {
-            "read": 0,
-            "write": 0
+            "write": 0,
+            "read": 79744
           }
         },
         "modelID": "deepseek-v4-pro",
         "providerID": "opencode-go",
         "time": {
-          "created": 1786711925006
+          "created": 1786711925006,
+          "completed": 1786711954658
         },
+        "finish": "tool-calls",
         "id": "msg_00054610e001155LxjvTn6qZVO",
         "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT"
       },
@@ -2599,22 +2602,117 @@
           "tool": "bash",
           "callID": "call_00_ET_uvplsCrUElcSsvYvH6EE7283",
           "state": {
-            "metadata": {
-              "output": "",
-              "description": "Commit the changes"
-            },
-            "status": "running",
+            "status": "completed",
             "input": {
               "command": "git add apps/worker/src/services/match-events.ts apps/worker/src/trpc/router/match-router.ts apps/worker/test/services/match-events.spec.ts && git commit -m \"feat: enrich match:insert SSE payload with scoreType and players\" && git status --short",
               "description": "Commit the changes"
             },
+            "output": "[feat/subtle-toast-notifications 56938ac] feat: enrich match:insert SSE payload with scoreType and players\n 3 files changed, 156 insertions(+), 55 deletions(-)\n create mode 100644 apps/worker/src/services/match-events.ts\n create mode 100644 apps/worker/test/services/match-events.spec.ts\n?? .entire/\n?? .opencode/\n",
+            "metadata": {
+              "output": "[feat/subtle-toast-notifications 56938ac] feat: enrich match:insert SSE payload with scoreType and players\n 3 files changed, 156 insertions(+), 55 deletions(-)\n create mode 100644 apps/worker/src/services/match-events.ts\n create mode 100644 apps/worker/test/services/match-events.spec.ts\n?? .entire/\n?? .opencode/\n",
+              "exit": 0,
+              "description": "Commit the changes",
+              "truncated": false
+            },
+            "title": "Commit the changes",
             "time": {
-              "start": 1786711927765
+              "start": 1786711954558,
+              "end": 1786711954560
             }
           },
           "id": "prt_000546958001BhyapeNSAzU53M",
           "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT",
           "messageID": "msg_00054610e001155LxjvTn6qZVO"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "276b8a742faea6c2a6e762e7fdb130832fe4419a",
+          "type": "step-finish",
+          "tokens": {
+            "total": 80060,
+            "input": 197,
+            "output": 119,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 79744
+            }
+          },
+          "cost": 0.000478297,
+          "id": "prt_00054d4b2001etNJCAKW8Qj6oD",
+          "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT",
+          "messageID": "msg_00054610e001155LxjvTn6qZVO"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_000526ad0001NnH3p5e8umQJhY",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.00069542,
+        "tokens": {
+          "total": 80545,
+          "input": 158,
+          "output": 387,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 80000
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786711954660,
+          "completed": 1786711960901
+        },
+        "finish": "stop",
+        "id": "msg_00054d4e4001NDFJLDGO07HG11",
+        "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT"
+      },
+      "parts": [
+        {
+          "snapshot": "276b8a742faea6c2a6e762e7fdb130832fe4419a",
+          "type": "step-start",
+          "id": "prt_00054db830011rUvX5pasi6mGN",
+          "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT",
+          "messageID": "msg_00054d4e4001NDFJLDGO07HG11"
+        },
+        {
+          "type": "text",
+          "text": "**Status:** DONE\n\n**Implemented:**\n- Created `apps/worker/src/services/match-events.ts` with `buildMatchInsertData`, `SeasonScoreType`, `Standing`, `MatchDisplayPlayer`, `MatchInsertData`. Reuses existing `matchRepository.getMatchWithPlayers` (no new query).\n- Modified `apps/worker/src/trpc/router/match-router.ts`:\n  - Added `buildMatchInsertData`/`SeasonScoreType` import.\n  - Rewrote `finalizeMatchCreation` to enrich the `match:insert` payload via `buildMatchInsertData`, added `scoreType` param, preserved `leagueSlug`/`seasonSlug` on the queue send.\n  - Refactored `createFromFixture` to call `finalizeMatchCreation` (removed inline block).\n  - Added `scoreType: comp.scoreType` to `create` and `createOneVn` calls.\n\n**Test/typecheck results:**\n- `match-events.spec.ts` — 2 passed (was failing first, as expected).\n- `match-router.spec.ts` (+ one-v-n spec collected) — 20 passed.\n- `bun typecheck` — 4 successful.\n- `bun oxc` — no errors/warnings in changed files.\n\n**Files changed:** `match-events.ts` (new), `match-router.ts`, `match-events.spec.ts` (new).\n\n**Self-review:** Followed task snippets exactly. Confirmed `season`/`comp` rows expose `scoreType` with matching union type. No changes to repositories.\n\n**Concerns:** None. (Note: `bun run --cwd apps/worker test -- match-router.spec.ts` also ran `one-v-n-match-router.spec.ts` due to Vitest file matching — both green.)",
+          "time": {
+            "start": 1786711957176,
+            "end": 1786711960769
+          },
+          "id": "prt_00054deb8001zAehZRjr75Uram",
+          "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT",
+          "messageID": "msg_00054d4e4001NDFJLDGO07HG11"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "276b8a742faea6c2a6e762e7fdb130832fe4419a",
+          "type": "step-finish",
+          "tokens": {
+            "total": 80545,
+            "input": 158,
+            "output": 387,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 80000
+            }
+          },
+          "cost": 0.00069542,
+          "id": "prt_00054ed0c001bVEfSSnATrzvVu",
+          "sessionID": "ses_fffad9536ffesD2tsg5vu38cbT",
+          "messageID": "msg_00054d4e4001NDFJLDGO07HG11"
         }
       ]
     }
