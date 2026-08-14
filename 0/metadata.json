@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M004MSGK6BWXT76YNAPVTG3Z",
+  "session_id": "ses_fffb7b09affeGG8eogr2CiepmN",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-14T12:41:14.91608Z",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/worker/test/services/achievement-calculation.spec.ts",
+    "apps/worker/src/services/achievement-calculation.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "dd532e9746e7",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 39350,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 952704,
+    "output_tokens": 4317,
+    "api_call_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-14T12:41:14.903231Z",
+    "agent_lines": 86,
+    "agent_removed": 13,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 86,
+    "total_lines_changed": 99,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 272,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".opencode/plugins/entire.ts": 272
+      }
+    }
+  ]
+}
