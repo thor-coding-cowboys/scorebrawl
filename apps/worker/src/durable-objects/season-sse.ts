@@ -9,6 +9,7 @@ export interface SeasonSSEEvent {
 		| "session:start"
 		| "session:end"
 		| "session:update"
+		| "achievement:unlock"
 		| "connected";
 	data: unknown;
 	user?: {

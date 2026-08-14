@@ -3,7 +3,10 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../../src/db/index";
 import { playerAchievement } from "../../src/db/schema/league-schema";
-import { calculateAchievements } from "../../src/services/achievement-calculation";
+import {
+	buildAchievementUnlockEvents,
+	calculateAchievements,
+} from "../../src/services/achievement-calculation";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
@@ -396,6 +399,28 @@ describe("achievement calculation", () => {
 
 			const second = await calculateAchievements(db, [home.id]);
 			expect(second).toHaveLength(0);
+		});
+	});
+
+	describe("buildAchievementUnlockEvents", () => {
+		it("maps newly-earned achievements to unlock events", () => {
+			const events = buildAchievementUnlockEvents([
+				{ playerId: "p1", name: "Alice", image: null, type: "5_win_streak" },
+			]);
+
+			expect(events).toEqual([
+				{
+					type: "achievement:unlock",
+					data: {
+						player: { id: "p1", name: "Alice", image: null },
+						type: "5_win_streak",
+					},
+				},
+			]);
+		});
+
+		it("returns an empty array when there are no new achievements", () => {
+			expect(buildAchievementUnlockEvents([])).toEqual([]);
 		});
 	});
 });

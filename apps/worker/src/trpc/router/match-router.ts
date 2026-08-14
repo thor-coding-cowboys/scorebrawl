@@ -163,6 +163,8 @@ async function finalizeMatchCreation({
 
 	await ctx.env.ACHIEVEMENT_QUEUE.send({
 		seasonPlayerIds,
+		leagueSlug: ctx.organization.slug,
+		seasonSlug,
 	} satisfies AchievementQueueMessage);
 
 	return createdMatch;
@@ -278,6 +280,8 @@ export const matchRouter = {
 			const seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];
 			await ctx.env.ACHIEVEMENT_QUEUE.send({
 				seasonPlayerIds,
+				leagueSlug: ctx.organization.slug,
+				seasonSlug: input.seasonSlug,
 			} satisfies AchievementQueueMessage);
 
 			return createdMatch;

@@ -292,6 +292,8 @@ export const sessionRouter = {
 					...result.streakData.homeSeasonPlayerIds,
 					...result.streakData.awaySeasonPlayerIds,
 				],
+				leagueSlug: ctx.organization.slug,
+				seasonSlug: sessionInfo.seasonSlug,
 			} satisfies AchievementQueueMessage);
 
 			ctx.waitUntil(

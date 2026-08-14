@@ -9,10 +9,11 @@ import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
 import { mcpRouter } from "./routes/mcp-router";
-import { sseRouter } from "./routes/sse-router";
+import { sseRouter, broadcastSeasonEvent } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
 import {
 	calculateAchievements,
+	buildAchievementUnlockEvents,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
 import { seedLeague, type SeedInput } from "./services/seed";
@@ -43,7 +44,10 @@ export default {
 			try {
 				const body = msg.body;
 				if ("seasonPlayerIds" in body) {
-					await calculateAchievements(db, body.seasonPlayerIds);
+					const newAchievements = await calculateAchievements(db, body.seasonPlayerIds);
+					for (const event of buildAchievementUnlockEvents(newAchievements)) {
+						await broadcastSeasonEvent(env, body.leagueSlug, body.seasonSlug, event);
+					}
 				} else if ("leagueSlug" in body) {
 					if (!env.SEED_ALLOWED) {
 						console.warn("[Seed Queue] SEED_ALLOWED not set, skipping seed job");

@@ -12,8 +12,10 @@ import {
 
 type AchievementType = (typeof achievementType)[number];
 
-type AchievementQueueMessage = {
+export type AchievementQueueMessage = {
 	seasonPlayerIds: string[];
+	leagueSlug: string;
+	seasonSlug: string;
 };
 
 export type NewAchievement = {
@@ -23,7 +25,18 @@ export type NewAchievement = {
 	type: AchievementType;
 };
 
-export type { AchievementQueueMessage };
+export function buildAchievementUnlockEvents(newAchievements: NewAchievement[]): Array<{
+	type: "achievement:unlock";
+	data: { player: { id: string; name: string; image: string | null }; type: AchievementType };
+}> {
+	return newAchievements.map((a) => ({
+		type: "achievement:unlock",
+		data: {
+			player: { id: a.playerId, name: a.name, image: a.image },
+			type: a.type,
+		},
+	}));
+}
 
 const streakThresholds: Partial<Record<AchievementType, number>> = {
 	"5_win_streak": 5,
