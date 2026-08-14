@@ -3,7 +3,7 @@
   "checkpoint_id": "01M004MSGK6BWXT76YNAPVTG3Z",
   "strategy": "manual-commit",
   "branch": "feat/subtle-toast-notifications",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "apps/worker/src/services/achievement-calculation.ts",
     "apps/worker/test/services/achievement-calculation.spec.ts"
@@ -15,13 +15,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 39350,
+    "input_tokens": 39487,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 952704,
-    "output_tokens": 4317,
-    "api_call_count": 27
+    "cache_read_tokens": 1110528,
+    "output_tokens": 4534,
+    "api_call_count": 29
   }
 }
