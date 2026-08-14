@@ -22,7 +22,7 @@
     ],
     "time": {
       "created": 1786712238222,
-      "updated": 1786712273091
+      "updated": 1786712312310
     }
   },
   "messages": [
@@ -963,21 +963,24 @@
           "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
           "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
         },
-        "cost": 0,
+        "cost": 0.000550855,
         "tokens": {
-          "input": 0,
-          "output": 0,
+          "total": 43538,
+          "input": 407,
+          "output": 251,
           "reasoning": 0,
           "cache": {
-            "read": 0,
-            "write": 0
+            "write": 0,
+            "read": 42880
           }
         },
         "modelID": "deepseek-v4-pro",
         "providerID": "opencode-go",
         "time": {
-          "created": 1786712272979
+          "created": 1786712272979,
+          "completed": 1786712312192
         },
+        "finish": "tool-calls",
         "id": "msg_00059b053001LEJsewF4baY9XI",
         "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T"
       },
@@ -994,23 +997,118 @@
           "tool": "bash",
           "callID": "call_00_ET_vlwrp4BIM6cfY9UF8NzB7551",
           "state": {
-            "metadata": {
-              "output": "",
-              "description": "Stage and commit refactored files"
-            },
-            "status": "running",
+            "status": "completed",
             "input": {
               "command": "git add apps/web/src/lib/achievements.ts apps/web/src/lib/match-names.ts \"apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/match-score-display.tsx\" \"apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/match-row.tsx\" \"apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/remove-match-dialog.tsx\" \"apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/players/\\$leaguePlayerId/index.tsx\" && git commit -m \"refactor: extract shared match naming and achievement helpers\" && git status",
               "description": "Stage and commit refactored files",
               "workdir": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
             },
+            "output": "[feat/subtle-toast-notifications 43e9b4d] refactor: extract shared match naming and achievement helpers\n 6 files changed, 52 insertions(+), 30 deletions(-)\n create mode 100644 apps/web/src/lib/achievements.ts\n create mode 100644 apps/web/src/lib/match-names.ts\nOn branch feat/subtle-toast-notifications\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\t.entire/\n\t.opencode/\n\nnothing added to commit but untracked files present (use \"git add\" to track)\n",
+            "metadata": {
+              "output": "[feat/subtle-toast-notifications 43e9b4d] refactor: extract shared match naming and achievement helpers\n 6 files changed, 52 insertions(+), 30 deletions(-)\n create mode 100644 apps/web/src/lib/achievements.ts\n create mode 100644 apps/web/src/lib/match-names.ts\nOn branch feat/subtle-toast-notifications\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\t.entire/\n\t.opencode/\n\nnothing added to commit but untracked files present (use \"git add\" to track)\n",
+              "exit": 0,
+              "description": "Stage and commit refactored files",
+              "truncated": false
+            },
+            "title": "Stage and commit refactored files",
             "time": {
-              "start": 1786712276502
+              "start": 1786712312085,
+              "end": 1786712312087
             }
           },
           "id": "prt_00059b83000163t6rPor6BL3pW",
           "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T",
           "messageID": "msg_00059b053001LEJsewF4baY9XI"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 43538,
+            "input": 407,
+            "output": 251,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 42880
+            }
+          },
+          "cost": 0.000550855,
+          "id": "prt_0005a4947001vYgct5gpzV0NQA",
+          "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T",
+          "messageID": "msg_00059b053001LEJsewF4baY9XI"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_000592893002SyxsjvanxXK0on",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.00045791,
+        "tokens": {
+          "total": 43947,
+          "input": 164,
+          "output": 263,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 43520
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712312194,
+          "completed": 1786712316491
+        },
+        "finish": "stop",
+        "id": "msg_0005a4982001E8kf7gT5i8xHiS",
+        "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005a4e260016q2QqBMVATkVPC",
+          "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T",
+          "messageID": "msg_0005a4982001E8kf7gT5i8xHiS"
+        },
+        {
+          "type": "text",
+          "text": "**Status:** DONE\n\n**Implemented:**\n- Created `apps/web/src/lib/achievements.ts` with `formatAchievementName`\n- Created `apps/web/src/lib/match-names.ts` with `MatchDisplayPlayer`, `getTeamInfo`, `getSideLabel`, `buildMatchResultToast` (en-dash separator preserved)\n- Refactored `match-score-display.tsx`: added shared import + re-export, removed local `MatchDisplayPlayer`/`getTeamInfo`/`getSideLabel`\n- Updated `match-row.tsx` and `remove-match-dialog.tsx` imports to `@/lib/match-names`\n- Updated `$leaguePlayerId/index.tsx`: imported `formatAchievementName`, removed local function\n\n**Typecheck/lint:** `bun oxc` and `bun typecheck` both PASS (only pre-existing warnings elsewhere, none from changed files).\n\n**Files changed:** 6 (2 created, 4 modified).\n\n**Self-review:** All plan snippets matched exact source text before editing. The re-export `export type { MatchDisplayPlayer }` is added so other importers stay working. No behavior change; helpers are byte-identical copies of removed local code.\n\n**Concerns:** None.",
+          "time": {
+            "start": 1786712313810,
+            "end": 1786712316331
+          },
+          "id": "prt_0005a4fd2001JpwMq2sGE2RGAA",
+          "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T",
+          "messageID": "msg_0005a4982001E8kf7gT5i8xHiS"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 43947,
+            "input": 164,
+            "output": 263,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 43520
+            }
+          },
+          "cost": 0.00045791,
+          "id": "prt_0005a5a12001bAHy0CoOWA2BUV",
+          "sessionID": "ses_fffa6d771ffeyBRoVg6bNm6f0T",
+          "messageID": "msg_0005a4982001E8kf7gT5i8xHiS"
         }
       ]
     }
