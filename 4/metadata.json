@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0058VCBNERPNQFGR8X7CB1N",
+  "session_id": "ses_fffb384b1ffeNsYnEUpNKUg6Wi",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-14T12:52:24.622339Z",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/worker/src/services/match-events.ts",
+    "apps/worker/src/trpc/router/match-router.ts",
+    "apps/worker/test/services/match-events.spec.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "6aac6d10f446",
+  "checkpoint_transcript_start": 8,
+  "transcript_lines_at_start": 8,
+  "compact_transcript_start": 8,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-14T12:52:24.607115Z",
+    "agent_lines": 156,
+    "agent_removed": 55,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 156,
+    "total_lines_changed": 211,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
