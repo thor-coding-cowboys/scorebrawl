@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M005KFSFHZ69A9RFQSQJ0791",
+  "session_id": "ses_fffaf4f91ffeBHshc6ae3RBoZ6",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-14T12:58:12.738898Z",
+  "branch": "feat/subtle-toast-notifications",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/src/lib/achievements.ts",
+    "apps/web/src/lib/match-names.ts",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx",
+    "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "c9009298221f",
+  "checkpoint_transcript_start": 9,
+  "transcript_lines_at_start": 9,
+  "compact_transcript_start": 9,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-14T12:58:12.724898Z",
+    "agent_lines": 52,
+    "agent_removed": 30,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 52,
+    "total_lines_changed": 82,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
