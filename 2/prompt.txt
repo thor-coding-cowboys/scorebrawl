@@ -1,0 +1,44 @@
+You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+## What Was Requested
+
+Task 1 of the "Subtle Toast Notifications" plan: make `calculateAchievements` (in `apps/worker/src/services/achievement-calculation.ts`) return the newly-earned achievements instead of `undefined`. Specifically:
+
+1. Change `calculateAchievements` signature to return `Promise<NewAchievement[]>` (empty array when `seasonPlayerIds` is empty).
+2. Add exported type `NewAchievement = { playerId: string; name: string; image: string | null; type: AchievementType }`.
+3. Resolve player info (`name` via `COALESCE(user.name, guest.displayName)`, `image` via `user.image`) using joins across `seasonPlayer` → `player` → `user`/`guest`.
+4. Filter out already-earned achievements (query `playerAchievement` by the involved playerIds, build a `playerId:type` set, keep only new ones) before insert; still use `onConflictDoNothing` on insert.
+5. Return only the newly-earned achievements (idempotent — a second call with no new achievements returns `[]`).
+6. Keep the middle section of the function (match-results/goals/streak queries and loops) and helper functions unchanged.
+7. Two new tests added to `apps/worker/test/services/achievement-calculation.spec.ts`: (a) "returns newly earned achievements with player info" asserting `5_win_streak` present, `10_win_streak` absent, and the win-streak entry has correct `playerId` and a truthy `name`; (b) "omits already-earned achievements on subsequent calls" asserting the second call returns `[]`.
+
+The commit under review is HEAD (`e147b8a`, "feat: return newly-earned achievements from calculateAchievements"). Its parent (`ea491b4`) is the base.
+
+## What Implementer Claims They Built
+
+- `calculateAchievements` now returns `Promise<NewAchievement[]>`.
+- Resolves player info via joins.
+- Replaced onConflictDoNothing-only insert with an explicit "already earned" pre-filter.
+- Added `NewAchievement` export type.
+- 20 tests pass.
+
+## CRITICAL: Do Not Trust the Report
+
+Verify everything independently by reading the actual code.
+
+**DO NOT:** take their word for it, trust completeness claims, or accept their interpretation.
+**DO:** read the actual diff (`git diff ea491b4 e147b8a`), compare implementation to the 7 requirements above line by line, check for missing pieces and extra/unneeded work.
+
+## Your Job
+
+Read the diff and the relevant files, then verify:
+
+- **Missing requirements:** anything skipped?
+- **Extra/unneeded work:** did they add features beyond the spec (e.g., touching the queue message type `AchievementQueueMessage`, or changing unrelated behavior)?
+- **Misunderstandings:** right feature, wrong way?
+- **Correctness of the idempotency filter:** does the pre-filter actually return only newly-earned achievements, and is the second-call behavior correct? Is the empty-`playerIds` short-circuit correct?
+- **Tests actually verify behavior** (not mocks).
+
+Report:
+- ✅ Spec compliant (if everything matches after code inspection), OR
+- ❌ Issues found: [list specifically with file:line references]
