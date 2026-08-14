@@ -1,0 +1,22 @@
+You are a code quality reviewer. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+Review Task 3 of the "Subtle Toast Notifications" plan.
+
+WHAT_WAS_IMPLEMENTED: New `apps/worker/src/services/match-events.ts` with `buildMatchInsertData` + shared types (`SeasonScoreType`, `Standing`, `MatchDisplayPlayer`, `MatchInsertData`). `match-router.ts` `finalizeMatchCreation` now builds the enriched `match:insert` payload (`match`, `scoreType`, `players`, `standings`) via `buildMatchInsertData`; `createFromFixture` refactored to reuse `finalizeMatchCreation`; `create`/`createOneVn` pass `scoreType`. New integration test file.
+
+PLAN_OR_REQUIREMENTS: Task 3 from `docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md`.
+
+BASE_SHA: bd4cd2d
+HEAD_SHA: 56938ac
+
+DESCRIPTION: Enrich `match:insert` SSE payload with `scoreType` and player names so the frontend can render result toasts.
+
+Run `git diff bd4cd2d 56938ac` to see the changes.
+
+Review for standard code quality concerns plus:
+- File structure: is `match-events.ts` a reasonable home for these types + builder? Is each type well-placed?
+- Does `buildMatchInsertData` correctly reuse `getMatchWithPlayers` (no duplicate query/N+1)?
+- Was the `createFromFixture` refactor a genuine DRY improvement, and did it reduce duplication without changing behavior?
+- Naming, type exports, and test quality (are the two tests meaningful? do they actually exercise the enrichment path end-to-end through the DB?).
+
+Return: Strengths, Issues (Critical/Important/Minor), Assessment (Approved / Needs changes).
