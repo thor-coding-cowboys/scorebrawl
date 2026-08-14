@@ -1,0 +1,34 @@
+You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+## What Was Requested
+
+Task 2 of the "Subtle Toast Notifications" plan. Requirements:
+
+1. `AchievementQueueMessage` type extended to `{ seasonPlayerIds: string[]; leagueSlug: string; seasonSlug: string }` (now exported), in `apps/worker/src/services/achievement-calculation.ts`.
+2. New exported function `buildAchievementUnlockEvents(newAchievements: NewAchievement[])` returning `Array<{ type: "achievement:unlock"; data: { player: { id, name, image }, type } }>`.
+3. `"achievement:unlock"` added to the `SeasonSSEEvent` type union in `apps/worker/src/durable-objects/season-sse.ts`.
+4. Queue consumer in `apps/worker/src/index.ts`: for achievement messages, call `calculateAchievements`, then for each returned new achievement broadcast `broadcastSeasonEvent(env, body.leagueSlug, body.seasonSlug, event)`. Seed branch, `msg.ack()`/`msg.retry()`, error handling unchanged.
+5. match-router: both `finalizeMatchCreation` and `createFromFixture` queue sends now include `leagueSlug: ctx.organization.slug` and `seasonSlug` (the season slug).
+6. session-router `recordResult`: queue send now includes `leagueSlug: ctx.organization.slug` and `seasonSlug: sessionInfo.seasonSlug`.
+7. Two new tests for `buildAchievementUnlockEvents` (maps to unlock events; empty array for no achievements).
+
+Commit under review: `bd4cd2d` ("feat: emit achievement:unlock SSE event from queue consumer"). Base: `e147b8a`.
+
+## What Implementer Claims
+
+Implemented all 6 files as specified; 22 tests pass; typecheck clean.
+
+## CRITICAL: Do Not Trust the Report
+
+Verify independently. Run `git diff e147b8a bd4cd2d` and read the actual code.
+
+Check:
+- Missing requirements (e.g., did they miss a queue send site?).
+- Extra/unneeded work (e.g., did they change the seed branch, error handling, or unrelated code?).
+- Misunderstandings: correct season slug at each call site? Is `body.leagueSlug`/`body.seasonSlug` correctly narrowed by the `"seasonPlayerIds" in body` discriminator?
+- Is `broadcastSeasonEvent` imported and called with the correct args?
+- Are there any OTHER `ACHIEVEMENT_QUEUE.send(...)` or `AchievementQueueMessage` usages in the worker that now fail to include `leagueSlug`/`seasonSlug` (which would be a type error)? Search the whole `apps/worker/src` for `ACHIEVEMENT_QUEUE.send` and `satisfies AchievementQueueMessage`.
+
+Report:
+- ✅ Spec compliant, OR
+- ❌ Issues found: [list with file:line]
