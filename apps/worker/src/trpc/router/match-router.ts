@@ -7,6 +7,7 @@ import * as matchRepository from "../../repositories/match-repository";
 import * as seasonPlayerRepository from "../../repositories/season-player-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
+import { buildMatchInsertData, type SeasonScoreType } from "../../services/match-events";
 import { seasonProcedure, leagueMemberProcedure } from "../trpc";
 
 const matchIdSchema = createOptionalIdSchema("match");
@@ -105,6 +106,7 @@ async function finalizeMatchCreation({
 	seasonId,
 	createdMatch,
 	seasonPlayerIds,
+	scoreType,
 }: {
 	ctx: {
 		db: Parameters<typeof seasonPlayerRepository.getStanding>[0]["db"];
@@ -115,21 +117,31 @@ async function finalizeMatchCreation({
 	};
 	seasonSlug: string;
 	seasonId: string;
-	createdMatch: { id: string };
+	createdMatch: {
+		id: string;
+		seasonId: string;
+		homeScore: number;
+		awayScore: number;
+		createdAt: Date;
+	};
 	seasonPlayerIds: string[];
+	scoreType: SeasonScoreType;
 }) {
 	const standings = await seasonPlayerRepository.getStanding({
 		db: ctx.db,
 		seasonId,
 	});
 
+	const data = await buildMatchInsertData(ctx.db, {
+		match: createdMatch,
+		scoreType,
+		standings,
+	});
+
 	ctx.waitUntil(
 		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
 			type: "match:insert",
-			data: {
-				match: createdMatch,
-				standings,
-			},
+			data,
 			user: {
 				id: ctx.authentication.user.id,
 				name: ctx.authentication.user.name,
@@ -233,58 +245,14 @@ export const matchRouter = {
 				matchId: createdMatch.id,
 			});
 
-			const standings = await seasonPlayerRepository.getStanding({
-				db: ctx.db,
-				seasonId: season.id,
-			});
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-					type: "match:insert",
-					data: {
-						match: createdMatch,
-						standings,
-					},
-					user: {
-						id: ctx.authentication.user.id,
-						name: ctx.authentication.user.name,
-					},
-				})
-			);
-
-			const [streakPlayers, streakTeams] = await Promise.all([
-				matchRepository.checkStreakThresholds({
-					db: ctx.db,
-					seasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],
-				}),
-				matchRepository.checkTeamStreakThresholds({
-					db: ctx.db,
-					matchId: createdMatch.id,
-				}),
-			]);
-
-			broadcastStreakEvents(
-				ctx.waitUntil.bind(ctx),
-				ctx.env,
-				ctx.organization.slug,
-				input.seasonSlug,
-				streakPlayers,
-				streakTeams,
-				{
-					id: ctx.authentication.user.id,
-					name: ctx.authentication.user.name,
-				}
-			);
-
-			// Dispatch achievement calculation
-			const seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];
-			await ctx.env.ACHIEVEMENT_QUEUE.send({
-				seasonPlayerIds,
-				leagueSlug: ctx.organization.slug,
+			return finalizeMatchCreation({
+				ctx,
 				seasonSlug: input.seasonSlug,
-			} satisfies AchievementQueueMessage);
-
-			return createdMatch;
+				seasonId: season.id,
+				createdMatch,
+				seasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],
+				scoreType: season.scoreType,
+			});
 		}),
 
 	create: leagueMemberProcedure
@@ -362,6 +330,7 @@ export const matchRouter = {
 						seasonId: comp.id,
 						createdMatch,
 						seasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],
+						scoreType: comp.scoreType,
 					})
 				);
 		}),
@@ -465,6 +434,7 @@ export const matchRouter = {
 				seasonId: comp.id,
 				createdMatch,
 				seasonPlayerIds: allIds,
+				scoreType: comp.scoreType,
 			});
 		}),
 
