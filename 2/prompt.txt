@@ -1,0 +1,32 @@
+You are reviewing whether an implementation matches its specification. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+## What Was Requested
+
+Task 3 of the "Subtle Toast Notifications" plan. Requirements:
+
+1. New file `apps/worker/src/services/match-events.ts` exporting: `SeasonScoreType` (= `(typeof scoreType)[number]`), `Standing` (= `Awaited<ReturnType<typeof seasonPlayerRepository.getStanding>>`), `MatchDisplayPlayer` interface (`{ id, name, image: string|null, teamName: string|null, teamLogo: string|null, homeTeam: boolean }`), `MatchInsertData` interface (`{ match: {id, seasonId, homeScore, awayScore, createdAt}, scoreType, players: MatchDisplayPlayer[], standings }`), and `buildMatchInsertData(db, opts)` which reuses `matchRepository.getMatchWithPlayers` (NOT a new query) and returns `MatchInsertData`.
+2. `match-router.ts`:
+   - `finalizeMatchCreation` gains a `scoreType` param, broadens `createdMatch` to full match fields, and broadcasts `match:insert` with `data` built by `buildMatchInsertData` (so `data` = `{ match, scoreType, players, standings }`). The streak/team checks and queue send must be preserved, and the queue send must still include `leagueSlug`/`seasonSlug`.
+   - `createFromFixture` refactored to call `finalizeMatchCreation` (removing its inline standings/broadcast/streak/queue block), passing `scoreType: season.scoreType` and `seasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId]`.
+   - `create` and `createOneVn` calls to `finalizeMatchCreation` add `scoreType: comp.scoreType`.
+3. New test file `apps/worker/test/services/match-events.spec.ts` with two integration tests (1v1 names+scoreType; 2v2 team names), both using `buildMatchInsertData`.
+
+Commit under review: `56938ac` ("feat: enrich match:insert SSE payload with scoreType and players"). Base: `bd4cd2d`.
+
+## What Implementer Claims
+
+Created match-events.ts, rewired match-router, 2 + 20 tests pass, typecheck clean.
+
+## CRITICAL: Do Not Trust the Report
+
+Verify independently. Run `git diff bd4cd2d 56938ac` and read the actual code.
+
+Check specifically:
+- Missing: did the `createFromFixture` refactor drop anything (e.g., the streak broadcast or queue send must still happen via `finalizeMatchCreation`)? Did `create`/`createOneVn`/`createFromFixture` all get `scoreType`?
+- Extra: did they add anything unrequested, or modify `getMatchWithPlayers`/repositories?
+- Correctness: is `data.match` populated with the correct fields? Is `players` sourced from `getMatchWithPlayers`? Is `match:delete`/`remove` untouched? Is the queue send's `seasonSlug` still correct in `finalizeMatchCreation` (uses the `seasonSlug` param)?
+- Verify the refactored `createFromFixture` still returns the created match and still calls `assignMatchToFixture` before `finalizeMatchCreation`.
+
+Report:
+- ✅ Spec compliant, OR
+- ❌ Issues found: [list with file:line]

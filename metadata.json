@@ -3,7 +3,7 @@
   "checkpoint_id": "01M005KFSFHZ69A9RFQSQJ0791",
   "strategy": "manual-commit",
   "branch": "feat/subtle-toast-notifications",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/web/src/lib/achievements.ts",
     "apps/web/src/lib/match-names.ts",
@@ -26,13 +26,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 66804,
+    "input_tokens": 84020,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 816640,
-    "output_tokens": 4787,
-    "api_call_count": 21
+    "cache_read_tokens": 1288064,
+    "output_tokens": 7109,
+    "api_call_count": 38
   }
 }
