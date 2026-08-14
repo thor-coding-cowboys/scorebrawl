@@ -3,7 +3,7 @@
   "checkpoint_id": "01M005Y7JD8JX3FVESZYBPQPWB",
   "strategy": "manual-commit",
   "branch": "feat/subtle-toast-notifications",
-  "checkpoints_count": 12,
+  "checkpoints_count": 13,
   "files_touched": [
     "apps/web/src/hooks/use-season-sse.ts",
     "apps/web/src/hooks/use-season-sse.tsx"
@@ -91,6 +91,13 @@
       "transcript": "/11/full.jsonl",
       "compact_transcript": "/11/transcript.jsonl",
       "content_hash": "/11/content_hash.txt",
+      "prompt": ""
+    },
+    {
+      "metadata": "/12/metadata.json",
+      "transcript": "/12/full.jsonl",
+      "compact_transcript": "/12/transcript.jsonl",
+      "content_hash": "/12/content_hash.txt",
       "prompt": ""
     }
   ],
