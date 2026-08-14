@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
+import { buildMatchResultToast, type MatchDisplayPlayer } from "@/lib/match-names";
+import { formatAchievementName } from "@/lib/achievements";
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import "@/lib/event-types";
 
 type StreakData = {
@@ -27,6 +30,8 @@ type MatchData = {
 		createdAt: Date;
 	};
 	matchId?: string;
+	scoreType?: string;
+	players?: MatchDisplayPlayer[];
 	standings?: Array<{
 		id: string;
 		seasonId: string;
@@ -53,7 +58,14 @@ export type SeasonSSEEvent =
 	| { type: "session:end"; user?: { id: string; name: string }; data: SessionData }
 	| { type: "match:insert"; user?: { id: string; name: string }; data?: MatchData }
 	| { type: "match:delete"; user?: { id: string; name: string }; data?: MatchData }
-	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData };
+	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData }
+	| {
+			type: "achievement:unlock";
+			data?: {
+				player?: { id: string; name: string; image: string | null };
+				type?: string;
+			};
+	  };
 
 interface UseSeasonSSEOptions {
 	leagueSlug: string;
@@ -119,7 +131,7 @@ export function useSeasonSSE({
 
 					const t = trpcRef.current;
 					const qc = queryClientRef.current;
-					const isOwnEvent = parsed.user?.id === currentUserId;
+					const isOwnEvent = "user" in parsed && parsed.user?.id === currentUserId;
 
 					if (parsed.type === "streak" && parsed.data) {
 						window.dispatchEvent(
@@ -133,6 +145,19 @@ export function useSeasonSSE({
 									isTeam: parsed.data.isTeam,
 								},
 							})
+						);
+						return;
+					}
+
+					if (parsed.type === "achievement:unlock" && parsed.data?.player && parsed.data.type) {
+						const { player, type } = parsed.data;
+						toast.info(
+							<span className="flex items-center gap-2">
+								<AvatarWithFallback src={player.image} name={player.name} size="sm" />
+								<span>
+									{player.name} unlocked <b>{formatAchievementName(type)}</b>
+								</span>
+							</span>
 						);
 						return;
 					}
@@ -169,6 +194,14 @@ export function useSeasonSSE({
 								queryKey: t.match.getLatest.queryKey({ seasonSlug }),
 							});
 						}
+
+						if (!isOwnEvent && parsed.user) {
+							if (parsed.type === "session:start") {
+								toast.info(`${parsed.user.name} started a session`);
+							} else if (parsed.type === "session:end") {
+								toast.info(`${parsed.user.name} ended a session`);
+							}
+						}
 						return;
 					}
 
@@ -199,9 +232,16 @@ export function useSeasonSSE({
 						}
 					}
 
-					if (parsed.user && parsed.user.id !== currentUserId) {
+					if ("user" in parsed && parsed.user && parsed.user.id !== currentUserId) {
 						if (parsed.type === "match:insert") {
-							toast.info(`${parsed.user.name} registered a match`);
+							toast.info(
+								buildMatchResultToast({
+									scoreType: parsed.data?.scoreType ?? "",
+									players: parsed.data?.players ?? [],
+									homeScore: parsed.data?.match?.homeScore ?? 0,
+									awayScore: parsed.data?.match?.awayScore ?? 0,
+								})
+							);
 						} else if (parsed.type === "match:delete") {
 							toast.info(`${parsed.user.name} deleted a match`);
 						}
