@@ -1,0 +1,877 @@
+{
+  "info": {
+    "id": "ses_fffa473dcffeX99E2KHxG6huBa",
+    "slug": "shiny-canyon",
+    "projectID": "50dab81c140d4987abb4ff6eeb4b71ce9ccf8f28",
+    "directory": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+    "path": "",
+    "parentID": "ses_ffffb07aaffezkqyQMVywCU71E",
+    "title": "Code quality review Task 4 (@general subagent)",
+    "version": "1.14.41",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "permission": [
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1786712394787,
+      "updated": 1786712451298
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1786712394793
+        },
+        "tools": {
+          "task": false
+        },
+        "agent": "general",
+        "model": {
+          "providerID": "opencode-go",
+          "modelID": "deepseek-v4-pro"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "You are a code quality reviewer. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire\n\nReview Task 4 of the \"Subtle Toast Notifications\" plan (a pure frontend refactor).\n\nWHAT_WAS_IMPLEMENTED: Extracted `formatAchievementName` into `apps/web/src/lib/achievements.ts`, and `MatchDisplayPlayer`/`getTeamInfo`/`getSideLabel`/`buildMatchResultToast` into `apps/web/src/lib/match-names.ts`. `match-score-display.tsx`, `match-row.tsx`, `remove-match-dialog.tsx`, and the player detail page now import from these shared modules.\n\nPLAN_OR_REQUIREMENTS: Task 4 from `docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md`.\n\nBASE_SHA: 56938ac\nHEAD_SHA: 43e9b4d\n\nDESCRIPTION: Extract shared match-naming and achievement helpers for reuse by the SSE toast wiring (Task 5).\n\nRun `git diff 56938ac 43e9b4d` to see the changes.\n\nReview for standard code quality concerns plus:\n- Are the new lib modules small, focused, single-responsibility?\n- Is the re-export `export type { MatchDisplayPlayer } from \"@/lib/match-names\"` in `match-score-display.tsx` a reasonable bridge, or should the consumers be pointed at the lib directly (note: they already are — the re-export may now be redundant)?\n- Naming and whether the pure functions are cleanly separated from UI components.\n- Any duplication that remains (e.g., `dashboard-cards.tsx` has its own local `getTeamInfo`/`getSideLabel` using a different `MatchPlayer` type — is that in scope or correctly left alone?).\n\nReturn: Strengths, Issues (Critical/Important/Minor), Assessment (Approved / Needs changes).",
+          "id": "prt_0005b8c29001AE8b05OZMHboEd",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8c27001CqWICJbNbAbk2q"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000484184,
+        "tokens": {
+          "total": 16187,
+          "input": 414,
+          "output": 146,
+          "reasoning": 139,
+          "cache": {
+            "write": 0,
+            "read": 15488
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712395134,
+          "completed": 1786712399434
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b8d7e00101tGQYDiI6OM8B",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005b91120016mrd7bSgyy0eVO",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8d7e00101tGQYDiI6OM8B"
+        },
+        {
+          "type": "reasoning",
+          "text": "I'm being asked to review a specific code change. Let me start by understanding the task and using the relevant skills. This is a code review task. Let me check for relevant skills.\n\nThe task is a code quality review of Task 4. There's a `receiving-code-review` and `requesting-code-review` skill, but those are about receiving/requesting review. Actually I'm the reviewer here. Let me check if there's a skill for this.\n\nActually, the task is clear: review the diff. Let me first look at the changes. Let me run the git diff and read the relevant files.\n\nLet me start by looking at the plan and the diff.",
+          "time": {
+            "start": 1786712396776,
+            "end": 1786712398399
+          },
+          "id": "prt_0005b93e8001Yn3PPH3PZ4yj2v",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8d7e00101tGQYDiI6OM8B"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_YOFZPSgJuhTkKeJCTBgl9410",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff 56938ac 43e9b4d",
+              "description": "Show diff for Task 4"
+            },
+            "output": "diff --git a/apps/web/src/lib/achievements.ts b/apps/web/src/lib/achievements.ts\nnew file mode 100644\nindex 0000000..25055f7\n--- /dev/null\n+++ b/apps/web/src/lib/achievements.ts\n@@ -0,0 +1,3 @@\n+export function formatAchievementName(type: string): string {\n+\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n+}\ndiff --git a/apps/web/src/lib/match-names.ts b/apps/web/src/lib/match-names.ts\nnew file mode 100644\nindex 0000000..5536b11\n--- /dev/null\n+++ b/apps/web/src/lib/match-names.ts\n@@ -0,0 +1,41 @@\n+export interface MatchDisplayPlayer {\n+\tid: string;\n+\tname: string;\n+\timage: string | null;\n+\tteamName: string | null;\n+\tteamLogo: string | null;\n+\thomeTeam: boolean;\n+}\n+\n+export function getTeamInfo(\n+\tplayers: MatchDisplayPlayer[]\n+): { name: string; logo: string | null } | null {\n+\tif (players.length <= 1) return null;\n+\tconst teamName = players[0]?.teamName;\n+\tconst teamLogo = players[0]?.teamLogo ?? null;\n+\tif (teamName) return { name: teamName, logo: teamLogo };\n+\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n+}\n+\n+export function getSideLabel(players: MatchDisplayPlayer[]): string {\n+\tif (players.length === 0) return \"Unknown\";\n+\tconst teamInfo = getTeamInfo(players);\n+\tif (teamInfo) return teamInfo.name;\n+\treturn players.map((p) => p.name).join(\", \");\n+}\n+\n+export function buildMatchResultToast(opts: {\n+\tscoreType: string;\n+\tplayers: MatchDisplayPlayer[];\n+\thomeScore: number;\n+\tawayScore: number;\n+}): string {\n+\tconst home = opts.players.filter((p) => p.homeTeam);\n+\tconst away = opts.players.filter((p) => !p.homeTeam);\n+\n+\tif (opts.scoreType === \"1-v-n-elo\") {\n+\t\treturn `${getSideLabel(home)} won the match`;\n+\t}\n+\n+\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n+}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\nindex 9e2aee9..f8f3d54 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n@@ -7,6 +7,7 @@ import { Badge } from \"@/components/ui/badge\";\n import { Skeleton } from \"@/components/ui/skeleton\";\n import { useTRPC, trpcClient } from \"@/lib/trpc\";\n import { truncateSlug } from \"@/lib/utils\";\n+import { formatAchievementName } from \"@/lib/achievements\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import {\n \tTarget01Icon,\n@@ -712,7 +713,3 @@ function PlayerProfilePage() {\n \t\t</>\n \t);\n }\n-\n-function formatAchievementName(type: string): string {\n-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n-}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\nindex b2049b1..8e55734 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n@@ -1,4 +1,5 @@\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchPlayer {\n \tid: string;\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\nindex 73117aa..fa114e1 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n@@ -3,6 +3,9 @@ import { cn } from \"@/lib/utils\";\n import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n+import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n+\n+export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n const getAssetUrl = (key: string | null | undefined): string | null => {\n \tif (!key) return null;\n@@ -34,30 +37,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n \t);\n }\n \n-export interface MatchDisplayPlayer {\n-\tid: string;\n-\tname: string;\n-\timage: string | null;\n-\tteamName: string | null;\n-\tteamLogo: string | null;\n-\thomeTeam: boolean;\n-}\n-\n-function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n-\tif (players.length <= 1) return null;\n-\tconst teamName = players[0]?.teamName;\n-\tconst teamLogo = players[0]?.teamLogo ?? null;\n-\tif (teamName) return { name: teamName, logo: teamLogo };\n-\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n-}\n-\n-function getSideLabel(players: MatchDisplayPlayer[]): string {\n-\tif (players.length === 0) return \"Unknown\";\n-\tconst teamInfo = getTeamInfo(players);\n-\tif (teamInfo) return teamInfo.name;\n-\treturn players.map((p) => p.name).join(\", \");\n-}\n-\n function formatTimestamp(date: Date) {\n \tconst now = new Date();\n \tconst matchDate = new Date(date);\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\nindex 6762528..38a29cb 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n@@ -7,7 +7,8 @@ import { HugeiconsIcon } from \"@hugeicons/react\";\n import { useMutation, useQuery } from \"@tanstack/react-query\";\n import { useState } from \"react\";\n import { toast } from \"sonner\";\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchInfo {\n \tid: string;\n",
+            "metadata": {
+              "output": "diff --git a/apps/web/src/lib/achievements.ts b/apps/web/src/lib/achievements.ts\nnew file mode 100644\nindex 0000000..25055f7\n--- /dev/null\n+++ b/apps/web/src/lib/achievements.ts\n@@ -0,0 +1,3 @@\n+export function formatAchievementName(type: string): string {\n+\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n+}\ndiff --git a/apps/web/src/lib/match-names.ts b/apps/web/src/lib/match-names.ts\nnew file mode 100644\nindex 0000000..5536b11\n--- /dev/null\n+++ b/apps/web/src/lib/match-names.ts\n@@ -0,0 +1,41 @@\n+export interface MatchDisplayPlayer {\n+\tid: string;\n+\tname: string;\n+\timage: string | null;\n+\tteamName: string | null;\n+\tteamLogo: string | null;\n+\thomeTeam: boolean;\n+}\n+\n+export function getTeamInfo(\n+\tplayers: MatchDisplayPlayer[]\n+): { name: string; logo: string | null } | null {\n+\tif (players.length <= 1) return null;\n+\tconst teamName = players[0]?.teamName;\n+\tconst teamLogo = players[0]?.teamLogo ?? null;\n+\tif (teamName) return { name: teamName, logo: teamLogo };\n+\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n+}\n+\n+export function getSideLabel(players: MatchDisplayPlayer[]): string {\n+\tif (players.length === 0) return \"Unknown\";\n+\tconst teamInfo = getTeamInfo(players);\n+\tif (teamInfo) return teamInfo.name;\n+\treturn players.map((p) => p.name).join(\", \");\n+}\n+\n+export function buildMatchResultToast(opts: {\n+\tscoreType: string;\n+\tplayers: MatchDisplayPlayer[];\n+\thomeScore: number;\n+\tawayScore: number;\n+}): string {\n+\tconst home = opts.players.filter((p) => p.homeTeam);\n+\tconst away = opts.players.filter((p) => !p.homeTeam);\n+\n+\tif (opts.scoreType === \"1-v-n-elo\") {\n+\t\treturn `${getSideLabel(home)} won the match`;\n+\t}\n+\n+\treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n+}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\nindex 9e2aee9..f8f3d54 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx\n@@ -7,6 +7,7 @@ import { Badge } from \"@/components/ui/badge\";\n import { Skeleton } from \"@/components/ui/skeleton\";\n import { useTRPC, trpcClient } from \"@/lib/trpc\";\n import { truncateSlug } from \"@/lib/utils\";\n+import { formatAchievementName } from \"@/lib/achievements\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import {\n \tTarget01Icon,\n@@ -712,7 +713,3 @@ function PlayerProfilePage() {\n \t\t</>\n \t);\n }\n-\n-function formatAchievementName(type: string): string {\n-\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n-}\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\nindex b2049b1..8e55734 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx\n@@ -1,4 +1,5 @@\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchPlayer {\n \tid: string;\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\nindex 73117aa..fa114e1 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx\n@@ -3,6 +3,9 @@ import { cn } from \"@/lib/utils\";\n import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n import { HugeiconsIcon } from \"@hugeicons/react\";\n import { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n+import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n+\n+export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n const getAssetUrl = (key: string | null | undefined): string | null => {\n \tif (!key) return null;\n@@ -34,30 +37,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n \t);\n }\n \n-export interface MatchDisplayPlayer {\n-\tid: string;\n-\tname: string;\n-\timage: string | null;\n-\tteamName: string | null;\n-\tteamLogo: string | null;\n-\thomeTeam: boolean;\n-}\n-\n-function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n-\tif (players.length <= 1) return null;\n-\tconst teamName = players[0]?.teamName;\n-\tconst teamLogo = players[0]?.teamLogo ?? null;\n-\tif (teamName) return { name: teamName, logo: teamLogo };\n-\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n-}\n-\n-function getSideLabel(players: MatchDisplayPlayer[]): string {\n-\tif (players.length === 0) return \"Unknown\";\n-\tconst teamInfo = getTeamInfo(players);\n-\tif (teamInfo) return teamInfo.name;\n-\treturn players.map((p) => p.name).join(\", \");\n-}\n-\n function formatTimestamp(date: Date) {\n \tconst now = new Date();\n \tconst matchDate = new Date(date);\ndiff --git a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\nindex 6762528..38a29cb 100644\n--- a/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n+++ b/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx\n@@ -7,7 +7,8 @@ import { HugeiconsIcon } from \"@hugeicons/react\";\n import { useMutation, useQuery } from \"@tanstack/react-query\";\n import { useState } from \"react\";\n import { toast } from \"sonner\";\n-import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n+import { MatchScoreDisplay } from \"./match-score-display\";\n+import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n \n interface MatchInfo {\n \tid: string;\n",
+              "exit": 0,
+              "description": "Show diff for Task 4",
+              "truncated": false
+            },
+            "title": "Show diff for Task 4",
+            "time": {
+              "start": 1786712398740,
+              "end": 1786712398742
+            }
+          },
+          "id": "prt_0005b9a41001oXS6Y47S7xnAR0",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8d7e00101tGQYDiI6OM8B"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_3l4L6XaCa787W8ZSUoHU2119",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md</path>\n<type>file</type>\n<content>\n1: # Subtle Toast Notifications Implementation Plan\n2: \n3: > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.\n4: \n5: **Goal:** Replace noisy per-event feedback after match registration with subtle, multi-tenant toast notifications driven by the existing season-scoped SSE stream.\n6: \n7: **Architecture:** Enrich the `match:insert` SSE payload with `scoreType` + `players` (reusing `getMatchWithPlayers`), emit a new `achievement:unlock` event from the queue consumer (which now carries `leagueSlug`/`seasonSlug`), and wire subtle sonner toasts in `use-season-sse.ts`. Multi-tenancy is inherited from the existing per-league/per-season Durable Object and the season-route-scoped hook.\n8: \n9: **Tech Stack:** TypeScript, Hono, Drizzle ORM (D1), Cloudflare Durable Objects + Queues, tRPC, React + TanStack Query/Router, sonner, Vitest (worker only).\n10: \n11: ---\n12: \n13: ## File Structure\n14: \n15: ### Worker (`apps/worker`)\n16: \n17: - `src/services/achievement-calculation.ts` (modify) — `calculateAchievements` returns newly-earned achievements with player name/image; add `buildAchievementUnlockEvents`; extend `AchievementQueueMessage` with `leagueSlug`/`seasonSlug`.\n18: - `src/services/match-events.ts` (create) — `buildMatchInsertData` + shared `MatchDisplayPlayer` / `SeasonScoreType` types.\n19: - `src/durable-objects/season-sse.ts` (modify) — add `\"achievement:unlock\"` to `SeasonSSEEvent` union.\n20: - `src/trpc/router/match-router.ts` (modify) — enrich `match:insert` broadcast; pass `leagueSlug`/`seasonSlug` to queue; refactor `createFromFixture` to reuse `finalizeMatchCreation`.\n21: - `src/trpc/router/session-router.ts` (modify) — pass `leagueSlug`/`seasonSlug` to the `recordResult` queue send.\n22: - `src/index.ts` (modify) — queue consumer broadcasts `achievement:unlock` per newly-earned achievement.\n23: \n24: ### Frontend (`apps/web`)\n25: \n26: - `src/lib/achievements.ts` (create) — shared `formatAchievementName`.\n27: - `src/lib/match-names.ts` (create) — shared `MatchDisplayPlayer`, `getTeamInfo`, `getSideLabel`, `buildMatchResultToast`.\n28: - `src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx` (modify) — import shared helpers instead of local defs.\n29: - `src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx` (modify) — import `MatchDisplayPlayer` from `@/lib/match-names`.\n30: - `src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx` (modify) — same.\n31: - `src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx` (modify) — import `formatAchievementName` from `@/lib/achievements`.\n32: - `src/hooks/use-season-sse.ts` (modify) — wire the toasts.\n33: \n34: ### Tests (`apps/worker/test`)\n35: \n36: - `test/services/achievement-calculation.spec.ts` (modify) — return-value + unlock-event tests.\n37: - `test/services/match-events.spec.ts` (create) — enrichment integration test.\n38: \n39: ---\n40: \n41: ## Task 1: `calculateAchievements` returns newly-earned achievements\n42: \n43: **Files:**\n44: - Modify: `apps/worker/src/services/achievement-calculation.ts`\n45: - Test: `apps/worker/test/services/achievement-calculation.spec.ts`\n46: \n47: - [ ] **Step 1: Write failing tests**\n48: \n49: Append two tests inside the existing top-level `describe(\"achievement calculation\", ...)` block in `apps/worker/test/services/achievement-calculation.spec.ts` (after the `\"away player achievements\"` describe):\n50: \n51: ```ts\n52: \tdescribe(\"return value\", () => {\n53: \t\tit(\"returns newly earned achievements with player info\", async () => {\n54: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n55: \n56: \t\t\tfor (let i = 0; i < 5; i++) {\n57: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n58: \t\t\t}\n59: \n60: \t\t\tconst db = getDb(env.DB);\n61: \t\t\tconst result = await calculateAchievements(db, [home.id]);\n62: \n63: \t\t\tconst types = result.map((a) => a.type);\n64: \t\t\texpect(types).toContain(\"5_win_streak\");\n65: \t\t\texpect(types).not.toContain(\"10_win_streak\");\n66: \n67: \t\t\tconst winStreak = result.find((a) => a.type === \"5_win_streak\");\n68: \t\t\texpect(winStreak?.playerId).toBe(home.playerId);\n69: \t\t\texpect(winStreak?.name).toBeTruthy();\n70: \t\t});\n71: \n72: \t\tit(\"omits already-earned achievements on subsequent calls\", async () => {\n73: \t\t\tconst { client, season, home, away } = await setupLeagueWithSeason();\n74: \n75: \t\t\tfor (let i = 0; i < 5; i++) {\n76: \t\t\t\tawait createMatch(client, season.slug, home.id, away.id, 2, 1);\n77: \t\t\t}\n78: \n79: \t\t\tconst db = getDb(env.DB);\n80: \t\t\tconst first = await calculateAchievements(db, [home.id]);\n81: \t\t\texpect(first.map((a) => a.type)).toContain(\"5_win_streak\");\n82: \n83: \t\t\tconst second = await calculateAchievements(db, [home.id]);\n84: \t\t\texpect(second).toHaveLength(0);\n85: \t\t});\n86: \t});\n87: ```\n88: \n89: - [ ] **Step 2: Run test to verify it fails**\n90: \n91: Run: `bun run --cwd apps/worker test -- achievement-calculation.spec.ts`\n92: Expected: FAIL — `calculateAchievements` currently returns `undefined`, so `result.map` throws `TypeError: Cannot read properties of undefined`.\n93: \n94: - [ ] **Step 3: Implement return value + player info**\n95: \n96: Edit `apps/worker/src/services/achievement-calculation.ts`.\n97: \n98: **3a. Replace imports** (lines 1-8):\n99: \n100: ```ts\n101: import { sql, inArray, eq } from \"drizzle-orm\";\n102: import type { DrizzleDB } from \"../db\";\n103: import { user } from \"../db/schema/auth-schema\";\n104: import {\n105: \tmatchPlayer,\n106: \tseasonPlayer,\n107: \tplayerAchievement,\n108: \tplayer,\n109: \tguest,\n110: \ttype achievementType,\n111: } from \"../db/schema/league-schema\";\n112: ```\n113: \n114: **3b. Replace the type + message block** (lines 10-16):\n115: \n116: ```ts\n117: type AchievementType = (typeof achievementType)[number];\n118: \n119: type AchievementQueueMessage = {\n120: \tseasonPlayerIds: string[];\n121: };\n122: \n123: export type NewAchievement = {\n124: \tplayerId: string;\n125: \tname: string;\n126: \timage: string | null;\n127: \ttype: AchievementType;\n128: };\n129: \n130: export type { AchievementQueueMessage };\n131: ```\n132: \n133: **3c. Replace the function signature** (line 33) from:\n134: \n135: ```ts\n136: export async function calculateAchievements(db: DrizzleDB, seasonPlayerIds: string[]) {\n137: \tif (seasonPlayerIds.length === 0) return;\n138: ```\n139: \n140: to:\n141: \n142: ```ts\n143: export async function calculateAchievements(\n144: \tdb: DrizzleDB,\n145: \tseasonPlayerIds: string[]\n146: ): Promise<NewAchievement[]> {\n147: \tif (seasonPlayerIds.length === 0) return [];\n148: ```\n149: \n150: **3d. Replace the `playerIdMap` resolution block** (lines 119-128) from:\n151: \n152: ```ts\n153: \t// Resolve seasonPlayerId -> playerId for achievement storage\n154: \tconst playerIdMap = await db\n155: \t\t.select({\n156: \t\t\tseasonPlayerId: seasonPlayer.id,\n157: \t\t\tplayerId: seasonPlayer.playerId,\n158: \t\t})\n159: \t\t.from(seasonPlayer)\n160: \t\t.where(inArray(seasonPlayer.id, seasonPlayerIds));\n161: \n162: \tconst seasonToPlayerMap = new Map(playerIdMap.map((p) => [p.seasonPlayerId, p.playerId]));\n163: ```\n164: \n165: to:\n166: \n167: ```ts\n168: \t// Resolve seasonPlayerId -> player info for achievement storage + broadcast\n169: \tconst playerInfo = await db\n170: \t\t.select({\n171: \t\t\tseasonPlayerId: seasonPlayer.id,\n172: \t\t\tplayerId: seasonPlayer.playerId,\n173: \t\t\tname: sql<string>`COALESCE(${user.name}, ${guest.displayName})`.as(\"name\"),\n174: \t\t\timage: user.image,\n175: \t\t})\n176: \t\t.from(seasonPlayer)\n177: \t\t.innerJoin(player, eq(seasonPlayer.playerId, player.id))\n178: \t\t.leftJoin(user, eq(player.userId, user.id))\n179: \t\t.leftJoin(guest, eq(player.guestId, guest.id))\n180: \t\t.where(inArray(seasonPlayer.id, seasonPlayerIds));\n181: \n182: \tconst seasonToPlayerMap = new Map(playerInfo.map((p) => [p.seasonPlayerId, p]));\n183: ```\n184: \n185: **3e. Replace the declaration and loop-push** (lines 141-192). Change `achievementsToInsert` type and the two places referencing `playerId`:\n186: \n187: From:\n188: \n189: ```ts\n190: \t// Calculate achievements per player\n191: \tconst achievementsToInsert: { playerId: string; type: AchievementType }[] = [];\n192: \n193: \tfor (const spId of seasonPlayerIds) {\n194: \t\tconst playerId = seasonToPlayerMap.get(spId);\n195: \t\tif (!playerId) continue;\n196: ```\n197: \n198: to:\n199: \n200: ```ts\n201: \t// Calculate achievements per player\n202: \tconst achievementsToInsert: NewAchievement[] = [];\n203: \n204: \tfor (const spId of seasonPlayerIds) {\n205: \t\tconst info = seasonToPlayerMap.get(spId);\n206: \t\tif (!info) continue;\n207: ```\n208: \n209: And the push (lines 189-191), from:\n210: \n211: ```ts\n212: \t\tfor (const achievement of earned) {\n213: \t\t\tachievementsToInsert.push({ playerId, type: achievement });\n214: \t\t}\n215: ```\n216: \n217: to:\n218: \n219: ```ts\n220: \t\tfor (const achievement of earned) {\n221: \t\t\tachievementsToInsert.push({\n222: \t\t\t\tplayerId: info.playerId,\n223: \t\t\t\tname: info.name,\n224: \t\t\t\timage: info.image,\n225: \t\t\t\ttype: achievement,\n226: \t\t\t});\n227: \t\t}\n228: ```\n229: \n230: **3f. Replace the batch insert block** (lines 194-210) from:\n231: \n232: ```ts\n233: \t// Batch insert all achievements (idempotent via onConflictDoNothing)\n234: \tif (achievementsToInsert.length > 0) {\n235: \t\tconst now = new Date();\n236: \t\tawait db\n237: \t\t\t.insert(playerAchievement)\n238: \t\t\t.values(\n239: \t\t\t\tachievementsToInsert.map((a) => ({\n240: \t\t\t\t\tid: crypto.randomUUID(),\n241: \t\t\t\t\tplayerId: a.playerId,\n242: \t\t\t\t\ttype: a.type,\n243: \t\t\t\t\tcreatedAt: now,\n244: \t\t\t\t\tupdatedAt: now,\n245: \t\t\t\t}))\n246: \t\t\t)\n247: \t\t\t.onConflictDoNothing();\n248: \t}\n249: }\n250: ```\n251: \n252: to:\n253: \n254: ```ts\n255: \t// Filter out achievements already earned (idempotent, no re-broadcast)\n256: \tconst playerIds = [...new Set(achievementsToInsert.map((a) => a.playerId))];\n257: \tconst existing = playerIds.length\n258: \t\t? await db\n259: \t\t\t\t.select({ playerId: playerAchievement.playerId, type: playerAchievement.type })\n260: \t\t\t\t.from(playerAchievement)\n261: \t\t\t\t.where(inArray(playerAchievement.playerId, playerIds))\n262: \t\t: [];\n263: \tconst existingSet = new Set(existing.map((e) => `${e.playerId}:${e.type}`));\n264: \tconst newAchievements = achievementsToInsert.filter(\n265: \t\t(a) => !existingSet.has(`${a.playerId}:${a.type}`)\n266: \t);\n267: \n268: \tif (newAchievements.length > 0) {\n269: \t\tconst now = new Date();\n270: \t\tawait db\n271: \t\t\t.insert(playerAchievement)\n272: \t\t\t.values(\n273: \t\t\t\tnewAchievements.map((a) => ({\n274: \t\t\t\t\tid: crypto.randomUUID(),\n275: \t\t\t\t\tplayerId: a.playerId,\n276: \t\t\t\t\ttype: a.type,\n277: \t\t\t\t\tcreatedAt: now,\n278: \t\t\t\t\tupdatedAt: now,\n279: \t\t\t\t}))\n280: \t\t\t)\n281: \t\t\t.onConflictDoNothing();\n282: \t}\n283: \n284: \treturn newAchievements;\n285: }\n286: ```\n287: \n288: - [ ] **Step 4: Run tests to verify they pass**\n289: \n290: Run: `bun run --cwd apps/worker test -- achievement-calculation.spec.ts`\n291: Expected: PASS (all existing + the two new tests).\n292: \n293: - [ ] **Step 5: Commit**\n294: \n295: ```bash\n296: git add apps/worker/src/services/achievement-calculation.ts apps/worker/test/services/achievement-calculation.spec.ts\n297: git commit -m \"feat: return newly-earned achievements from calculateAchievements\"\n298: ```\n299: \n300: ---\n301: \n302: ## Task 2: `achievement:unlock` SSE event + queue consumer broadcast\n303: \n304: **Files:**\n305: - Modify: `apps/worker/src/durable-objects/season-sse.ts`\n306: - Modify: `apps/worker/src/services/achievement-calculation.ts`\n307: - Modify: `apps/worker/src/trpc/router/match-router.ts`\n308: - Modify: `apps/worker/src/trpc/router/session-router.ts`\n309: - Modify: `apps/worker/src/index.ts`\n310: - Test: `apps/worker/test/services/achievement-calculation.spec.ts`\n311: \n312: - [ ] **Step 1: Add `buildAchievementUnlockEvents` + extend message type**\n313: \n314: In `apps/worker/src/services/achievement-calculation.ts`, replace the type block (added in Task 1):\n315: \n316: ```ts\n317: type AchievementQueueMessage = {\n318: \tseasonPlayerIds: string[];\n319: };\n320: \n321: export type NewAchievement = {\n322: \tplayerId: string;\n323: \tname: string;\n324: \timage: string | null;\n325: \ttype: AchievementType;\n326: };\n327: \n328: export type { AchievementQueueMessage };\n329: ```\n330: \n331: with:\n332: \n333: ```ts\n334: export type AchievementQueueMessage = {\n335: \tseasonPlayerIds: string[];\n336: \tleagueSlug: string;\n337: \tseasonSlug: string;\n338: };\n339: \n340: export type NewAchievement = {\n341: \tplayerId: string;\n342: \tname: string;\n343: \timage: string | null;\n344: \ttype: AchievementType;\n345: };\n346: \n347: export function buildAchievementUnlockEvents(\n348: \tnewAchievements: NewAchievement[]\n349: ): Array<{\n350: \ttype: \"achievement:unlock\";\n351: \tdata: { player: { id: string; name: string; image: string | null }; type: AchievementType };\n352: }> {\n353: \treturn newAchievements.map((a) => ({\n354: \t\ttype: \"achievement:unlock\",\n355: \t\tdata: {\n356: \t\t\tplayer: { id: a.playerId, name: a.name, image: a.image },\n357: \t\t\ttype: a.type,\n358: \t\t},\n359: \t}));\n360: }\n361: ```\n362: \n363: - [ ] **Step 2: Add `achievement:unlock` to the SSE event union**\n364: \n365: Edit `apps/worker/src/durable-objects/season-sse.ts` (lines 3-18):\n366: \n367: ```ts\n368: export interface SeasonSSEEvent {\n369: \ttype:\n370: \t\t| \"match:insert\"\n371: \t\t| \"match:delete\"\n372: \t\t| \"standings:update\"\n373: \t\t| \"streak\"\n374: \t\t| \"session:start\"\n375: \t\t| \"session:end\"\n376: \t\t| \"session:update\"\n377: \t\t| \"achievement:unlock\"\n378: \t\t| \"connected\";\n379: \tdata: unknown;\n380: \tuser?: {\n381: \t\tid: string;\n382: \t\tname: string;\n383: \t};\n384: }\n385: ```\n386: \n387: - [ ] **Step 3: Wire queue consumer broadcast**\n388: \n389: Edit `apps/worker/src/index.ts`.\n390: \n391: **3a. Update imports** — add `broadcastSeasonEvent` to the sse-router import (line 12):\n392: \n393: ```ts\n394: import { sseRouter, broadcastSeasonEvent } from \"./routes/sse-router\";\n395: ```\n396: \n397: **3b. Replace the queue handler** (lines 40-61) with:\n398: \n399: ```ts\n400: \tasync queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {\n401: \t\tconst db = getDb(env.DB);\n402: \t\tfor (const msg of batch.messages) {\n403: \t\t\ttry {\n404: \t\t\t\tconst body = msg.body;\n405: \t\t\t\tif (\"seasonPlayerIds\" in body) {\n406: \t\t\t\t\tconst newAchievements = await calculateAchievements(db, body.seasonPlayerIds);\n407: \t\t\t\t\tfor (const event of buildAchievementUnlockEvents(newAchievements)) {\n408: \t\t\t\t\t\tawait broadcastSeasonEvent(env, body.leagueSlug, body.seasonSlug, event);\n409: \t\t\t\t\t}\n410: \t\t\t\t} else if (\"leagueSlug\" in body) {\n411: \t\t\t\t\tif (!env.SEED_ALLOWED) {\n412: \t\t\t\t\t\tconsole.warn(\"[Seed Queue] SEED_ALLOWED not set, skipping seed job\");\n413: \t\t\t\t\t\tmsg.ack();\n414: \t\t\t\t\t\tcontinue;\n415: \t\t\t\t\t}\n416: \t\t\t\t\tawait seedLeague(db, body);\n417: \t\t\t\t}\n418: \t\t\t\tmsg.ack();\n419: \t\t\t} catch (error) {\n420: \t\t\t\tconsole.error(\"[Queue] Failed to process message:\", error);\n421: \t\t\t\tmsg.retry();\n422: \t\t\t}\n423: \t\t}\n424: \t},\n425: ```\n426: \n427: **3c. Update the import of `calculateAchievements`** (lines 14-17) to also import `buildAchievementUnlockEvents`:\n428: \n429: ```ts\n430: import {\n431: \tcalculateAchievements,\n432: \tbuildAchievementUnlockEvents,\n433: \ttype AchievementQueueMessage,\n434: } from \"./services/achievement-calculation\";\n435: ```\n436: \n437: - [ ] **Step 4: Pass `leagueSlug`/`seasonSlug` in match-router queue sends**\n438: \n439: Edit `apps/worker/src/trpc/router/match-router.ts`.\n440: \n441: **4a.** In `finalizeMatchCreation`, replace the queue send (lines 164-166):\n442: \n443: ```ts\n444: \tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n445: \t\tseasonPlayerIds,\n446: \t} satisfies AchievementQueueMessage);\n447: ```\n448: \n449: with:\n450: \n451: ```ts\n452: \tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n453: \t\tseasonPlayerIds,\n454: \t\tleagueSlug: ctx.organization.slug,\n455: \t\tseasonSlug,\n456: \t} satisfies AchievementQueueMessage);\n457: ```\n458: \n459: **4b.** In `createFromFixture`, replace the queue send (lines 277-281):\n460: \n461: ```ts\n462: \t\t\t// Dispatch achievement calculation\n463: \t\t\tconst seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];\n464: \t\t\tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n465: \t\t\t\tseasonPlayerIds,\n466: \t\t\t} satisfies AchievementQueueMessage);\n467: ```\n468: \n469: with:\n470: \n471: ```ts\n472: \t\t\t// Dispatch achievement calculation\n473: \t\t\tconst seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];\n474: \t\t\tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n475: \t\t\t\tseasonPlayerIds,\n476: \t\t\t\tleagueSlug: ctx.organization.slug,\n477: \t\t\t\tseasonSlug: input.seasonSlug,\n478: \t\t\t} satisfies AchievementQueueMessage);\n479: ```\n480: \n481: - [ ] **Step 5: Pass `leagueSlug`/`seasonSlug` in session-router queue send**\n482: \n483: Edit `apps/worker/src/trpc/router/session-router.ts` (lines 290-295):\n484: \n485: ```ts\n486: \t\t\tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n487: \t\t\t\tseasonPlayerIds: [\n488: \t\t\t\t\t...result.streakData.homeSeasonPlayerIds,\n489: \t\t\t\t\t...result.streakData.awaySeasonPlayerIds,\n490: \t\t\t\t],\n491: \t\t\t} satisfies AchievementQueueMessage);\n492: ```\n493: \n494: to:\n495: \n496: ```ts\n497: \t\t\tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n498: \t\t\t\tseasonPlayerIds: [\n499: \t\t\t\t\t...result.streakData.homeSeasonPlayerIds,\n500: \t\t\t\t\t...result.streakData.awaySeasonPlayerIds,\n501: \t\t\t\t],\n502: \t\t\t\tleagueSlug: ctx.organization.slug,\n503: \t\t\t\tseasonSlug: sessionInfo.seasonSlug,\n504: \t\t\t} satisfies AchievementQueueMessage);\n505: ```\n506: \n507: - [ ] **Step 6: Write test for `buildAchievementUnlockEvents`**\n508: \n509: In `apps/worker/test/services/achievement-calculation.spec.ts`, add `buildAchievementUnlockEvents` to the import (line 6):\n510: \n511: ```ts\n512: import {\n513: \tcalculateAchievements,\n514: \tbuildAchievementUnlockEvents,\n515: } from \"../../src/services/achievement-calculation\";\n516: ```\n517: \n518: Append inside the top-level describe:\n519: \n520: ```ts\n521: \tdescribe(\"buildAchievementUnlockEvents\", () => {\n522: \t\tit(\"maps newly-earned achievements to unlock events\", () => {\n523: \t\t\tconst events = buildAchievementUnlockEvents([\n524: \t\t\t\t{ playerId: \"p1\", name: \"Alice\", image: null, type: \"5_win_streak\" },\n525: \t\t\t]);\n526: \n527: \t\t\texpect(events).toEqual([\n528: \t\t\t\t{\n529: \t\t\t\t\ttype: \"achievement:unlock\",\n530: \t\t\t\t\tdata: {\n531: \t\t\t\t\t\tplayer: { id: \"p1\", name: \"Alice\", image: null },\n532: \t\t\t\t\t\ttype: \"5_win_streak\",\n533: \t\t\t\t\t},\n534: \t\t\t\t},\n535: \t\t\t]);\n536: \t\t});\n537: \n538: \t\tit(\"returns an empty array when there are no new achievements\", () => {\n539: \t\t\texpect(buildAchievementUnlockEvents([])).toEqual([]);\n540: \t\t});\n541: \t});\n542: ```\n543: \n544: - [ ] **Step 7: Run tests + typecheck**\n545: \n546: Run: `bun run --cwd apps/worker test -- achievement-calculation.spec.ts`\n547: Expected: PASS.\n548: \n549: Run: `bun typecheck`\n550: Expected: PASS (no type errors from the message/queue changes).\n551: \n552: - [ ] **Step 8: Commit**\n553: \n554: ```bash\n555: git add apps/worker/src/durable-objects/season-sse.ts apps/worker/src/services/achievement-calculation.ts apps/worker/src/trpc/router/match-router.ts apps/worker/src/trpc/router/session-router.ts apps/worker/src/index.ts apps/worker/test/services/achievement-calculation.spec.ts\n556: git commit -m \"feat: emit achievement:unlock SSE event from queue consumer\"\n557: ```\n558: \n559: ---\n560: \n561: ## Task 3: `match:insert` payload enrichment\n562: \n563: **Files:**\n564: - Create: `apps/worker/src/services/match-events.ts`\n565: - Modify: `apps/worker/src/trpc/router/match-router.ts`\n566: - Test: `apps/worker/test/services/match-events.spec.ts`\n567: \n568: - [ ] **Step 1: Write failing test**\n569: \n570: Create `apps/worker/test/services/match-events.spec.ts`:\n571: \n572: ```ts\n573: import { env } from \"cloudflare:test\";\n574: import { describe, expect, it } from \"vitest\";\n575: import { getDb } from \"../../src/db/index\";\n576: import * as seasonPlayerRepository from \"../../src/repositories/season-player-repository\";\n577: import { buildMatchInsertData } from \"../../src/services/match-events\";\n578: import { createAuthContext } from \"../setup/auth-context-util\";\n579: import { createPlayers } from \"../setup/season-context-util\";\n580: import { createTRPCTestClient } from \"../trpc/trpc-test-client\";\n581: \n582: describe(\"buildMatchInsertData\", () => {\n583: \tit(\"includes scoreType and player names for a 1v1 match\", async () => {\n584: \t\tconst ctx = await createAuthContext();\n585: \t\tconst client = createTRPCTestClient({ sessionToken: ctx.sessionToken });\n586: \t\tawait createPlayers(ctx, 2);\n587: \t\tconst season = await client.season.create.mutate({\n588: \t\t\tname: \"Enrich Test Season\",\n589: \t\t\tinitialScore: 1000,\n590: \t\t\tscoreType: \"elo\",\n591: \t\t\tkFactor: 32,\n592: \t\t\tstartDate: new Date(),\n593: \t\t});\n594: \t\tconst seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });\n595: \t\tconst match = await client.match.create.mutate({\n596: \t\t\tseasonSlug: season.slug,\n597: \t\t\thomeScore: 2,\n598: \t\t\tawayScore: 1,\n599: \t\t\thomeTeamPlayerIds: [seasonPlayers[0].id],\n600: \t\t\tawayTeamPlayerIds: [seasonPlayers[1].id],\n601: \t\t});\n602: \n603: \t\tconst db = getDb(env.DB);\n604: \t\tconst standings = await seasonPlayerRepository.getStanding({ db, seasonId: season.id });\n605: \t\tconst data = await buildMatchInsertData(db, {\n606: \t\t\tmatch,\n607: \t\t\tscoreType: \"elo\",\n608: \t\t\tstandings,\n609: \t\t});\n610: \n611: \t\texpect(data.scoreType).toBe(\"elo\");\n612: \t\texpect(data.players).toHaveLength(2);\n613: \t\texpect(data.players.every((p) => p.name.length > 0)).toBe(true);\n614: \t\texpect(data.match.id).toBe(match.id);\n615: \t\texpect(data.standings.length).toBe(2);\n616: \t});\n617: \n618: \tit(\"includes team names for a 2v2 match\", async () => {\n619: \t\tconst ctx = await createAuthContext();\n620: \t\tconst client = createTRPCTestClient({ sessionToken: ctx.sessionToken });\n621: \t\tawait createPlayers(ctx, 4);\n622: \t\tconst season = await client.season.create.mutate({\n623: \t\t\tname: \"Enrich 2v2 Season\",\n624: \t\t\tinitialScore: 1000,\n625: \t\t\tscoreType: \"elo\",\n626: \t\t\tkFactor: 32,\n627: \t\t\tstartDate: new Date(),\n628: \t\t});\n629: \t\tconst seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });\n630: \t\tconst match = await client.match.create.mutate({\n631: \t\t\tseasonSlug: season.slug,\n632: \t\t\thomeScore: 3,\n633: \t\t\tawayScore: 2,\n634: \t\t\thomeTeamPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],\n635: \t\t\tawayTeamPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],\n636: \t\t});\n637: \n638: \t\tconst db = getDb(env.DB);\n639: \t\tconst standings = await seasonPlayerRepository.getStanding({ db, seasonId: season.id });\n640: \t\tconst data = await buildMatchInsertData(db, {\n641: \t\t\tmatch,\n642: \t\t\tscoreType: \"elo\",\n643: \t\t\tstandings,\n644: \t\t});\n645: \n646: \t\tconst home = data.players.filter((p) => p.homeTeam);\n647: \t\tconst away = data.players.filter((p) => !p.homeTeam);\n648: \t\texpect(home).toHaveLength(2);\n649: \t\texpect(away).toHaveLength(2);\n650: \t\texpect(home.every((p) => p.teamName !== null)).toBe(true);\n651: \t\texpect(away.every((p) => p.teamName !== null)).toBe(true);\n652: \t});\n653: });\n654: ```\n655: \n656: - [ ] **Step 2: Run test to verify it fails**\n657: \n658: Run: `bun run --cwd apps/worker test -- match-events.spec.ts`\n659: Expected: FAIL — `Cannot find module '../../src/services/match-events'`.\n660: \n661: - [ ] **Step 3: Implement `buildMatchInsertData`**\n662: \n663: Create `apps/worker/src/services/match-events.ts`:\n664: \n665: ```ts\n666: import type { DrizzleDB } from \"../db\";\n667: import type { scoreType } from \"../db/schema/league-schema\";\n668: import * as matchRepository from \"../repositories/match-repository\";\n669: import * as seasonPlayerRepository from \"../repositories/season-player-repository\";\n670: \n671: export type SeasonScoreType = (typeof scoreType)[number];\n672: \n673: export type Standing = Awaited<ReturnType<typeof seasonPlayerRepository.getStanding>>;\n674: \n675: export interface MatchDisplayPlayer {\n676: \tid: string;\n677: \tname: string;\n678: \timage: string | null;\n679: \tteamName: string | null;\n680: \tteamLogo: string | null;\n681: \thomeTeam: boolean;\n682: }\n683: \n684: export interface MatchInsertData {\n685: \tmatch: {\n686: \t\tid: string;\n687: \t\tseasonId: string;\n688: \t\thomeScore: number;\n689: \t\tawayScore: number;\n690: \t\tcreatedAt: Date;\n691: \t};\n692: \tscoreType: SeasonScoreType;\n693: \tplayers: MatchDisplayPlayer[];\n694: \tstandings: Standing;\n695: }\n696: \n697: export async function buildMatchInsertData(\n698: \tdb: DrizzleDB,\n699: \topts: {\n700: \t\tmatch: MatchInsertData[\"match\"];\n701: \t\tscoreType: SeasonScoreType;\n702: \t\tstandings: Standing;\n703: \t}\n704: ): Promise<MatchInsertData> {\n705: \tconst matchWithPlayers = await matchRepository.getMatchWithPlayers({ db, matchId: opts.match.id });\n706: \treturn {\n707: \t\tmatch: opts.match,\n708: \t\tscoreType: opts.scoreType,\n709: \t\tplayers: matchWithPlayers?.players ?? [],\n710: \t\tstandings: opts.standings,\n711: \t};\n712: }\n713: ```\n714: \n715: - [ ] **Step 4: Wire into `match-router.ts`**\n716: \n717: Edit `apps/worker/src/trpc/router/match-router.ts`.\n718: \n719: **4a. Add import** (after the existing `broadcastSeasonEvent` import, line 8):\n720: \n721: ```ts\n722: import { broadcastSeasonEvent } from \"../../routes/sse-router\";\n723: import type { AchievementQueueMessage } from \"../../services/achievement-calculation\";\n724: import { buildMatchInsertData, type SeasonScoreType } from \"../../services/match-events\";\n725: ```\n726: \n727: **4b. Replace `finalizeMatchCreation`** (lines 102-169) with the enriched version:\n728: \n729: ```ts\n730: async function finalizeMatchCreation({\n731: \tctx,\n732: \tseasonSlug,\n733: \tseasonId,\n734: \tcreatedMatch,\n735: \tseasonPlayerIds,\n736: \tscoreType,\n737: }: {\n738: \tctx: {\n739: \t\tdb: Parameters<typeof seasonPlayerRepository.getStanding>[0][\"db\"];\n740: \t\tenv: Pick<Env, \"SEASON_SSE\" | \"ACHIEVEMENT_QUEUE\">;\n741: \t\twaitUntil: (promise: Promise<unknown>) => void;\n742: \t\torganization: { slug: string };\n743: \t\tauthentication: { user: { id: string; name: string } };\n744: \t};\n745: \tseasonSlug: string;\n746: \tseasonId: string;\n747: \tcreatedMatch: {\n748: \t\tid: string;\n749: \t\tseasonId: string;\n750: \t\thomeScore: number;\n751: \t\tawayScore: number;\n752: \t\tcreatedAt: Date;\n753: \t};\n754: \tseasonPlayerIds: string[];\n755: \tscoreType: SeasonScoreType;\n756: }) {\n757: \tconst standings = await seasonPlayerRepository.getStanding({\n758: \t\tdb: ctx.db,\n759: \t\tseasonId,\n760: \t});\n761: \n762: \tconst data = await buildMatchInsertData(ctx.db, {\n763: \t\tmatch: createdMatch,\n764: \t\tscoreType,\n765: \t\tstandings,\n766: \t});\n767: \n768: \tctx.waitUntil(\n769: \t\tbroadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {\n770: \t\t\ttype: \"match:insert\",\n771: \t\t\tdata,\n772: \t\t\tuser: {\n773: \t\t\t\tid: ctx.authentication.user.id,\n774: \t\t\t\tname: ctx.authentication.user.name,\n775: \t\t\t},\n776: \t\t})\n777: \t);\n778: \n779: \tconst [streakPlayers, streakTeams] = await Promise.all([\n780: \t\tmatchRepository.checkStreakThresholds({\n781: \t\t\tdb: ctx.db,\n782: \t\t\tseasonPlayerIds,\n783: \t\t}),\n784: \t\tmatchRepository.checkTeamStreakThresholds({\n785: \t\t\tdb: ctx.db,\n786: \t\t\tmatchId: createdMatch.id,\n787: \t\t}),\n788: \t]);\n789: \n790: \tbroadcastStreakEvents(\n791: \t\tctx.waitUntil.bind(ctx),\n792: \t\tctx.env,\n793: \t\tctx.organization.slug,\n794: \t\tseasonSlug,\n795: \t\tstreakPlayers,\n796: \t\tstreakTeams,\n797: \t\t{\n798: \t\t\tid: ctx.authentication.user.id,\n799: \t\t\tname: ctx.authentication.user.name,\n800: \t\t}\n801: \t);\n802: \n803: \tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n804: \t\tseasonPlayerIds,\n805: \t\tleagueSlug: ctx.organization.slug,\n806: \t\tseasonSlug,\n807: \t} satisfies AchievementQueueMessage);\n808: \n809: \treturn createdMatch;\n810: }\n811: ```\n812: \n813: **4c. Refactor `createFromFixture`** — replace lines 234-283 (the inline standings/broadcast/streak/queue block) with a single call. The block to remove starts at:\n814: \n815: ```ts\n816: \t\t\tconst standings = await seasonPlayerRepository.getStanding({\n817: \t\t\t\tdb: ctx.db,\n818: \t\t\t\tseasonId: season.id,\n819: \t\t\t});\n820: \n821: \t\t\tctx.waitUntil(\n822: \t\t\t\tbroadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {\n823: \t\t\t\t\ttype: \"match:insert\",\n824: \t\t\t\t\tdata: {\n825: \t\t\t\t\t\tmatch: createdMatch,\n826: \t\t\t\t\t\tstandings,\n827: \t\t\t\t\t},\n828: \t\t\t\t\tuser: {\n829: \t\t\t\t\t\tid: ctx.authentication.user.id,\n830: \t\t\t\t\t\tname: ctx.authentication.user.name,\n831: \t\t\t\t\t},\n832: \t\t\t\t})\n833: \t\t\t);\n834: \n835: \t\t\tconst [streakPlayers, streakTeams] = await Promise.all([\n836: \t\t\t\tmatchRepository.checkStreakThresholds({\n837: \t\t\t\t\tdb: ctx.db,\n838: \t\t\t\t\tseasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],\n839: \t\t\t\t}),\n840: \t\t\t\tmatchRepository.checkTeamStreakThresholds({\n841: \t\t\t\t\tdb: ctx.db,\n842: \t\t\t\t\tmatchId: createdMatch.id,\n843: \t\t\t\t}),\n844: \t\t\t]);\n845: \n846: \t\t\tbroadcastStreakEvents(\n847: \t\t\t\tctx.waitUntil.bind(ctx),\n848: \t\t\t\tctx.env,\n849: \t\t\t\tctx.organization.slug,\n850: \t\t\t\tinput.seasonSlug,\n851: \t\t\t\tstreakPlayers,\n852: \t\t\t\tstreakTeams,\n853: \t\t\t\t{\n854: \t\t\t\t\tid: ctx.authentication.user.id,\n855: \t\t\t\t\tname: ctx.authentication.user.name,\n856: \t\t\t\t}\n857: \t\t\t);\n858: \n859: \t\t\t// Dispatch achievement calculation\n860: \t\t\tconst seasonPlayerIds = [fixture.homePlayerId, fixture.awayPlayerId];\n861: \t\t\tawait ctx.env.ACHIEVEMENT_QUEUE.send({\n862: \t\t\t\tseasonPlayerIds,\n863: \t\t\t\tleagueSlug: ctx.organization.slug,\n864: \t\t\t\tseasonSlug: input.seasonSlug,\n865: \t\t\t} satisfies AchievementQueueMessage);\n866: \n867: \t\t\treturn createdMatch;\n868: ```\n869: \n870: Replace it with:\n871: \n872: ```ts\n873: \t\t\treturn finalizeMatchCreation({\n874: \t\t\t\tctx,\n875: \t\t\t\tseasonSlug: input.seasonSlug,\n876: \t\t\t\tseasonId: season.id,\n877: \t\t\t\tcreatedMatch,\n878: \t\t\t\tseasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],\n879: \t\t\t\tscoreType: season.scoreType,\n880: \t\t\t});\n881: ```\n882: \n883: **4d. Add `scoreType` to the `create` call site** (lines 354-362):\n884: \n885: ```ts\n886: \t\t\t\t.then(async (createdMatch) =>\n887: \t\t\t\t\tfinalizeMatchCreation({\n888: \t\t\t\t\t\tctx,\n889: \t\t\t\t\t\tseasonSlug: input.seasonSlug,\n890: \t\t\t\t\t\tseasonId: comp.id,\n891: \t\t\t\t\t\tcreatedMatch,\n892: \t\t\t\t\t\tseasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],\n893: \t\t\t\t\t\tscoreType: comp.scoreType,\n894: \t\t\t\t\t})\n895: \t\t\t\t);\n896: ```\n897: \n898: **4e. Add `scoreType` to the `createOneVn` call site** (lines 458-464):\n899: \n900: ```ts\n901: \t\t\treturn finalizeMatchCreation({\n902: \t\t\t\tctx,\n903: \t\t\t\tseasonSlug: input.seasonSlug,\n904: \t\t\t\tseasonId: comp.id,\n905: \t\t\t\tcreatedMatch,\n906: \t\t\t\tseasonPlayerIds: allIds,\n907: \t\t\t\tscoreType: comp.scoreType,\n908: \t\t\t});\n909: ```\n910: \n911: - [ ] **Step 5: Run tests + typecheck**\n912: \n913: Run: `bun run --cwd apps/worker test -- match-events.spec.ts`\n914: Expected: PASS.\n915: \n916: Run: `bun run --cwd apps/worker test -- match-router.spec.ts`\n917: Expected: PASS (existing match-router behavior unchanged).\n918: \n919: Run: `bun typecheck`\n920: Expected: PASS.\n921: \n922: - [ ] **Step 6: Commit**\n923: \n924: ```bash\n925: git add apps/worker/src/services/match-events.ts apps/worker/src/trpc/router/match-router.ts apps/worker/test/services/match-events.spec.ts\n926: git commit -m \"feat: enrich match:insert SSE payload with scoreType and players\"\n927: ```\n928: \n929: ---\n930: \n931: ## Task 4: Frontend shared helpers + refactor\n932: \n933: **Files:**\n934: - Create: `apps/web/src/lib/achievements.ts`\n935: - Create: `apps/web/src/lib/match-names.ts`\n936: - Modify: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx`\n937: - Modify: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx`\n938: - Modify: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx`\n939: - Modify: `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx`\n940: \n941: - [ ] **Step 1: Create `apps/web/src/lib/achievements.ts`**\n942: \n943: ```ts\n944: export function formatAchievementName(type: string): string {\n945: \treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n946: }\n947: ```\n948: \n949: - [ ] **Step 2: Create `apps/web/src/lib/match-names.ts`**\n950: \n951: ```ts\n952: export interface MatchDisplayPlayer {\n953: \tid: string;\n954: \tname: string;\n955: \timage: string | null;\n956: \tteamName: string | null;\n957: \tteamLogo: string | null;\n958: \thomeTeam: boolean;\n959: }\n960: \n961: export function getTeamInfo(\n962: \tplayers: MatchDisplayPlayer[]\n963: ): { name: string; logo: string | null } | null {\n964: \tif (players.length <= 1) return null;\n965: \tconst teamName = players[0]?.teamName;\n966: \tconst teamLogo = players[0]?.teamLogo ?? null;\n967: \tif (teamName) return { name: teamName, logo: teamLogo };\n968: \treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n969: }\n970: \n971: export function getSideLabel(players: MatchDisplayPlayer[]): string {\n972: \tif (players.length === 0) return \"Unknown\";\n973: \tconst teamInfo = getTeamInfo(players);\n974: \tif (teamInfo) return teamInfo.name;\n975: \treturn players.map((p) => p.name).join(\", \");\n976: }\n977: \n978: export function buildMatchResultToast(opts: {\n979: \tscoreType: string;\n980: \tplayers: MatchDisplayPlayer[];\n981: \thomeScore: number;\n982: \tawayScore: number;\n983: }): string {\n984: \tconst home = opts.players.filter((p) => p.homeTeam);\n985: \tconst away = opts.players.filter((p) => !p.homeTeam);\n986: \n987: \tif (opts.scoreType === \"1-v-n-elo\") {\n988: \t\treturn `${getSideLabel(home)} won the match`;\n989: \t}\n990: \n991: \treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n992: }\n993: ```\n994: \n995: - [ ] **Step 3: Refactor `match-score-display.tsx` to import shared helpers**\n996: \n997: Edit `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx`:\n998: \n999: **3a.** Add import at top (after the existing imports, line 5):\n1000: \n1001: ```ts\n1002: import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n1003: ```\n1004: \n1005: **3b.** Remove the local definitions of `MatchDisplayPlayer`, `getTeamInfo`, `getSideLabel` (lines 37-59):\n1006: \n1007: ```ts\n1008: export interface MatchDisplayPlayer {\n1009: \tid: string;\n1010: \tname: string;\n1011: \timage: string | null;\n1012: \tteamName: string | null;\n1013: \tteamLogo: string | null;\n1014: \thomeTeam: boolean;\n1015: }\n1016: \n1017: function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {\n1018: \tif (players.length <= 1) return null;\n1019: \tconst teamName = players[0]?.teamName;\n1020: \tconst teamLogo = players[0]?.teamLogo ?? null;\n1021: \tif (teamName) return { name: teamName, logo: teamLogo };\n1022: \treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n1023: }\n1024: \n1025: function getSideLabel(players: MatchDisplayPlayer[]): string {\n1026: \tif (players.length === 0) return \"Unknown\";\n1027: \tconst teamInfo = getTeamInfo(players);\n1028: \tif (teamInfo) return teamInfo.name;\n1029: \treturn players.map((p) => p.name).join(\", \");\n1030: }\n1031: ```\n1032: \n1033: **3c.** Add a re-export so the existing consumers keep working without further churn (optional but safe):\n1034: \n1035: ```ts\n1036: export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n1037: ```\n1038: \n1039: - [ ] **Step 4: Update the two consumer imports**\n1040: \n1041: Edit `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx` line 1, from:\n1042: \n1043: ```ts\n1044: import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n1045: ```\n1046: \n1047: to:\n1048: \n1049: ```ts\n1050: import { MatchScoreDisplay } from \"./match-score-display\";\n1051: import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n1052: ```\n1053: \n1054: Edit `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx` line 10, from:\n1055: \n1056: ```ts\n1057: import { MatchScoreDisplay, type MatchDisplayPlayer } from \"./match-score-display\";\n1058: ```\n1059: \n1060: to:\n1061: \n1062: ```ts\n1063: import { MatchScoreDisplay } from \"./match-score-display\";\n1064: import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n1065: ```\n1066: \n1067: - [ ] **Step 5: Refactor player detail page to use shared `formatAchievementName`**\n1068: \n1069: Edit `apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx`:\n1070: \n1071: **5a.** Add import (after the existing `@/lib/utils` import, line 9):\n1072: \n1073: ```ts\n1074: import { truncateSlug } from \"@/lib/utils\";\n1075: import { formatAchievementName } from \"@/lib/achievements\";\n1076: ```\n1077: \n1078: **5b.** Remove the local function (lines 716-718):\n1079: \n1080: ```ts\n1081: function formatAchievementName(type: string): string {\n1082: \treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n1083: }\n1084: ```\n1085: \n1086: - [ ] **Step 6: Lint, format, typecheck**\n1087: \n1088: Run: `bun oxc`\n1089: Run: `bun typecheck`\n1090: Expected: both PASS.\n1091: \n1092: - [ ] **Step 7: Commit**\n1093: \n1094: ```bash\n1095: git add apps/web/src/lib/achievements.ts apps/web/src/lib/match-names.ts apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/match-score-display.tsx apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/match-row.tsx apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/seasons/-components/match/remove-match-dialog.tsx apps/web/src/routes/_authenticated/_sidebar/leagues/\\$slug/players/\\$leaguePlayerId/index.tsx\n1096: git commit -m \"refactor: extract shared match naming and achievement helpers\"\n1097: ```\n1098: \n1099: ---\n1100: \n1101: ## Task 5: Frontend toast wiring in `use-season-sse.ts`\n1102: \n1103: **Files:**\n1104: - Modify: `apps/web/src/hooks/use-season-sse.ts`\n1105: \n1106: - [ ] **Step 1: Add imports**\n1107: \n1108: Edit the imports at the top of `apps/web/src/hooks/use-season-sse.ts`:\n1109: \n1110: ```ts\n1111: import { useEffect, useRef, useState } from \"react\";\n1112: import { useQueryClient } from \"@tanstack/react-query\";\n1113: import { toast } from \"sonner\";\n1114: import { useTRPC } from \"@/lib/trpc\";\n1115: import { buildMatchResultToast, type MatchDisplayPlayer } from \"@/lib/match-names\";\n1116: import { formatAchievementName } from \"@/lib/achievements\";\n1117: import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n1118: import \"@/lib/event-types\";\n1119: ```\n1120: \n1121: - [ ] **Step 2: Extend the `MatchData` type**\n1122: \n1123: Replace the `MatchData` type (lines 21-46) with:\n1124: \n1125: ```ts\n1126: type MatchData = {\n1127: \tmatch?: {\n1128: \t\tid: string;\n1129: \t\tseasonId: string;\n1130: \t\thomeScore: number;\n1131: \t\tawayScore: number;\n1132: \t\tcreatedAt: Date;\n1133: \t};\n1134: \tmatchId?: string;\n1135: \tscoreType?: string;\n1136: \tplayers?: MatchDisplayPlayer[];\n1137: \tstandings?: Array<{\n1138: \t\tid: string;\n1139: \t\tseasonId: string;\n1140: \t\tplayerId: string;\n1141: \t\tscore: number;\n1142: \t\tname: string;\n1143: \t\timage: string | null;\n1144: \t\tuserId: string;\n1145: \t\tmatchCount: number;\n1146: \t\twinCount: number;\n1147: \t\tlossCount: number;\n1148: \t\tdrawCount: number;\n1149: \t\trank: number;\n1150: \t\tpointDiff: number;\n1151: \t\tform: Array<\"W\" | \"D\" | \"L\">;\n1152: \t}>;\n1153: };\n1154: ```\n1155: \n1156: - [ ] **Step 3: Extend the `SeasonSSEEvent` type**\n1157: \n1158: Replace the `SeasonSSEEvent` type (lines 48-56) with:\n1159: \n1160: ```ts\n1161: export type SeasonSSEEvent =\n1162: \t| { type: \"connected\"; user?: { id: string; name: string } }\n1163: \t| { type: \"streak\"; user?: { id: string; name: string }; data: StreakData }\n1164: \t| { type: \"session:start\"; user?: { id: string; name: string }; data: SessionData }\n1165: \t| { type: \"session:update\"; user?: { id: string; name: string }; data: SessionData }\n1166: \t| { type: \"session:end\"; user?: { id: string; name: string }; data: SessionData }\n1167: \t| { type: \"match:insert\"; user?: { id: string; name: string }; data?: MatchData }\n1168: \t| { type: \"match:delete\"; user?: { id: string; name: string }; data?: MatchData }\n1169: \t| { type: \"standings:update\"; user?: { id: string; name: string }; data?: MatchData }\n1170: \t| {\n1171: \t\t\ttype: \"achievement:unlock\";\n1172: \t\t\tdata?: {\n1173: \t\t\t\tplayer?: { id: string; name: string; image: string | null };\n1174: \t\t\t\ttype?: string;\n1175: \t\t\t};\n1176: \t  };\n1177: ```\n1178: \n1179: - [ ] **Step 4: Add session start/end toasts**\n1180: \n1181: In the session branch (lines 140-173), add toasts just before the `return`:\n1182: \n1183: ```ts\n1184: \t\t\t\t\tif (\n1185: \t\t\t\t\t\tparsed.type === \"session:start\" ||\n1186: \t\t\t\t\t\tparsed.type === \"session:update\" ||\n1187: \t\t\t\t\t\tparsed.type === \"session:end\"\n1188: \t\t\t\t\t) {\n1189: \t\t\t\t\t\tconst sessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;\n1190: \t\t\t\t\t\twindow.dispatchEvent(\n1191: \t\t\t\t\t\t\tnew CustomEvent(\"session-event\", {\n1192: \t\t\t\t\t\t\t\tdetail: { type: parsed.type, sessionId, userName: parsed.user?.name },\n1193: \t\t\t\t\t\t\t})\n1194: \t\t\t\t\t\t);\n1195: \n1196: \t\t\t\t\t\tif (sessionId) {\n1197: \t\t\t\t\t\t\tqc.invalidateQueries({\n1198: \t\t\t\t\t\t\t\tqueryKey: t.session.getById.queryKey({ sessionId }),\n1199: \t\t\t\t\t\t\t});\n1200: \t\t\t\t\t\t}\n1201: \t\t\t\t\t\tqc.invalidateQueries({\n1202: \t\t\t\t\t\t\tqueryKey: t.session.getActive.queryKey({ seasonSlug }),\n1203: \t\t\t\t\t\t});\n1204: \n1205: \t\t\t\t\t\tif (parsed.type === \"session:update\" || parsed.type === \"session:end\") {\n1206: \t\t\t\t\t\t\tqc.invalidateQueries({\n1207: \t\t\t\t\t\t\t\tqueryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),\n1208: \t\t\t\t\t\t\t});\n1209: \t\t\t\t\t\t\tqc.invalidateQueries({\n1210: \t\t\t\t\t\t\t\tqueryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),\n1211: \t\t\t\t\t\t\t});\n1212: \t\t\t\t\t\t\tqc.invalidateQueries({\n1213: \t\t\t\t\t\t\t\tqueryKey: t.match.getLatest.queryKey({ seasonSlug }),\n1214: \t\t\t\t\t\t\t});\n1215: \t\t\t\t\t\t}\n1216: \n1217: \t\t\t\t\t\tif (!isOwnEvent && parsed.user) {\n1218: \t\t\t\t\t\t\tif (parsed.type === \"session:start\") {\n1219: \t\t\t\t\t\t\t\ttoast.info(`${parsed.user.name} started a session`);\n1220: \t\t\t\t\t\t\t} else if (parsed.type === \"session:end\") {\n1221: \t\t\t\t\t\t\t\ttoast.info(`${parsed.user.name} ended a session`);\n1222: \t\t\t\t\t\t\t}\n1223: \t\t\t\t\t\t}\n1224: \t\t\t\t\t\treturn;\n1225: \t\t\t\t\t}\n1226: ```\n1227: \n1228: - [ ] **Step 5: Add the `achievement:unlock` branch**\n1229: \n1230: Add the following branch immediately after the streak branch's `return` (after line 138) and before the session branch:\n1231: \n1232: ```ts\n1233: \t\t\t\t\tif (parsed.type === \"achievement:unlock\" && parsed.data?.player && parsed.data.type) {\n1234: \t\t\t\t\t\tconst { player, type } = parsed.data;\n1235: \t\t\t\t\t\ttoast.info(\n1236: \t\t\t\t\t\t\t<span className=\"flex items-center gap-2\">\n1237: \t\t\t\t\t\t\t\t<AvatarWithFallback src={player.image} name={player.name} size=\"sm\" />\n1238: \t\t\t\t\t\t\t\t<span>\n1239: \t\t\t\t\t\t\t\t\t{player.name} unlocked <b>{formatAchievementName(type)}</b>\n1240: \t\t\t\t\t\t\t\t</span>\n1241: \t\t\t\t\t\t\t</span>\n1242: \t\t\t\t\t\t);\n1243: \t\t\t\t\t\treturn;\n1244: \t\t\t\t\t}\n1245: ```\n1246: \n1247: - [ ] **Step 6: Replace the match toast section**\n1248: \n1249: Replace lines 202-208:\n1250: \n1251: ```ts\n1252: \t\t\t\t\tif (parsed.user && parsed.user.id !== currentUserId) {\n1253: \t\t\t\t\t\tif (parsed.type === \"match:insert\") {\n1254: \t\t\t\t\t\t\ttoast.info(`${parsed.user.name} registered a match`);\n1255: \t\t\t\t\t\t} else if (parsed.type === \"match:delete\") {\n1256: \t\t\t\t\t\t\ttoast.info(`${parsed.user.name} deleted a match`);\n1257: \t\t\t\t\t\t}\n1258: \t\t\t\t\t}\n1259: ```\n1260: \n1261: with:\n1262: \n1263: ```ts\n1264: \t\t\t\t\tif (parsed.user && parsed.user.id !== currentUserId) {\n1265: \t\t\t\t\t\tif (parsed.type === \"match:insert\") {\n1266: \t\t\t\t\t\t\ttoast.info(\n1267: \t\t\t\t\t\t\t\tbuildMatchResultToast({\n1268: \t\t\t\t\t\t\t\t\tscoreType: parsed.data?.scoreType ?? \"\",\n1269: \t\t\t\t\t\t\t\t\tplayers: parsed.data?.players ?? [],\n1270: \t\t\t\t\t\t\t\t\thomeScore: parsed.data?.match?.homeScore ?? 0,\n1271: \t\t\t\t\t\t\t\t\tawayScore: parsed.data?.match?.awayScore ?? 0,\n1272: \t\t\t\t\t\t\t\t})\n1273: \t\t\t\t\t\t\t);\n1274: \t\t\t\t\t\t} else if (parsed.type === \"match:delete\") {\n1275: \t\t\t\t\t\t\ttoast.info(`${parsed.user.name} deleted a match`);\n1276: \t\t\t\t\t\t}\n1277: \t\t\t\t\t}\n1278: ```\n1279: \n1280: - [ ] **Step 7: Lint, format, typecheck**\n1281: \n1282: Run: `bun oxc`\n1283: Run: `bun typecheck`\n1284: Expected: both PASS.\n1285: \n1286: - [ ] **Step 8: Commit**\n1287: \n1288: ```bash\n1289: git add apps/web/src/hooks/use-season-sse.ts\n1290: git commit -m \"feat: wire subtle toasts for match, session, and achievement events\"\n1291: ```\n1292: \n1293: ---\n1294: \n1295: ## Task 6: Full verification\n1296: \n1297: **Files:** none (verification only)\n1298: \n1299: - [ ] **Step 1: Full check + tests**\n1300: \n1301: Run: `bun check && bun run test`\n1302: Expected: typecheck, lint, format, and all worker vitest suites PASS.\n1303: \n1304: - [ ] **Step 2: Manual UI verification (agent-browser)**\n1305: \n1306: Use the `agent-browser` skill. App runs at `https://scorebrawl.localhost:1355`. Log in as `seed@scorebrawl.com`. Confirm acceptance criteria:\n1307: - Registering a match shows a result toast (\"TeamA 3–2 TeamB\", \"Alice & Bob 3–2 Carol & Dan\", or \"Alice won the match\" for 1-v-n) to other users viewing that league/season.\n1308: - A newly earned achievement triggers a toast with the player + achievement name.\n1309: - Session start/end show subtle toasts.\n1310: - StreakFlyout still fires on 5/10/15 streak crossings.\n1311: - Toasts never appear for users who don't have that league/season open.\n1312: \n1313: - [ ] **Step 3: Final commit (if manual checks required edits)**\n1314: \n1315: ```bash\n1316: git add -A\n1317: git commit -m \"chore: verification fixes\"\n1318: ```\n\n(End of file - total 1318 lines)\n</content>",
+            "metadata": {
+              "preview": "# Subtle Toast Notifications Implementation Plan\n\n> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.\n\n**Goal:** Replace noisy per-event feedback after match registration with subtle, multi-tenant toast notifications driven by the existing season-scoped SSE stream.\n\n**Architecture:** Enrich the `match:insert` SSE payload with `scoreType` + `players` (reusing `getMatchWithPlayers`), emit a new `achievement:unlock` event from the queue consumer (which now carries `leagueSlug`/`seasonSlug`), and wire subtle sonner toasts in `use-season-sse.ts`. Multi-tenancy is inherited from the existing per-league/per-season Durable Object and the season-route-scoped hook.\n\n**Tech Stack:** TypeScript, Hono, Drizzle ORM (D1), Cloudflare Durable Objects + Queues, tRPC, React + TanStack Query/Router, sonner, Vitest (worker only).\n\n---\n\n## File Structure\n\n### Worker (`apps/worker`)\n\n- `src/services/achievement-calculation.ts` (modify) — `calculateAchievements` returns newly-earned achievements with player name/image; add `buildAchievementUnlockEvents`; extend `AchievementQueueMessage` with `leagueSlug`/`seasonSlug`.\n- `src/services/match-events.ts` (create) — `buildMatchInsertData` + shared `MatchDisplayPlayer` / `SeasonScoreType` types.\n- `src/durable-objects/season-sse.ts` (modify) — add `\"achievement:unlock\"` to `SeasonSSEEvent` union.\n- `src/trpc/router/match-router.ts` (modify) — enrich `match:insert` broadcast; pass `leagueSlug`/`seasonSlug` to queue; refactor `createFromFixture` to reuse `finalizeMatchCreation`.",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md",
+            "time": {
+              "start": 1786712399184,
+              "end": 1786712399194
+            }
+          },
+          "id": "prt_0005b9bbb001ACfsRlYPEBFOBu",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8d7e00101tGQYDiI6OM8B"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16187,
+            "input": 414,
+            "output": 146,
+            "reasoning": 139,
+            "cache": {
+              "write": 0,
+              "read": 15488
+            }
+          },
+          "cost": 0.000484184,
+          "id": "prt_0005b9e07001IQXIpuNyHLF10E",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b8d7e00101tGQYDiI6OM8B"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.007427364,
+        "tokens": {
+          "total": 32835,
+          "input": 16474,
+          "output": 203,
+          "reasoning": 30,
+          "cache": {
+            "write": 0,
+            "read": 16128
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712399436,
+          "completed": 1786712403888
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005b9e4c001yuCOY9LJ9UCWVD",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005ba25200180w3yWairiS4gy",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me review the actual files to understand the full context, particularly the re-export question and the `dashboard-cards.tsx` duplication concern.",
+          "time": {
+            "start": 1786712401901,
+            "end": 1786712402441
+          },
+          "id": "prt_0005ba7ed001tHxnumiB8C7vja",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_vmtq3Xjte58GoqJqaD659162",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx</path>\n<type>file</type>\n<content>\n1: import { useState } from \"react\";\n2: import { cn } from \"@/lib/utils\";\n3: import { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\n4: import { HugeiconsIcon } from \"@hugeicons/react\";\n5: import { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\n6: import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n7: \n8: export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n9: \n10: const getAssetUrl = (key: string | null | undefined): string | null => {\n11: \tif (!key) return null;\n12: \tif (key.startsWith(\"http://\") || key.startsWith(\"https://\")) return key;\n13: \treturn `/api/user-assets/${key}`;\n14: };\n15: \n16: function TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n17: \tconst [hasError, setHasError] = useState(false);\n18: \tconst logoUrl = getAssetUrl(logo);\n19: \n20: \tif (!logoUrl || hasError) {\n21: \t\treturn (\n22: \t\t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10\">\n23: \t\t\t\t<HugeiconsIcon icon={UserMultipleIcon} className=\"size-4 text-blue-500\" />\n24: \t\t\t</div>\n25: \t\t);\n26: \t}\n27: \n28: \treturn (\n29: \t\t<div className=\"flex h-6 w-6 items-center justify-center rounded-lg overflow-hidden\">\n30: \t\t\t<img\n31: \t\t\t\tsrc={logoUrl}\n32: \t\t\t\talt={name}\n33: \t\t\t\tclassName=\"h-full w-full object-cover\"\n34: \t\t\t\tonError={() => setHasError(true)}\n35: \t\t\t/>\n36: \t\t</div>\n37: \t);\n38: }\n39: \n40: function formatTimestamp(date: Date) {\n41: \tconst now = new Date();\n42: \tconst matchDate = new Date(date);\n43: \tconst isToday = now.toDateString() === matchDate.toDateString();\n44: \n45: \tif (isToday) {\n46: \t\tconst diffMs = now.getTime() - matchDate.getTime();\n47: \t\tconst diffMinutes = Math.floor(diffMs / (1000 * 60));\n48: \t\tif (diffMinutes < 60) {\n49: \t\t\treturn { primary: diffMinutes <= 1 ? \"1m ago\" : `${diffMinutes}m ago` };\n50: \t\t}\n51: \t\treturn { primary: `${Math.floor(diffMinutes / 60)}h ago` };\n52: \t}\n53: \n54: \treturn {\n55: \t\tprimary: matchDate.toLocaleDateString(\"en-US\", { month: \"short\", day: \"numeric\" }),\n56: \t\tsecondary: matchDate.toLocaleTimeString(\"en-US\", { hour: \"numeric\", minute: \"2-digit\" }),\n57: \t};\n58: }\n59: \n60: function ScoreLine({\n61: \tplayers,\n62: \tscore,\n63: \tisWinner,\n64: \tisMuted,\n65: \t\"data-testid\": dataTestId,\n66: }: {\n67: \tplayers: MatchDisplayPlayer[];\n68: \tscore: number;\n69: \tisWinner: boolean;\n70: \tisMuted: boolean;\n71: \t\"data-testid\"?: string;\n72: }) {\n73: \tconst teamInfo = getTeamInfo(players);\n74: \n75: \treturn (\n76: \t\t<div className=\"flex items-center justify-between gap-2 min-w-0 overflow-hidden\">\n77: \t\t\t<div className=\"flex items-center gap-2 min-w-0 overflow-hidden\">\n78: \t\t\t\t<div className=\"flex gap-1 shrink-0\">\n79: \t\t\t\t\t{teamInfo ? (\n80: \t\t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n81: \t\t\t\t\t) : (\n82: \t\t\t\t\t\tplayers.map((player) => (\n83: \t\t\t\t\t\t\t<AvatarWithFallback key={player.id} src={player.image} name={player.name} size=\"sm\" />\n84: \t\t\t\t\t\t))\n85: \t\t\t\t\t)}\n86: \t\t\t\t</div>\n87: \t\t\t\t<span\n88: \t\t\t\t\tclassName={cn(\n89: \t\t\t\t\t\t\"text-sm truncate\",\n90: \t\t\t\t\t\tisWinner && \"font-semibold text-foreground\",\n91: \t\t\t\t\t\tisMuted && \"text-muted-foreground\",\n92: \t\t\t\t\t\t!isWinner && !isMuted && \"text-foreground\"\n93: \t\t\t\t\t)}\n94: \t\t\t\t>\n95: \t\t\t\t\t{getSideLabel(players)}\n96: \t\t\t\t</span>\n97: \t\t\t</div>\n98: \t\t\t<div\n99: \t\t\t\tdata-testid={dataTestId}\n100: \t\t\t\tclassName={cn(\n101: \t\t\t\t\t\"flex h-7 w-7 items-center justify-center rounded-md border text-sm tabular-nums shrink-0 bg-primary/10\",\n102: \t\t\t\t\tisWinner && \"font-bold text-foreground\",\n103: \t\t\t\t\tisMuted && \"text-muted-foreground font-medium\",\n104: \t\t\t\t\t!isWinner && !isMuted && \"font-medium text-foreground\"\n105: \t\t\t\t)}\n106: \t\t\t>\n107: \t\t\t\t{score}\n108: \t\t\t</div>\n109: \t\t</div>\n110: \t);\n111: }\n112: \n113: interface MatchScoreDisplayProps {\n114: \tmatchId: string;\n115: \thomeScore: number;\n116: \tawayScore: number;\n117: \tcreatedAt: Date;\n118: \thomePlayers: MatchDisplayPlayer[];\n119: \tawayPlayers: MatchDisplayPlayer[];\n120: \tcompact?: boolean;\n121: }\n122: \n123: export function MatchScoreDisplay({\n124: \tmatchId,\n125: \thomeScore,\n126: \tawayScore,\n127: \tcreatedAt,\n128: \thomePlayers,\n129: \tawayPlayers,\n130: \tcompact,\n131: }: MatchScoreDisplayProps) {\n132: \tconst homeWins = homeScore > awayScore;\n133: \tconst awayWins = awayScore > homeScore;\n134: \tconst timestamp = formatTimestamp(createdAt);\n135: \n136: \tif (compact) {\n137: \t\treturn (\n138: \t\t\t<div className=\"flex flex-col min-w-0\" data-testid={`match-row-${matchId}`}>\n139: \t\t\t\t<div className=\"flex flex-col gap-2 min-w-0\">\n140: \t\t\t\t\t<ScoreLine\n141: \t\t\t\t\t\tplayers={homePlayers}\n142: \t\t\t\t\t\tscore={homeScore}\n143: \t\t\t\t\t\tisWinner={homeWins}\n144: \t\t\t\t\t\tisMuted={awayWins}\n145: \t\t\t\t\t/>\n146: \t\t\t\t\t<ScoreLine\n147: \t\t\t\t\t\tplayers={awayPlayers}\n148: \t\t\t\t\t\tscore={awayScore}\n149: \t\t\t\t\t\tisWinner={awayWins}\n150: \t\t\t\t\t\tisMuted={homeWins}\n151: \t\t\t\t\t/>\n152: \t\t\t\t</div>\n153: \t\t\t\t<div\n154: \t\t\t\t\tclassName=\"text-xs text-muted-foreground text-right mt-3 pt-3 border-t border-border\"\n155: \t\t\t\t\tdata-testid={`match-date-${matchId}`}\n156: \t\t\t\t>\n157: \t\t\t\t\t{timestamp.primary}\n158: \t\t\t\t\t{timestamp.secondary && ` · ${timestamp.secondary}`}\n159: \t\t\t\t</div>\n160: \t\t\t</div>\n161: \t\t);\n162: \t}\n163: \n164: \treturn (\n165: \t\t<div className=\"flex items-center min-w-0 overflow-hidden\" data-testid={`match-row-${matchId}`}>\n166: \t\t\t<div className=\"flex flex-col items-start shrink-0 w-16 md:w-20 mr-3 md:mr-4\">\n167: \t\t\t\t<span className=\"text-xs text-muted-foreground\" data-testid={`match-date-${matchId}`}>\n168: \t\t\t\t\t{timestamp.primary}\n169: \t\t\t\t</span>\n170: \t\t\t\t{timestamp.secondary && (\n171: \t\t\t\t\t<span className=\"hidden md:block text-[11px] text-muted-foreground/60\">\n172: \t\t\t\t\t\t{timestamp.secondary}\n173: \t\t\t\t\t</span>\n174: \t\t\t\t)}\n175: \t\t\t</div>\n176: \n177: \t\t\t<div className=\"flex flex-col gap-2 min-w-0 flex-1\">\n178: \t\t\t\t<ScoreLine\n179: \t\t\t\t\tplayers={homePlayers}\n180: \t\t\t\t\tscore={homeScore}\n181: \t\t\t\t\tisWinner={homeWins}\n182: \t\t\t\t\tisMuted={awayWins}\n183: \t\t\t\t\tdata-testid={`match-score-${matchId}-home`}\n184: \t\t\t\t/>\n185: \t\t\t\t<ScoreLine\n186: \t\t\t\t\tplayers={awayPlayers}\n187: \t\t\t\t\tscore={awayScore}\n188: \t\t\t\t\tisWinner={awayWins}\n189: \t\t\t\t\tisMuted={homeWins}\n190: \t\t\t\t\tdata-testid={`match-score-${matchId}-away`}\n191: \t\t\t\t/>\n192: \t\t\t</div>\n193: \t\t</div>\n194: \t);\n195: }\n\n(End of file - total 195 lines)\n</content>",
+            "metadata": {
+              "preview": "import { useState } from \"react\";\nimport { cn } from \"@/lib/utils\";\nimport { AvatarWithFallback } from \"@/components/ui/avatar-with-fallback\";\nimport { HugeiconsIcon } from \"@hugeicons/react\";\nimport { UserMultipleIcon } from \"@hugeicons/core-free-icons\";\nimport { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n\nexport type { MatchDisplayPlayer } from \"@/lib/match-names\";\n\nconst getAssetUrl = (key: string | null | undefined): string | null => {\n\tif (!key) return null;\n\tif (key.startsWith(\"http://\") || key.startsWith(\"https://\")) return key;\n\treturn `/api/user-assets/${key}`;\n};\n\nfunction TeamIcon({ logo, name }: { logo: string | null; name: string }) {\n\tconst [hasError, setHasError] = useState(false);\n\tconst logoUrl = getAssetUrl(logo);\n\n\tif (!logoUrl || hasError) {",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx",
+            "time": {
+              "start": 1786712402938,
+              "end": 1786712402944
+            }
+          },
+          "id": "prt_0005baa0b001avIPNFZolXZGpL",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_APF6DUNRvUu9hNeWBghZ3586",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/match-names.ts"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/match-names.ts</path>\n<type>file</type>\n<content>\n1: export interface MatchDisplayPlayer {\n2: \tid: string;\n3: \tname: string;\n4: \timage: string | null;\n5: \tteamName: string | null;\n6: \tteamLogo: string | null;\n7: \thomeTeam: boolean;\n8: }\n9: \n10: export function getTeamInfo(\n11: \tplayers: MatchDisplayPlayer[]\n12: ): { name: string; logo: string | null } | null {\n13: \tif (players.length <= 1) return null;\n14: \tconst teamName = players[0]?.teamName;\n15: \tconst teamLogo = players[0]?.teamLogo ?? null;\n16: \tif (teamName) return { name: teamName, logo: teamLogo };\n17: \treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n18: }\n19: \n20: export function getSideLabel(players: MatchDisplayPlayer[]): string {\n21: \tif (players.length === 0) return \"Unknown\";\n22: \tconst teamInfo = getTeamInfo(players);\n23: \tif (teamInfo) return teamInfo.name;\n24: \treturn players.map((p) => p.name).join(\", \");\n25: }\n26: \n27: export function buildMatchResultToast(opts: {\n28: \tscoreType: string;\n29: \tplayers: MatchDisplayPlayer[];\n30: \thomeScore: number;\n31: \tawayScore: number;\n32: }): string {\n33: \tconst home = opts.players.filter((p) => p.homeTeam);\n34: \tconst away = opts.players.filter((p) => !p.homeTeam);\n35: \n36: \tif (opts.scoreType === \"1-v-n-elo\") {\n37: \t\treturn `${getSideLabel(home)} won the match`;\n38: \t}\n39: \n40: \treturn `${getSideLabel(home)} ${opts.homeScore}–${opts.awayScore} ${getSideLabel(away)}`;\n41: }\n\n(End of file - total 41 lines)\n</content>",
+            "metadata": {
+              "preview": "export interface MatchDisplayPlayer {\n\tid: string;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n\thomeTeam: boolean;\n}\n\nexport function getTeamInfo(\n\tplayers: MatchDisplayPlayer[]\n): { name: string; logo: string | null } | null {\n\tif (players.length <= 1) return null;\n\tconst teamName = players[0]?.teamName;\n\tconst teamLogo = players[0]?.teamLogo ?? null;\n\tif (teamName) return { name: teamName, logo: teamLogo };\n\treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n}\n\nexport function getSideLabel(players: MatchDisplayPlayer[]): string {",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "apps/web/src/lib/match-names.ts",
+            "time": {
+              "start": 1786712403312,
+              "end": 1786712403321
+            }
+          },
+          "id": "prt_0005bac7b001HEOtigrIn7jeB5",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_G16fCnNZBfYQEcwfJ0MT2737",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/achievements.ts"
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/achievements.ts</path>\n<type>file</type>\n<content>\n1: export function formatAchievementName(type: string): string {\n2: \treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n3: }\n\n(End of file - total 3 lines)\n</content>",
+            "metadata": {
+              "preview": "export function formatAchievementName(type: string): string {\n\treturn type.replace(/_/g, \" \").replace(/\\b\\w/g, (char) => char.toUpperCase());\n}",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "apps/web/src/lib/achievements.ts",
+            "time": {
+              "start": 1786712403644,
+              "end": 1786712403646
+            }
+          },
+          "id": "prt_0005badb5001qwPFuB7GX9PGnb",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 32835,
+            "input": 16474,
+            "output": 203,
+            "reasoning": 30,
+            "cache": {
+              "write": 0,
+              "read": 16128
+            }
+          },
+          "cost": 0.007427364,
+          "id": "prt_0005baf76001NnhQO20iEPum8e",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005b9e4c001yuCOY9LJ9UCWVD"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001590389,
+        "tokens": {
+          "total": 35903,
+          "input": 2887,
+          "output": 190,
+          "reasoning": 58,
+          "cache": {
+            "write": 0,
+            "read": 32768
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712403889,
+          "completed": 1786712407709
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005bafb10017md1DmCbgk5Y6U",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005bb37b001l00hAMLAnvt0dq",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bafb10017md1DmCbgk5Y6U"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me check the consumers and the `dashboard-cards.tsx` local `getTeamInfo`/`getSideLabel` and the different `MatchPlayer` type. Also check whether `buildMatchResultToast` is actually used anywhere yet (it's for Task 5).",
+          "time": {
+            "start": 1786712405528,
+            "end": 1786712406359
+          },
+          "id": "prt_0005bb618001BFKPKFKo7FQ0bW",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bafb10017md1DmCbgk5Y6U"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_vX5f2bynNgF2zlW06c752303",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "function getTeamInfo|function getSideLabel|interface MatchPlayer|type MatchPlayer",
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src"
+            },
+            "output": "Found 6 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:\n  Line 4: interface MatchPlayer {\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/match-names.ts:\n  Line 10: export function getTeamInfo(\n\n  Line 20: export function getSideLabel(players: MatchDisplayPlayer[]): string {\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/season/dashboard-cards.tsx:\n  Line 171: interface MatchPlayer {\n\n  Line 184: function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {\n\n  Line 192: function getSideLabel(players: MatchPlayer[]): string {\n",
+            "metadata": {
+              "matches": 6,
+              "truncated": false
+            },
+            "title": "function getTeamInfo|function getSideLabel|interface MatchPlayer|type MatchPlayer",
+            "time": {
+              "start": 1786712406912,
+              "end": 1786712406954
+            }
+          },
+          "id": "prt_0005bb9580018eXRSHYYQzLry1",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bafb10017md1DmCbgk5Y6U"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_GhBAsPfPUQJvsOtg80LY3803",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "buildMatchResultToast|formatAchievementName|from \"@/lib/match-names\"|from \"@/lib/achievements\"",
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src"
+            },
+            "output": "Found 8 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index.tsx:\n  Line 10: import { formatAchievementName } from \"@/lib/achievements\";\n\n  Line 518: \t\t\t\t\t\t\t\t\t\t\t\t{formatAchievementName(achievement.type)}\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:\n  Line 11: import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:\n  Line 2: import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-score-display.tsx:\n  Line 6: import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from \"@/lib/match-names\";\n\n  Line 8: export type { MatchDisplayPlayer } from \"@/lib/match-names\";\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/match-names.ts:\n  Line 27: export function buildMatchResultToast(opts: {\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/lib/achievements.ts:\n  Line 1: export function formatAchievementName(type: string): string {\n",
+            "metadata": {
+              "matches": 8,
+              "truncated": false
+            },
+            "title": "buildMatchResultToast|formatAchievementName|from \"@/lib/match-names\"|from \"@/lib/achievements\"",
+            "time": {
+              "start": 1786712407511,
+              "end": 1786712407533
+            }
+          },
+          "id": "prt_0005bbbcc001GMEzJc3ZaFovTl",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bafb10017md1DmCbgk5Y6U"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 35903,
+            "input": 2887,
+            "output": 190,
+            "reasoning": 58,
+            "cache": {
+              "write": 0,
+              "read": 32768
+            }
+          },
+          "cost": 0.001590389,
+          "id": "prt_0005bbe70001kDffbt5rYnf17E",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bafb10017md1DmCbgk5Y6U"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.00065279,
+        "tokens": {
+          "total": 36797,
+          "input": 712,
+          "output": 211,
+          "reasoning": 34,
+          "cache": {
+            "write": 0,
+            "read": 35840
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712407710,
+          "completed": 1786712411631
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005bbe9e002EhgAqECbHbzwaR",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005bc2ab001U7ixqCfrwoVq8U",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bbe9e002EhgAqECbHbzwaR"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me look at the dashboard-cards.tsx local getTeamInfo/getSideLabel and MatchPlayer type to determine if it's a true duplicate or a different type.",
+          "time": {
+            "start": 1786712409580,
+            "end": 1786712410191
+          },
+          "id": "prt_0005bc5ec00173RZODyDVWEy9U",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bbe9e002EhgAqECbHbzwaR"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_NnSHJYwJ3k0civjLoNEp3405",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/season/dashboard-cards.tsx",
+              "offset": 165,
+              "limit": 55
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/season/dashboard-cards.tsx</path>\n<type>file</type>\n<content>\n165: \t\t\t\t<div className=\"text-sm text-muted-foreground\">No data</div>\n166: \t\t\t)}\n167: \t\t</DashboardCard>\n168: \t);\n169: }\n170: \n171: interface MatchPlayer {\n172: \tid: string;\n173: \tseasonPlayerId: string;\n174: \thomeTeam: boolean;\n175: \tresult: \"W\" | \"L\" | \"D\";\n176: \tscoreBefore: number;\n177: \tscoreAfter: number;\n178: \tname: string;\n179: \timage: string | null;\n180: \tteamName: string | null;\n181: \tteamLogo: string | null;\n182: }\n183: \n184: function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {\n185: \tif (players.length <= 1) return null;\n186: \tconst teamName = players[0]?.teamName;\n187: \tconst teamLogo = players[0]?.teamLogo ?? null;\n188: \tif (teamName) return { name: teamName, logo: teamLogo };\n189: \treturn { name: players.map((p) => p.name.split(\" \")[0]).join(\" & \"), logo: teamLogo };\n190: }\n191: \n192: function getSideLabel(players: MatchPlayer[]): string {\n193: \tif (players.length === 0) return \"Unknown\";\n194: \tconst teamInfo = getTeamInfo(players);\n195: \treturn teamInfo ? teamInfo.name : players.map((p) => p.name).join(\", \");\n196: }\n197: \n198: function SideDisplay({ players, isWinner }: { players: MatchPlayer[]; isWinner?: boolean }) {\n199: \tconst teamInfo = getTeamInfo(players);\n200: \treturn (\n201: \t\t<div className=\"flex items-center gap-2 min-w-0\">\n202: \t\t\t<div className=\"flex gap-1 shrink-0\">\n203: \t\t\t\t{teamInfo ? (\n204: \t\t\t\t\t<TeamIcon logo={teamInfo.logo} name={teamInfo.name} />\n205: \t\t\t\t) : (\n206: \t\t\t\t\tplayers.map((player) => (\n207: \t\t\t\t\t\t<AvatarWithFallback key={player.id} src={player.image} name={player.name} size=\"sm\" />\n208: \t\t\t\t\t))\n209: \t\t\t\t)}\n210: \t\t\t</div>\n211: \t\t\t<span\n212: \t\t\t\tclassName={cn(\n213: \t\t\t\t\t\"text-xs truncate\",\n214: \t\t\t\t\tisWinner ? \"font-semibold text-foreground\" : \"text-muted-foreground\"\n215: \t\t\t\t)}\n216: \t\t\t>\n217: \t\t\t\t{getSideLabel(players)}\n218: \t\t\t</span>\n219: \t\t</div>\n\n(Showing lines 165-219 of 509. Use offset=220 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\t\t\t\t<div className=\"text-sm text-muted-foreground\">No data</div>\n\t\t\t)}\n\t\t</DashboardCard>\n\t);\n}\n\ninterface MatchPlayer {\n\tid: string;\n\tseasonPlayerId: string;\n\thomeTeam: boolean;\n\tresult: \"W\" | \"L\" | \"D\";\n\tscoreBefore: number;\n\tscoreAfter: number;\n\tname: string;\n\timage: string | null;\n\tteamName: string | null;\n\tteamLogo: string | null;\n}\n\nfunction getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/season/dashboard-cards.tsx",
+            "time": {
+              "start": 1786712410932,
+              "end": 1786712410936
+            }
+          },
+          "id": "prt_0005bc850001Q4i1S1JZBmumUG",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bbe9e002EhgAqECbHbzwaR"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_I7q51UQOnoNfmMBj00h62992",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx",
+              "limit": 30
+            },
+            "output": "<path>/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx</path>\n<type>file</type>\n<content>\n1: import { MatchScoreDisplay } from \"./match-score-display\";\n2: import type { MatchDisplayPlayer } from \"@/lib/match-names\";\n3: \n4: interface MatchPlayer {\n5: \tid: string;\n6: \tseasonPlayerId: string;\n7: \tresult: \"W\" | \"D\" | \"L\";\n8: \tscoreBefore: number;\n9: \tscoreAfter: number;\n10: \tname: string;\n11: \timage: string | null;\n12: }\n13: \n14: interface MatchTeam {\n15: \tname: string | null;\n16: \tlogo: string | null;\n17: \tplayers: MatchPlayer[];\n18: }\n19: \n20: interface MatchRowProps {\n21: \tmatch: {\n22: \t\tid: string;\n23: \t\thomeScore: number;\n24: \t\tawayScore: number;\n25: \t\tcreatedAt: Date;\n26: \t\thomeTeam: MatchTeam;\n27: \t\tawayTeam: MatchTeam;\n28: \t};\n29: \tseasonSlug: string;\n30: \tseasonId: string;\n\n(Showing lines 1-30 of 62. Use offset=31 to continue.)\n</content>",
+            "metadata": {
+              "preview": "import { MatchScoreDisplay } from \"./match-score-display\";\nimport type { MatchDisplayPlayer } from \"@/lib/match-names\";\n\ninterface MatchPlayer {\n\tid: string;\n\tseasonPlayerId: string;\n\tresult: \"W\" | \"D\" | \"L\";\n\tscoreBefore: number;\n\tscoreAfter: number;\n\tname: string;\n\timage: string | null;\n}\n\ninterface MatchTeam {\n\tname: string | null;\n\tlogo: string | null;\n\tplayers: MatchPlayer[];\n}\n\ninterface MatchRowProps {",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx",
+            "time": {
+              "start": 1786712411457,
+              "end": 1786712411461
+            }
+          },
+          "id": "prt_0005bcb3a001UfecOoi8Twa6I7",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bbe9e002EhgAqECbHbzwaR"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 36797,
+            "input": 712,
+            "output": 211,
+            "reasoning": 34,
+            "cache": {
+              "write": 0,
+              "read": 35840
+            }
+          },
+          "cost": 0.00065279,
+          "id": "prt_0005bcdb7001w6Z62mWzg0KimB",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bbe9e002EhgAqECbHbzwaR"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.000798718,
+        "tokens": {
+          "total": 38056,
+          "input": 1110,
+          "output": 100,
+          "reasoning": 110,
+          "cache": {
+            "write": 0,
+            "read": 36736
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712411632,
+          "completed": 1786712415592
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005bcdf0001LN8afBmplARJ1A",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005bd1e2001K8ayVN41Q0vC90",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bcdf0001LN8afBmplARJ1A"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have a full picture. Let me verify the re-export usage: is `MatchDisplayPlayer` re-export still consumed from `match-score-display` anywhere? The consumers (match-row, remove-match-dialog) now import from `@/lib/match-names` directly. So the re-export `export type { MatchDisplayPlayer } from \"@/lib/match-names\"` in match-score-display.tsx line 8 is redundant.\n\nLet me check if anything else imports MatchDisplayPlayer from match-score-display.",
+          "time": {
+            "start": 1786712413454,
+            "end": 1786712414818
+          },
+          "id": "prt_0005bd50e001pceoCAwXBmu819",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bcdf0001LN8afBmplARJ1A"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_iBS5NBYGztl5bTjhooPD0415",
+          "state": {
+            "status": "completed",
+            "input": {
+              "path": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src",
+              "pattern": "from \"\\./match-score-display\"|from '\\./match-score-display'"
+            },
+            "output": "Found 2 matches\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/remove-match-dialog.tsx:\n  Line 10: import { MatchScoreDisplay } from \"./match-score-display\";\n\n\n/Users/palmithor/git/coding-cowboys/scorebrawl-entire/apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/seasons/-components/match/match-row.tsx:\n  Line 1: import { MatchScoreDisplay } from \"./match-score-display\";\n",
+            "metadata": {
+              "matches": 2,
+              "truncated": false
+            },
+            "title": "from \"\\./match-score-display\"|from '\\./match-score-display'",
+            "time": {
+              "start": 1786712415344,
+              "end": 1786712415371
+            }
+          },
+          "id": "prt_0005bda63001Z4OqXFpB7IdTEz",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bcdf0001LN8afBmplARJ1A"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 38056,
+            "input": 1110,
+            "output": 100,
+            "reasoning": 110,
+            "cache": {
+              "write": 0,
+              "read": 36736
+            }
+          },
+          "cost": 0.000798718,
+          "id": "prt_0005bdd2f001Py59YEgnnK7z5X",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bcdf0001LN8afBmplARJ1A"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.001189203,
+        "tokens": {
+          "total": 39318,
+          "input": 187,
+          "output": 132,
+          "reasoning": 983,
+          "cache": {
+            "write": 0,
+            "read": 38016
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712415594,
+          "completed": 1786712431903
+        },
+        "finish": "tool-calls",
+        "id": "msg_0005bdd6a001If6Pkd9g18LW1S",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005be137001LZev22AVWbfaYe",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bdd6a001If6Pkd9g18LW1S"
+        },
+        {
+          "type": "reasoning",
+          "text": "Confirmed: no consumer imports `MatchDisplayPlayer` from `match-score-display` anymore. So the re-export on line 8 is redundant.\n\nNow let me note the subtle bug in `getTeamInfo`: it uses `players[0]?.teamName` for team name but `players[0]?.teamLogo`. The `if (teamName)` returns the team. But if a team has teamLogo but no teamName... edge case. Not new though — this is a straight copy of existing code, so not introduced by this refactor.\n\nAnother subtle observation: `buildMatchResultToast` uses `opts.scoreType === \"1-v-n-elo\"`. In the Task 5 wiring, `scoreType: parsed.data?.scoreType ?? \"\"`. The `1-v-n-elo` string literal is a magic string. That's a Task 5 concern though, and this function is being defined now. It's a minor point: magic string \"1-v-n-elo\" should probably be a constant or check against the `scoreType` union from the worker (SeasonScoreType). But the plan explicitly types scoreType as `string` here.\n\nAlso worth noting: `MatchDisplayPlayer` interface is duplicated between the worker's `match-events.ts` (Task 3) and the frontend's `match-names.ts`. That's cross-package duplication — frontend can't easily import from worker (different package). This is a shared type duplication across the API boundary, which is somewhat expected since there's no shared types package. Worth flagging as a Minor note.\n\nNow, the `dashboard-cards.tsx` duplication: it has a `MatchPlayer` type that has additional fields (seasonPlayerId, result, scoreBefore, scoreAfter) but the `getTeamInfo`/`getSideLabel` logic is IDENTICAL except operating on a different (structurally-compatible, superset) type. Since `MatchPlayer` in dashboard-cards is a superset of `MatchDisplayPlayer` (it has all the fields: id, name, image, teamName, teamLogo, homeTeam), it's structurally compatible. So `getTeamInfo`/`getSideLabel` from `@/lib/match-names` could accept the dashboard `MatchPlayer[]` since TypeScript uses structural typing. So the duplication could be eliminated by importing the shared helpers. But this is arguably out of scope for Task 4 (the plan only lists specific files), and the reviewer should note it as \"correctly left alone or a minor follow-up\".\n\nActually wait — is `dashboard-cards.tsx`'s MatchPlayer a superset? It has: id, seasonPlayerId, homeTeam, result, scoreBefore, scoreAfter, name, image, teamName, teamLogo. Yes it includes all of MatchDisplayPlayer's required fields (id, name, image, teamName, teamLogo, homeTeam). So structurally compatible. The shared `getTeamInfo(players: MatchDisplayPlayer[])` would accept `MatchPlayer[]`. So it's a genuine candidate for dedup, but out of scope — left alone is defensible. I'll note it as Minor/follow-up.\n\nLet me also verify: is the plan's requirement about the re-export actually matching what was implemented? The plan Step 3c says \"Add a re-export so the existing consumers keep working without further churn (optional but safe)\". The plan marked it optional. And Step 4 then updates the two consumers to import directly. So the plan itself is slightly contradictory: it says \"add re-export to avoid churn\" but then churns anyway. The implementation added the re-export AND updated consumers to import directly. This means the re-export is now dead/unused. That's the \"reasonable bridge vs redundant\" question.\n\nAnswer: The re-export is redundant now. It was only a safety net during the transition. Since consumers were migrated to import directly, the re-export has no consumers and adds a confusing second source of truth for the type. It should be removed. This is a Minor issue (not Critical/Important — it's harmless, just noise).\n\nLet me check if there's any lint issue with unused export — `export type { ... }` is an explicit re-export so it won't trigger unused warnings. It's just dead code.\n\nLet me also verify typecheck passes / run oxc and typecheck quickly to confirm the implementation is sound. Actually, as a reviewer I should verify claims. Let me run `bun oxc` and `bun typecheck`.\n\nActually, let me be efficient. The review is the deliverable. But running typecheck would strengthen the review. Let me run them in parallel.",
+          "time": {
+            "start": 1786712417490,
+            "end": 1786712429955
+          },
+          "id": "prt_0005be4d2001eU94KPjIFP6hm2",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bdd6a001If6Pkd9g18LW1S"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_00_KNctASwAIJahUpJDM5DF8418",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun oxc 2>&1 | tail -20",
+              "description": "Run lint/format check"
+            },
+            "output": "apps/worker/test/trpc/session-router.spec.ts:431:28: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/worker/test/trpc/session-router.spec.ts:447:24: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/web/src/routes/-components/ui/carousel.tsx:61:38: warning eslint(no-shadow): 'api' is already declared in the upper scope. help: Consider renaming 'api' to avoid shadowing the variable from the outer scope.\napps/web/src/routes/-components/ui/carousel.tsx:106:4: warning react(jsx-no-constructed-context-values): The Context `value` prop should not be constructed. help: Wrap the `value` prop in useMemo() or useCallback(), or use a constant value to prevent unnecessary re-renders. Alternatively, move the value outside the render function if it doesn't depend on props or state.\napps/worker/src/index.ts:47:30: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:49:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:57:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:164:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:237:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:922:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:932:28: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:933:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:944:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:954:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:964:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:974:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1073:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1121:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1151:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1156:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\n",
+            "metadata": {
+              "output": "apps/worker/test/trpc/session-router.spec.ts:431:28: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/worker/test/trpc/session-router.spec.ts:447:24: warning eslint(no-shadow): 'm' is already declared in the upper scope. help: Consider renaming 'm' to avoid shadowing the variable from the outer scope.\napps/web/src/routes/-components/ui/carousel.tsx:61:38: warning eslint(no-shadow): 'api' is already declared in the upper scope. help: Consider renaming 'api' to avoid shadowing the variable from the outer scope.\napps/web/src/routes/-components/ui/carousel.tsx:106:4: warning react(jsx-no-constructed-context-values): The Context `value` prop should not be constructed. help: Wrap the `value` prop in useMemo() or useCallback(), or use a constant value to prevent unnecessary re-renders. Alternatively, move the value outside the render function if it doesn't depend on props or state.\napps/worker/src/index.ts:47:30: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:49:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/src/index.ts:57:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:164:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:237:22: warning eslint(no-shadow): 'resolve' is already declared in the upper scope. help: Consider renaming 'resolve' to avoid shadowing the variable from the outer scope.\napps/worker/scripts/seed.ts:922:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:932:28: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:933:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:944:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:954:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:964:5: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:974:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1073:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1121:7: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1151:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\napps/worker/scripts/seed.ts:1156:6: warning eslint(no-await-in-loop): Unexpected `await` inside a loop. help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.\n",
+              "exit": 0,
+              "description": "Run lint/format check",
+              "truncated": false
+            },
+            "title": "Run lint/format check",
+            "time": {
+              "start": 1786712431790,
+              "end": 1786712431793
+            }
+          },
+          "id": "prt_0005c1585001d52YSRF17X3Lgr",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bdd6a001If6Pkd9g18LW1S"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_01_z7xe5HohBg4iKEaRMHa79738",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "bun typecheck 2>&1 | tail -30",
+              "description": "Run typecheck"
+            },
+            "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@coding-cowboys/scorebrawl-web:typecheck: cache hit, replaying logs bbe7881b80be9ade\n@coding-cowboys/scorebrawl-util:typecheck: cache hit, replaying logs 2d9928e837249e12\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@scorebrawl/mcp:typecheck: cache hit, replaying logs ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: cache hit, replaying logs 0d5022a438026133\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    4 cached, 4 total\n  Time:    45ms >>> FULL TURBO\n\n",
+            "metadata": {
+              "output": "$ turbo run typecheck\n• turbo 2.10.9\n\n   • Packages in scope: @coding-cowboys/scorebrawl-e2e, @coding-cowboys/scorebrawl-util, @coding-cowboys/scorebrawl-web, @coding-cowboys/scorebrawl-worker, @scorebrawl/mcp\n   • Running typecheck in 5 packages\n   • Remote caching disabled\n\n@coding-cowboys/scorebrawl-web:typecheck: cache hit, replaying logs bbe7881b80be9ade\n@coding-cowboys/scorebrawl-util:typecheck: cache hit, replaying logs 2d9928e837249e12\n@coding-cowboys/scorebrawl-util:typecheck: $ tsc --noEmit\n@scorebrawl/mcp:typecheck: cache hit, replaying logs ad6c734a7212be57\n@coding-cowboys/scorebrawl-worker:typecheck: cache hit, replaying logs 0d5022a438026133\n@coding-cowboys/scorebrawl-web:typecheck: $ tsgo --noEmit\n@coding-cowboys/scorebrawl-worker:typecheck: $ tsgo --noEmit\n@scorebrawl/mcp:typecheck: $ tsc --noEmit\n\n Tasks:    4 successful, 4 total\nCached:    4 cached, 4 total\n  Time:    45ms >>> FULL TURBO\n\n",
+              "exit": 0,
+              "description": "Run typecheck",
+              "truncated": false
+            },
+            "title": "Run typecheck",
+            "time": {
+              "start": 1786712430952,
+              "end": 1786712430954
+            }
+          },
+          "id": "prt_0005c17410012iJYjjS8QGNl1a",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bdd6a001If6Pkd9g18LW1S"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 39318,
+            "input": 187,
+            "output": 132,
+            "reasoning": 983,
+            "cache": {
+              "write": 0,
+              "read": 38016
+            }
+          },
+          "cost": 0.001189203,
+          "id": "prt_0005c1ced001niCVH1dSnMIy6R",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005bdd6a001If6Pkd9g18LW1S"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0005b8c27001CqWICJbNbAbk2q",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire",
+          "root": "/Users/palmithor/git/coding-cowboys/scorebrawl-entire"
+        },
+        "cost": 0.002060363,
+        "tokens": {
+          "total": 42278,
+          "input": 1555,
+          "output": 757,
+          "reasoning": 670,
+          "cache": {
+            "write": 0,
+            "read": 39296
+          }
+        },
+        "modelID": "deepseek-v4-pro",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1786712431905,
+          "completed": 1786712449505
+        },
+        "finish": "stop",
+        "id": "msg_0005c1d21001X4F4SVTtD0mlz8",
+        "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa"
+      },
+      "parts": [
+        {
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-start",
+          "id": "prt_0005c213b001Pu9LHz31fPblXJ",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005c1d21001X4F4SVTtD0mlz8"
+        },
+        {
+          "type": "reasoning",
+          "text": "Typecheck passes. The oxc warnings are pre-existing (in worker index.ts, seed.ts, session-router, carousel) — none in the new/changed files. Let me verify no warnings specific to the new files. The output shows only pre-existing warnings in files unrelated to Task 4. Good.\n\nNow I have everything I need to write the review. Let me compose it concisely.\n\nKey findings:\n\nStrengths:\n- Clean extraction, minimal, focused modules.\n- `achievements.ts` (3 lines) and `match-names.ts` (41 lines) are appropriately small and single-responsibility.\n- Pure functions cleanly separated from UI components (no React imports in lib).\n- Consumers updated correctly to import directly.\n- Typecheck + oxc pass (only pre-existing warnings elsewhere).\n\nIssues:\n\nMinor:\n1. Redundant re-export `export type { MatchDisplayPlayer } from \"@/lib/match-names\"` in match-score-display.tsx:8. No consumer imports `MatchDisplayPlayer` from `match-score-display` anymore (verified via grep). The plan marked this \"optional but safe\", but since Step 4 already migrated the consumers, it's now dead code and a second source of truth. Remove it.\n\n2. `dashboard-cards.tsx` still has local `getTeamInfo`/`getSideLabel` + `MatchPlayer` type that's structurally a superset of `MatchDisplayPlayer`. Because TS is structural, the shared helpers would accept `MatchPlayer[]`. This is a real dedup opportunity but correctly out of scope (not in the plan's file list). Fine to leave for now; note as follow-up.\n\n3. Magic string `\"1-v-n-elo\"` in `buildMatchResultToast` — hard-coded scoreType literal. Should be a shared constant/union (e.g., the worker's `SeasonScoreType`) to avoid drift. Also `scoreType` is typed as loose `string`. Minor since Task 5 wiring passes `?? \"\"`.\n\n4. `MatchDisplayPlayer` interface duplicated across package boundary: defined in worker `match-events.ts` (Task 3) AND frontend `match-names.ts`. No shared types package exists, so this is expected; worth noting the two must be kept in sync manually.\n\nAlso a subtle pre-existing behavior note: `getTeamInfo` returns team name from `players[0]` even if `players.length > 1` — copies original, not introduced here. Also `buildMatchResultToast` for `1-v-n-elo` ignores home/away score (by design, per plan acceptance criteria \"Alice won the match\").\n\nAssessment: Approved (with optional minor cleanup of the redundant re-export).\n\nActually, let me double check whether the re-export is truly unused and could cause confusion. Since `match-score-display.tsx` imports `type MatchDisplayPlayer` (line 6) for its own internal use, and separately re-exports it (line 8). The re-export is unused by consumers. It's harmless but redundant. I'll flag as Minor, recommend removal.\n\nLet me write the review now. Format: Strengths, Issues (Critical/Important/Minor), Assessment.",
+          "time": {
+            "start": 1786712433590,
+            "end": 1786712441366
+          },
+          "id": "prt_0005c23b6001EgLlGEr5xbMl0P",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005c1d21001X4F4SVTtD0mlz8"
+        },
+        {
+          "type": "text",
+          "text": "## Review: Task 4 — Frontend shared helpers + refactor\n\n### Strengths\n\n- **Focused, single-responsibility modules.** `achievements.ts` (3 lines) and `match-names.ts` (41 lines) are each narrowly scoped to one concern and one data shape. No cross-contamination.\n- **Pure functions cleanly separated from UI.** Both lib files contain zero React/DOM imports. `getTeamInfo`/`getSideLabel` are pure and trivially unit-testable; the UI-only bits (`TeamIcon`, `ScoreLine`, `formatTimestamp`) correctly stayed in `match-score-display.tsx`.\n- **Consumers point at the lib directly.** `match-row.tsx`, `remove-match-dialog.tsx`, and the player detail page all import from `@/lib/*`, which is the right long-term shape.\n- **Behavior-preserving.** The moved functions are verbatim copies of the originals; no logic drift introduced.\n- **Verification clean.** `bun typecheck` passes; `bun oxc` reports only pre-existing warnings in unrelated files (`worker/src/index.ts`, `seed.ts`, `carousel.tsx`), none in Task 4 files.\n\n### Issues\n\n**Critical** — none.\n\n**Important** — none.\n\n**Minor**\n\n1. **Redundant re-export** — `match-score-display.tsx:8` (`export type { MatchDisplayPlayer } from \"@/lib/match-names\"`). Grep confirms no consumer imports `MatchDisplayPlayer` from `match-score-display` anymore; both consumers were migrated to `@/lib/match-names`. The plan's Step 3c labeled this \"optional but safe\" *and* Step 4 migrated the consumers anyway, so the bridge is now dead code plus a second import path for the same type. Recommend removing it.\n\n2. **`dashboard-cards.tsx` duplication** — still has local `getTeamInfo`/`getSideLabel` (lines 184-196) over a local `MatchPlayer` type. That type is a structural *superset* of `MatchDisplayPlayer` (adds `seasonPlayerId`/`result`/`scoreBefore`/`scoreAfter`, but includes every required `MatchDisplayPlayer` field), so the shared helpers would accept `MatchPlayer[]` as-is. It's a genuine dedup candidate — but it's correctly **out of scope** (not in the plan's file list, and it's a different view/type). Fine to leave; worth a follow-up note.\n\n3. **Magic string `\"1-v-n-elo\"`** in `buildMatchResultToast` (`match-names.ts:36`), with `scoreType` typed as loose `string`. Should reference a shared score-type union/constant (the worker defines `SeasonScoreType` in `match-events.ts`) to avoid silent drift. Low urgency since Task 5 passes `?? \"\"`, but worth tightening before Task 5 lands.\n\n4. **`MatchDisplayPlayer` duplicated across the package boundary** — defined in worker `match-events.ts` (Task 3) and again in frontend `match-names.ts`. There's no shared types package, so this is expected, but the two copies must be kept in sync manually.\n\n### Assessment\n\n**Approved** (optional cleanup: remove the redundant re-export at `match-score-display.tsx:8`; consider tightening the `\"1-v-n-elo\"` literal before Task 5). The extraction is clean, correctly scoped, and behavior-preserving.",
+          "time": {
+            "start": 1786712441369,
+            "end": 1786712449357
+          },
+          "id": "prt_0005c4219001Lp4O5CsgcyfQyZ",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005c1d21001X4F4SVTtD0mlz8"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "5a4bfd1456f841fd1d4a72c9f61dccbd081dee34",
+          "type": "step-finish",
+          "tokens": {
+            "total": 42278,
+            "input": 1555,
+            "output": 757,
+            "reasoning": 670,
+            "cache": {
+              "write": 0,
+              "read": 39296
+            }
+          },
+          "cost": 0.002060363,
+          "id": "prt_0005c619d001inJhqZlgsOrX9n",
+          "sessionID": "ses_fffa473dcffeX99E2KHxG6huBa",
+          "messageID": "msg_0005c1d21001X4F4SVTtD0mlz8"
+        }
+      ]
+    }
+  ]
+}

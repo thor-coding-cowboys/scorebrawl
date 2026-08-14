@@ -1,0 +1,22 @@
+You are a code quality reviewer. Work from: /Users/palmithor/git/coding-cowboys/scorebrawl-entire
+
+Review Task 4 of the "Subtle Toast Notifications" plan (a pure frontend refactor).
+
+WHAT_WAS_IMPLEMENTED: Extracted `formatAchievementName` into `apps/web/src/lib/achievements.ts`, and `MatchDisplayPlayer`/`getTeamInfo`/`getSideLabel`/`buildMatchResultToast` into `apps/web/src/lib/match-names.ts`. `match-score-display.tsx`, `match-row.tsx`, `remove-match-dialog.tsx`, and the player detail page now import from these shared modules.
+
+PLAN_OR_REQUIREMENTS: Task 4 from `docs/superpowers/plans/2026-08-14-subtle-toast-notifications.md`.
+
+BASE_SHA: 56938ac
+HEAD_SHA: 43e9b4d
+
+DESCRIPTION: Extract shared match-naming and achievement helpers for reuse by the SSE toast wiring (Task 5).
+
+Run `git diff 56938ac 43e9b4d` to see the changes.
+
+Review for standard code quality concerns plus:
+- Are the new lib modules small, focused, single-responsibility?
+- Is the re-export `export type { MatchDisplayPlayer } from "@/lib/match-names"` in `match-score-display.tsx` a reasonable bridge, or should the consumers be pointed at the lib directly (note: they already are — the re-export may now be redundant)?
+- Naming and whether the pure functions are cleanly separated from UI components.
+- Any duplication that remains (e.g., `dashboard-cards.tsx` has its own local `getTeamInfo`/`getSideLabel` using a different `MatchPlayer` type — is that in scope or correctly left alone?).
+
+Return: Strengths, Issues (Critical/Important/Minor), Assessment (Approved / Needs changes).
