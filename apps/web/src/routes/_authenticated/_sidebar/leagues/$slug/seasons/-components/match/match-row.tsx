@@ -1,4 +1,5 @@
-import { MatchScoreDisplay, type MatchDisplayPlayer } from "./match-score-display";
+import { MatchScoreDisplay } from "./match-score-display";
+import type { MatchDisplayPlayer } from "@/lib/match-names";
 
 interface MatchPlayer {
 	id: string;

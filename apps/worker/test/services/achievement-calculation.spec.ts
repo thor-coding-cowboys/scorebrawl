@@ -3,7 +3,10 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../../src/db/index";
 import { playerAchievement } from "../../src/db/schema/league-schema";
-import { calculateAchievements } from "../../src/services/achievement-calculation";
+import {
+	buildAchievementUnlockEvents,
+	calculateAchievements,
+} from "../../src/services/achievement-calculation";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
@@ -360,6 +363,64 @@ describe("achievement calculation", () => {
 			const types = achievements.map((a) => a.type);
 			expect(types).toContain("5_clean_sheet_streak");
 			expect(types).toContain("5_win_streak");
+		});
+	});
+
+	describe("return value", () => {
+		it("returns newly earned achievements with player info", async () => {
+			const { client, season, home, away } = await setupLeagueWithSeason();
+
+			for (let i = 0; i < 5; i++) {
+				await createMatch(client, season.slug, home.id, away.id, 2, 1);
+			}
+
+			const db = getDb(env.DB);
+			const result = await calculateAchievements(db, [home.id]);
+
+			const types = result.map((a) => a.type);
+			expect(types).toContain("5_win_streak");
+			expect(types).not.toContain("10_win_streak");
+
+			const winStreak = result.find((a) => a.type === "5_win_streak");
+			expect(winStreak?.playerId).toBe(home.playerId);
+			expect(winStreak?.name).toBeTruthy();
+		});
+
+		it("omits already-earned achievements on subsequent calls", async () => {
+			const { client, season, home, away } = await setupLeagueWithSeason();
+
+			for (let i = 0; i < 5; i++) {
+				await createMatch(client, season.slug, home.id, away.id, 2, 1);
+			}
+
+			const db = getDb(env.DB);
+			const first = await calculateAchievements(db, [home.id]);
+			expect(first.map((a) => a.type)).toContain("5_win_streak");
+
+			const second = await calculateAchievements(db, [home.id]);
+			expect(second).toHaveLength(0);
+		});
+	});
+
+	describe("buildAchievementUnlockEvents", () => {
+		it("maps newly-earned achievements to unlock events", () => {
+			const events = buildAchievementUnlockEvents([
+				{ playerId: "p1", name: "Alice", image: null, type: "5_win_streak" },
+			]);
+
+			expect(events).toEqual([
+				{
+					type: "achievement:unlock",
+					data: {
+						player: { id: "p1", name: "Alice", image: null },
+						type: "5_win_streak",
+					},
+				},
+			]);
+		});
+
+		it("returns an empty array when there are no new achievements", () => {
+			expect(buildAchievementUnlockEvents([])).toEqual([]);
 		});
 	});
 });

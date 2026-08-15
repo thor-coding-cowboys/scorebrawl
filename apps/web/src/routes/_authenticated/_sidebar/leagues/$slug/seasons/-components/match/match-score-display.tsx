@@ -3,6 +3,9 @@ import { cn } from "@/lib/utils";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserMultipleIcon } from "@hugeicons/core-free-icons";
+import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from "@/lib/match-names";
+
+export type { MatchDisplayPlayer } from "@/lib/match-names";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
@@ -32,30 +35,6 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
 			/>
 		</div>
 	);
-}
-
-export interface MatchDisplayPlayer {
-	id: string;
-	name: string;
-	image: string | null;
-	teamName: string | null;
-	teamLogo: string | null;
-	homeTeam: boolean;
-}
-
-function getTeamInfo(players: MatchDisplayPlayer[]): { name: string; logo: string | null } | null {
-	if (players.length <= 1) return null;
-	const teamName = players[0]?.teamName;
-	const teamLogo = players[0]?.teamLogo ?? null;
-	if (teamName) return { name: teamName, logo: teamLogo };
-	return { name: players.map((p) => p.name.split(" ")[0]).join(" & "), logo: teamLogo };
-}
-
-function getSideLabel(players: MatchDisplayPlayer[]): string {
-	if (players.length === 0) return "Unknown";
-	const teamInfo = getTeamInfo(players);
-	if (teamInfo) return teamInfo.name;
-	return players.map((p) => p.name).join(", ");
 }
 
 function formatTimestamp(date: Date) {

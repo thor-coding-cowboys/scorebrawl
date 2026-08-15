@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { truncateSlug } from "@/lib/utils";
+import { formatAchievementName } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
@@ -711,8 +712,4 @@ function PlayerProfilePage() {
 			</div>
 		</>
 	);
-}
-
-function formatAchievementName(type: string): string {
-	return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
