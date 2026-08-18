@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0AQPSSRRG7DGKVV2EX057D0",
+  "session_id": "ses_feaefbec2ffe6kCzdQ3twIsLQF",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T15:27:04.022091Z",
+  "branch": "feat/drizzle-v1-nested-migrations",
+  "checkpoints_count": 3,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash",
+  "turn_id": "01c0140e98af",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 638962,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 44037504,
+    "output_tokens": 102215,
+    "api_call_count": 235
+  },
+  "session_metrics": {
+    "turn_count": 5
+  }
+}
