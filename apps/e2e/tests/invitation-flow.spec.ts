@@ -12,7 +12,7 @@ test.describe("Invitation flow", () => {
 
 		// Create an invitation for the new user as the seeded league owner (API)
 		const signInRes = await request.post("/api/auth/sign-in/email", {
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", Origin: origin },
 			data: { email: SEED_USER.email, password: SEED_USER.password },
 		});
 		expect(signInRes.ok()).toBeTruthy();
