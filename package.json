@@ -29,7 +29,7 @@
 		"cf-typegen": "bun --cwd apps/worker cf-typegen"
 	},
 	"dependencies": {
-		"wrangler": "4.67.0"
+		"wrangler": "4.124.0"
 	},
 	"devDependencies": {
 		"@opencode-ai/sdk": "catalog:",
@@ -78,8 +78,8 @@
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
 		"date-fns": "^4.1.0",
-		"drizzle-kit": "1.0.0-beta.2-f9236e3",
-		"drizzle-orm": "1.0.0-beta.2-f9236e3",
+		"drizzle-kit": "1.0.0-rc.5-ab785fc",
+		"drizzle-orm": "1.0.0-rc.5-169397b",
 		"embla-carousel-react": "^8.6.0",
 		"globals": "16.5.0",
 		"hono": "4.10.7",
@@ -107,7 +107,7 @@
 		"vite": "^6.0.0",
 		"vitest": "~3.2.0",
 		"web-vitals": "^5.1.0",
-		"wrangler": "4.67.0"
+		"wrangler": "4.124.0"
 	},
 	"cloudflare": {
 		"label": "Scorebrawl",
