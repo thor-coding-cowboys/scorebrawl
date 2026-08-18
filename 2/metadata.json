@@ -3,11 +3,12 @@
   "checkpoint_id": "01M0AR4CD9SK3QHW2DVWK6R9HK",
   "session_id": "ses_feac54301ffeBegLFpO733WzJ8",
   "strategy": "manual-commit",
-  "created_at": "2026-08-18T15:58:28.335362Z",
+  "created_at": "2026-08-18T16:17:09.313403Z",
   "branch": "feat/drizzle-v1-nested-migrations",
   "checkpoints_count": 1,
   "files_touched": [
     ".github/workflows/ci.yml",
+    ".github/workflows/e2e.yml",
     ".github/workflows/preview.yml",
     "apps/worker/migrations/20260818151321_lovely_plazm/migration.sql"
   ],
@@ -28,14 +29,14 @@
     "turn_count": 1
   },
   "initial_attribution": {
-    "calculated_at": "2026-08-18T15:58:28.296388Z",
-    "agent_lines": 6,
-    "agent_removed": 6,
+    "calculated_at": "2026-08-18T16:17:09.273634Z",
+    "agent_lines": 5,
+    "agent_removed": 0,
     "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 6,
-    "total_lines_changed": 12,
+    "total_committed": 5,
+    "total_lines_changed": 5,
     "agent_percentage": 100,
     "metric_version": 2
   }
