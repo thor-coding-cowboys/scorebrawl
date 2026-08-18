@@ -16,11 +16,9 @@ function readNestedD1Migrations(dir: string) {
 		.map((name) => ({
 			name: `${name}/migration.sql`,
 			queries: unstable_splitSqlQuery(
-				fs.readFileSync(path.join(dir, name, "migration.sql"), "utf8"),
+				fs.readFileSync(path.join(dir, name, "migration.sql"), "utf8")
 			).filter((query) =>
-				query
-					.split("\n")
-					.some((line) => line.trim() && !line.trim().startsWith("--")),
+				query.split("\n").some((line) => line.trim() && !line.trim().startsWith("--"))
 			),
 		}))
 		.filter((migration) => migration.queries.length > 0);
