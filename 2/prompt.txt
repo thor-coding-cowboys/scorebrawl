@@ -1,0 +1,31 @@
+You are reviewing whether an implementation matches its specification. Repo: /Users/palmithor/git/coding-cowboys/scorebrawl, branch `feat/drizzle-v1-nested-migrations`. Inspect the actual repo state with bash/git/read tools. Do NOT trust the report.
+
+## What Was Requested (Task 2)
+1. Delete all 21 flat files `apps/worker/migrations/0000_*.sql` … `0020_*.sql`.
+2. Create `apps/worker/migrations/20260409000000_add_randomizer_type/migration.sql` with EXACT content: `ALTER TABLE \`game_session\` ADD \`randomizer_type\` text DEFAULT 'fisher-yates' NOT NULL;`
+3. Create `apps/worker/migrations/20260410120000_rename_round_robin/migration.sql` with EXACT content:
+```
+-- Rename round-robin to sequential in rotation_mode enum
+UPDATE `game_session` SET `rotation_mode` = 'sequential' WHERE `rotation_mode` = 'round-robin';
+```
+4. Delete `apps/worker/scripts/flatten-migrations.ts`.
+5. Remove the `postdb:generate` line from `apps/worker/package.json`.
+6. After changes: `ls -d apps/worker/migrations/[0-9]*/ | wc -l` equals 21.
+7. Committed as `refactor: move migrations to nested folder layout, remove flatten script`.
+
+## What Implementer Claims
+All done, committed `5d55d96b`, 21 folders verified, exact contents.
+
+## CRITICAL: Do Not Trust the Report
+Verify independently:
+- Run `ls apps/worker/migrations/` — confirm NO flat `*.sql` files remain (only `[0-9]*/` folders and the 2 new ones).
+- Confirm exactly 21 folders via `ls -d apps/worker/migrations/[0-9]*/ | wc -l`.
+- `cat` BOTH new migration.sql files and confirm the exact content matches (including the comment line in rename_round_robin).
+- Confirm `apps/worker/scripts/flatten-migrations.ts` is gone.
+- Confirm `postdb:generate` is removed from `apps/worker/package.json` and no other line was altered (check `git show 5d55d96b`).
+- Confirm commit `5d55d96b` exists and its scope is only the migration/script/package.json changes.
+- Confirm all other nested `[0-9]*/` folders still have their `migration.sql` + `snapshot.json` (sample a few).
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specific, file:line]
