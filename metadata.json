@@ -3,7 +3,7 @@
   "checkpoint_id": "01M0AQJY1JSYB8YTAA0VB0MZR7",
   "strategy": "manual-commit",
   "branch": "feat/drizzle-v1-nested-migrations",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/worker/migrations/20260212193233_wandering_squadron_sinister/snapshot.json",
     "apps/worker/migrations/20260528133813_illegal_cable/snapshot.json",
@@ -24,6 +24,13 @@
       "transcript": "/1/full.jsonl",
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
+      "prompt": ""
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
       "prompt": ""
     }
   ],
