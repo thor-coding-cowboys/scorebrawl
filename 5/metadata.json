@@ -3,10 +3,12 @@
   "checkpoint_id": "01M0AR4CD9SK3QHW2DVWK6R9HK",
   "session_id": "ses_feac913c0ffei7AcCQjBonqGaO",
   "strategy": "manual-commit",
-  "created_at": "2026-08-18T15:34:17.449616Z",
+  "created_at": "2026-08-18T15:54:58.357806Z",
   "branch": "feat/drizzle-v1-nested-migrations",
   "checkpoints_count": 1,
   "files_touched": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/preview.yml",
     "apps/worker/migrations/20260818151321_lovely_plazm/migration.sql"
   ],
   "agent": "OpenCode",
@@ -26,14 +28,14 @@
     "turn_count": 1
   },
   "initial_attribution": {
-    "calculated_at": "2026-08-18T15:34:17.442202Z",
+    "calculated_at": "2026-08-18T15:54:58.350763Z",
     "agent_lines": 0,
     "agent_removed": 0,
-    "human_added": 4,
-    "human_modified": 1,
+    "human_added": 15,
+    "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 4,
-    "total_lines_changed": 5,
+    "total_committed": 15,
+    "total_lines_changed": 15,
     "agent_percentage": 0,
     "metric_version": 2
   }
