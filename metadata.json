@@ -3,7 +3,7 @@
   "checkpoint_id": "01M0AR4CD9SK3QHW2DVWK6R9HK",
   "strategy": "manual-commit",
   "branch": "feat/drizzle-v1-nested-migrations",
-  "checkpoints_count": 9,
+  "checkpoints_count": 12,
   "files_touched": [
     "apps/worker/migrations/20260818151321_lovely_plazm/migration.sql"
   ],
@@ -70,13 +70,20 @@
       "compact_transcript": "/8/transcript.jsonl",
       "content_hash": "/8/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/9/metadata.json",
+      "transcript": "/9/full.jsonl",
+      "compact_transcript": "/9/transcript.jsonl",
+      "content_hash": "/9/content_hash.txt",
+      "prompt": "/9/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 0,
+    "input_tokens": 656570,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 0,
-    "output_tokens": 0,
-    "api_call_count": 0
+    "cache_read_tokens": 51447168,
+    "output_tokens": 113370,
+    "api_call_count": 257
   }
 }
