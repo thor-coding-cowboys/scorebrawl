@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0AKESH8EFT1MW1CX29M806K",
+  "strategy": "manual-commit",
+  "branch": "feat/drizzle-v1-nested-migrations",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/worker/migrations/20260409000000_add_randomizer_type/migration.sql",
+    "apps/worker/migrations/20260410120000_rename_round_robin/migration.sql",
+    "apps/worker/package.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17177,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 102528,
+    "output_tokens": 1292,
+    "api_call_count": 8
+  }
+}
