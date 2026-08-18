@@ -51,7 +51,25 @@ Rejected alternatives:
   drizzle snapshot chain, matching today's behavior.)
 - Delete `apps/worker/scripts/flatten-migrations.ts` and the `postdb:generate` hook.
 
-### 3. Wrangler config (`apps/worker/wrangler.jsonc`)
+### 3. Snapshot chain repair + baseline
+
+Validated during implementation research — required for `drizzle-kit` rc.5's
+commutativity checks and snapshot diffing to work:
+
+- **Repair 2 broken `prevIds` links** so the snapshot chain is linear. Historical
+  migration renames/splits left 3 divergent heads:
+  - `20260212193233_wandering_squadron_sinister` → set `prevIds` to the `id` of
+    `20260210224556_illegal_switch`
+  - `20260528133813_illegal_cable` → set `prevIds` to the `id` of
+    `20260415152938_fantastic_iron_man`
+- **Create a baseline** with `drizzle-kit generate --custom --name squash_baseline`
+  (run from `apps/worker`). It produces an empty `migration.sql` + a fresh rc.5
+  `snapshot.json` of the full current schema. This becomes the new chain head so future
+  `drizzle-kit generate` runs are clean ("No schema changes") instead of rebuilding every
+  table (beta.2-era snapshots render boolean defaults / FK names / FK casing differently
+  than rc.5). Wrangler applies the empty SQL harmlessly.
+
+### 4. Wrangler config (`apps/worker/wrangler.jsonc`)
 
 Add to the D1 binding:
 
@@ -63,7 +81,7 @@ Add to the D1 binding:
 Wrangler records each applied migration name relative to `migrations_dir`, i.e.
 `<timestamp>_<name>/migration.sql`.
 
-### 4. `d1_migrations` remap (idempotent)
+### 5. `d1_migrations` remap (idempotent)
 
 Old flat names always contain no `/`; new nested names always contain `/`, so:
 
@@ -80,7 +98,7 @@ WHERE name NOT LIKE '%/%';
   `Apply database migrations` step, same `if: github.ref == 'refs/heads/main'` guard and
   Cloudflare credentials. First main run remaps then applies no-op; subsequent runs no-op.
 
-### 5. Consumers
+### 6. Consumers
 
 - `apps/worker/vitest.config.ts`: replace `readD1Migrations` with a local custom reader
   that walks `migrations/*/migration.sql`, sorts chronologically by folder timestamp, and
@@ -90,19 +108,23 @@ WHERE name NOT LIKE '%/%';
   (`./apps/worker/migrations/*/migration.sql`) so the pattern/migrations_dir prefix
   invariant holds for the preview config.
 
-### 6. Verification
+### 7. Verification
 
+- Snapshot chain is linear (single head) after repair; `drizzle-kit generate` reports
+  "No schema changes, nothing to migrate" after the baseline is created.
 - `bun db:clean`-free local check: run `predb:migrate` remap against an existing local DB,
-  then `wrangler d1 migrations apply --local` reports "No migrations to apply".
-- Fresh-DB check: `bun db:reset` applies all 21 migrations via the nested pattern.
-- `bun run --cwd apps/worker db:generate` (or `drizzle-kit generate`) succeeds with the
-  two snapshot-less folders present (does not need to produce a migration).
+  then `wrangler d1 migrations apply --local` reports only the baseline as pending (empty
+  SQL), then "No migrations to apply".
+- Fresh-DB check: `bun db:reset` applies all 21 migrations + baseline via the nested pattern.
 - `bun check && bun run test` (vitest uses the custom nested migration reader).
 - Preview config generation still validates.
 
 ## Risks / notes
 
-- If `drizzle-kit generate` errors on snapshot-less folders, fallback is to either name
-  them to sort last or generate minimal snapshots; verify empirically first.
+- Validated: `drizzle-kit` rc.5 tolerates the two snapshot-less folders (0015/0016) and
+  `generate --custom` produces a clean baseline with no diff afterward.
+- The baseline snapshot models the current TS schema (fresh FK names). Existing DBs carry
+  legacy FK names from earlier migrations; drizzle self-reconciles this on any future table
+  rebuild, so it is benign.
 - `wrangler d1 execute` used by the CI remap resolves the database from the worker config
   (`scorebrawl` binding), same as the existing migrate step.
