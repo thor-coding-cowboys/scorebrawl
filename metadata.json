@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0AM9YG0SHDPM0THW0WQA51Z",
+  "strategy": "manual-commit",
+  "branch": "feat/drizzle-v1-nested-migrations",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/worker/migrations/20260212193233_wandering_squadron_sinister/snapshot.json",
+    "apps/worker/migrations/20260528133813_illegal_cable/snapshot.json",
+    "apps/worker/migrations/20260818141627_squash_baseline/migration.sql",
+    "apps/worker/migrations/20260818141627_squash_baseline/snapshot.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 54104,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3322496,
+    "output_tokens": 9520,
+    "api_call_count": 64
+  }
+}
