@@ -6,6 +6,7 @@
   "checkpoints_count": 12,
   "files_touched": [
     ".github/workflows/ci.yml",
+    ".github/workflows/e2e.yml",
     ".github/workflows/preview.yml",
     "apps/worker/migrations/20260818151321_lovely_plazm/migration.sql"
   ],
