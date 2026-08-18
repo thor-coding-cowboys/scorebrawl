@@ -1,0 +1,26 @@
+You are reviewing whether an implementation matches its specification. Repo: /Users/palmithor/git/coding-cowboys/scorebrawl, branch `feat/drizzle-v1-nested-migrations`. Inspect the actual repo state with bash/git/read tools. Do NOT trust the report.
+
+## What Was Requested (Task 3)
+1. Repair `prevIds` in `apps/worker/migrations/20260212193233_wandering_squadron_sinister/snapshot.json` → set to the `id` of `20260210224556_illegal_switch` (8f663df1-b962-42f2-bd1e-19f21862eef9).
+2. Repair `prevIds` in `apps/worker/migrations/20260528133813_illegal_cable/snapshot.json` → set to the `id` of `20260415152938_fantastic_iron_man` (83e35dc7-755e-4749-bf4b-a8d2be179893).
+3. After repair the snapshot chain must be LINEAR (exactly one head) — run the head-detection: every snapshot id must be referenced by at most the expected next snapshot, and exactly one snapshot id is unreferenced.
+4. Create a baseline via `drizzle-kit generate --custom --name squash_baseline` → a folder `migrations/<today>_squash_baseline/` with `migration.sql` (comment-only) and a `snapshot.json`.
+5. End state: `drizzle-kit generate` reports "No schema changes, nothing to migrate" (clean) and there are NO extra/generated migration folders other than the baseline.
+
+## What Implementer Claims
+- Repaired both prevIds.
+- Created `migrations/20260818141627_squash_baseline/`.
+- The baseline's snapshot was REPLACED with the fresh rc.5 serialization (from a `black_deathbird` migration it generated then deleted), because `--custom` copied the stale head. It claims `generate` now reports "No schema changes" and heads == [squash_baseline].
+
+## CRITICAL: Do Not Trust the Report
+Verify independently:
+1. Read both repaired snapshot.json files; confirm `prevIds` now point to the correct ids (compare against the actual `id` fields of illegal_switch and fantastic_iron_man).
+2. Run the head-detection over `apps/worker/migrations/[0-9]*/snapshot.json` and confirm EXACTLY ONE head, and that it is the squash_baseline folder. Also confirm no snapshot id is referenced by two children (linear, not branched).
+3. Inspect `apps/worker/migrations/20260818141627_squash_baseline/snapshot.json`: confirm it contains a full schema (27 tables, and includes `guest_email_unique` in uniques — the marker of fresh rc.5 serialization), has a single `prevIds` entry, and `migration.sql` is just the comment `-- Custom SQL migration file, put your code below!`.
+4. Confirm there is NO leftover `black_deathbird` folder and no other unexpected migration folders in `apps/worker/migrations`.
+5. Run `cd apps/worker && bunx --bun drizzle-kit generate --config drizzle.config.ts` — CONFIRM it outputs "No schema changes, nothing to migrate" and creates no new folder. (If you are unsure of side effects, you may instead verify by inspection of the snapshot chain rather than running generate — but running it is preferred since it is non-destructive when there are no changes.)
+6. Confirm commit exists with message `fix: repair snapshot chain and add squash baseline for drizzle v1`.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specific, file:line]
