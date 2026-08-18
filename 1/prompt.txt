@@ -1,0 +1,13 @@
+You are reviewing code quality of a completed task in /Users/palmithor/git/coding-cowboys/scorebrawl, branch `feat/drizzle-v1-nested-migrations`.
+
+## What Was Implemented
+Task 2: deleted 21 flat migration `.sql` files, created 2 nested folders for the hand-written migrations, deleted `apps/worker/scripts/flatten-migrations.ts`, removed the `postdb:generate` hook from `apps/worker/package.json`. Commit `5d55d96b`.
+
+## What to Review
+This is file reorganization. Check specifically:
+1. No dangling references remain anywhere in the repo to `flatten-migrations` or `flatten_migrations` (search the whole repo, excluding node_modules, .git, and the docs/superpowers plan/spec files which legitimately describe the change).
+2. No dangling references to the deleted flat migration naming scheme (e.g., anything that reads `migrations/*.sql` at top-level or expects `NNNN_*.sql` files) in code, scripts, tests, CI, or configs — EXCEPT the plan/spec docs. Note that Task 6 will add a nested migration reader to vitest.config.ts (not yet done), so a current top-level `readD1Migrations` usage is expected and NOT an error for this task.
+3. `apps/worker/package.json` edit is clean (only the hook line removed, valid JSON).
+4. The two new migration.sql files contain only the specified content (no extraneous changes).
+
+Use grep/bash to verify. Report: Strengths, Issues (Critical/Important/Minor), Assessment (approved / needs changes).
