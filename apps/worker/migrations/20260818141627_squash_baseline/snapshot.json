@@ -1,10 +1,6 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "aee6cfb3-8e99-4e03-ba71-ed381dea03f9",
-  "prevIds": [
-    "8f663df1-b962-42f2-bd1e-19f21862eef9"
-  ],
   "ddl": [
     {
       "name": "account",
@@ -15,39 +11,27 @@
       "entityType": "tables"
     },
     {
+      "name": "device_code",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture",
+      "entityType": "tables"
+    },
+    {
+      "name": "game_session",
+      "entityType": "tables"
+    },
+    {
+      "name": "guest",
+      "entityType": "tables"
+    },
+    {
       "name": "invitation",
       "entityType": "tables"
     },
     {
       "name": "league",
-      "entityType": "tables"
-    },
-    {
-      "name": "member",
-      "entityType": "tables"
-    },
-    {
-      "name": "passkey",
-      "entityType": "tables"
-    },
-    {
-      "name": "session",
-      "entityType": "tables"
-    },
-    {
-      "name": "user",
-      "entityType": "tables"
-    },
-    {
-      "name": "verification",
-      "entityType": "tables"
-    },
-    {
-      "name": "user_preference",
-      "entityType": "tables"
-    },
-    {
-      "name": "fixture",
       "entityType": "tables"
     },
     {
@@ -71,6 +55,14 @@
       "entityType": "tables"
     },
     {
+      "name": "member",
+      "entityType": "tables"
+    },
+    {
+      "name": "passkey",
+      "entityType": "tables"
+    },
+    {
       "name": "player",
       "entityType": "tables"
     },
@@ -88,6 +80,34 @@
     },
     {
       "name": "season_team",
+      "entityType": "tables"
+    },
+    {
+      "name": "session",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_coin_toss",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_match",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_player",
+      "entityType": "tables"
+    },
+    {
+      "name": "user",
+      "entityType": "tables"
+    },
+    {
+      "name": "user_preference",
+      "entityType": "tables"
+    },
+    {
+      "name": "verification",
       "entityType": "tables"
     },
     {
@@ -312,9 +332,9 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
-      "default": "1",
+      "default": "true",
       "generated": null,
       "name": "enabled",
       "entityType": "columns",
@@ -322,9 +342,9 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
-      "default": "1",
+      "default": "true",
       "generated": null,
       "name": "rate_limit_enabled",
       "entityType": "columns",
@@ -334,7 +354,7 @@
       "type": "integer",
       "notNull": false,
       "autoincrement": false,
-      "default": null,
+      "default": "86400000",
       "generated": null,
       "name": "rate_limit_time_window",
       "entityType": "columns",
@@ -344,7 +364,7 @@
       "type": "integer",
       "notNull": false,
       "autoincrement": false,
-      "default": null,
+      "default": "10000",
       "generated": null,
       "name": "rate_limit_max",
       "entityType": "columns",
@@ -352,7 +372,7 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": "0",
       "generated": null,
@@ -394,7 +414,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "default": null,
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -404,7 +424,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "default": null,
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
@@ -429,6 +449,446 @@
       "name": "metadata",
       "entityType": "columns",
       "table": "apikey"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "device_code",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_code",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "last_polled_at",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "polling_interval",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "client_id",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scope",
+      "entityType": "columns",
+      "table": "device_code"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "round",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "season_id",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "home_player_id",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "away_player_id",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "fixture"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "season_id",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_by",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'active'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "rotation_mode",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_size",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_consecutive_games",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "always_split_constraints",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "auto_randomize",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "auto_coin_toss",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'fisher-yates'",
+      "generated": null,
+      "name": "randomizer_type",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "winners_take_priority",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "max_consecutive_enabled",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "proposed_lineup",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mode_settings",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ended_at",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "game_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "guest"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "email",
+      "entityType": "columns",
+      "table": "guest"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "display_name",
+      "entityType": "columns",
+      "table": "guest"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "guest"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "guest"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "guest"
     },
     {
       "type": "text",
@@ -569,536 +1029,6 @@
       "name": "metadata",
       "entityType": "columns",
       "table": "league"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "member"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "organization_id",
-      "entityType": "columns",
-      "table": "member"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "table": "member"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "'member'",
-      "generated": null,
-      "name": "role",
-      "entityType": "columns",
-      "table": "member"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "member"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "name",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "public_key",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "credential_id",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "counter",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "device_type",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "backed_up",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "transports",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "integer",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "aaguid",
-      "entityType": "columns",
-      "table": "passkey"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "token",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "ip_address",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "user_agent",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "active_organization_id",
-      "entityType": "columns",
-      "table": "session"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "name",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "email",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "0",
-      "generated": null,
-      "name": "email_verified",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "image",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
-      "generated": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "table": "user"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "identifier",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "value",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
-      "generated": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "table": "verification"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "default_organization_id",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "last_active_organization_id",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(unixepoch())",
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(unixepoch())",
-      "generated": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "integer",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "deleted_at",
-      "entityType": "columns",
-      "table": "user_preference"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "round",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "season_id",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "match_id",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "home_player_id",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "away_player_id",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(unixepoch())",
-      "generated": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "(unixepoch())",
-      "generated": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "table": "fixture"
-    },
-    {
-      "type": "integer",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "deleted_at",
-      "entityType": "columns",
-      "table": "fixture"
     },
     {
       "type": "text",
@@ -1538,7 +1468,17 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "player"
+      "table": "member"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "table": "member"
     },
     {
       "type": "text",
@@ -1547,6 +1487,166 @@
       "default": null,
       "generated": null,
       "name": "user_id",
+      "entityType": "columns",
+      "table": "member"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'member'",
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "member"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "member"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "public_key",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "credential_id",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "counter",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "device_type",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "backed_up",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "transports",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aaguid",
+      "entityType": "columns",
+      "table": "passkey"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "player"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "player"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "guest_id",
       "entityType": "columns",
       "table": "player"
     },
@@ -1564,7 +1664,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "0",
+      "default": "false",
       "generated": null,
       "name": "disabled",
       "entityType": "columns",
@@ -1764,7 +1864,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "0",
+      "default": "false",
       "generated": null,
       "name": "archived",
       "entityType": "columns",
@@ -1774,7 +1874,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "0",
+      "default": "false",
       "generated": null,
       "name": "closed",
       "entityType": "columns",
@@ -1874,7 +1974,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": "0",
+      "default": "false",
       "generated": null,
       "name": "disabled",
       "entityType": "columns",
@@ -1981,6 +2081,686 @@
       "table": "season_team"
     },
     {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "token",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ip_address",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_agent",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "impersonated_by",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "active_organization_id",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_match_id",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "conflict_type",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "candidates",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "resolved",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "resolved_winner_ids",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "session_coin_toss"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_number",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "home_player_ids",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "away_player_ids",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "result",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "home_session_score",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "away_session_score",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "selected_home_player_ids",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "selected_away_player_ids",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "session_match"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "season_player_id",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'waiting'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "queue_position",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "games_played_this_session",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "consecutive_games",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "joined_at",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "session_player"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "email",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "email_verified",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "image",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "banned",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ban_reason",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ban_expires",
+      "entityType": "columns",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "default_organization_id",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "last_active_organization_id",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "user_preference"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "identifier",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "value",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "verification"
+    },
+    {
       "columns": [
         "user_id"
       ],
@@ -1989,7 +2769,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_account_user_id_user_id_fk",
       "entityType": "fks",
@@ -2004,116 +2784,11 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_apikey_user_id_user_id_fk",
       "entityType": "fks",
       "table": "apikey"
-    },
-    {
-      "columns": [
-        "organization_id"
-      ],
-      "tableTo": "league",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_invitation_organization_id_league_id_fk",
-      "entityType": "fks",
-      "table": "invitation"
-    },
-    {
-      "columns": [
-        "inviter_id"
-      ],
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_invitation_inviter_id_user_id_fk",
-      "entityType": "fks",
-      "table": "invitation"
-    },
-    {
-      "columns": [
-        "organization_id"
-      ],
-      "tableTo": "league",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_member_organization_id_league_id_fk",
-      "entityType": "fks",
-      "table": "member"
-    },
-    {
-      "columns": [
-        "user_id"
-      ],
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_member_user_id_user_id_fk",
-      "entityType": "fks",
-      "table": "member"
-    },
-    {
-      "columns": [
-        "user_id"
-      ],
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_passkey_user_id_user_id_fk",
-      "entityType": "fks",
-      "table": "passkey"
-    },
-    {
-      "columns": [
-        "user_id"
-      ],
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_session_user_id_user_id_fk",
-      "entityType": "fks",
-      "table": "session"
-    },
-    {
-      "columns": [
-        "user_id"
-      ],
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
-      "nameExplicit": false,
-      "name": "fk_user_preference_user_id_user_id_fk",
-      "entityType": "fks",
-      "table": "user_preference"
     },
     {
       "columns": [
@@ -2124,7 +2799,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_fixture_season_id_season_id_fk",
       "entityType": "fks",
@@ -2139,7 +2814,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "set null",
+      "onDelete": "SET NULL",
       "nameExplicit": false,
       "name": "fk_fixture_match_id_match_id_fk",
       "entityType": "fks",
@@ -2154,7 +2829,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_fixture_home_player_id_season_player_id_fk",
       "entityType": "fks",
@@ -2169,11 +2844,71 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_fixture_away_player_id_season_player_id_fk",
       "entityType": "fks",
       "table": "fixture"
+    },
+    {
+      "columns": [
+        "season_id"
+      ],
+      "tableTo": "season",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_game_session_season_id_season_id_fk",
+      "entityType": "fks",
+      "table": "game_session"
+    },
+    {
+      "columns": [
+        "created_by"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_game_session_created_by_user_id_fk",
+      "entityType": "fks",
+      "table": "game_session"
+    },
+    {
+      "columns": [
+        "organization_id"
+      ],
+      "tableTo": "league",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_invitation_organization_id_league_id_fk",
+      "entityType": "fks",
+      "table": "invitation"
+    },
+    {
+      "columns": [
+        "inviter_id"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_invitation_inviter_id_user_id_fk",
+      "entityType": "fks",
+      "table": "invitation"
     },
     {
       "columns": [
@@ -2184,9 +2919,9 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
-      "name": "fk_org_team_league_id_league_id_fk",
+      "name": "fk_league_team_league_id_league_id_fk",
       "entityType": "fks",
       "table": "league_team"
     },
@@ -2199,9 +2934,9 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
-      "name": "fk_org_team_player_player_id_player_id_fk",
+      "name": "fk_league_team_player_player_id_player_id_fk",
       "entityType": "fks",
       "table": "league_team_player"
     },
@@ -2214,9 +2949,9 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
-      "name": "fk_org_team_player_org_team_id_org_team_id_fk",
+      "name": "fk_league_team_player_league_team_id_league_team_id_fk",
       "entityType": "fks",
       "table": "league_team_player"
     },
@@ -2229,7 +2964,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_match_season_id_season_id_fk",
       "entityType": "fks",
@@ -2244,7 +2979,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_match_player_season_player_id_season_player_id_fk",
       "entityType": "fks",
@@ -2259,7 +2994,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_match_player_match_id_match_id_fk",
       "entityType": "fks",
@@ -2274,7 +3009,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_match_team_season_team_id_season_team_id_fk",
       "entityType": "fks",
@@ -2289,11 +3024,26 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_match_team_match_id_match_id_fk",
       "entityType": "fks",
       "table": "match_team"
+    },
+    {
+      "columns": [
+        "organization_id"
+      ],
+      "tableTo": "league",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_member_organization_id_league_id_fk",
+      "entityType": "fks",
+      "table": "member"
     },
     {
       "columns": [
@@ -2304,9 +3054,54 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_member_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "member"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_passkey_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "passkey"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_player_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "player"
+    },
+    {
+      "columns": [
+        "guest_id"
+      ],
+      "tableTo": "guest",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_player_guest_id_guest_id_fk",
       "entityType": "fks",
       "table": "player"
     },
@@ -2319,7 +3114,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_player_league_id_league_id_fk",
       "entityType": "fks",
@@ -2334,7 +3129,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_player_achievement_player_id_player_id_fk",
       "entityType": "fks",
@@ -2349,7 +3144,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_season_league_id_league_id_fk",
       "entityType": "fks",
@@ -2364,7 +3159,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_season_player_season_id_season_id_fk",
       "entityType": "fks",
@@ -2379,7 +3174,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_season_player_player_id_player_id_fk",
       "entityType": "fks",
@@ -2394,7 +3189,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
       "name": "fk_season_team_season_id_season_id_fk",
       "entityType": "fks",
@@ -2409,11 +3204,131 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "cascade",
+      "onDelete": "CASCADE",
       "nameExplicit": false,
-      "name": "fk_season_team_org_team_id_org_team_id_fk",
+      "name": "fk_season_team_league_team_id_league_team_id_fk",
       "entityType": "fks",
       "table": "season_team"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "session"
+    },
+    {
+      "columns": [
+        "session_id"
+      ],
+      "tableTo": "game_session",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_coin_toss_session_id_game_session_id_fk",
+      "entityType": "fks",
+      "table": "session_coin_toss"
+    },
+    {
+      "columns": [
+        "session_match_id"
+      ],
+      "tableTo": "session_match",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_coin_toss_session_match_id_session_match_id_fk",
+      "entityType": "fks",
+      "table": "session_coin_toss"
+    },
+    {
+      "columns": [
+        "session_id"
+      ],
+      "tableTo": "game_session",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_match_session_id_game_session_id_fk",
+      "entityType": "fks",
+      "table": "session_match"
+    },
+    {
+      "columns": [
+        "match_id"
+      ],
+      "tableTo": "match",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_match_match_id_match_id_fk",
+      "entityType": "fks",
+      "table": "session_match"
+    },
+    {
+      "columns": [
+        "session_id"
+      ],
+      "tableTo": "game_session",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_player_session_id_game_session_id_fk",
+      "entityType": "fks",
+      "table": "session_player"
+    },
+    {
+      "columns": [
+        "season_player_id"
+      ],
+      "tableTo": "season_player",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_player_season_player_id_season_player_id_fk",
+      "entityType": "fks",
+      "table": "session_player"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_user_preference_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "user_preference"
     },
     {
       "columns": [
@@ -2438,6 +3353,42 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "device_code_pk",
+      "table": "device_code",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_pk",
+      "table": "fixture",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "game_session_pk",
+      "table": "game_session",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "guest_pk",
+      "table": "guest",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "invitation_pk",
       "table": "invitation",
       "entityType": "pks"
@@ -2449,69 +3400,6 @@
       "nameExplicit": false,
       "name": "league_pk",
       "table": "league",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "member_pk",
-      "table": "member",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "passkey_pk",
-      "table": "passkey",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "session_pk",
-      "table": "session",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "user_pk",
-      "table": "user",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "verification_pk",
-      "table": "verification",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "user_id"
-      ],
-      "nameExplicit": false,
-      "name": "user_preference_pk",
-      "table": "user_preference",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "fixture_pk",
-      "table": "fixture",
       "entityType": "pks"
     },
     {
@@ -2564,6 +3452,24 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "member_pk",
+      "table": "member",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "passkey_pk",
+      "table": "passkey",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "player_pk",
       "table": "player",
       "entityType": "pks"
@@ -2606,6 +3512,69 @@
     },
     {
       "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "session_pk",
+      "table": "session",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "session_coin_toss_pk",
+      "table": "session_coin_toss",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "session_match_pk",
+      "table": "session_match",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "session_player_pk",
+      "table": "session_player",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "user_pk",
+      "table": "user",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "nameExplicit": false,
+      "name": "user_preference_pk",
+      "table": "user_preference",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "verification_pk",
+      "table": "verification",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
         {
           "value": "user_id",
           "isExpression": false
@@ -2621,6 +3590,20 @@
     {
       "columns": [
         {
+          "value": "key",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "apikey_key_idx",
+      "entityType": "indexes",
+      "table": "apikey"
+    },
+    {
+      "columns": [
+        {
           "value": "user_id",
           "isExpression": false
         }
@@ -2631,6 +3614,80 @@
       "name": "apikey_userId_idx",
       "entityType": "indexes",
       "table": "apikey"
+    },
+    {
+      "columns": [
+        {
+          "value": "season_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_season_id_idx",
+      "entityType": "indexes",
+      "table": "fixture"
+    },
+    {
+      "columns": [
+        {
+          "value": "match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_match_id_idx",
+      "entityType": "indexes",
+      "table": "fixture"
+    },
+    {
+      "columns": [
+        {
+          "value": "season_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "game_session_season_id_idx",
+      "entityType": "indexes",
+      "table": "game_session"
+    },
+    {
+      "columns": [
+        {
+          "value": "season_id",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "game_session_season_status_idx",
+      "entityType": "indexes",
+      "table": "game_session"
+    },
+    {
+      "columns": [
+        {
+          "value": "email",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "guest_email_idx",
+      "entityType": "indexes",
+      "table": "guest"
     },
     {
       "columns": [
@@ -2673,122 +3730,6 @@
       "name": "league_slug_uidx",
       "entityType": "indexes",
       "table": "league"
-    },
-    {
-      "columns": [
-        {
-          "value": "organization_id",
-          "isExpression": false
-        },
-        {
-          "value": "user_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "origin": "manual",
-      "name": "member_org_user_uidx",
-      "entityType": "indexes",
-      "table": "member"
-    },
-    {
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "member_userId_idx",
-      "entityType": "indexes",
-      "table": "member"
-    },
-    {
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "passkey_userId_idx",
-      "entityType": "indexes",
-      "table": "passkey"
-    },
-    {
-      "columns": [
-        {
-          "value": "credential_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "passkey_credentialID_idx",
-      "entityType": "indexes",
-      "table": "passkey"
-    },
-    {
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "session_userId_idx",
-      "entityType": "indexes",
-      "table": "session"
-    },
-    {
-      "columns": [
-        {
-          "value": "identifier",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "verification_identifier_idx",
-      "entityType": "indexes",
-      "table": "verification"
-    },
-    {
-      "columns": [
-        {
-          "value": "season_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "fixture_season_id_idx",
-      "entityType": "indexes",
-      "table": "fixture"
-    },
-    {
-      "columns": [
-        {
-          "value": "match_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "fixture_match_id_idx",
-      "entityType": "indexes",
-      "table": "fixture"
     },
     {
       "columns": [
@@ -2949,6 +3890,62 @@
     {
       "columns": [
         {
+          "value": "organization_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "member_organizationId_idx",
+      "entityType": "indexes",
+      "table": "member"
+    },
+    {
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "member_userId_idx",
+      "entityType": "indexes",
+      "table": "member"
+    },
+    {
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "passkey_userId_idx",
+      "entityType": "indexes",
+      "table": "passkey"
+    },
+    {
+      "columns": [
+        {
+          "value": "credential_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "passkey_credentialID_idx",
+      "entityType": "indexes",
+      "table": "passkey"
+    },
+    {
+      "columns": [
+        {
           "value": "league_id",
           "isExpression": false
         },
@@ -2958,9 +3955,27 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "\"player\".\"user_id\" IS NOT NULL",
       "origin": "manual",
       "name": "player_organization_user_uidx",
+      "entityType": "indexes",
+      "table": "player"
+    },
+    {
+      "columns": [
+        {
+          "value": "league_id",
+          "isExpression": false
+        },
+        {
+          "value": "guest_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"player\".\"guest_id\" IS NOT NULL",
+      "origin": "manual",
+      "name": "player_organization_guest_uidx",
       "entityType": "indexes",
       "table": "player"
     },
@@ -2975,6 +3990,20 @@
       "where": null,
       "origin": "manual",
       "name": "player_user_id_idx",
+      "entityType": "indexes",
+      "table": "player"
+    },
+    {
+      "columns": [
+        {
+          "value": "guest_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "player_guest_id_idx",
       "entityType": "indexes",
       "table": "player"
     },
@@ -3080,6 +4109,153 @@
     },
     {
       "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_userId_idx",
+      "entityType": "indexes",
+      "table": "session"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_coin_toss_session_id_idx",
+      "entityType": "indexes",
+      "table": "session_coin_toss"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_match_session_id_idx",
+      "entityType": "indexes",
+      "table": "session_match"
+    },
+    {
+      "columns": [
+        {
+          "value": "match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_match_match_id_idx",
+      "entityType": "indexes",
+      "table": "session_match"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "result",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_match_session_result_idx",
+      "entityType": "indexes",
+      "table": "session_match"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "season_player_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "session_player_session_season_player_uidx",
+      "entityType": "indexes",
+      "table": "session_player"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_player_session_id_idx",
+      "entityType": "indexes",
+      "table": "session_player"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_player_session_status_idx",
+      "entityType": "indexes",
+      "table": "session_player"
+    },
+    {
+      "columns": [
+        {
+          "value": "identifier",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "verification_identifier_idx",
+      "entityType": "indexes",
+      "table": "verification"
+    },
+    {
+      "columns": [
+        "email"
+      ],
+      "nameExplicit": false,
+      "name": "guest_email_unique",
+      "entityType": "uniques",
+      "table": "guest"
+    },
+    {
+      "columns": [
         "token"
       ],
       "nameExplicit": false,
@@ -3095,7 +4271,17 @@
       "name": "user_email_unique",
       "entityType": "uniques",
       "table": "user"
+    },
+    {
+      "value": "(user_id IS NOT NULL OR guest_id IS NOT NULL)",
+      "name": "player_user_or_guest_check",
+      "entityType": "checks",
+      "table": "player"
     }
   ],
-  "renames": []
+  "renames": [],
+  "id": "47ac28ec-b3b4-4845-a300-4fa080b4217c",
+  "prevIds": [
+    "8cefb485-19fb-4af4-b71d-b3216f9327ba"
+  ]
 }
