@@ -1,0 +1,25 @@
+You are reviewing whether an implementation matches its specification. Repo: /Users/palmithor/git/coding-cowboys/scorebrawl, branch `feat/drizzle-v1-nested-migrations`. Inspect the actual repo state with git/bash/read tools. Do NOT trust the report.
+
+## What Was Requested (Task 1)
+In root `package.json`:
+1. `catalog` block: `drizzle-kit` = `1.0.0-rc.5-ab785fc`, `drizzle-orm` = `1.0.0-rc.5-169397b` (was `1.0.0-beta.2-f9236e3`).
+2. `wrangler` bumped from `4.67.0` to `4.124.0` in BOTH the root `dependencies` AND the `catalog` block.
+3. `bun install` resolves without errors.
+4. Committed as `chore: upgrade drizzle-orm/drizzle-kit to 1.0.0-rc.5 and wrangler to 4.124.0`.
+
+## What Implementer Claims
+- drizzle bumps already present; wrangler bumped to 4.124.0 in both locations.
+- `bun install` clean; `drizzle-kit --version` prints v1.0.0-rc.5.
+- Committed as `35ebe8e9`.
+
+## CRITICAL: Do Not Trust the Report
+Verify independently:
+- Read `package.json` and confirm `drizzle-kit`, `drizzle-orm`, and both `wrangler` entries have the exact expected values.
+- Confirm commit `35ebe8e9` exists and contains only `package.json` and `bun.lock` (run `git show --stat 35ebe8e9`).
+- Confirm `bun.lock` actually reflects the new versions (grep for `drizzle-orm@1.0.0-rc.5-169397b`, `drizzle-kit@1.0.0-rc.5-ab785fc`, `wrangler@4.124.0`).
+- Confirm nothing extra was changed in the commit.
+- Note: it is acceptable that the drizzle bumps were pre-existing uncommitted changes folded into this commit.
+
+Report:
+- ✅ Spec compliant (if everything matches after inspection)
+- ❌ Issues found: [specific, with file:line refs]

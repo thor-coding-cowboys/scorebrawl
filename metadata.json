@@ -3,7 +3,7 @@
   "checkpoint_id": "01M0AKESH8EFT1MW1CX29M806K",
   "strategy": "manual-commit",
   "branch": "feat/drizzle-v1-nested-migrations",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/worker/migrations/0000_20260206084212_salty_nehzno.sql",
     "apps/worker/migrations/0001_20260207205318_curvy_kid_colt.sql",
@@ -45,13 +45,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 76008,
+    "input_tokens": 95911,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 614656,
-    "output_tokens": 3726,
-    "api_call_count": 20
+    "cache_read_tokens": 705792,
+    "output_tokens": 4709,
+    "api_call_count": 26
   }
 }
