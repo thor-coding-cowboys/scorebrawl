@@ -1,0 +1,13 @@
+You are reviewing code quality of a completed task in /Users/palmithor/git/coding-cowboys/scorebrawl, branch `feat/drizzle-v1-nested-migrations`.
+
+## What Was Implemented
+Task 1: bumped `drizzle-orm`→`1.0.0-rc.5-169397b`, `drizzle-kit`→`1.0.0-rc.5-ab785fc`, `wrangler`→`4.124.0` in root package.json (dependencies + catalog) and bun.lock. Commit `35ebe8e9`. No application code changed.
+
+## What to Review
+This is a version bump — focus on:
+1. Are the version pins correct/exact and consistent (no caret drift, catalog + dependency agree)?
+2. Does `bun.lock` match package.json (run `bun install --frozen-lockfile` or `bun install` to confirm no lockfile drift)?
+3. The implementer flagged a concern: wrangler 4.124.0 peers on `@cloudflare/workers-types ^5.20260815.1` while the project may use ^4.x. Assess whether this is an actual problem for this repo (check `apps/worker/package.json` and catalog for `@cloudflare/workers-types`, and whether `bun install` reported any peer conflict). If it's a real risk for typechecking, flag it as Important; if it's merely informational, note as Minor and do not block.
+
+## Report
+Return: Strengths, Issues (Critical/Important/Minor), Assessment (approved / needs changes).

@@ -3,11 +3,33 @@
   "checkpoint_id": "01M0AKESH8EFT1MW1CX29M806K",
   "strategy": "manual-commit",
   "branch": "feat/drizzle-v1-nested-migrations",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
+    "apps/worker/migrations/0000_20260206084212_salty_nehzno.sql",
+    "apps/worker/migrations/0001_20260207205318_curvy_kid_colt.sql",
+    "apps/worker/migrations/0002_20260208112346_crazy_jasper_sitwell.sql",
+    "apps/worker/migrations/0003_20260209074321_black_daimon_hellstrom.sql",
+    "apps/worker/migrations/0004_20260209101858_fluffy_mandarin.sql",
+    "apps/worker/migrations/0005_20260210224556_illegal_switch.sql",
+    "apps/worker/migrations/0006_20260212193233_wandering_squadron_sinister.sql",
+    "apps/worker/migrations/0007_20260222200653_hesitant_ultragirl.sql",
+    "apps/worker/migrations/0008_20260222200832_exotic_selene.sql",
+    "apps/worker/migrations/0009_20260305092653_wise_hellfire_club.sql",
+    "apps/worker/migrations/0010_20260305094329_quiet_lethal_legion.sql",
+    "apps/worker/migrations/0011_20260308015007_shiny_roulette.sql",
+    "apps/worker/migrations/0012_20260309190053_violet_the_liberteens.sql",
+    "apps/worker/migrations/0013_20260312173457_lively_madame_hydra.sql",
+    "apps/worker/migrations/0014_20260330111241_fat_gressill.sql",
+    "apps/worker/migrations/0015_20260409000000_add_randomizer_type.sql",
+    "apps/worker/migrations/0016_20260410120000_rename_round_robin.sql",
+    "apps/worker/migrations/0017_20260415152938_fantastic_iron_man.sql",
+    "apps/worker/migrations/0018_20260528133813_illegal_cable.sql",
+    "apps/worker/migrations/0019_20260810141000_puzzling_abomination.sql",
+    "apps/worker/migrations/0020_20260810222911_lethal_virginia_dare.sql",
     "apps/worker/migrations/20260409000000_add_randomizer_type/migration.sql",
     "apps/worker/migrations/20260410120000_rename_round_robin/migration.sql",
-    "apps/worker/package.json"
+    "apps/worker/package.json",
+    "apps/worker/scripts/flatten-migrations.ts"
   ],
   "sessions": [
     {
@@ -16,13 +38,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 17177,
+    "input_tokens": 76008,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 102528,
-    "output_tokens": 1292,
-    "api_call_count": 8
+    "cache_read_tokens": 614656,
+    "output_tokens": 3726,
+    "api_call_count": 20
   }
 }
