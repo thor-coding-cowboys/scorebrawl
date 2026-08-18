@@ -78,6 +78,11 @@ describe("device authorization flow", () => {
 	it("POST /api/auth/device/approve approves a code when authenticated", async () => {
 		const { user_code } = await requestDeviceCode();
 
+		// Claim the code with the authenticated session before approving
+		await SELF.fetch(`http://example.com/api/auth/device?user_code=${user_code}`, {
+			headers: authHeaders(sessionToken),
+		});
+
 		const res = await SELF.fetch("http://example.com/api/auth/device/approve", {
 			method: "POST",
 			headers: {
@@ -93,6 +98,11 @@ describe("device authorization flow", () => {
 
 	it("POST /api/auth/device/token exchanges device_code for access_token", async () => {
 		const { device_code, user_code } = await requestDeviceCode();
+
+		// Claim the code with the authenticated session before approving
+		await SELF.fetch(`http://example.com/api/auth/device?user_code=${user_code}`, {
+			headers: authHeaders(sessionToken),
+		});
 
 		const approveRes = await SELF.fetch("http://example.com/api/auth/device/approve", {
 			method: "POST",

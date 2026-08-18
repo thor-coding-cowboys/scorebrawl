@@ -1,9 +1,30 @@
 import fs from "node:fs";
 import path from "node:path";
-import { defineWorkersConfig, readD1Migrations } from "@cloudflare/vitest-pool-workers/config";
+import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { unstable_splitSqlQuery } from "wrangler";
 
 const migrationsPath = path.join(__dirname, "./migrations");
-const migrations = await readD1Migrations(migrationsPath);
+
+function readNestedD1Migrations(dir: string) {
+	const names = fs
+		.readdirSync(dir, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name)
+		.sort((a, b) => Number(a.split("_")[0]) - Number(b.split("_")[0]));
+	return names
+		.filter((name) => fs.existsSync(path.join(dir, name, "migration.sql")))
+		.map((name) => ({
+			name: `${name}/migration.sql`,
+			queries: unstable_splitSqlQuery(
+				fs.readFileSync(path.join(dir, name, "migration.sql"), "utf8")
+			).filter((query) =>
+				query.split("\n").some((line) => line.trim() && !line.trim().startsWith("--"))
+			),
+		}))
+		.filter((migration) => migration.queries.length > 0);
+}
+
+const migrations = readNestedD1Migrations(migrationsPath);
 
 // Read and modify wrangler config for tests
 const wranglerPath = path.join(__dirname, "wrangler.jsonc");

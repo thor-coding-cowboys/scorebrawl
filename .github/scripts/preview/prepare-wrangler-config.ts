@@ -33,6 +33,7 @@ config.assets.directory = "./apps/web/dist/client";
 config.d1_databases[0].database_id = dbId;
 config.d1_databases[0].database_name = dbName;
 config.d1_databases[0].migrations_dir = "./apps/worker/migrations";
+config.d1_databases[0].migrations_pattern = "./apps/worker/migrations/*/migration.sql";
 config.r2_buckets[0].bucket_name = bucketName;
 
 // Update queue names to PR-specific

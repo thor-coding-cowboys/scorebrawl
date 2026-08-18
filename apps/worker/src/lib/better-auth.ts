@@ -2,6 +2,7 @@ import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization, admin, bearer, deviceAuthorization } from "better-auth/plugins";
+import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
@@ -83,6 +84,7 @@ export function createAuth({
 	return betterAuth({
 		database: drizzleAdapter(db, {
 			provider: "sqlite",
+			schema,
 		}),
 		secret: betterAuthSecret,
 		trustedOrigins: origin ? [origin] : undefined,

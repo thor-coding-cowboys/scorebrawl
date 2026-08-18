@@ -11,7 +11,9 @@
 		{
 			"binding": "DB",
 			"database_name": "scorebrawl",
-			"database_id": "4c9222b6-1e0e-4b4a-bd7f-bf3214c1b365"
+			"database_id": "4c9222b6-1e0e-4b4a-bd7f-bf3214c1b365",
+			"migrations_dir": "migrations",
+			"migrations_pattern": "migrations/*/migration.sql"
 		}
 	],
 	"durable_objects": {

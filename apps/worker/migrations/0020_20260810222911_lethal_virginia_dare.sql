@@ -1,1 +1,0 @@
-ALTER TABLE `match` DROP COLUMN `game_type`;

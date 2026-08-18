@@ -1,2 +1,0 @@
-CREATE INDEX `session_match_session_result_idx` ON `session_match` (`session_id`,`result`);--> statement-breakpoint
-CREATE INDEX `session_player_session_status_idx` ON `session_player` (`session_id`,`status`);
