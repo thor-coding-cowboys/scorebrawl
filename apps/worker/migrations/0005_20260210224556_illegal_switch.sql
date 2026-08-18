@@ -1,1 +1,0 @@
-ALTER TABLE `user_preference` ADD `last_active_organization_id` text;

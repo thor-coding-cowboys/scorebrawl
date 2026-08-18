@@ -1,1 +1,0 @@
-ALTER TABLE `game_session` ADD `auto_coin_toss` integer DEFAULT 0 NOT NULL;

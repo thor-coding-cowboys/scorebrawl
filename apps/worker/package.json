@@ -17,7 +17,6 @@
 		"lint": "oxlint .",
 		"cf-typegen": "wrangler types",
 		"db:generate": "drizzle-kit generate",
-		"postdb:generate": "bun run ./scripts/flatten-migrations.ts",
 		"db:migrate": "wrangler d1 migrations apply scorebrawl --local --persist-to ../../.db/local",
 		"db:clean": "rm -rf ../../.db/local",
 		"db:reset": "bun run db:clean && bun run db:migrate",
