@@ -198,6 +198,7 @@ apps/web/.tanstack/
 .wrangler/
 .env*
 !.env.example
+!apps/worker/.env.e2e
 .dev.vars*
 !.dev.vars.example
 
