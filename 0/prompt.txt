@@ -1,0 +1,3 @@
+When running e2e I see "test-1787083621552@e2e.test
+bounced
+Invitation to join Scorebrawl on Scorebrawl " in resend . Can we skip trying to send email swhen running e2e just like we do locally (console.log instead)
