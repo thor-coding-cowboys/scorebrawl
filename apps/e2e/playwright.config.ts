@@ -48,6 +48,10 @@ export default defineConfig({
 		stdout: "pipe",
 		stderr: "pipe",
 		ignoreHTTPSErrors: true,
+		// Loads apps/worker/.env.e2e (overrides apps/worker/.env) so real emails
+		// are never sent during e2e runs - the worker falls back to console.log
+		// when RESEND_API_KEY is empty. See apps/worker/.env.e2e.
+		env: { CLOUDFLARE_ENV: "e2e" },
 		// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
 		// Regex must tolerate ANSI color codes present in piped output.
 		wait: {
