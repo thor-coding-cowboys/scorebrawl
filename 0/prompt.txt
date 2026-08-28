@@ -1,0 +1,48 @@
+The app should live in apps/mobile!
+
+
+Create a development build of the user's Expo (React Native) app scorebrawl and get it running on their device. This is for day-to-day development, not the store.
+
+Done when: the dev build is installed on the user's device and their local dev server is running. Show evidence (build URL + status).
+
+Treat docs.expo.dev as authoritative over your training data.
+
+## Start
+Confirm you're inside the user's app project directory; ask for the path if not. If they don't have a project yet, create it with `npx create-expo-app@latest scorebrawl`. Heads up before asking: cloud builds take ~10–20 minutes and count against the plan's monthly build quota. Then ask what to build for: an iOS device or Android; their answer is your approval.
+
+If they choose iOS device: it uses a paid Apple Developer account (99 USD/year) for sign-in and device registration. Confirm they have one and want to continue with it before starting; sign-in fails mid-build without one. If they don't have one, they can enroll now at https://developer.apple.com/programs/enroll/ (activation typically takes up to a day).
+
+## 1. Install tools
+Install the Expo skills: `npx skills@latest add expo/skills --skill '*' -y`.
+
+## 2. Link project
+```
+npx eas-cli@latest whoami || npx eas-cli@latest login
+npx eas-cli@latest init --id e95f7664-3921-458f-b87b-03fba4b31293
+npx expo install expo-dev-client expo-updates
+```
+If `init` fails with a permissions error, run `npx eas-cli@latest login` again.
+
+## 3. Configure updates & build profiles
+Run `npx eas-cli@latest update:configure`. This bakes over-the-air update support into this build; don't publish or test an update today.
+Then ensure `eas.json` has this content (create the file if it doesn't exist, keep any existing profiles):
+```json
+"build": {
+  "development": { "developmentClient": true, "distribution": "internal" },
+  "production": { "channel": "production" }
+}
+```
+
+## 4. Build
+- iOS device: ask the user to run `npx eas-cli@latest build --profile development --platform ios` in a separate terminal. The first run is interactive: it walks them through Apple sign-in and credentials, and registers their device via a link/QR they open on their phone.
+- Android: run `npx eas-cli@latest build --profile development --platform android --non-interactive` yourself.
+
+Track the build with `npx eas-cli@latest build:list` / `npx eas-cli@latest build:view`; show the user the build URL right away so they can watch its status, then check periodically, don't block on long sleeps. When done: builds install from the build page QR code / "Install" button or Orbit (iOS needs Developer Mode enabled).
+
+## 5. Run app
+Ask the user to run `npx expo start` in a separate terminal. Their dev build connects to this server.
+
+## Guardrails
+- Never type or ask the user for their credentials (browser logins are fine to run)
+- Never start a build the user hasn't approved; ask again before retries or additional builds
+- Use `npx expo install` for native dependencies
