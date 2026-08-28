@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -87,7 +88,7 @@ export function createAuth({
 			schema,
 		}),
 		secret: betterAuthSecret,
-		trustedOrigins: origin ? [origin] : undefined,
+		trustedOrigins: origin ? [origin, "scorebrawl://"] : undefined,
 		databaseHooks: {
 			user: {
 				create: {
@@ -270,6 +271,7 @@ export function createAuth({
 			},
 		},
 		plugins: [
+			expo(),
 			admin({ adminUserIds: adminUserIds || [] }),
 			organization({
 				ac,

@@ -1,5 +1,8 @@
 import { createMiddleware } from "hono/factory";
+import { defineRelations } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { getDb } from "../db";
+import * as schema from "../db/schema";
 import { createAuth } from "../lib/better-auth";
 import type { R2BucketRef } from "../lib/asset-util";
 
@@ -66,7 +69,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 // for better auth cli
 export const auth = createAuth({
-	db: undefined as unknown as ReturnType<typeof getDb>,
+	db: drizzle(undefined as unknown as D1Database, { relations: defineRelations(schema) }),
 	betterAuthSecret: "",
 });
 
