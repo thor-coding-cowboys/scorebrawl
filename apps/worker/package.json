@@ -26,6 +26,7 @@
 		"db:studio": "DATABASE_URL=file:$(ls ../../.db/local/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1) bun run --bun drizzle-kit studio"
 	},
 	"dependencies": {
+		"@better-auth/expo": "catalog:",
 		"@better-auth/passkey": "catalog:",
 		"@coding-cowboys/scorebrawl-util": "workspace:*",
 		"@hono/trpc-server": "catalog:",
