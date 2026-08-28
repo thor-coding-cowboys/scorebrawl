@@ -1,0 +1,3 @@
+I think this PR: https://github.com/thor-coding-cowboys/scorebrawl/pull/651 resolves the firest feature in docs/features https://github.com/thor-coding-cowboys/scorebrawl/blob/0509153289955236d78586977d8a52c762512188/docs/features/01-in-app-notifications.md right?
+
+Can you update the list given the latest PRs.

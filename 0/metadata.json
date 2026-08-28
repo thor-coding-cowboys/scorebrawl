@@ -1,0 +1,106 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M13ZDJFJA908F76HNCRX9EXQ",
+  "session_id": "ses_fb8170829ffego0tXqCuppWcNl",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-28T10:42:35.780962Z",
+  "branch": "docs/feature-backlog",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    "docs/features/01-in-app-notifications.md",
+    "docs/features/README.md"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash",
+  "turn_id": "0aea8d404d4c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 230517,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1032320,
+    "output_tokens": 11696,
+    "api_call_count": 23
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-28T10:42:35.724445Z",
+    "agent_lines": 75,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 75,
+    "total_lines_changed": 75,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 5250,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/address-findings/SKILL.md": 155,
+        ".agents/skills/explain/SKILL.md": 34,
+        ".agents/skills/portless/SKILL.md": 481,
+        ".agents/skills/recall/SKILL.md": 123,
+        ".agents/skills/replay/SKILL.md": 141,
+        ".agents/skills/review/SKILL.md": 225,
+        ".agents/skills/review/references/review-rules.md": 87,
+        ".agents/skills/search/SKILL.md": 105,
+        ".agents/skills/session-crosslink/SKILL.md": 141,
+        ".agents/skills/session-handoff/SKILL.md": 137,
+        ".agents/skills/session-to-skill/SKILL.md": 210,
+        ".agents/skills/teach/SKILL.md": 130,
+        ".agents/skills/using-entire/SKILL.md": 152,
+        ".agents/skills/what-happened/SKILL.md": 333,
+        ".claude/settings.local.json": 117,
+        ".opencode/package-lock.json": 378,
+        ".opencode/plugins/entire.ts": 276,
+        "agent/skills/address-findings/SKILL.md": 149,
+        "agent/skills/explain/SKILL.md": 32,
+        "agent/skills/recall/SKILL.md": 122,
+        "agent/skills/replay/SKILL.md": 140,
+        "agent/skills/review/SKILL.md": 220,
+        "agent/skills/review/references/review-rules.md": 87,
+        "agent/skills/search/SKILL.md": 104,
+        "agent/skills/session-crosslink/SKILL.md": 140,
+        "agent/skills/session-handoff/SKILL.md": 136,
+        "agent/skills/session-to-skill/SKILL.md": 209,
+        "agent/skills/teach/SKILL.md": 129,
+        "agent/skills/using-entire/SKILL.md": 148,
+        "agent/skills/what-happened/SKILL.md": 326,
+        "skills-lock.json": 83
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 771,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4501,
+      "agent_lines_removed": 20,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 117,
+        ".opencode/package-lock.json": 378,
+        ".opencode/plugins/entire.ts": 276
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 771,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4517,
+      "agent_lines_removed": 29,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 117,
+        ".opencode/package-lock.json": 378,
+        ".opencode/plugins/entire.ts": 276
+      }
+    }
+  ]
+}
