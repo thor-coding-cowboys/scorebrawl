@@ -1,0 +1,27 @@
+You are performing a code quality review of a profile screen.
+
+## What Was Implemented
+Task 9 of the mobile league switcher plan: `apps/mobile/src/app/profile.tsx` (placeholder profile: avatar/name/email) and removed the `as Href` cast in `league-drawer.tsx`.
+
+## Plan/Requirements
+Placeholder profile screen using existing primitives, native header from root Stack. Simple.
+
+## Base SHA / HEAD SHA
+Base: c9e143fe. HEAD: 258a12a3.
+
+## Description
+Profile screen placeholder.
+
+## Your Job
+Review the diff:
+- `git diff c9e143fe 258a12a3`
+
+Check:
+- profile.tsx: clean, correct usage of useUserAvatar/Avatar/ThemedText, single responsibility, no dead code, layout sensible (does SafeAreaView edges=["bottom"] make sense given the native header handles top?).
+- league-drawer.tsx change: cast removal clean, no leftover imports.
+- Any issues with the placeholder being too sparse or missing anything spec asked for?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
