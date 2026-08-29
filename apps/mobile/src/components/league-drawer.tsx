@@ -1,6 +1,8 @@
 import type { DrawerContentComponentProps } from "expo-router/drawer";
 import { router, type Href } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
@@ -8,15 +10,26 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
+import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { authClient } from "@/lib/auth-client";
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
+	const insets = useSafeAreaInsets();
 	const { activeLeague, organizations, switchLeague } = useActiveLeague();
 	const { data } = authClient.useSession();
 	const user = data?.user;
+	const { uri, headers } = useUserAvatar(user?.image);
+	const [switchingId, setSwitchingId] = useState<string | null>(null);
 
 	const handleLeaguePress = async (organizationId: string) => {
+		if (organizationId === activeLeague?.id) {
+			navigation.closeDrawer();
+			return;
+		}
+		if (switchingId) return;
+		setSwitchingId(organizationId);
 		const ok = await switchLeague(organizationId);
+		setSwitchingId(null);
 		if (ok) {
 			navigation.closeDrawer();
 		}
@@ -28,9 +41,14 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 	};
 
 	return (
-		<ThemedView style={styles.container}>
+		<ThemedView
+			style={[
+				styles.container,
+				{ paddingTop: insets.top + Spacing.five, paddingBottom: insets.bottom + Spacing.four },
+			]}
+		>
 			<View style={styles.userHeader}>
-				<Avatar name={user?.name ?? ""} image={user?.image} size={40} />
+				<Avatar name={user?.name ?? ""} image={uri} headers={headers} size={40} />
 				<View style={styles.userInfo}>
 					<ThemedText type="subtitle">{user?.name}</ThemedText>
 					<ThemedText type="small" themeColor="textSecondary">
@@ -40,6 +58,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 			</View>
 
 			<Pressable
+				accessibilityRole="button"
 				onPress={() => {
 					navigation.closeDrawer();
 					router.push("/profile" as Href);
@@ -59,7 +78,10 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 					return (
 						<Pressable
 							key={org.id}
+							accessibilityRole="button"
+							accessibilityState={{ selected: isActive }}
 							onPress={() => handleLeaguePress(org.id)}
+							disabled={switchingId !== null}
 							style={[styles.leagueItem, isActive && styles.leagueItemActive]}
 						>
 							<Avatar name={org.name} size={28} />
@@ -85,8 +107,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		paddingHorizontal: Spacing.three,
-		paddingTop: Spacing.five,
-		paddingBottom: Spacing.four,
 	},
 	userHeader: {
 		flexDirection: "row",
