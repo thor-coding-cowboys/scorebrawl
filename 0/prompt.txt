@@ -1,0 +1,19 @@
+Explore the web app at /Users/palmithor/git/palmithor/scorebrawl/apps/web and worker at /Users/palmithor/git/palmithor/scorebrawl/apps/worker.
+
+I'm building a mobile home screen that shows the "active season in the active league" similar to the web app's default league screen. The web app's league default screen is at route /leagues/$slug/seasons/... and shows an active season with a standings table (columns: Name, MP, W, D, L, Win%, +/-, Pts, Last 5), plus "Start Session" and "Match" buttons.
+
+Report back with file paths and line numbers:
+
+1. The web route that renders the active season default screen (likely under apps/web/src/routes/_authenticated/_sidebar/leagues/$slug/... something with seasons or index). Read it fully and quote the component. How does it decide which season is "active"? Is there an "isActive" flag on season records, or does it pick by date?
+
+2. The tRPC procedures used to fetch the season standings data (likely a season router in apps/worker/src/trpc/router). Quote the procedure input/output schemas and the query implementation, including how standings rows (player stats: MP, W, D, L, win%, +/- , pts, last 5) are computed. Note the joins used (player, leagueTeam, season).
+
+3. How the web navigates to a league's default screen when the league has no seasons yet (empty state).
+
+4. The season schema in apps/worker/src/db/schema (fields: id, leagueId, name, status/isActive, startDate, endDate, etc). Quote it.
+
+5. How "Start Session" and "Match" buttons work - what routes/procedures they trigger. Just briefly, since mobile won't replicate them.
+
+6. Whether there is an existing "active season" concept server-side (a season.active boolean or similar) or if it's derived client-side.
+
+Be thorough, quote real code.
