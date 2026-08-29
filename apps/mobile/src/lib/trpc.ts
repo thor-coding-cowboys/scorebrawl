@@ -19,6 +19,7 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 				const cookie = await getAuthCookie();
 				return cookie ? { cookie } : {};
 			},
+			fetch: (url, init) => fetch(url, { ...init, credentials: "include" }),
 		}),
 	],
 });
