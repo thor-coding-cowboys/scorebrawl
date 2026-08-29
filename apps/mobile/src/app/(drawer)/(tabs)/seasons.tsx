@@ -4,13 +4,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { formatDate, getSeasonStatus } from "@/lib/collections/season";
 import { useTRPC } from "@/lib/trpc";
 
 export default function SeasonsScreen() {
 	const trpc = useTRPC();
-	const { data: seasons = [], isLoading } = useQuery(trpc.season.getAll.queryOptions());
+	const {
+		data: seasons = [],
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery(trpc.season.getAll.queryOptions());
 
 	return (
 		<ThemedView style={styles.container}>
@@ -42,6 +48,15 @@ export default function SeasonsScreen() {
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 								Loading…
 							</ThemedText>
+						) : isError ? (
+							<View style={styles.emptyBox}>
+								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+									Couldn't load seasons
+								</ThemedText>
+								<Button variant="outline" onPress={() => refetch()}>
+									Retry
+								</Button>
+							</View>
 						) : (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 								No seasons yet
@@ -90,5 +105,9 @@ const styles = StyleSheet.create({
 	empty: {
 		textAlign: "center",
 		marginTop: Spacing.five,
+	},
+	emptyBox: {
+		alignItems: "center",
+		gap: Spacing.three,
 	},
 });

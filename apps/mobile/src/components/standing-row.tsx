@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
-import { useUserAvatar } from "@/hooks/use-user-avatar";
+import { getAvatarUri } from "@/hooks/use-user-avatar";
 
 export type StandingItem = {
 	id: string;
@@ -19,8 +19,15 @@ function winPct(item: StandingItem) {
 	return item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
 }
 
-export function StandingRow({ item, rank }: { item: StandingItem; rank: number }) {
-	const { uri, headers } = useUserAvatar(item.image);
+export function StandingRow({
+	item,
+	rank,
+	headers,
+}: {
+	item: StandingItem;
+	rank: number;
+	headers?: Record<string, string>;
+}) {
 	const diffColor = item.pointDiff > 0 ? "#16a34a" : item.pointDiff < 0 ? "#dc2626" : undefined;
 
 	return (
@@ -28,7 +35,7 @@ export function StandingRow({ item, rank }: { item: StandingItem; rank: number }
 			<ThemedText type="small" themeColor="textSecondary" style={styles.rank}>
 				{rank}
 			</ThemedText>
-			<Avatar name={item.name} image={uri} headers={headers} size={32} />
+			<Avatar name={item.name} image={getAvatarUri(item.image)} headers={headers} size={32} />
 			<View style={styles.info}>
 				<ThemedText numberOfLines={1} style={styles.name}>
 					{item.name}

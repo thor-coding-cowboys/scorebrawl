@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 
 import { AUTH_BASE_URL, authClient } from "@/lib/auth-client";
 
+export function getAvatarUri(image?: string | null) {
+	return image?.startsWith("http")
+		? image
+		: image
+			? `${AUTH_BASE_URL}/api/user-assets/${encodeURIComponent(image)}`
+			: undefined;
+}
+
 export function useUserAvatar(image?: string | null) {
 	const [cookie, setCookie] = useState<string | undefined>();
 
@@ -15,14 +23,8 @@ export function useUserAvatar(image?: string | null) {
 		};
 	}, []);
 
-	const uri = image?.startsWith("http")
-		? image
-		: image
-			? `${AUTH_BASE_URL}/api/user-assets/${encodeURIComponent(image)}`
-			: undefined;
-
 	return {
-		uri,
+		uri: getAvatarUri(image),
 		headers: cookie ? { cookie } : undefined,
 	};
 }
