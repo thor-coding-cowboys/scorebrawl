@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { AUTH_BASE_URL, authClient } from "@/lib/auth-client";
+import { AUTH_BASE_URL, getAuthCookie } from "@/lib/auth-client";
 
 export function getAvatarUri(image?: string | null) {
 	return image?.startsWith("http")
@@ -15,7 +15,7 @@ export function useUserAvatar(image?: string | null) {
 
 	useEffect(() => {
 		let active = true;
-		authClient.getCookie().then((c) => {
+		getAuthCookie().then((c) => {
 			if (active) setCookie(c);
 		});
 		return () => {

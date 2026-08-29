@@ -11,7 +11,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { authClient } from "@/lib/auth-client";
+import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
 export default function HomeScreen() {
@@ -22,7 +22,7 @@ export default function HomeScreen() {
 
 	useEffect(() => {
 		let active = true;
-		authClient.getCookie().then((c) => {
+		getAuthCookie().then((c) => {
 			if (active) setCookie(c);
 		});
 		return () => {
