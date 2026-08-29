@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M16TBYK032QHZGA76J9FBF7Z",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/package.json",
+    "apps/mobile/src/app/_layout.tsx",
+    "apps/mobile/src/lib/query-client.ts",
+    "apps/mobile/src/lib/trpc.ts",
+    "bun.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 44170,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 181504,
+    "output_tokens": 3178,
+    "api_call_count": 11
+  }
+}
