@@ -1,0 +1,16 @@
+You are re-reviewing whether code quality issues in the Task 8 screens were fixed.
+
+## Context
+Previously you reviewed the mobile Home + Seasons screens (Task 8) and found Mediums (no loading/error state on Home standings; per-row cookie reads in StandingRow) plus Lows (dead !activeLeague branch, standings sort order, seasons error state, stale flash). An implementer fixed them in commit `c9e143fe`. Verify:
+
+1. `index.tsx`: standings loading (ListEmptyComponent "Loading standings…" when isPending), standings error (message + Retry via refetch), activeSeasonQuery error state + Retry, transient "No active season" for data===null (redirect intact), dead `!activeLeague` branch removed, `sortedStandings` (0-match to bottom then score desc).
+2. Cookie hoist: `index.tsx` reads `authClient.getCookie()` once (useEffect+useState) → passes `headers` to `StandingRow` → `Avatar`. `StandingRow` is pure display now (no useUserAvatar per row). `getAvatarUri()` helper shared.
+3. `seasons.tsx`: `isError, refetch` destructured; error branch "Couldn't load seasons" + Retry.
+4. Issue 6 correctly skipped (query key includes seasonSlug, so no stale flash).
+5. No @ts-expect-error/@ts-ignore.
+
+Run `git show --stat c9e143fe` (expected 4 files: index.tsx, standing-row.tsx, seasons.tsx, use-user-avatar.ts), `cd apps/mobile && bun run typecheck` (zero errors).
+
+Report:
+- ✅ All fixed (or remaining)
+- ❌ Remaining: [specifics with file:line]

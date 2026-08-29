@@ -3,7 +3,7 @@
   "checkpoint_id": "01M170XFFA486GWH7GJ16GVXJ5",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "apps/mobile/src/app/profile.tsx",
     "apps/mobile/src/components/league-drawer.tsx"
@@ -15,13 +15,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 18193,
+    "input_tokens": 61390,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 388864,
-    "output_tokens": 4409,
-    "api_call_count": 16
+    "cache_read_tokens": 447616,
+    "output_tokens": 5755,
+    "api_call_count": 21
   }
 }
