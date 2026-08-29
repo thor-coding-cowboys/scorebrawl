@@ -1,0 +1,30 @@
+You are performing a code quality review of a route restructure.
+
+## What Was Implemented
+Task 4 of the mobile league switcher plan: moved `(tabs)` routes into `(drawer)/(tabs)`, deleted Explore, created an Expo Router `Drawer` layout wrapping NativeTabs (Home + Seasons), and created 4 stub components (avatar, app-header-left, active-league-title, league-drawer).
+
+## Plan/Requirements
+Expo Router Drawer (bundled in SDK 57, backed by react-native-drawer-layout) wrapping the tabs navigator so the drawer header is always visible (Slack pattern). Explore dropped. Component stubs are intentional (replaced in Tasks 5–7). No new deps.
+
+## Base SHA / HEAD SHA
+Base: 9637b910. HEAD: 5ca26fca.
+
+## Description
+Drawer layout wrapping tabs, with placeholder components.
+
+## Your Job
+Review the diff:
+- `git diff 9637b910 5ca26fca`
+
+Check:
+- `(drawer)/_layout.tsx`: idiomatic Expo Router Drawer usage? Is using `screenOptions` with function values for headerLeft/headerTitle correct? Any issues with `Colors[scheme === "unspecified" ? "light" : scheme]` pattern (consistency with app-tabs.tsx)?
+- The stubs: clean, minimal, no dead imports, correct typing? Any prop/type mismatches that will bite in later tasks (e.g. Avatar's name/image props, AppHeaderLeft's navigation usage)?
+- `app-tabs.tsx`: any issue with the Seasons trigger reusing explore.png?
+- `app-tabs.web.tsx`: consistent with native tabs now?
+- Any missing `SafeAreaView`/inset concerns for the drawer?
+- Do files have single clear responsibilities?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
