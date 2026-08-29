@@ -1,0 +1,28 @@
+You are performing a code quality review of avatar/header components.
+
+## What Was Implemented
+Task 5 of the mobile league switcher plan: finalized `apps/mobile/src/components/avatar.tsx` (expo-image or initials circle, size-scaled) and `apps/mobile/src/components/app-header-left.tsx` (session avatar that opens the drawer via useNavigation).
+
+## Plan/Requirements
+Avatar must support user image + initials fallback, mirroring web's `getInitials`/Avatar. HeaderLeft opens the drawer via useNavigation (not render props).
+
+## Base SHA / HEAD SHA
+Base: 5ca26fca. HEAD: 18fb183c.
+
+## Description
+Avatar component + header button that opens the drawer.
+
+## Your Job
+Review the diff:
+- `git diff 5ca26fca 18fb183c`
+
+Check:
+- Is `getInitials` correct and edge-safe (empty, single, multi-word, whitespace)? Does it match web's behavior?
+- Avatar: is the `as any`/cast or typing clean? Is expo-image usage idiomatic? Any issue with ThemedText style override?
+- AppHeaderLeft: is the `navigation as unknown as { openDrawer?: () => void }` cast acceptable, or is there a cleaner typed approach (e.g. `useNavigation<DrawerNavigationProp>`)? Is the accessibility label good? Any risk the press doesn't open the drawer?
+- Any dead code, naming, or formatting issues?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
