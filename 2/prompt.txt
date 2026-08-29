@@ -1,0 +1,49 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 2 of the mobile league switcher plan: Modify `apps/mobile/src/lib/auth-client.ts` so it imports `organizationClient` from `better-auth/client/plugins` and adds `organizationClient({})` to the plugins array of the better-auth client, keeping the existing `expoClient` config unchanged. The exact target content is:
+
+```ts
+import { expoClient } from "@better-auth/expo/client";
+import { organizationClient } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
+import * as SecureStore from "expo-secure-store";
+
+export const AUTH_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://scorebrawl.localhost:1355";
+
+export const authClient = createAuthClient({
+	baseURL: AUTH_BASE_URL,
+	plugins: [
+		expoClient({
+			scheme: "scorebrawl",
+			storagePrefix: "scorebrawl",
+			storage: SecureStore,
+		}),
+		organizationClient({}),
+	],
+});
+```
+
+Commit message: `feat(mobile): add organization client to better-auth`. Commit SHA claimed: `da5cd9db`.
+
+## What Implementer Claims They Built
+
+- Added `organizationClient` import from `better-auth/client/plugins`, appended to plugins array
+- `expoClient` config unchanged
+- `bunx tsc --noEmit` compiles clean
+- Committed as `da5cd9db`
+
+## CRITICAL: Do Not Trust the Report
+
+Verify everything independently by reading the actual file and git state.
+
+## Your Job
+
+1. Read `apps/mobile/src/lib/auth-client.ts` — compare line-by-line with the target content above. Is `organizationClient` imported from the correct module and added to plugins? Is `expoClient` config preserved exactly?
+2. Run `git show --stat da5cd9db` and `git log --oneline -1` — confirm only that file changed and it's at HEAD.
+3. Confirm the commit message matches.
+
+Report:
+- ✅ Spec compliant (if everything matches after inspection)
+- ❌ Issues found: [list specifically what's missing or extra, with file:line references]
