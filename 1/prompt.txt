@@ -1,0 +1,38 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 8 of the mobile league switcher plan:
+
+1. `apps/mobile/src/lib/trpc.ts` — add `RouterOutput = inferRouterOutputs<TRPCRouter>`
+2. `apps/mobile/src/lib/collections/season.ts` — `getSeasonStatus` (active/upcoming/ended/locked/archived) + `formatDate(date: Date)`
+3. `apps/mobile/src/components/standing-row.tsx` — `StandingItem` type + `StandingRow` card: rank, avatar/initials, name, MP + W% + today's +/- colored, score right
+4. `apps/mobile/src/app/(drawer)/(tabs)/index.tsx` — Home rewrite: all hooks before early returns; loading state; no-league empty state with button opening https://scorebrawl.com via expo-web-browser; active season header (league name + season name) + standings FlatList; `useEffect` redirects to `/seasons` when findActive returns null
+5. `apps/mobile/src/app/(drawer)/(tabs)/seasons.tsx` — seasons list with status + date range
+6. `apps/mobile/src/components/app-tabs.web.tsx` — add Seasons TabTrigger
+7. No @ts-expect-error/@ts-ignore; typecheck zero errors; commit `feat(mobile): home shows active season, add seasons tab`
+
+## What Implementer Claims
+- All 6 items done; typecheck + oxc clean
+- Committed `379be8b5` (6 files)
+- No cast needed on standings items (structural subtyping)
+- `organizations` guarded with `!organizations ||` (possibly null per better-auth types)
+- `queryOptions(undefined, { enabled })` compiled for inputless findActive
+
+## CRITICAL: Do Not Trust the Report
+Verify independently.
+
+## Your Job
+1. Read all 6 changed files and verify each against the spec above.
+   - season.ts: status logic matches web's getSeasonStatus (archived → archived; closed → locked; startDate>now → upcoming; endDate<now → ended; else active)?
+   - standing-row.tsx: correct fields, diff coloring, winPct, no dead code?
+   - index.tsx: hooks all at top before early returns? Empty state opens scorebrawl.com? useEffect redirect only when activeLeague && data === null? FlatList uses StandingRow with rank?
+   - seasons.tsx: lists with status + dates?
+   - app-tabs.web.tsx: Seasons trigger added correctly?
+2. Confirm no `@ts-expect-error`/`@ts-ignore` in any of the files.
+3. `git show --stat 379be8b5` — only the 6 expected files, at HEAD, correct message.
+4. `cd apps/mobile && bun run typecheck` — zero errors.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specifics with file:line]
