@@ -1,0 +1,29 @@
+You are performing a code quality review of a small auth-client change.
+
+## What Was Implemented
+Task 2 of the mobile league switcher plan: added `organizationClient({})` to the mobile better-auth client in `apps/mobile/src/lib/auth-client.ts`, importing from `better-auth/client/plugins`, keeping the existing `expoClient` config.
+
+## Plan/Requirements
+Mobile must match the web app's auth client pattern (web uses `organizationClient({})` from `better-auth/client/plugins`). "League" == better-auth "organization" in this codebase.
+
+## Base SHA / HEAD SHA
+Base: ec806b36. HEAD: da5cd9db.
+
+## Description
+Add organization plugin to mobile auth client.
+
+## Your Job
+Review the diff:
+- `git diff ec806b36 da5cd9db`
+
+Check:
+- Import source is idiomatic (`better-auth/client/plugins`)
+- Plugin config matches web parity (`organizationClient({})`)
+- No dead code, no formatting issues
+- Is `useListOrganizations`/`setActive` actually available on the typed client after this change (reason about it; don't need to run tsc but note if uncertain)?
+- Does this create any naming/sorting inconsistencies with the codebase style?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
