@@ -3,7 +3,7 @@
   "checkpoint_id": "01M170JJRB4P1KAA3Q6E1XXFN5",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "apps/mobile/src/app/(drawer)/(tabs)/index.tsx",
     "apps/mobile/src/app/(drawer)/(tabs)/seasons.tsx",
@@ -17,13 +17,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 49391,
+    "input_tokens": 100882,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 747776,
-    "output_tokens": 15366,
-    "api_call_count": 24
+    "cache_read_tokens": 1896448,
+    "output_tokens": 34414,
+    "api_call_count": 56
   }
 }
