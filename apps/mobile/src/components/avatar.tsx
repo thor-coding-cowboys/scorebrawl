@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -6,29 +7,36 @@ import { useTheme } from "@/hooks/use-theme";
 
 function getInitials(name: string) {
 	const parts = name.split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "?";
-	if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-	return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+	const letters = parts.map((p) => p[0]?.toUpperCase()).filter(Boolean);
+	return letters.slice(0, 2).join("") || "?";
 }
 
 export function Avatar({
 	name,
 	image,
+	headers,
 	size = 32,
 }: {
 	name: string;
 	image?: string | null;
+	headers?: Record<string, string>;
 	size?: number;
 }) {
 	const theme = useTheme();
 	const initials = getInitials(name);
+	const [imageFailed, setImageFailed] = useState(false);
 
-	if (image) {
+	useEffect(() => {
+		setImageFailed(false);
+	}, [image]);
+
+	if (image && !imageFailed) {
 		return (
 			<Image
-				source={{ uri: image }}
+				source={{ uri: image, headers }}
 				style={{ width: size, height: size, borderRadius: size / 2 }}
 				contentFit="cover"
+				onError={() => setImageFailed(true)}
 			/>
 		);
 	}
@@ -44,7 +52,11 @@ export function Avatar({
 				justifyContent: "center",
 			}}
 		>
-			<ThemedText type="smallBold" themeColor="primaryForeground" style={{ fontSize: size * 0.4 }}>
+			<ThemedText
+				type="smallBold"
+				themeColor="primaryForeground"
+				style={{ fontSize: size * 0.4, lineHeight: size * 0.4 * 1.4 }}
+			>
 				{initials}
 			</ThemedText>
 		</View>

@@ -1,22 +1,45 @@
 import { useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
 
 import { Avatar } from "@/components/avatar";
-import { authClient } from "@/lib/auth-client";
+import { AUTH_BASE_URL, authClient } from "@/lib/auth-client";
 
 export function AppHeaderLeft() {
-	const navigation = useNavigation();
+	const navigation = useNavigation<{ openDrawer: () => void }>();
 	const { data } = authClient.useSession();
 	const user = data?.user;
+	const [cookie, setCookie] = useState<string>();
 
-	const handlePress = () => {
-		const drawerNav = navigation as unknown as { openDrawer?: () => void };
-		drawerNav.openDrawer?.();
-	};
+	useEffect(() => {
+		let active = true;
+		authClient.getCookie().then((value) => {
+			if (active) setCookie(value);
+		});
+		return () => {
+			active = false;
+		};
+	}, []);
+
+	const imageUri = user?.image?.startsWith("http")
+		? user.image
+		: user?.image
+			? `${AUTH_BASE_URL}/api/user-assets/${encodeURIComponent(user.image)}`
+			: undefined;
 
 	return (
-		<Pressable onPress={handlePress} hitSlop={8} accessibilityLabel="Open league menu">
-			<Avatar name={user?.name ?? ""} image={user?.image} size={32} />
+		<Pressable
+			onPress={() => navigation.openDrawer()}
+			hitSlop={8}
+			accessibilityRole="button"
+			accessibilityLabel="Open league menu"
+		>
+			<Avatar
+				name={user?.name ?? ""}
+				image={imageUri}
+				headers={cookie ? { cookie } : undefined}
+				size={32}
+			/>
 		</Pressable>
 	);
 }
