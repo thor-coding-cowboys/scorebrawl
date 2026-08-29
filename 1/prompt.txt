@@ -1,0 +1,13 @@
+Explore the web app at /Users/palmithor/git/palmithor/scorebrawl/apps/web and the worker at /Users/palmithor/git/palmithor/scorebrawl/apps/worker.
+
+The user wants to build a league/org switcher in the mobile app, and said "check how the apps/web selects the league". I need to understand the existing league/org selection mechanism in the web app so I can replicate it in mobile.
+
+Report back:
+1. How the web app selects/keeps track of the active league or org. Look for React Context providers, localStorage persistence, query params, tRPC procedures. Quote the relevant code with file paths and line numbers.
+2. The tRPC procedures related to leagues and organizations: how to list a user's leagues/orgs, how to get the active league, how to switch/set active league. Look in apps/worker/src (procedures, routers). Quote the router definitions and relevant procedure names and their input/output schemas.
+3. The database schema for leagues and organizations (apps/worker/src/db/schema) - what tables/columns exist, e.g. organizationId on leagues, membership tables.
+4. Whether there's an "active organization" concept (activeOrgProcedure was mentioned in AGENTS.md). How is the active org determined server-side? Look for headers, cookies, or context.
+5. The auth setup in apps/worker/src/middleware/context.ts and how ctx.authentication and organizationId are derived.
+6. Any existing hooks like useActiveLeague, useOrganizations in the web app.
+
+Be thorough and quote real code with file paths and line numbers.
