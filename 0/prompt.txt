@@ -1,0 +1,30 @@
+You are performing a code quality review of the Home + Seasons screens.
+
+## What Was Implemented
+Task 8 of the mobile league switcher plan: `season.ts` helpers (getSeasonStatus, formatDate), `standing-row.tsx` (StandingRow card), rewrote Home `(drawer)/(tabs)/index.tsx` (active season standings / empty state / redirect), created Seasons tab `seasons.tsx`, added Seasons web trigger.
+
+## Plan/Requirements
+Home shows the active league's active season standings read-only (similar to web but mobile cards). No active season → redirect to Seasons tab. No leagues → empty state pointing to scorebrawl.com. All hooks before early returns. Use existing primitives.
+
+## Base SHA / HEAD SHA
+Base: 57a493f9. HEAD: 379be8b5.
+
+## Description
+Home active-season screen + Seasons tab.
+
+## Your Job
+Review the diff:
+- `git diff 57a493f9 379be8b5`
+
+Check:
+- Home: hook ordering, effect deps (is the redirect effect stable/safe?), loading/empty/active branches, FlatList perf (keyExtractor, renderItem), the standings header layout, does it re-fetch standings when league/season changes (query keys include seasonSlug — confirm invalidateQueries on switch makes it refetch)?
+- standing-row.tsx: correctness, the `useUserAvatar` per row — is N cookie reads a concern? (Note: acceptable if it reads SecureStore once per row mount; flag if it's a real problem.)
+- seasons.tsx: status colors (currently just text — acceptable?), date handling, empty state.
+- season.ts: helper correctness.
+- app-tabs.web.tsx: consistent with native tabs.
+- Any N+1, re-render, or stale-closure issues? Single responsibility?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
