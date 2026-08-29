@@ -1,5 +1,5 @@
 import type { DrawerContentComponentProps } from "expo-router/drawer";
-import { router, type Href } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,7 +61,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 				accessibilityRole="button"
 				onPress={() => {
 					navigation.closeDrawer();
-					router.push("/profile" as Href);
+					router.push("/profile");
 				}}
 				style={styles.menuItem}
 			>
