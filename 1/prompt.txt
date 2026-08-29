@@ -1,0 +1,33 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+A config fix for `apps/mobile` to make typechecking work:
+
+1. `apps/mobile/tsconfig.json`:
+   - Add `"types": ["@cloudflare/workers-types"]` to compilerOptions (keep `strict: true` and existing `@/*`, `@/assets/*` paths)
+   - Add path mapping `"@coding-cowboys/scorebrawl-worker/*": ["../worker/src/*"]`
+   - include gets `"../worker/worker-configuration.d.ts"` added
+   - Add `"exclude": ["../worker/src", "node_modules", "babel.config.js", "metro.config.js", "jest.config.js", "android", "ios"]`
+2. `apps/mobile/package.json`: add `"typecheck": "tsc --noEmit"` script
+3. `bun --cwd apps/mobile run typecheck` must pass with zero errors
+4. Commit: `chore(mobile): add typecheck script and worker type config` (claimed SHA `9637b910`)
+
+## What Implementer Claims
+
+- Both files changed, typecheck passes (exit 0), no new deps needed
+- Commit `9637b910` (commit command hit timeout but commit intact)
+
+## CRITICAL: Do Not Trust the Report
+
+Verify independently.
+
+## Your Job
+
+1. Read `apps/mobile/tsconfig.json` and `apps/mobile/package.json` — confirm all the required changes, nothing extra.
+2. Run `git show --stat 9637b910` — only those two files changed, at HEAD.
+3. Run `bun --cwd apps/mobile run typecheck` — confirm zero errors.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specifics with file:line]
