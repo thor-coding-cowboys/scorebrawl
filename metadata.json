@@ -3,7 +3,7 @@
   "checkpoint_id": "01M16X5KBS096HWBF7CCJ48R36",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "apps/mobile/src/hooks/use-active-league.ts"
   ],
@@ -14,13 +14,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 40562,
+    "input_tokens": 58379,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 190208,
-    "output_tokens": 2146,
-    "api_call_count": 11
+    "cache_read_tokens": 226048,
+    "output_tokens": 3218,
+    "api_call_count": 14
   }
 }

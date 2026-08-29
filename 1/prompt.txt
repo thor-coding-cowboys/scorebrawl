@@ -1,0 +1,27 @@
+You are re-reviewing whether code quality issues were properly fixed.
+
+## Context
+Previously you reviewed the Avatar/AppHeaderLeft components (Task 5 of mobile league switcher) and found:
+- High: `user.image` is an R2 asset key (not URL) + `/api/user-assets/*` needs the auth cookie; avatar never loads and no fallback
+- Medium: double cast for openDrawer
+- Medium: getInitials didn't match web
+- Low: lineHeight scaling, accessibilityRole
+
+An implementer then made fixes in commit `afdbcc4a`. Review whether they were correctly fixed.
+
+## What to verify
+
+Read `apps/mobile/src/components/avatar.tsx` and `apps/mobile/src/components/app-header-left.tsx` (current HEAD):
+
+1. **Avatar URL fix**: AppHeaderLeft builds a full URL: `image?.startsWith("http") ? image : image ? ${AUTH_BASE_URL}/api/user-assets/${encodeURIComponent(image)} : undefined`. Does it fetch the cookie (`authClient.getCookie()`) and pass it as `headers`? Is the cookie fetched in a hook-safe way (useEffect + state)?
+2. **Avatar onError fallback**: Does Avatar accept `headers` prop, forward to `source={{ uri, headers }}`, track `imageFailed` state reset when `image` changes (useEffect), and render initials on error?
+3. **Cast fix**: app-header-left uses `useNavigation<{ openDrawer: () => void }>()` (no `as unknown as` double cast)?
+4. **getInitials parity**: first letter of each word, sliced to 2, uppercased, `|| "?"` fallback?
+5. **lineHeight scaling**: initials text has scaled lineHeight (`size * 0.4 * 1.4`)?
+6. **accessibilityRole="button"** on the Pressable?
+
+Also run `git show --stat afdbcc4a` to confirm scope, and `cd apps/mobile && bun run typecheck` for zero errors.
+
+Report:
+- ✅ All issues fixed (or list remaining)
+- ❌ Remaining issues: [specifics with file:line]
