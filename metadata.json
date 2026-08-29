@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M16Z05QY6JAFJMCP5M35SNXP",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/components/app-header-left.tsx",
+    "apps/mobile/src/components/league-drawer.tsx",
+    "apps/mobile/src/hooks/use-user-avatar.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 69554,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 169088,
+    "output_tokens": 3966,
+    "api_call_count": 11
+  }
+}
