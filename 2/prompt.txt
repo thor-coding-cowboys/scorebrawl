@@ -1,0 +1,35 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 1 of the mobile league switcher plan: Add five dependencies to `apps/mobile/package.json` `dependencies`:
+- `"@coding-cowboys/scorebrawl-worker": "workspace:*"`
+- `"@tanstack/react-query": "catalog:"`
+- `"@trpc/client": "catalog:"`
+- `"@trpc/tanstack-react-query": "catalog:"`
+- `"superjson": "catalog:"`
+
+Then run `bun install` (should succeed, update `bun.lock`), verify the worker package resolves to the workspace path `/Users/palmithor/git/palmithor/scorebrawl/apps/worker`, and commit with message `feat(mobile): add tRPC + tanstack query deps`. No other code changes.
+
+## What Implementer Claims They Built
+
+- Added the five deps to `apps/mobile/package.json`, alphabetically sorted
+- `bun install` succeeded, updated `bun.lock`
+- `bun pm ls` shows `@coding-cowboys/scorebrawl-worker@workspace:apps/worker`
+- Committed as `ec806b36`
+- Changed files: `apps/mobile/package.json`, `bun.lock`
+
+## CRITICAL: Do Not Trust the Report
+
+Verify everything independently by reading the actual files and git state.
+
+## Your Job
+
+1. Read `apps/mobile/package.json` — confirm all five deps present with correct values (`workspace:*` / `catalog:`), correctly sorted in `dependencies`, no stray/extra changes.
+2. Run `git show --stat ec806b36` — confirm only `apps/mobile/package.json` and `bun.lock` changed.
+3. Check `git log --oneline -1` to confirm the commit is at HEAD.
+4. Confirm `bun.lock` actually contains the new entries (grep for `@trpc/tanstack-react-query`, `@coding-cowboys/scorebrawl-worker` in the lockfile).
+
+Report:
+- ✅ Spec compliant (if everything matches after inspection)
+- ❌ Issues found: [list specifically what's missing or extra, with file:line references]

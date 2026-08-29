@@ -3,7 +3,7 @@
   "checkpoint_id": "01M16T2TYR0D2NGG7BA7QFCKFX",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/mobile/src/lib/auth-client.ts"
   ],
@@ -21,13 +21,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 31284,
+    "input_tokens": 34804,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 330240,
-    "output_tokens": 6751,
-    "api_call_count": 16
+    "cache_read_tokens": 400640,
+    "output_tokens": 7787,
+    "api_call_count": 20
   }
 }
