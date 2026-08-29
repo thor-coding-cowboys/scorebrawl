@@ -1,0 +1,29 @@
+You are performing a code quality review of a tRPC/query client addition.
+
+## What Was Implemented
+Task 3 of the mobile league switcher plan: added `apps/mobile/src/lib/query-client.ts` (TanStack QueryClient with TRPC-aware retry), `apps/mobile/src/lib/trpc.ts` (createTRPCContext + createTRPCClient with httpLink, superjson, auth cookie header), modified `apps/mobile/src/app/_layout.tsx` to wrap with TRPCProvider + QueryClientProvider, added `@trpc/server` dep.
+
+## Plan/Requirements
+The mobile tRPC client must mirror the web app's (`apps/web/src/lib/trpc.ts` + `apps/web/src/lib/query-client.ts`) but use absolute URL + cookie auth via the expo client's `authClient.getCookie()`. All providers must be in the root layout, ThemeProvider outermost.
+
+## Base SHA / HEAD SHA
+Base: da5cd9db. HEAD: bc689617.
+
+## Description
+Mobile tRPC client, query client, and root provider wiring.
+
+## Your Job
+Review the diff:
+- `git diff da5cd9db bc689617`
+
+Check:
+- Is `query-client.ts` consistent with `apps/web/src/lib/query-client.ts` (same retry semantics, sensible defaults)? Any redundant or missing config for a mobile context (e.g. is `refetchOnWindowFocus` sensible)?
+- Is `trpc.ts` idiomatic? Is the cookie header approach correct (async headers returning cookie)? Any issues with reusing `AUTH_BASE_URL`/`authClient` from `./auth-client`?
+- `_layout.tsx`: provider nesting correct? Any issues with `useProtectedRoute` given the route restructure (segments[0] now will be `(drawer)` for authed screens — does the auth guard still work)?
+- Does each file have one clear responsibility?
+- Any dead code, naming issues, or formatting problems?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
