@@ -1,0 +1,29 @@
+You are performing a code quality review of a custom hook.
+
+## What Was Implemented
+Task 6 of the mobile league switcher plan: `apps/mobile/src/hooks/use-active-league.ts` — derives the active league from the session's activeOrganizationId with fallback to organizations[0], and provides `switchLeague` (better-auth setActive + query invalidation).
+
+## Plan/Requirements
+Mirror web's derivation (app-sidebar.tsx:78-80). "League" == better-auth "organization". switchLeague must use better-auth organization.setActive + invalidate queries, return success boolean. Return `{ activeLeague, organizations, isLoading, switchLeague }`.
+
+## Base SHA / HEAD SHA
+Base: afdbcc4a. HEAD: 1f768e35.
+
+## Description
+Active league hook for mobile.
+
+## Your Job
+Review the diff:
+- `git diff afdbcc4a 1f768e35`
+
+Check:
+- Is the derivation correct and edge-safe (no active id, active id not in list)?
+- Is `switchLeague` correct — does invalidateQueries cover all org-scoped queries? Error handling sound? Console.error acceptable or should it surface?
+- Does the hook name/return shape match conventions? Is the file single-responsibility?
+- Any missing loading handling (isPending) nuance, stale closure, or re-render concerns?
+- Type safety of `activeLeague` (could be undefined — is that handled by consumers)?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
