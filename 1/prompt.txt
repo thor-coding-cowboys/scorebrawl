@@ -1,0 +1,29 @@
+You are performing a code quality review of a small dependency-addition change.
+
+## What Was Implemented
+Task 1 of the mobile league switcher plan: added five dependencies to `apps/mobile/package.json` (`@coding-cowboys/scorebrawl-worker: workspace:*`, `@tanstack/react-query: catalog:`, `@trpc/client: catalog:`, `@trpc/tanstack-react-query: catalog:`, `superjson: catalog:`), ran `bun install`, committed.
+
+## Plan/Requirements
+The mobile app will import tRPC client + TanStack Query + the worker's router types in later tasks. The dependencies must come from the root catalog where possible.
+
+## Base SHA / HEAD SHA
+Base: 01a91008 (before task). HEAD: ec806b36.
+
+## Description
+Dependency addition for mobile tRPC/TanStack integration.
+
+## Your Job
+Review the diff between 01a91008 and ec806b36:
+- `git diff 01a91008 ec806b36 -- apps/mobile/package.json`
+- `git show ec806b36`
+
+Check:
+- Dependencies correctly placed in `dependencies` (not devDependencies)? `@coding-cowboys/scorebrawl-worker` is a runtime type import so it belongs in dependencies.
+- Are `catalog:` references used correctly (matching the monorepo convention)?
+- Is the version sorting correct?
+- Any issues with the lockfile change?
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
