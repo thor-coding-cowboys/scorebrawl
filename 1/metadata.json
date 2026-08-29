@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M173HD74190VXE7FBZ0Q528D",
+  "session_id": "ses_fb1edf8e5ffeocDeLbLeY66BCy",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-29T15:53:18.74887Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/lib/trpc.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash",
+  "turn_id": "c868011a4199",
+  "checkpoint_transcript_start": 5,
+  "transcript_lines_at_start": 5,
+  "compact_transcript_start": 5,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-29T15:53:18.741955Z",
+    "agent_lines": 1,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "total_lines_changed": 1,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
