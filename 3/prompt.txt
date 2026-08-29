@@ -1,0 +1,15 @@
+Explore the Expo mobile app at /Users/palmithor/git/palmithor/scorebrawl/apps/mobile. This is a React Native Expo Router app (Expo SDK 57, React Native 0.86).
+
+I need a thorough understanding to plan an "org/league switcher" feature (a drawer/sheet with profile icon top-left, account menu, sign out, and a scrollable list of leagues to switch the active league).
+
+Report back:
+1. The full directory tree of src/app (all routes), src/components, src/lib, src/hooks
+2. What each route screen does (read the key ones, especially any main/home/dashboard screen and any profile/settings screen)
+3. How the app currently handles authentication (sign in/out), and where the sign-out function lives
+4. Whether there is any existing league/org selection, context, or state management (React Context, zustand, etc.)
+5. How the app calls the backend/API (tRPC client? fetch?), and where the API client is defined
+6. Any existing bottom sheet / drawer / sheet components already used (e.g. react-native-reanimated, expo-router Modal, etc.)
+7. The design/theme conventions (colors, dark mode handling, existing components like buttons, avatars)
+8. The constants files
+
+Quote the key code for: the auth lib, the main home screen, any profile screen, and the API client. Include file paths with line numbers. Be thorough - read the actual files.
