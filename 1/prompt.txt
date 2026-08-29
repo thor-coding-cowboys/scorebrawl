@@ -1,0 +1,27 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 9 of the mobile league switcher plan:
+1. Create `apps/mobile/src/app/profile.tsx` — placeholder profile screen: Avatar (name, resolved image uri, headers, size 64), name (title), email (small, textSecondary), centered, using native header (no manual back button).
+2. Remove the `as Href` cast from `league-drawer.tsx` `router.push("/profile")` and the unused `Href` import — IF typecheck passes without it (typed routes now know `/profile`).
+3. Typecheck zero errors; commit `feat(mobile): add profile screen`.
+
+## What Implementer Claims
+- profile.tsx created with avatar/name/email
+- cast removed, Href import dropped
+- typecheck zero errors without cast (generated router.d.ts includes /profile)
+- Committed `258a12a3`
+
+## CRITICAL: Do Not Trust the Report
+Verify independently.
+
+## Your Job
+1. Read `apps/mobile/src/app/profile.tsx` — matches the spec (avatar + name + email, useUserAvatar, no manual back button)?
+2. Read `apps/mobile/src/components/league-drawer.tsx` — `router.push("/profile")` without cast, no unused Href import?
+3. `git show --stat 258a12a3` — only those 2 files, at HEAD, correct message.
+4. `cd apps/mobile && bun run typecheck` — zero errors.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specifics with file:line]
