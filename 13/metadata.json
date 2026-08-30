@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M19SJA884HWYFF14730AH706",
+  "session_id": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-30T16:56:20.014145Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash",
+  "turn_id": "a10e9874b046",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1689444,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 93747968,
+    "output_tokens": 239306,
+    "api_call_count": 381
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 771,
+      "user_lines_removed": 0,
+      "agent_lines_added": 23976,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 117,
+        ".opencode/package-lock.json": 378,
+        ".opencode/plugins/entire.ts": 276
+      }
+    }
+  ]
+}
