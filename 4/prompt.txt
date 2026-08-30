@@ -1,0 +1,35 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 7 of the mobile league switcher plan: replace the `LeagueDrawerContent` stub in `apps/mobile/src/components/league-drawer.tsx` with a full Slack-style drawer:
+- User header: avatar (name, image, size 40) + name + email
+- "Profile settings" Pressable row → closeDrawer + router.push("/profile")
+- "Leagues" section label
+- ScrollView of leagues: initials avatar + name + ✓ checkmark on the active one; tap → switchLeague(org.id) + closeDrawer on success
+- Sign out Button pinned at bottom → authClient.signOut() + router.replace("/sign-in")
+- Uses useActiveLeague() { activeLeague, organizations, switchLeague }, authClient.useSession()
+- Verified against actual component APIs (ThemedText, Button fullWidth/outline, Avatar)
+- Typecheck zero errors; commit `feat(mobile): league drawer content with profile, leagues, sign out`
+
+## What Implementer Claims
+- Full drawer implemented as specified
+- typecheck zero errors, oxc clean
+- Committed `6ac295d4` (only league-drawer.tsx)
+- Deviations: `router.push("/profile" as Href)` cast (route doesn't exist until Task 9), `(organizations ?? [])` null-safe
+
+## CRITICAL: Do Not Trust the Report
+Verify independently.
+
+## Your Job
+1. Read `apps/mobile/src/components/league-drawer.tsx`. Verify against the spec: user header, profile settings row, leagues scroll (initials avatar, name, ✓ on active), sign out pinned bottom, league tap switches + closes drawer on success, sign out routes to /sign-in.
+2. Evaluate the two deviations:
+   - `router.push("/profile" as Href)` — acceptable (typed routes will include it after Task 9) and no @ts-ignore used?
+   - `(organizations ?? [])` — is it type-necessary given useActiveLeague returns `organizations` as `Organization[] | null`?
+3. Confirm `Button` usage matches `ui/button.tsx` props (variant outline, fullWidth, onPress).
+4. `git show --stat 6ac295d4` — only league-drawer.tsx, at HEAD, correct message.
+5. `cd apps/mobile && bun run typecheck` — zero errors.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specifics with file:line]
