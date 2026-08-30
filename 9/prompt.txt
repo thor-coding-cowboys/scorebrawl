@@ -1,0 +1,37 @@
+You are reviewing whether an implementation matches its specification.
+
+## What Was Requested
+
+Task 6 of the mobile league switcher plan: create `apps/mobile/src/hooks/use-active-league.ts`:
+- Derives `activeLeague` from `session.session.activeOrganizationId` with fallback to `organizations[0]`
+- `switchLeague(organizationId)` calls `authClient.organization.setActive({ organizationId })`, on error logs + returns false, else `queryClient.invalidateQueries()` + returns true
+- Returns `{ activeLeague, organizations, isLoading, switchLeague }`
+- Uses `useQueryClient` from `@tanstack/react-query`, `authClient.useSession()`, `authClient.useListOrganizations()`
+- Typecheck zero errors; commit `feat(mobile): add useActiveLeague hook`
+
+Implementer noted one adjustment: `useListOrganizations()` types `data` as `Organization[] | null`, so used `const orgs = organizations ?? [];` internally.
+
+## What Implementer Claims
+
+- Hook created as specified, with the `?? []` null-handling adjustment
+- typecheck zero errors, oxc clean
+- Committed `1f768e35`
+
+## CRITICAL: Do Not Trust the Report
+
+Verify independently.
+
+## Your Job
+
+1. Read `apps/mobile/src/hooks/use-active-league.ts`. Verify:
+   - activeLeague derivation with fallback to orgs[0]
+   - switchLeague does setActive + error handling + invalidateQueries + boolean return
+   - return shape `{ activeLeague, organizations, isLoading, switchLeague }`
+   - uses useQueryClient, useSession, useListOrganizations
+2. Confirm the `?? []` adjustment is sound (handles null data correctly).
+3. `git show --stat 1f768e35` — only that file, at HEAD, correct message.
+4. `cd apps/mobile && bun run typecheck` — zero errors.
+
+Report:
+- ✅ Spec compliant
+- ❌ Issues found: [specifics with file:line]
