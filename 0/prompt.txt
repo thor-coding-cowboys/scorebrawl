@@ -1,0 +1,5 @@
+It says couldn't load seasons and coulnd't load active season, is that because the backend is not running?
+
+---
+
+The profile Icon needs som padding away from the end of the screen - it is touching it and it looks bad
