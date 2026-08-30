@@ -3,7 +3,7 @@
   "checkpoint_id": "01M19SJA884HWYFF14730AH706",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/mobile/tsconfig.json"
   ],
@@ -21,13 +21,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 956,
+    "input_tokens": 1572,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 199168,
-    "output_tokens": 994,
-    "api_call_count": 3
+    "cache_read_tokens": 260608,
+    "output_tokens": 1479,
+    "api_call_count": 5
   }
 }
