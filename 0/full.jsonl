@@ -18,19 +18,19 @@
       "deletions": 0,
       "files": 0
     },
-    "cost": 1.5008822760000002,
+    "cost": 1.511460572,
     "tokens": {
-      "input": 1723953,
-      "output": 279978,
+      "input": 1724610,
+      "output": 280533,
       "reasoning": 0,
       "cache": {
-        "read": 133832448,
+        "read": 135270656,
         "write": 0
       }
     },
     "time": {
       "created": 1787996406990,
-      "updated": 1788110593242
+      "updated": 1788110649746
     }
   },
   "messages": [
@@ -51651,21 +51651,24 @@
           "cwd": "/Users/palmithor/git/palmithor/scorebrawl",
           "root": "/Users/palmithor/git/palmithor/scorebrawl"
         },
-        "cost": 0,
+        "cost": 0.003490584,
         "tokens": {
-          "input": 0,
-          "output": 0,
+          "total": 479566,
+          "input": 192,
+          "output": 142,
           "reasoning": 0,
           "cache": {
-            "read": 0,
-            "write": 0
+            "write": 0,
+            "read": 479232
           }
         },
         "modelID": "deepseek-v4-flash",
         "providerID": "opencode-go",
         "time": {
-          "created": 1788110593241
+          "created": 1788110593241,
+          "completed": 1788110632723
         },
+        "finish": "tool-calls",
         "id": "msg_053b25cd9001zDozRMKjgq52m4",
         "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5"
       },
@@ -51693,21 +51696,203 @@
           "tool": "bash",
           "callID": "call_2f5cadcd4d394a87a11f8ff4",
           "state": {
-            "metadata": {
-              "output": "feat/mobile-league-switcher\n"
-            },
-            "status": "running",
+            "status": "completed",
             "input": {
               "command": "cd /Users/palmithor/git/palmithor/scorebrawl && git branch --show-current && git add apps/mobile/src/hooks/use-active-league.ts && git commit -m \"fix(mobile): auto-set active league when session has none\" 2>&1 | tail -2; git log --oneline -1",
               "timeout": 150000
             },
+            "output": "feat/mobile-league-switcher\n[feat/mobile-league-switcher b05b6f36] fix(mobile): auto-set active league when session has none\n 1 file changed, 24 insertions(+), 2 deletions(-)\nb05b6f36 fix(mobile): auto-set active league when session has none\n",
+            "metadata": {
+              "output": "feat/mobile-league-switcher\n[feat/mobile-league-switcher b05b6f36] fix(mobile): auto-set active league when session has none\n 1 file changed, 24 insertions(+), 2 deletions(-)\nb05b6f36 fix(mobile): auto-set active league when session has none\n",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "cd /Users/palmithor/git/palmithor/scorebrawl && git branch --show-current && git add apps/mobile/src/hooks/use-active-league.ts && git commit -m \"fix(mobile): auto-set active league when session has none\" 2>&1 | tail -2; git log --oneline -1",
             "time": {
-              "start": 1788110595754
+              "start": 1788110632564,
+              "end": 1788110632566
             }
           },
           "id": "prt_053b265210016cfNyGQZrghMyF",
           "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
           "messageID": "msg_053b25cd9001zDozRMKjgq52m4"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "15090da4533a38dfbee25e9a230246487bb0c96a",
+          "type": "step-finish",
+          "tokens": {
+            "total": 479566,
+            "input": 192,
+            "output": 142,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 479232
+            }
+          },
+          "cost": 0.003490584,
+          "id": "prt_053b2f6c90010bkMlwdbzwJ7P0",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b25cd9001zDozRMKjgq52m4"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_053acbd430013COMlm3T49qSJg",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "high",
+        "path": {
+          "cwd": "/Users/palmithor/git/palmithor/scorebrawl",
+          "root": "/Users/palmithor/git/palmithor/scorebrawl"
+        },
+        "cost": 0.003445296,
+        "tokens": {
+          "total": 479732,
+          "input": 164,
+          "output": 80,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 479488
+          }
+        },
+        "modelID": "deepseek-v4-flash",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1788110632823,
+          "completed": 1788110649710
+        },
+        "finish": "tool-calls",
+        "id": "msg_053b2f777001HqVXfWV91qSG4z",
+        "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5"
+      },
+      "parts": [
+        {
+          "snapshot": "15090da4533a38dfbee25e9a230246487bb0c96a",
+          "type": "step-start",
+          "id": "prt_053b2ff25001wisI0IyNkTSkoq",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b2f777001HqVXfWV91qSG4z"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_09d1baeb0be14c18aabddb3c",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "cd /Users/palmithor/git/palmithor/scorebrawl && git push origin feat/mobile-league-switcher 2>&1 | tail -2"
+            },
+            "output": "To github.com:thor-coding-cowboys/scorebrawl.git\n   a216a631..b05b6f36  feat/mobile-league-switcher -> feat/mobile-league-switcher\n",
+            "metadata": {
+              "output": "To github.com:thor-coding-cowboys/scorebrawl.git\n   a216a631..b05b6f36  feat/mobile-league-switcher -> feat/mobile-league-switcher\n",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "cd /Users/palmithor/git/palmithor/scorebrawl && git push origin feat/mobile-league-switcher 2>&1 | tail -2",
+            "time": {
+              "start": 1788110649536,
+              "end": 1788110649538
+            }
+          },
+          "id": "prt_053b300210016oCFCz4d4hoKfR",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b2f777001HqVXfWV91qSG4z"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "15090da4533a38dfbee25e9a230246487bb0c96a",
+          "type": "step-finish",
+          "tokens": {
+            "total": 479732,
+            "input": 164,
+            "output": 80,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 479488
+            }
+          },
+          "cost": 0.003445296,
+          "id": "prt_053b3391e0012cGOff2P4a0Z0t",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b2f777001HqVXfWV91qSG4z"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_053acbd430013COMlm3T49qSJg",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "high",
+        "path": {
+          "cwd": "/Users/palmithor/git/palmithor/scorebrawl",
+          "root": "/Users/palmithor/git/palmithor/scorebrawl"
+        },
+        "cost": 0.003642416,
+        "tokens": {
+          "total": 480122,
+          "input": 301,
+          "output": 333,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 479488
+          }
+        },
+        "modelID": "deepseek-v4-flash",
+        "providerID": "opencode-go",
+        "time": {
+          "created": 1788110649745,
+          "completed": 1788110657087
+        },
+        "finish": "stop",
+        "id": "msg_053b33991001FQFSLAJ2PDomsL",
+        "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5"
+      },
+      "parts": [
+        {
+          "snapshot": "15090da4533a38dfbee25e9a230246487bb0c96a",
+          "type": "step-start",
+          "id": "prt_053b348fd001u5DojQdYjScG15",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b33991001FQFSLAJ2PDomsL"
+        },
+        {
+          "type": "text",
+          "text": "Pushed. Now, to directly answer your question and decide on the logout guard:\n\n**Root cause (confirmed):** Not an origin/CORS issue. The backend already allows `scorebrawl://` and localhost origins. The real problem: the app's session was **valid but had no `activeOrganizationId` set**, so every league-scoped tRPC call (`findActive`, `getAll`) returned 401 \"No active league\". The spec required \"always one active league,\" but the mobile app only *derived* the fallback in the UI without persisting it server-side (the web app does this via `setActive`).\n\n**Fix:** `useActiveLeague` now auto-calls `organization.setActive(orgs[0].id)` when the session has no active league, then invalidates queries. Verified on the simulator: fresh launch → 17/17 responses are 200, zero 401s.\n\n**Logout behavior — already correct, no change needed:** I confirmed in better-auth's session-atom internals that it already implements exactly what you described:\n- Server says session invalid (401) → session resolves to `null` → `useProtectedRoute` redirects to sign-in (logs out)\n- Network error (offline/worker down) → cached session is kept, no logout → screens show retry\n\nSo a stale/corrupt session already logs the user out, while transient errors don't. The earlier confusion was the *valid-session-no-active-org* case, which wasn't an auth failure at all — hence my `setActive` fix.",
+          "time": {
+            "start": 1788110653694,
+            "end": 1788110656905
+          },
+          "id": "prt_053b348fe0014rpcSYFY1gXFCV",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b33991001FQFSLAJ2PDomsL"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "15090da4533a38dfbee25e9a230246487bb0c96a",
+          "type": "step-finish",
+          "tokens": {
+            "total": 480122,
+            "input": 301,
+            "output": 333,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 479488
+            }
+          },
+          "cost": 0.003642416,
+          "id": "prt_053b355f7001yGUCRD03cKmK6O",
+          "sessionID": "ses_fb31bfb31ffe4irWHna8rEQIC5",
+          "messageID": "msg_053b33991001FQFSLAJ2PDomsL"
         }
       ]
     }

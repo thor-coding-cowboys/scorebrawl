@@ -1,5 +1,5 @@
-It says couldn't load seasons and coulnd't load active season, is that because the backend is not running?
+The screen says Couldn't load the active season
 
 ---
 
-The profile Icon needs som padding away from the end of the screen - it is touching it and it looks bad
+If the app can not get a clean freh ssession it should log out I feel - but it should not log out for siple errors? Could it be that we need to allow some specific origin or something in the backend?
