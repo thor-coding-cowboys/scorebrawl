@@ -1,5 +1,5 @@
 import { useNavigation } from "expo-router";
-import { Pressable } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { Avatar } from "@/components/avatar";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
@@ -17,8 +17,15 @@ export function AppHeaderLeft() {
 			hitSlop={8}
 			accessibilityRole="button"
 			accessibilityLabel="Open league menu"
+			style={styles.button}
 		>
 			<Avatar name={user?.name ?? ""} image={uri} headers={headers} size={32} />
 		</Pressable>
 	);
 }
+
+const styles = StyleSheet.create({
+	button: {
+		marginLeft: 16,
+	},
+});
