@@ -1,0 +1,21 @@
+You are re-reviewing whether code quality issues in the `useActiveLeague` hook were fixed.
+
+## Context
+Previously you reviewed `apps/mobile/src/hooks/use-active-league.ts` (Task 6, mobile league switcher) and found:
+- High: switchLeague throws on network failure (fetch rejection)
+- Medium: isLoading didn't include session pending state
+- Medium: un-scoped invalidateQueries (acceptable but footgun)
+- Low: switchLeague recreated each render (no useCallback)
+
+An implementer fixed them in commit `55193ce9`. Verify the fixes by reading the current file:
+
+1. switchLeague wraps the setActive call in try/catch, returns false on both HTTP error and thrown rejection, invalidates + returns true on success.
+2. `useSession` destructures `isPending: isSessionPending`; `isLoading: isSessionPending || isPending`.
+3. invalidateQueries either scoped or kept with a comment explaining it mirrors web behavior.
+4. switchLeague wrapped in `useCallback([queryClient])`.
+
+Also run `git show --stat 55193ce9` (only the hook file, at HEAD) and `cd apps/mobile && bun run typecheck` (zero errors).
+
+Report:
+- ✅ All fixed (or remaining issues listed)
+- ❌ Remaining: [specifics with file:line]
