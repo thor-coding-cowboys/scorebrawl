@@ -2,7 +2,7 @@
 	"extends": "expo/tsconfig.base",
 	"compilerOptions": {
 		"strict": true,
-		"types": ["@cloudflare/workers-types"],
+		"types": ["@cloudflare/workers-types", "expo/types"],
 		"paths": {
 			"@/*": ["./src/*"],
 			"@/assets/*": ["./assets/*"],
