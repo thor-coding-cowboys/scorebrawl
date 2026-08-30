@@ -1,1 +1,1 @@
-Let's add an org/league switcher to the mobile app. Something like this: [Image 1]  A profil icon top left, with my account menu item, sign out on the bottom and then a scrollable list of leagues. Then just show the active league on the main screen. There should always be one active league - check how the apps/web selects the league. Let's skip the step where creating a league - if the user has no league just show an empty screen that says to create a league on https://scorebrawl.com
+typecheck fails on CI
