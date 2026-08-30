@@ -1,0 +1,30 @@
+You are performing a code quality review of a drawer content component.
+
+## What Was Implemented
+Task 7 of the mobile league switcher plan: `apps/mobile/src/components/league-drawer.tsx` — Slack-style left drawer: user header, Profile settings row, scrollable league list with active checkmark, sign out pinned bottom.
+
+## Plan/Requirements
+Custom `drawerContent` for the Expo Router Drawer. Tapping a league calls switchLeague + closes drawer. Sign out routes to /sign-in. Should reuse existing ThemedText/ThemedView/Button/Avatar primitives.
+
+## Base SHA / HEAD SHA
+Base: 55193ce9. HEAD: 6ac295d4.
+
+## Description
+League drawer content component.
+
+## Your Job
+Review the diff:
+- `git diff 55193ce9 6ac295d4`
+
+Check:
+- Is the layout robust (pinned sign out vs scroll)? Any SafeArea concerns (notch/home-indicator insets for the drawer content)?
+- League list: performance (many leagues — ScrollView fine?), accessibility (Pressable roles/labels), active-state visual.
+- The `router.push("/profile" as Href)` cast — acceptable? Any cleaner alternative?
+- Sign out: is `router.replace("/sign-in")` still the right route given the drawer structure? Any risk of navigation happening while drawer open?
+- Any state/UX issues (e.g. tapping active league re-invalidates unnecessarily — acceptable?).
+- Single responsibility, naming, formatting.
+
+Report:
+- Strengths
+- Issues (Critical/Important/Minor)
+- Assessment: Approved or Needs changes
