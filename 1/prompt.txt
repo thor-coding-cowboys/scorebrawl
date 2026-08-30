@@ -1,0 +1,22 @@
+You are re-reviewing whether code quality issues in the league drawer were fixed.
+
+## Context
+Previously you reviewed `apps/mobile/src/components/league-drawer.tsx` (Task 7, mobile league switcher) and found Important issues: missing safe-area insets, drawer avatar not resolving user image URL/cookie, profile route not existing (deferred to Task 9). Also minors: accessibility roles, same-league re-setActive, double-tap guard.
+
+An implementer fixed them in commit `57a493f9`, also creating `apps/mobile/src/hooks/use-user-avatar.ts` and refactoring `app-header-left.tsx` to use it. Verify:
+
+1. `league-drawer.tsx` now uses `useSafeAreaInsets()` with `paddingTop: insets.top + Spacing.five`, `paddingBottom: insets.bottom + Spacing.four`.
+2. The drawer avatar uses the shared `useUserAvatar` hook (URL + cookie headers), not raw `user?.image`.
+3. `app-header-left.tsx` was refactored to use the same hook (no duplicated inline logic).
+4. League items + profile row have `accessibilityRole="button"`, active items have `accessibilityState={{ selected }}`.
+5. Same-league press just closes the drawer (no setActive/invalidate).
+6. `switchingId` state guards double-tap.
+7. `router.push("/profile" as Href)` left as-is (Task 9 resolves it).
+
+Check `use-user-avatar.ts` for correctness: URI resolution (http passthrough, else AUTH_BASE_URL/api/user-assets/encodeURIComponent), cookie fetch in effect with active guard, imageFailed reset on image change, returns uri/headers/imageFailed/onImageError.
+
+Also run `git show --stat 57a493f9` (3 files, at HEAD), `cd apps/mobile && bun run typecheck` (zero errors).
+
+Report:
+- ✅ All fixed (or remaining issues)
+- ❌ Remaining: [specifics with file:line]
