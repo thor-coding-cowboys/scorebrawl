@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 
 export { contextStorage } from "hono/context-storage";
 export { SeasonSSE } from "./durable-objects/season-sse";
@@ -22,6 +23,17 @@ import { trpcServer } from "./trpc/server";
 const app = new Hono<HonoEnv>()
 	.use("*", contextStorage())
 	.use("*", contextMiddleware)
+	.use(
+		"/api/*",
+		cors({
+			origin: (origin) => {
+				if (!origin) return origin;
+				const { hostname } = new URL(origin);
+				return hostname === "localhost" || hostname.endsWith(".localhost") ? origin : undefined;
+			},
+			credentials: true,
+		})
+	)
 	.get("/api/version", (c) => {
 		const version = c.env.VERSION || "local";
 		return c.json({ version });

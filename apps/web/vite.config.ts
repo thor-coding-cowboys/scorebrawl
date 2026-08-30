@@ -37,5 +37,14 @@ export default defineConfig({
 	server: {
 		host: true, // Bind to all interfaces (0.0.0.0) to allow access from other devices
 		port: 5173,
+		cors: {
+			origin: (origin, callback) => {
+				if (!origin) return callback(null, true);
+				const { hostname } = new URL(origin);
+				const allow = hostname === "localhost" || hostname.endsWith(".localhost");
+				return callback(null, allow);
+			},
+			credentials: true,
+		},
 	},
 });

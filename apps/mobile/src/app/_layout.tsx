@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -6,6 +7,8 @@ import { useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { authClient } from "@/lib/auth-client";
+import { queryClient } from "@/lib/query-client";
+import { TRPCProvider, trpcClient } from "@/lib/trpc";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,12 +38,17 @@ export default function RootLayout() {
 
 	return (
 		<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-			<AnimatedSplashOverlay />
-			<Stack screenOptions={{ headerShown: false }}>
-				<Stack.Screen name="(tabs)" />
-				<Stack.Screen name="sign-in" />
-				<Stack.Screen name="sign-up" />
-			</Stack>
+			<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+				<QueryClientProvider client={queryClient}>
+					<AnimatedSplashOverlay />
+					<Stack screenOptions={{ headerShown: false }}>
+						<Stack.Screen name="(drawer)" />
+						<Stack.Screen name="sign-in" />
+						<Stack.Screen name="sign-up" />
+						<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
+					</Stack>
+				</QueryClientProvider>
+			</TRPCProvider>
 		</ThemeProvider>
 	);
 }

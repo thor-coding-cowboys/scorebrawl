@@ -5,6 +5,7 @@
 	"main": "expo-router/entry",
 	"scripts": {
 		"start": "expo start",
+		"typecheck": "tsc --noEmit",
 		"reset-project": "node ./scripts/reset-project.js",
 		"android": "expo run:android",
 		"ios": "expo run:ios",
@@ -13,7 +14,12 @@
 	},
 	"dependencies": {
 		"@better-auth/expo": "catalog:",
+		"@coding-cowboys/scorebrawl-worker": "workspace:*",
 		"@expo/ui": "~57.0.14",
+		"@tanstack/react-query": "catalog:",
+		"@trpc/client": "catalog:",
+		"@trpc/server": "catalog:",
+		"@trpc/tanstack-react-query": "catalog:",
 		"better-auth": "catalog:",
 		"expo": "~57.0.18",
 		"expo-constants": "~57.0.16",
@@ -40,7 +46,8 @@
 		"react-native-safe-area-context": "~5.7.0",
 		"react-native-screens": "~4.26.0",
 		"react-native-web": "~0.21.0",
-		"react-native-worklets": "0.10.1"
+		"react-native-worklets": "0.10.1",
+		"superjson": "catalog:"
 	},
 	"devDependencies": {
 		"@types/react": "~19.2.2",
