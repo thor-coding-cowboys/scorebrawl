@@ -294,7 +294,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.modeSettings?.alwaysSplitConstraints ?? [],
+			session.alwaysSplitConstraints,
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -316,7 +316,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.modeSettings?.alwaysSplitConstraints ?? [],
+			session.alwaysSplitConstraints,
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -349,7 +349,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 			rawHome,
 			rawAway,
-			session.modeSettings?.alwaysSplitConstraints ?? [],
+			session.alwaysSplitConstraints,
 			session.players
 		);
 		const homeSet = new Set(fixedHome);
@@ -385,7 +385,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 			const { homeIds: fixedHome, awayIds: fixedAway } = enforceAlwaysSplit(
 				rawHome,
 				rawAway,
-				session.modeSettings?.alwaysSplitConstraints ?? [],
+				session.alwaysSplitConstraints,
 				session.players
 			);
 			const homeSet = new Set(fixedHome);
@@ -675,6 +675,11 @@ function MatchCard({
 								<HugeiconsIcon icon={PlayIcon} className="size-4" />
 								{startNextMatch.isPending ? "Starting..." : "Start Match"}
 							</GlowButton>
+							{session.players.filter((p) => p.status !== "out").length < session.teamSize * 2 && (
+								<p className="text-xs text-muted-foreground text-center">
+									Need at least {session.teamSize * 2} players in the session to start a match
+								</p>
+							)}
 							{allMatches.some((m) => m.result !== null) && (
 								<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
 									<AlertDialogTrigger
@@ -748,10 +753,10 @@ function QueueCard({
 				}
 				isRejoining={rejoinPlayer.isPending}
 			/>
-			{(session.modeSettings?.alwaysSplitConstraints?.length ?? 0) > 0 && (
+			{session.alwaysSplitConstraints.length > 0 && (
 				<div className="mt-3 text-xs text-muted-foreground space-y-1">
 					<span className="font-medium text-foreground text-sm">Always Split</span>
-					{session.modeSettings?.alwaysSplitConstraints?.map(([a, b]: [string, string]) => {
+					{session.alwaysSplitConstraints.map(([a, b]: [string, string]) => {
 						const pA = session.players.find((p) => p.seasonPlayerId === a);
 						const pB = session.players.find((p) => p.seasonPlayerId === b);
 						if (!pA || !pB) return null;

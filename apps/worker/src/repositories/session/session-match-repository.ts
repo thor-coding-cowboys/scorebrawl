@@ -24,15 +24,35 @@ export const startNextMatch = async ({
 	awaySeasonPlayerIds: string[];
 }) => {
 	return withTransaction(db, async (tx) => {
-		const [countResult] = await tx
-			.select({ count: sql<number>`COUNT(*)` })
-			.from(sessionMatch)
-			.where(eq(sessionMatch.sessionId, sessionId));
+		const [session] = await tx
+			.select({ teamSize: gameSession.teamSize, status: gameSession.status })
+			.from(gameSession)
+			.where(eq(gameSession.id, sessionId))
+			.limit(1);
 
-		const matchNumber = (countResult?.count ?? 0) + 1;
-		const now = new Date();
+		if (!session) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+		}
+		if (session.status !== "active") {
+			throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
+		}
+		if (
+			homeSeasonPlayerIds.length !== session.teamSize ||
+			awaySeasonPlayerIds.length !== session.teamSize
+		) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Each team must have exactly ${session.teamSize} player${session.teamSize === 1 ? "" : "s"}`,
+			});
+		}
 
 		const allSeasonPlayerIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
+		if (new Set(allSeasonPlayerIds).size !== allSeasonPlayerIds.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "A player cannot be on both teams",
+			});
+		}
 
 		const sessionPlayers = await tx
 			.select()
@@ -40,9 +60,25 @@ export const startNextMatch = async ({
 			.where(
 				and(
 					eq(sessionPlayer.sessionId, sessionId),
+					eq(sessionPlayer.status, "waiting"),
 					inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)
 				)
 			);
+
+		if (sessionPlayers.length !== allSeasonPlayerIds.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "All players must be available members of the session",
+			});
+		}
+
+		const [countResult] = await tx
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(sessionMatch)
+			.where(eq(sessionMatch.sessionId, sessionId));
+
+		const matchNumber = (countResult?.count ?? 0) + 1;
+		const now = new Date();
 
 		const [newMatch] = await tx
 			.insert(sessionMatch)

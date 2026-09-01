@@ -19,7 +19,7 @@ import { CreateMatchDialog } from "../-components/match/create-match-drawer";
 import { CreateOneVnGameDialog } from "../-components/match/create-one-vn-game-drawer";
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
 import { SessionHistory } from "../-components/session/session-history";
-import { StartSessionDialog } from "../-components/session/start-session-dialog";
+import { SessionConfigDialog } from "../-components/session/session-config-dialog";
 import { z } from "zod";
 
 const seasonDashboardSearchSchema = z.object({
@@ -210,7 +210,8 @@ function SeasonDashboardPage() {
 				!isSeasonLocked &&
 				season?.scoreType !== "1-v-n-elo" &&
 				!activeSession && (
-					<StartSessionDialog
+					<SessionConfigDialog
+						mode="create"
 						isOpen={isStartSessionOpen}
 						onClose={() => setIsStartSessionOpen(false)}
 						seasonSlug={seasonSlug}

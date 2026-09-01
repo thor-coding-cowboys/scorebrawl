@@ -281,6 +281,12 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 											<HugeiconsIcon icon={PlayIcon} className="size-4" />
 											{startNextMatch.isPending ? "Starting..." : "Start Match"}
 										</GlowButton>
+										{session.players.filter((p) => p.status !== "out").length <
+											session.teamSize * 2 && (
+											<p className="text-xs text-muted-foreground text-center">
+												Need at least {session.teamSize * 2} players in the session to start a match
+											</p>
+										)}
 										{allMatches.some((m) => m.result !== null) && (
 											<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
 												<AlertDialogTrigger

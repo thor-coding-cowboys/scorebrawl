@@ -178,7 +178,9 @@ export const createSession = async ({
 			updatedAt: now,
 		}));
 
-		await tx.insert(sessionPlayer).values(players);
+		if (players.length > 0) {
+			await tx.insert(sessionPlayer).values(players);
+		}
 
 		if (players.length >= teamSize * 2) {
 			const homePlayerIds = players.slice(0, teamSize).map((p) => p.id);
@@ -340,6 +342,48 @@ export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; session
 			candidates: parseStringArray(ct.candidates),
 		})),
 	};
+};
+
+export const updateSessionSettings = async ({
+	db,
+	sessionId,
+	settings,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	settings: {
+		teamSize?: number;
+		maxConsecutiveGames?: number | null;
+		maxConsecutiveEnabled?: boolean;
+		winnersTakePriority?: boolean;
+		autoCoinToss?: boolean;
+		randomizerType?: "off" | "fisher-yates" | "diversity";
+		alwaysSplitConstraints?: [string, string][];
+	};
+}) => {
+	const now = new Date();
+	// modeSettings JSON is legacy (never written anymore); null it so column edits take effect
+	const updateData: Record<string, unknown> = { updatedAt: now, modeSettings: null };
+
+	if (settings.teamSize !== undefined) updateData.teamSize = settings.teamSize;
+	if (settings.maxConsecutiveGames !== undefined)
+		updateData.maxConsecutiveGames = settings.maxConsecutiveGames;
+	if (settings.maxConsecutiveEnabled !== undefined)
+		updateData.maxConsecutiveEnabled = settings.maxConsecutiveEnabled;
+	if (settings.winnersTakePriority !== undefined)
+		updateData.winnersTakePriority = settings.winnersTakePriority;
+	if (settings.autoCoinToss !== undefined) updateData.autoCoinToss = settings.autoCoinToss;
+	if (settings.randomizerType !== undefined) updateData.randomizerType = settings.randomizerType;
+	if (settings.alwaysSplitConstraints !== undefined)
+		updateData.alwaysSplitConstraints = JSON.stringify(settings.alwaysSplitConstraints);
+
+	const [updated] = await db
+		.update(gameSession)
+		.set(updateData)
+		.where(eq(gameSession.id, sessionId))
+		.returning();
+
+	return updated;
 };
 
 export const updateProposedLineup = async ({

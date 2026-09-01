@@ -149,6 +149,24 @@ export function useSessionMutations(
 		onError: () => toast.error("Failed to end session"),
 	});
 
+	const updateSettings = useMutation({
+		mutationFn: (input: {
+			sessionId: string;
+			teamSize?: number;
+			maxConsecutiveGames?: number | null;
+			maxConsecutiveEnabled?: boolean;
+			winnersTakePriority?: boolean;
+			autoCoinToss?: boolean;
+			randomizerType?: "off" | "fisher-yates" | "diversity";
+			alwaysSplitConstraints?: [string, string][];
+		}) => trpcClient.session.updateSettings.mutate(input),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			toast.success("Session settings updated");
+		},
+		onError: () => toast.error("Failed to update session settings"),
+	});
+
 	return {
 		startNextMatch,
 		recordResult,
@@ -161,5 +179,6 @@ export function useSessionMutations(
 		updateProposedLineup,
 		resolveCoinToss,
 		endSession,
+		updateSettings,
 	};
 }
