@@ -48,6 +48,7 @@ export type ModeSettings =
 			autoRandomize: boolean;
 			autoCoinToss: boolean;
 			alwaysSplitConstraints: [string, string][];
+			randomizerType?: "fisher-yates" | "diversity";
 	  }
 	| {
 			mode: "manual";
@@ -56,6 +57,7 @@ export type ModeSettings =
 			autoRandomize?: undefined;
 			autoCoinToss?: undefined;
 			alwaysSplitConstraints?: undefined;
+			randomizerType?: undefined;
 	  };
 
 export type GameSession = {
@@ -65,6 +67,13 @@ export type GameSession = {
 	rotationMode: "winner-stays" | "manual";
 	modeSettings: ModeSettings | null;
 	teamSize: number;
+	maxConsecutiveGames: number | null;
+	maxConsecutiveEnabled: boolean;
+	winnersTakePriority: boolean;
+	autoRandomize: boolean;
+	autoCoinToss: boolean;
+	randomizerType: "fisher-yates" | "diversity";
+	alwaysSplitConstraints: [string, string][];
 	proposedLineup: ProposedLineup;
 	players: SessionPlayer[];
 	matches: SessionMatch[];

@@ -345,6 +345,51 @@ export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; session
 	};
 };
 
+export const updateSessionSettings = async ({
+	db,
+	sessionId,
+	settings,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	settings: {
+		rotationMode?: "winner-stays" | "manual";
+		teamSize?: number;
+		maxConsecutiveGames?: number | null;
+		maxConsecutiveEnabled?: boolean;
+		winnersTakePriority?: boolean;
+		autoRandomize?: boolean;
+		autoCoinToss?: boolean;
+		randomizerType?: "fisher-yates" | "diversity";
+		alwaysSplitConstraints?: [string, string][];
+	};
+}) => {
+	const now = new Date();
+	const updateData: Record<string, unknown> = { updatedAt: now };
+
+	if (settings.rotationMode !== undefined) updateData.rotationMode = settings.rotationMode;
+	if (settings.teamSize !== undefined) updateData.teamSize = settings.teamSize;
+	if (settings.maxConsecutiveGames !== undefined)
+		updateData.maxConsecutiveGames = settings.maxConsecutiveGames;
+	if (settings.maxConsecutiveEnabled !== undefined)
+		updateData.maxConsecutiveEnabled = settings.maxConsecutiveEnabled;
+	if (settings.winnersTakePriority !== undefined)
+		updateData.winnersTakePriority = settings.winnersTakePriority;
+	if (settings.autoRandomize !== undefined) updateData.autoRandomize = settings.autoRandomize;
+	if (settings.autoCoinToss !== undefined) updateData.autoCoinToss = settings.autoCoinToss;
+	if (settings.randomizerType !== undefined) updateData.randomizerType = settings.randomizerType;
+	if (settings.alwaysSplitConstraints !== undefined)
+		updateData.alwaysSplitConstraints = JSON.stringify(settings.alwaysSplitConstraints);
+
+	const [updated] = await db
+		.update(gameSession)
+		.set(updateData)
+		.where(eq(gameSession.id, sessionId))
+		.returning();
+
+	return updated;
+};
+
 export const updateProposedLineup = async ({
 	db,
 	sessionId,

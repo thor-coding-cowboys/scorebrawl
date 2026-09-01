@@ -599,4 +599,142 @@ export const sessionRouter = {
 
 			return updated;
 		}),
+
+	updateSettings: leagueMemberProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				rotationMode: z.enum(["winner-stays", "manual"]).optional(),
+				teamSize: z.number().int().min(1).max(6).optional(),
+				maxConsecutiveGames: z.number().int().min(1).nullable().optional(),
+				maxConsecutiveEnabled: z.boolean().optional(),
+				winnersTakePriority: z.boolean().optional(),
+				autoRandomize: z.boolean().optional(),
+				autoCoinToss: z.boolean().optional(),
+				randomizerType: z.enum(["fisher-yates", "diversity"]).optional(),
+				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).optional(),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+
+			const updatedSession = await sessionRepository.updateSessionSettings({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				settings: {
+					rotationMode: input.rotationMode,
+					teamSize: input.teamSize,
+					maxConsecutiveGames: input.maxConsecutiveGames,
+					maxConsecutiveEnabled: input.maxConsecutiveEnabled,
+					winnersTakePriority: input.winnersTakePriority,
+					autoRandomize: input.autoRandomize,
+					autoCoinToss: input.autoCoinToss,
+					randomizerType: input.randomizerType,
+					alwaysSplitConstraints: input.alwaysSplitConstraints,
+				},
+			});
+
+			const shouldRecalcQueue =
+				input.winnersTakePriority !== undefined ||
+				input.maxConsecutiveEnabled !== undefined ||
+				input.maxConsecutiveGames !== undefined;
+
+			if (shouldRecalcQueue) {
+				await sessionService.recalcQueuePositions(ctx.db, input.sessionId);
+			}
+
+			const fullSession = await sessionRepository.getSessionById({
+				db: ctx.db,
+				sessionId: input.sessionId,
+			});
+
+			const hasActiveMatch = fullSession?.matches.some((m) => m.result === null) ?? false;
+
+			if (!hasActiveMatch && fullSession) {
+				const modeSettings = sessionService.parseModeSettings(fullSession.modeSettings);
+				const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
+
+				if (effectiveMode === "winner-stays") {
+					const lastMatch = fullSession.matches[fullSession.matches.length - 1];
+					const result = lastMatch?.result ?? null;
+					const homeSessionPlayerIds = lastMatch
+						? fullSession.players
+								.filter((p) => lastMatch.homePlayerIds.includes(p.seasonPlayerId))
+								.map((p) => p.id)
+						: [];
+					const awaySessionPlayerIds = lastMatch
+						? fullSession.players
+								.filter((p) => lastMatch.awayPlayerIds.includes(p.seasonPlayerId))
+								.map((p) => p.id)
+						: [];
+
+					const settings = sessionService.buildWinnerStaysSettings(fullSession);
+					const proposedLineup = sessionService.computeWinnerStaysLineup({
+						settings,
+						players: fullSession.players.map((p) => ({
+							id: p.id,
+							seasonPlayerId: p.seasonPlayerId,
+							status: p.status,
+							queuePosition: p.queuePosition,
+							consecutiveGames: p.consecutiveGames,
+						})),
+						teamSize: fullSession.teamSize,
+						lastMatchResult: result,
+						lastMatchHome: homeSessionPlayerIds,
+						lastMatchAway: awaySessionPlayerIds,
+						matchHistory: fullSession.matches.map((m) => ({
+							homePlayerIds: m.homePlayerIds,
+							awayPlayerIds: m.awayPlayerIds,
+						})),
+						resolvedCoinTossWinnerIds: null,
+					});
+
+					await sessionRepository.updateProposedLineup({
+						db: ctx.db,
+						sessionId: input.sessionId,
+						proposedLineup: {
+							...proposedLineup,
+							selectedHomePlayerIds: proposedLineup.homePlayerIds,
+							selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+						},
+					});
+				} else {
+					const playerStates = fullSession.players
+						.filter((p) => p.status !== "out")
+						.sort((a, b) => a.queuePosition - b.queuePosition);
+					const homePlayerIds = playerStates.slice(0, fullSession.teamSize).map((p) => p.id);
+					const awayPlayerIds = playerStates
+						.slice(fullSession.teamSize, fullSession.teamSize * 2)
+						.map((p) => p.id);
+					const constrained = sessionService.enforceAlwaysSplit(
+						homePlayerIds,
+						awayPlayerIds,
+						fullSession.alwaysSplitConstraints,
+						playerStates
+					);
+					await sessionRepository.updateProposedLineup({
+						db: ctx.db,
+						sessionId: input.sessionId,
+						proposedLineup: {
+							homePlayerIds: constrained.homeIds,
+							awayPlayerIds: constrained.awayIds,
+							rotatedOut: [],
+							coinTossNeeded: null,
+							selectedHomePlayerIds: constrained.homeIds,
+							selectedAwayPlayerIds: constrained.awayIds,
+						},
+					});
+				}
+			}
+
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, settings: updatedSession },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
+
+			return updatedSession;
+		}),
 } satisfies TRPCRouterRecord;
