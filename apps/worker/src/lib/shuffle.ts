@@ -138,23 +138,24 @@ export function diversityShuffleWithHistory(
 ): string[] {
 	const pairWeights = new Map<string, number>();
 
-	for (const match of matchHistory) {
+	matchHistory.forEach((match, index) => {
+		const weight = index + 1;
 		// Only add weights for teammates (players on the same team)
 		// Home team teammates
 		for (let i = 0; i < match.homePlayerIds.length; i++) {
 			for (let j = i + 1; j < match.homePlayerIds.length; j++) {
 				const key = getPairKey(match.homePlayerIds[i]!, match.homePlayerIds[j]!);
-				pairWeights.set(key, (pairWeights.get(key) || 0) + 1);
+				pairWeights.set(key, (pairWeights.get(key) || 0) + weight);
 			}
 		}
 		// Away team teammates
 		for (let i = 0; i < match.awayPlayerIds.length; i++) {
 			for (let j = i + 1; j < match.awayPlayerIds.length; j++) {
 				const key = getPairKey(match.awayPlayerIds[i]!, match.awayPlayerIds[j]!);
-				pairWeights.set(key, (pairWeights.get(key) || 0) + 1);
+				pairWeights.set(key, (pairWeights.get(key) || 0) + weight);
 			}
 		}
-	}
+	});
 
 	return diversityShuffle(playerIds, pairWeights);
 }
