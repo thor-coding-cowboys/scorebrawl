@@ -170,7 +170,7 @@ function sameTeamRepeatRate(teams: Array<{ home: string[]; away: string[] }>): n
 
 describe("session team variety (reproduction: same teams every game)", () => {
 	it(
-		"autoRandomize OFF but no waiting players: 4 players, 2v2 → teams still vary",
+		"randomizerType off with no waiting players: 4 players, 2v2 → teams stay frozen",
 		async () => {
 			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
@@ -179,20 +179,20 @@ describe("session team variety (reproduction: same teams every game)", () => {
 				rotationMode: "winner-stays",
 				teamSize: 2,
 				maxConsecutiveGames: null,
-				autoRandomize: false,
+				randomizerType: "off",
 				seasonPlayerIds: seasonPlayers.map((p) => p.id),
 			});
 
 			const pairings = await playGames({ client, sessionId: session.id, games: 6 });
 
 			const unique = new Set(pairings);
-			expect(unique.size).toBeGreaterThan(1);
+			expect(unique.size).toBe(1);
 		},
 		TEST_TIMEOUT
 	);
 
 	it(
-		"autoRandomize ON (fisher-yates): 4 players, 2v2 → teams vary",
+		"randomizerType fisher-yates: 4 players, 2v2 → teams vary",
 		async () => {
 			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
@@ -201,7 +201,6 @@ describe("session team variety (reproduction: same teams every game)", () => {
 				rotationMode: "winner-stays",
 				teamSize: 2,
 				maxConsecutiveGames: null,
-				autoRandomize: true,
 				randomizerType: "fisher-yates",
 				seasonPlayerIds: seasonPlayers.map((p) => p.id),
 			});
@@ -215,7 +214,7 @@ describe("session team variety (reproduction: same teams every game)", () => {
 	);
 
 	it(
-		"autoRandomize ON (diversity): 4 players, 2v2 → respects diversity, avoids re-teaming partners",
+		"randomizerType diversity: 4 players, 2v2 → respects diversity, avoids re-teaming partners",
 		async () => {
 			const { ctx, client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
 
@@ -224,7 +223,6 @@ describe("session team variety (reproduction: same teams every game)", () => {
 				rotationMode: "winner-stays",
 				teamSize: 2,
 				maxConsecutiveGames: null,
-				autoRandomize: true,
 				randomizerType: "diversity",
 				seasonPlayerIds: seasonPlayers.map((p) => p.id),
 			});
@@ -253,7 +251,6 @@ describe("session team variety (reproduction: same teams every game)", () => {
 				rotationMode: "winner-stays",
 				teamSize: 2,
 				maxConsecutiveGames: null,
-				autoRandomize: true,
 				randomizerType: "diversity",
 				seasonPlayerIds: seasonPlayers.map((p) => p.id),
 			});

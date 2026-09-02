@@ -32,14 +32,16 @@ On a draw, the team with the higher total `consecutiveGames` is treated as the "
 
 ## Team Placement
 
-When `autoRandomize` is **off** (default):
+When `randomizerType` is **off**:
 
 - Surviving winners stay on the winning team's side.
 - Waiters (by queue order) + surviving losers fill the opposing side.
 - If the winner side is short, promote from the opposing pool.
 
-When `autoRandomize` is **on**:
+When `randomizerType` is **fisher-yates** or **diversity**:
 
 - All players who will play are shuffled randomly across home/away teams.
+
+With `randomizerType` **off** and no waiting players, no randomization happens — surviving winners stay on their side and surviving losers on theirs, so teams repeat until a waiter rotates in. For **fisher-yates**/**diversity**, no waiters still means a shuffle, since nobody is rotating in.
 
 Always-split constraints are enforced last via swaps (regardless of randomize setting).

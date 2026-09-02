@@ -45,11 +45,10 @@ export const sessionRouter = {
 				maxConsecutiveGames: z.number().int().min(1).nullable(),
 				seasonPlayerIds: z.array(z.string()).min(2),
 				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).default([]),
-				autoRandomize: z.boolean().default(false),
 				autoCoinToss: z.boolean().default(false),
 				winnersTakePriority: z.boolean().default(false),
 				maxConsecutiveEnabled: z.boolean().default(false),
-				randomizerType: z.enum(["fisher-yates", "diversity"]).default("fisher-yates"),
+				randomizerType: z.enum(["off", "fisher-yates", "diversity"]).default("fisher-yates"),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -72,7 +71,6 @@ export const sessionRouter = {
 				teamSize: input.teamSize,
 				maxConsecutiveGames: input.maxConsecutiveGames,
 				alwaysSplitConstraints: input.alwaysSplitConstraints,
-				autoRandomize: input.autoRandomize,
 				autoCoinToss: input.autoCoinToss,
 				seasonPlayerIds: input.seasonPlayerIds,
 				winnersTakePriority: input.winnersTakePriority,

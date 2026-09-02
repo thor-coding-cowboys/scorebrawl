@@ -4,7 +4,7 @@ import * as matchRepository from "../../repositories/match-repository";
 import { computeWinnerStaysLineup } from "./strategies/winner-stays";
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
-import type { WinnerStaysSettings } from "./strategies/types";
+import type { RandomizerType, WinnerStaysSettings } from "./strategies/types";
 
 type FullSession = NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>;
 
@@ -15,8 +15,7 @@ function buildWinnerStaysSettings(session: FullSession): WinnerStaysSettings {
 		mode: "winner-stays",
 		maxConsecutiveGames: session.maxConsecutiveEnabled ? session.maxConsecutiveGames : null,
 		winnersTakePriority: session.winnersTakePriority,
-		autoRandomize: session.autoRandomize,
-		randomizerType: session.randomizerType as "fisher-yates" | "diversity",
+		randomizerType: session.randomizerType,
 		autoCoinToss: session.autoCoinToss,
 		alwaysSplitConstraints: session.alwaysSplitConstraints,
 	};
@@ -35,6 +34,31 @@ function toSessionIdMatchHistory(
 			.map((seasonPlayerId) => seasonToSession.get(seasonPlayerId))
 			.filter((id): id is string => id !== undefined),
 	}));
+}
+
+function logLineupComputed({
+	sessionId,
+	source,
+	randomizerType,
+	teamSize,
+	proposedLineup,
+}: {
+	sessionId: string;
+	source: "recordResult" | "coinToss" | "playerRemoval";
+	randomizerType: RandomizerType;
+	teamSize: number;
+	proposedLineup: ReturnType<typeof computeWinnerStaysLineup>;
+}) {
+	console.log(
+		`[Lineup] ${JSON.stringify({
+			sessionId,
+			source,
+			randomizerType,
+			teamSize,
+			home: proposedLineup.homePlayerIds,
+			away: proposedLineup.awayPlayerIds,
+		})}`
+	);
 }
 
 export async function recordResult(
@@ -194,6 +218,16 @@ export async function recordResult(
 			exhaustiveCheck(effectiveMode as never);
 	}
 
+	if (effectiveMode === "winner-stays" && proposedLineup) {
+		logLineupComputed({
+			sessionId,
+			source: "recordResult",
+			randomizerType: buildWinnerStaysSettings(fullSession).randomizerType,
+			teamSize: fullSession.teamSize,
+			proposedLineup,
+		});
+	}
+
 	await sessionRepository.updateProposedLineup({
 		db,
 		sessionId,
@@ -269,6 +303,14 @@ export async function resolveCoinToss(
 		resolvedCoinTossWinnerIds: sessionRepository.parseStringArray(resolved.resolvedWinnerIds),
 	});
 
+	logLineupComputed({
+		sessionId: resolved.sessionId,
+		source: "coinToss",
+		randomizerType: settings.randomizerType,
+		teamSize: fullSession.teamSize,
+		proposedLineup,
+	});
+
 	await sessionRepository.updateProposedLineup({
 		db,
 		sessionId: resolved.sessionId,
@@ -314,7 +356,7 @@ export async function recomputeLineupAfterPlayerRemoval(
 	let finalHomeIds = newHomeIds;
 	let finalAwayIds = newAwayIds;
 
-	if (settings.autoRandomize) {
+	if (settings.randomizerType !== "off") {
 		const lineup = computeWinnerStaysLineup({
 			settings,
 			players: fullSession.players.map((p) => ({
@@ -330,6 +372,13 @@ export async function recomputeLineupAfterPlayerRemoval(
 			lastMatchAway: newAwayIds,
 			matchHistory: toSessionIdMatchHistory(fullSession.matches, fullSession.players),
 			resolvedCoinTossWinnerIds: null,
+		});
+		logLineupComputed({
+			sessionId,
+			source: "playerRemoval",
+			randomizerType: settings.randomizerType,
+			teamSize: fullSession.teamSize,
+			proposedLineup: lineup,
 		});
 		finalHomeIds = lineup.homePlayerIds;
 		finalAwayIds = lineup.awayPlayerIds;

@@ -1,9 +1,10 @@
+export type RandomizerType = "off" | "fisher-yates" | "diversity";
+
 export type WinnerStaysSettings = {
 	mode: "winner-stays";
 	maxConsecutiveGames: number | null;
 	winnersTakePriority: boolean;
-	autoRandomize: boolean;
-	randomizerType: "fisher-yates" | "diversity";
+	randomizerType: RandomizerType;
 	autoCoinToss: boolean;
 	alwaysSplitConstraints: [string, string][];
 };

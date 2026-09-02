@@ -280,10 +280,9 @@ export const gameSession = sqliteTable(
 		teamSize: integer("team_size").notNull(),
 		maxConsecutiveGames: integer("max_consecutive_games"),
 		alwaysSplitConstraints: text("always_split_constraints"),
-		autoRandomize: integer("auto_randomize", { mode: "boolean" }).default(false).notNull(),
 		autoCoinToss: integer("auto_coin_toss", { mode: "boolean" }).default(false).notNull(),
 		randomizerType: text("randomizer_type", {
-			enum: ["fisher-yates", "diversity"],
+			enum: ["off", "fisher-yates", "diversity"],
 		})
 			.default("fisher-yates")
 			.notNull(),
