@@ -1,14 +1,16 @@
 import type { DrizzleDB } from "../../db";
 import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
-import { computeWinnerStaysLineup } from "./strategies/winner-stays";
+import { computeWinnerStaysLineup, enforceAlwaysSplit } from "./strategies/winner-stays";
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
 import type { WinnerStaysSettings } from "./strategies/types";
 
+export { computeWinnerStaysLineup, enforceAlwaysSplit, parseModeSettings };
+
 type FullSession = NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>;
 
-function buildWinnerStaysSettings(session: FullSession): WinnerStaysSettings {
+export function buildWinnerStaysSettings(session: FullSession): WinnerStaysSettings {
 	const fromJson = parseModeSettings(session.modeSettings);
 	if (fromJson?.mode === "winner-stays") return fromJson;
 	return {
