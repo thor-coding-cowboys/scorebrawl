@@ -174,27 +174,13 @@ export function computeWinnerStaysLineup(input: WinnerStaysRotationInput): Winne
 	const slotsNeeded = teamSize * 2;
 
 	if (waiting.length === 0) {
-		if (autoRandomize) {
-			const allPlaying =
-				randomizerType === "diversity" && matchHistory
-					? diversityShuffleWithHistory([...lastMatchHome, ...lastMatchAway], matchHistory)
-					: fisherYatesShuffle([...lastMatchHome, ...lastMatchAway]);
-			const newHome = allPlaying.slice(0, teamSize);
-			const newAway = allPlaying.slice(teamSize, teamSize * 2);
-			const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
-			return {
-				homePlayerIds: constrained.homeIds,
-				awayPlayerIds: constrained.awayIds,
-				rotatedOut: [],
-				coinTossNeeded: null,
-			};
-		}
-		const constrained = enforceAlwaysSplit(
-			[...lastMatchHome],
-			[...lastMatchAway],
-			alwaysSplitConstraints,
-			players
-		);
+		const allPlaying =
+			randomizerType === "diversity" && matchHistory
+				? diversityShuffleWithHistory([...lastMatchHome, ...lastMatchAway], matchHistory)
+				: fisherYatesShuffle([...lastMatchHome, ...lastMatchAway]);
+		const newHome = allPlaying.slice(0, teamSize);
+		const newAway = allPlaying.slice(teamSize, teamSize * 2);
+		const constrained = enforceAlwaysSplit(newHome, newAway, alwaysSplitConstraints, players);
 		return {
 			homePlayerIds: constrained.homeIds,
 			awayPlayerIds: constrained.awayIds,

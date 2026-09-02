@@ -22,6 +22,21 @@ function buildWinnerStaysSettings(session: FullSession): WinnerStaysSettings {
 	};
 }
 
+function toSessionIdMatchHistory(
+	matches: Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }>,
+	players: Array<{ id: string; seasonPlayerId: string }>
+): Array<{ homePlayerIds: string[]; awayPlayerIds: string[] }> {
+	const seasonToSession = new Map(players.map((p) => [p.seasonPlayerId, p.id]));
+	return matches.map((m) => ({
+		homePlayerIds: m.homePlayerIds
+			.map((seasonPlayerId) => seasonToSession.get(seasonPlayerId))
+			.filter((id): id is string => id !== undefined),
+		awayPlayerIds: m.awayPlayerIds
+			.map((seasonPlayerId) => seasonToSession.get(seasonPlayerId))
+			.filter((id): id is string => id !== undefined),
+	}));
+}
+
 export async function recordResult(
 	db: DrizzleDB,
 	{
@@ -86,10 +101,7 @@ export async function recordResult(
 	const modeSettings = parseModeSettings(fullSession.modeSettings);
 	const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
 
-	const matchHistory = fullSession.matches.map((m) => ({
-		homePlayerIds: m.homePlayerIds,
-		awayPlayerIds: m.awayPlayerIds,
-	}));
+	const matchHistory = toSessionIdMatchHistory(fullSession.matches, fullSession.players);
 
 	const playerStates = updatedPlayers.map((p) => ({
 		id: p.id,
@@ -253,10 +265,7 @@ export async function resolveCoinToss(
 		lastMatchResult: triggeringMatch.result,
 		lastMatchHome: homeSessionPlayerIds,
 		lastMatchAway: awaySessionPlayerIds,
-		matchHistory: fullSession.matches.map((m) => ({
-			homePlayerIds: m.homePlayerIds,
-			awayPlayerIds: m.awayPlayerIds,
-		})),
+		matchHistory: toSessionIdMatchHistory(fullSession.matches, fullSession.players),
 		resolvedCoinTossWinnerIds: sessionRepository.parseStringArray(resolved.resolvedWinnerIds),
 	});
 
@@ -319,10 +328,7 @@ export async function recomputeLineupAfterPlayerRemoval(
 			lastMatchResult: null,
 			lastMatchHome: newHomeIds,
 			lastMatchAway: newAwayIds,
-			matchHistory: fullSession.matches.map((m) => ({
-				homePlayerIds: m.homePlayerIds,
-				awayPlayerIds: m.awayPlayerIds,
-			})),
+			matchHistory: toSessionIdMatchHistory(fullSession.matches, fullSession.players),
 			resolvedCoinTossWinnerIds: null,
 		});
 		finalHomeIds = lineup.homePlayerIds;
