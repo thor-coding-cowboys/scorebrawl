@@ -201,8 +201,7 @@ export function StartSessionDialog({
 			winnersTakePriority: boolean;
 			seasonPlayerIds: string[];
 			alwaysSplitConstraints: [string, string][];
-			autoRandomize: boolean;
-			randomizerType?: "fisher-yates" | "diversity";
+			randomizerType: "off" | "fisher-yates" | "diversity";
 			autoCoinToss: boolean;
 		}) => client.session.create.mutate(input) as Promise<{ id: string }>,
 		onSuccess: (session) => {
@@ -233,14 +232,10 @@ export function StartSessionDialog({
 			winnersTakePriority: state.winnersTakePriority,
 			seasonPlayerIds: state.selectedPlayerIds,
 			alwaysSplitConstraints: state.alwaysSplitPairs,
-			autoRandomize: state.randomizerType !== "off",
+			randomizerType: state.randomizerType,
 			autoCoinToss: state.autoCoinToss,
 		};
-		if (state.randomizerType !== "off") {
-			createSession.mutate({ ...mutationInput, randomizerType: state.randomizerType });
-		} else {
-			createSession.mutate(mutationInput);
-		}
+		createSession.mutate(mutationInput);
 	};
 
 	const handleClose = () => {

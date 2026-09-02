@@ -45,7 +45,7 @@ export type ModeSettings =
 			mode: "winner-stays";
 			maxConsecutiveGames: number | null;
 			winnersTakePriority: boolean;
-			autoRandomize: boolean;
+			randomizerType: "off" | "fisher-yates" | "diversity";
 			autoCoinToss: boolean;
 			alwaysSplitConstraints: [string, string][];
 	  }
@@ -53,7 +53,7 @@ export type ModeSettings =
 			mode: "manual";
 			maxConsecutiveGames?: undefined;
 			winnersTakePriority?: undefined;
-			autoRandomize?: undefined;
+			randomizerType?: undefined;
 			autoCoinToss?: undefined;
 			alwaysSplitConstraints?: undefined;
 	  };

@@ -31,8 +31,7 @@ function base(overrides: Partial<WinnerStaysRotationInput> = {}): WinnerStaysRot
 			mode: "winner-stays",
 			maxConsecutiveGames: null,
 			winnersTakePriority: false,
-			autoRandomize: false,
-			randomizerType: "fisher-yates",
+			randomizerType: "off",
 			autoCoinToss: false,
 			alwaysSplitConstraints: [],
 		},
@@ -111,8 +110,7 @@ describe("Winner-stays: select by queuePosition ASC", () => {
 					mode: "winner-stays",
 					maxConsecutiveGames: null,
 					winnersTakePriority: true,
-					autoRandomize: false,
-					randomizerType: "fisher-yates",
+					randomizerType: "off",
 					autoCoinToss: false,
 					alwaysSplitConstraints: [],
 				},
@@ -125,7 +123,7 @@ describe("Winner-stays: select by queuePosition ASC", () => {
 	});
 });
 
-describe("autoRandomize", () => {
+describe("randomizerType", () => {
 	it("all selected players are assigned to teams", () => {
 		const h1 = makePlayer("h1", { queuePosition: 0 });
 		const a1 = makePlayer("a1", { queuePosition: 1 });
@@ -138,7 +136,6 @@ describe("autoRandomize", () => {
 					mode: "winner-stays",
 					maxConsecutiveGames: null,
 					winnersTakePriority: false,
-					autoRandomize: true,
 					randomizerType: "fisher-yates",
 					autoCoinToss: false,
 					alwaysSplitConstraints: [],
@@ -151,6 +148,24 @@ describe("autoRandomize", () => {
 		expect(allPlayerIds(result)).toHaveLength(4);
 		expect(result.homePlayerIds).toHaveLength(2);
 		expect(result.awayPlayerIds).toHaveLength(2);
+	});
+
+	it("randomizerType off with no waiters keeps teams stable (winners stay)", () => {
+		const h1 = makePlayer("h1", { queuePosition: 0 });
+		const h2 = makePlayer("h2", { queuePosition: 1 });
+		const a1 = makePlayer("a1", { queuePosition: 2 });
+		const a2 = makePlayer("a2", { queuePosition: 3 });
+		const result = computeWinnerStaysLineup(
+			base({
+				teamSize: 2,
+				players: [h1, h2, a1, a2],
+				lastMatchResult: "home",
+				lastMatchHome: ["h1", "h2"],
+				lastMatchAway: ["a1", "a2"],
+			})
+		);
+		expect(result.homePlayerIds).toEqual(["h1", "h2"]);
+		expect(result.awayPlayerIds).toEqual(["a1", "a2"]);
 	});
 });
 
@@ -167,8 +182,7 @@ describe("Always-split constraints", () => {
 					mode: "winner-stays",
 					maxConsecutiveGames: null,
 					winnersTakePriority: false,
-					autoRandomize: false,
-					randomizerType: "fisher-yates",
+					randomizerType: "off",
 					autoCoinToss: false,
 					alwaysSplitConstraints: [["sp-h1", "sp-h2"]],
 				},

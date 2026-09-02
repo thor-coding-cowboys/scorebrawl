@@ -124,7 +124,6 @@ export const createSession = async ({
 	teamSize,
 	maxConsecutiveGames,
 	alwaysSplitConstraints,
-	autoRandomize,
 	autoCoinToss,
 	seasonPlayerIds,
 	winnersTakePriority,
@@ -138,12 +137,11 @@ export const createSession = async ({
 	teamSize: number;
 	maxConsecutiveGames: number | null;
 	alwaysSplitConstraints: [string, string][];
-	autoRandomize: boolean;
 	autoCoinToss: boolean;
 	seasonPlayerIds: string[];
 	winnersTakePriority: boolean;
 	maxConsecutiveEnabled: boolean;
-	randomizerType?: "fisher-yates" | "diversity";
+	randomizerType: "off" | "fisher-yates" | "diversity";
 }) => {
 	return withTransaction(db, async (tx) => {
 		const now = new Date();
@@ -158,11 +156,10 @@ export const createSession = async ({
 			teamSize,
 			maxConsecutiveGames,
 			alwaysSplitConstraints: JSON.stringify(alwaysSplitConstraints),
-			autoRandomize,
 			autoCoinToss,
 			winnersTakePriority,
 			maxConsecutiveEnabled,
-			randomizerType: randomizerType ?? "fisher-yates",
+			randomizerType,
 			createdAt: now,
 			updatedAt: now,
 		});

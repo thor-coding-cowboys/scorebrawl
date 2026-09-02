@@ -140,7 +140,7 @@ export function computeWinnerStaysLineup(input: WinnerStaysRotationInput): Winne
 		matchHistory,
 		resolvedCoinTossWinnerIds,
 	} = input;
-	const { autoRandomize, alwaysSplitConstraints, randomizerType } = settings;
+	const { alwaysSplitConstraints, randomizerType } = settings;
 
 	const playingIds = new Set([...lastMatchHome, ...lastMatchAway]);
 
@@ -173,7 +173,7 @@ export function computeWinnerStaysLineup(input: WinnerStaysRotationInput): Winne
 
 	const slotsNeeded = teamSize * 2;
 
-	if (waiting.length === 0) {
+	if (waiting.length === 0 && randomizerType !== "off") {
 		const allPlaying =
 			randomizerType === "diversity" && matchHistory
 				? diversityShuffleWithHistory([...lastMatchHome, ...lastMatchAway], matchHistory)
@@ -197,7 +197,7 @@ export function computeWinnerStaysLineup(input: WinnerStaysRotationInput): Winne
 	let newHome: string[];
 	let newAway: string[];
 
-	if (autoRandomize) {
+	if (randomizerType !== "off") {
 		const shuffled =
 			randomizerType === "diversity" && matchHistory
 				? diversityShuffleWithHistory(selected, matchHistory)
