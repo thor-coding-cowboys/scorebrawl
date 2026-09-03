@@ -39,7 +39,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (!slug || !slugTouched) return;
+		if (!slug) return;
 		let active = true;
 		const timer = setTimeout(async () => {
 			if (!SLUG_REGEX.test(slug)) {
@@ -50,14 +50,14 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setIsCheckingSlug(true);
 			const { data, error } = await authClient.organization.checkSlug({ slug });
 			if (!active) return;
-			setIsSlugTaken(error ? true : !data?.status);
+			setIsSlugTaken(error ? error.code === "ORGANIZATION_SLUG_ALREADY_TAKEN" : !data?.status);
 			setIsCheckingSlug(false);
 		}, 500);
 		return () => {
 			active = false;
 			clearTimeout(timer);
 		};
-	}, [slug, slugTouched]);
+	}, [slug]);
 
 	const slugError = !slug
 		? "Slug is required"
