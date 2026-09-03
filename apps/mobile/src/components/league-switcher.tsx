@@ -1,5 +1,5 @@
 import { SymbolView } from "expo-symbols";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -25,6 +25,14 @@ export function LeagueSwitcher() {
 	const [switchingId, setSwitchingId] = useState<string | null>(null);
 	const createOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { uri, headers } = useUserAvatar(activeLeague?.logo);
+
+	useEffect(() => {
+		return () => {
+			if (createOpenTimer.current) {
+				clearTimeout(createOpenTimer.current);
+			}
+		};
+	}, []);
 
 	const handleSelect = async (organizationId: string) => {
 		if (organizationId === activeLeague?.id) {

@@ -82,6 +82,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		SLUG_REGEX.test(slug);
 
 	const onSubmit = async () => {
+		if (isSubmitting) return;
 		setApiError("");
 		setIsSubmitting(true);
 		try {
@@ -126,6 +127,8 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									setApiError("");
 									if (!slugTouched && text) {
 										setSlug(slugify(text));
+									} else if (!slugTouched && !text) {
+										setSlug("");
 									}
 								}}
 								editable={!isSubmitting}
