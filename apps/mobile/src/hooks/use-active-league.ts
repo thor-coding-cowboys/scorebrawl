@@ -25,10 +25,11 @@ export function useActiveLeague() {
 		ensuringActiveRef.current = true;
 		void authClient.organization
 			.setActive({ organizationId: orgs[0].id })
-			.then(({ error }) => {
+			.then(async ({ error }) => {
 				if (error) {
 					console.error("Failed to set active league:", error);
 				} else {
+					await authClient.getSession();
 					void queryClient.invalidateQueries();
 				}
 			})
@@ -49,6 +50,8 @@ export function useActiveLeague() {
 				console.error("Failed to set active league:", err);
 				return false;
 			}
+			// Refresh the auth session so useSession() picks up the new activeOrganizationId
+			await authClient.getSession();
 			// Mirrors the web app's full invalidateQueries() after organization.setActive;
 			// org-scoped queries have no shared key prefix yet.
 			await queryClient.invalidateQueries();
