@@ -1,10 +1,10 @@
-import * as WebBrowser from "expo-web-browser";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
+import { CreateLeagueForm } from "@/components/create-league-form";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
@@ -21,6 +21,7 @@ export function LeagueSwitcher() {
 	const theme = useTheme();
 	const { activeLeague, organizations, switchLeague } = useActiveLeague();
 	const [isOpen, setIsOpen] = useState(false);
+	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [switchingId, setSwitchingId] = useState<string | null>(null);
 	const { uri, headers } = useUserAvatar(activeLeague?.logo);
 
@@ -117,9 +118,9 @@ export function LeagueSwitcher() {
 						</ScrollView>
 						<Pressable
 							accessibilityRole="button"
-							onPress={async () => {
-								await WebBrowser.openBrowserAsync("https://scorebrawl.com");
+							onPress={() => {
 								setIsOpen(false);
+								setIsCreateOpen(true);
 							}}
 							style={({ pressed }) => [styles.footerRow, pressed && { opacity: 0.7 }]}
 						>
@@ -133,6 +134,7 @@ export function LeagueSwitcher() {
 					</Pressable>
 				</Pressable>
 			</Modal>
+			<CreateLeagueForm isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
 		</>
 	);
 }
