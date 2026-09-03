@@ -1,103 +1,63 @@
 import type { DrawerContentComponentProps } from "expo-router/drawer";
-import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { router, usePathname } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Avatar } from "@/components/avatar";
+import { LeagueSwitcher } from "@/components/league-switcher";
+import { UserCard } from "@/components/user-card";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
-import { useActiveLeague } from "@/hooks/use-active-league";
-import { useUserAvatar } from "@/hooks/use-user-avatar";
-import { authClient } from "@/lib/auth-client";
+import { useTheme } from "@/hooks/use-theme";
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
 	const insets = useSafeAreaInsets();
-	const { activeLeague, organizations, switchLeague } = useActiveLeague();
-	const { data } = authClient.useSession();
-	const user = data?.user;
-	const { uri, headers } = useUserAvatar(user?.image);
-	const [switchingId, setSwitchingId] = useState<string | null>(null);
+	const theme = useTheme();
+	const pathname = usePathname();
+	const isSeasonsActive = pathname.startsWith("/seasons");
 
-	const handleLeaguePress = async (organizationId: string) => {
-		if (organizationId === activeLeague?.id) {
-			navigation.closeDrawer();
-			return;
-		}
-		if (switchingId) return;
-		setSwitchingId(organizationId);
-		const ok = await switchLeague(organizationId);
-		setSwitchingId(null);
-		if (ok) {
-			navigation.closeDrawer();
-		}
-	};
-
-	const handleSignOut = async () => {
-		await authClient.signOut();
-		router.replace("/sign-in");
+	const handleSeasonsPress = () => {
+		navigation.closeDrawer();
+		router.push("/seasons");
 	};
 
 	return (
 		<ThemedView
 			style={[
 				styles.container,
-				{ paddingTop: insets.top + Spacing.five, paddingBottom: insets.bottom + Spacing.four },
+				{ paddingTop: insets.top + Spacing.four, paddingBottom: insets.bottom + Spacing.four },
 			]}
 		>
-			<View style={styles.userHeader}>
-				<Avatar name={user?.name ?? ""} image={uri} headers={headers} size={40} />
-				<View style={styles.userInfo}>
-					<ThemedText type="subtitle">{user?.name}</ThemedText>
-					<ThemedText type="small" themeColor="textSecondary">
-						{user?.email}
+			<LeagueSwitcher />
+
+			<View style={styles.nav}>
+				<ThemedText type="smallBold" themeColor="textSecondary" style={styles.navLabel}>
+					League
+				</ThemedText>
+				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ selected: isSeasonsActive }}
+					onPress={handleSeasonsPress}
+					style={({ pressed }) => [
+						styles.navItem,
+						isSeasonsActive && { backgroundColor: theme.backgroundSelected },
+						pressed && { opacity: 0.7 },
+					]}
+				>
+					<SymbolView
+						name={{ ios: "trophy", android: "emoji_events", web: "emoji_events" }}
+						size={18}
+						tintColor={isSeasonsActive ? theme.primary : theme.text}
+					/>
+					<ThemedText type="small" style={isSeasonsActive ? { color: theme.primary } : undefined}>
+						Seasons
 					</ThemedText>
-				</View>
+				</Pressable>
 			</View>
 
-			<Pressable
-				accessibilityRole="button"
-				onPress={() => {
-					navigation.closeDrawer();
-					router.push("/profile");
-				}}
-				style={styles.menuItem}
-			>
-				<ThemedText>Profile settings</ThemedText>
-			</Pressable>
-
-			<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionLabel}>
-				Leagues
-			</ThemedText>
-
-			<ScrollView style={styles.leagueList}>
-				{(organizations ?? []).map((org) => {
-					const isActive = org.id === activeLeague?.id;
-					return (
-						<Pressable
-							key={org.id}
-							accessibilityRole="button"
-							accessibilityState={{ selected: isActive }}
-							onPress={() => handleLeaguePress(org.id)}
-							disabled={switchingId !== null}
-							style={[styles.leagueItem, isActive && styles.leagueItemActive]}
-						>
-							<Avatar name={org.name} size={28} />
-							<ThemedText style={styles.leagueName} numberOfLines={1}>
-								{org.name}
-							</ThemedText>
-							{isActive && <ThemedText themeColor="primary">✓</ThemedText>}
-						</Pressable>
-					);
-				})}
-			</ScrollView>
-
-			<View style={styles.signOutContainer}>
-				<Button variant="outline" fullWidth onPress={handleSignOut}>
-					Sign out
-				</Button>
+			<View style={styles.footer}>
+				<UserCard />
 			</View>
 		</ThemedView>
 	);
@@ -108,42 +68,23 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingHorizontal: Spacing.three,
 	},
-	userHeader: {
+	nav: {
+		flex: 1,
+		marginTop: Spacing.four,
+	},
+	navLabel: {
+		marginBottom: Spacing.two,
+		paddingHorizontal: Spacing.two,
+	},
+	navItem: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
-		marginBottom: Spacing.four,
-	},
-	userInfo: {
-		flex: 1,
-	},
-	menuItem: {
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.3)",
-	},
-	sectionLabel: {
-		marginTop: Spacing.four,
-		marginBottom: Spacing.two,
-	},
-	leagueList: {
-		flex: 1,
-	},
-	leagueItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
 		borderRadius: 10,
 	},
-	leagueItemActive: {
-		backgroundColor: "rgba(128,128,128,0.12)",
-	},
-	leagueName: {
-		flex: 1,
-	},
-	signOutContainer: {
+	footer: {
 		marginTop: Spacing.three,
 	},
 });
