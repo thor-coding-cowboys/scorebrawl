@@ -39,7 +39,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (!slug || slugTouched === false) return;
+		if (!slug || !slugTouched) return;
 		let active = true;
 		const timer = setTimeout(async () => {
 			if (!SLUG_REGEX.test(slug)) {
@@ -50,11 +50,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setIsCheckingSlug(true);
 			const { data, error } = await authClient.organization.checkSlug({ slug });
 			if (!active) return;
-			if (error?.code === "SLUG_IS_TAKEN") {
-				setIsSlugTaken(true);
-			} else {
-				setIsSlugTaken(error ? true : !data?.status);
-			}
+			setIsSlugTaken(error ? true : !data?.status);
 			setIsCheckingSlug(false);
 		}, 500);
 		return () => {
@@ -77,7 +73,13 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			? "Name is too long"
 			: undefined;
 	const canSubmit =
-		!isSubmitting && !isCheckingSlug && !isSlugTaken && !!name && !!slug && SLUG_REGEX.test(slug);
+		!isSubmitting &&
+		!isCheckingSlug &&
+		!isSlugTaken &&
+		!!name &&
+		name.length <= 100 &&
+		!!slug &&
+		SLUG_REGEX.test(slug);
 
 	const onSubmit = async () => {
 		setApiError("");
