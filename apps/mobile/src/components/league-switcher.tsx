@@ -117,9 +117,9 @@ export function LeagueSwitcher() {
 						</ScrollView>
 						<Pressable
 							accessibilityRole="button"
-							onPress={() => {
+							onPress={async () => {
+								await WebBrowser.openBrowserAsync("https://scorebrawl.com");
 								setIsOpen(false);
-								WebBrowser.openBrowserAsync("https://scorebrawl.com");
 							}}
 							style={({ pressed }) => [styles.footerRow, pressed && { opacity: 0.7 }]}
 						>
