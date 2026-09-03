@@ -1,5 +1,5 @@
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,6 +23,7 @@ export function LeagueSwitcher() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [switchingId, setSwitchingId] = useState<string | null>(null);
+	const createOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { uri, headers } = useUserAvatar(activeLeague?.logo);
 
 	const handleSelect = async (organizationId: string) => {
@@ -39,6 +40,17 @@ export function LeagueSwitcher() {
 		}
 	};
 
+	const openCreateForm = () => {
+		if (createOpenTimer.current) {
+			clearTimeout(createOpenTimer.current);
+		}
+		setIsOpen(false);
+		createOpenTimer.current = setTimeout(() => {
+			createOpenTimer.current = null;
+			setIsCreateOpen(true);
+		}, 350);
+	};
+
 	if (!activeLeague) {
 		return null;
 	}
@@ -48,7 +60,13 @@ export function LeagueSwitcher() {
 			<Pressable
 				accessibilityRole="button"
 				accessibilityLabel="Switch league"
-				onPress={() => setIsOpen(true)}
+				onPress={() => {
+					if (createOpenTimer.current) {
+						clearTimeout(createOpenTimer.current);
+						createOpenTimer.current = null;
+					}
+					setIsOpen(true);
+				}}
 				style={({ pressed }) => [styles.switcher, pressed && { opacity: 0.7 }]}
 			>
 				<Avatar name={activeLeague.name} image={uri} headers={headers} size={32} />
@@ -118,10 +136,7 @@ export function LeagueSwitcher() {
 						</ScrollView>
 						<Pressable
 							accessibilityRole="button"
-							onPress={() => {
-								setIsOpen(false);
-								setTimeout(() => setIsCreateOpen(true), 350);
-							}}
+							onPress={openCreateForm}
 							style={({ pressed }) => [styles.footerRow, pressed && { opacity: 0.7 }]}
 						>
 							<SymbolView
