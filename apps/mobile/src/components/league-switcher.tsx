@@ -116,14 +116,14 @@ export function LeagueSwitcher() {
 								);
 							})}
 						</ScrollView>
-						<Pressable
-							accessibilityRole="button"
-							onPress={() => {
-								setIsOpen(false);
-								setIsCreateOpen(true);
-							}}
-							style={({ pressed }) => [styles.footerRow, pressed && { opacity: 0.7 }]}
-						>
+<Pressable
+						accessibilityRole="button"
+						onPress={() => {
+							setIsOpen(false);
+							setTimeout(() => setIsCreateOpen(true), 350);
+						}}
+						style={({ pressed }) => [styles.footerRow, pressed && { opacity: 0.7 }]}
+					>
 							<SymbolView
 								name={{ ios: "plus", android: "add", web: "add" }}
 								size={16}
