@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -11,12 +12,21 @@ import { useTRPC } from "@/lib/trpc";
 
 export default function SeasonsScreen() {
 	const trpc = useTRPC();
+	const router = useRouter();
 	const {
 		data: seasons = [],
 		isLoading,
 		isError,
 		refetch,
 	} = useQuery(trpc.season.getAll.queryOptions());
+
+	const handlePress = (slug: string) => {
+		if (!slug) {
+			console.warn("Season slug is missing");
+			return;
+		}
+		router.navigate(`/seasons/${slug}`);
+	};
 
 	return (
 		<ThemedView style={styles.container}>
@@ -30,7 +40,11 @@ export default function SeasonsScreen() {
 					renderItem={({ item }) => {
 						const status = getSeasonStatus(item);
 						return (
-							<View style={styles.row}>
+							<Pressable
+								accessibilityRole="button"
+								onPress={() => handlePress(item.slug)}
+								style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+							>
 								<View style={styles.rowInfo}>
 									<ThemedText style={styles.rowName}>{item.name}</ThemedText>
 									<ThemedText type="small" themeColor="textSecondary">
@@ -39,7 +53,7 @@ export default function SeasonsScreen() {
 									</ThemedText>
 								</View>
 								<ThemedText type="smallBold">{status}</ThemedText>
-							</View>
+							</Pressable>
 						);
 					}}
 					contentContainerStyle={styles.list}
@@ -51,7 +65,7 @@ export default function SeasonsScreen() {
 						) : isError ? (
 							<View style={styles.emptyBox}>
 								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-									Couldn't load seasons
+									Couldn’t load seasons
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
 									Retry
@@ -95,6 +109,9 @@ const styles = StyleSheet.create({
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: "rgba(128,128,128,0.25)",
+	},
+	rowPressed: {
+		backgroundColor: "rgba(128,128,128,0.08)",
 	},
 	rowInfo: {
 		flex: 1,
