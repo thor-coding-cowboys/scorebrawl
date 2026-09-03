@@ -27,6 +27,18 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
 	useEffect(() => {
+		if (isOpen) {
+			setName("");
+			setSlug("");
+			setSlugTouched(false);
+			setApiError("");
+			setIsSubmitting(false);
+			setIsSlugTaken(false);
+			setIsCheckingSlug(false);
+		}
+	}, [isOpen]);
+
+	useEffect(() => {
 		if (!slug || slugTouched === false) return;
 		let active = true;
 		const timer = setTimeout(async () => {
@@ -89,7 +101,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 
 	return (
 		<Modal visible={isOpen} animationType="slide" onRequestClose={onClose}>
-			<ThemedView style={styles.container} key={isOpen ? "open" : "closed"}>
+			<ThemedView style={styles.container}>
 				<KeyboardAvoidingView
 					behavior={Platform.OS === "ios" ? "padding" : undefined}
 					style={styles.keyboardAvoid}
