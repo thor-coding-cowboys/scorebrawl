@@ -1,11 +1,13 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "expo-router";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { ThemeProvider } from "@/components/theme-provider";
+import { useThemeMode } from "@/hooks/use-theme-mode";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/lib/query-client";
 import { TRPCProvider, trpcClient } from "@/lib/trpc";
@@ -29,26 +31,40 @@ function useProtectedRoute(session: { userId: string } | null, isPending: boolea
 	}, [session, segments, isPending, router]);
 }
 
+function ThemedNavigationProvider({ children }: { children: ReactNode }) {
+	const { themeMode } = useThemeMode();
+	const deviceScheme = useColorScheme();
+	const resolved =
+		themeMode === "system" ? (deviceScheme === "dark" ? "dark" : "light") : themeMode;
+
+	return (
+		<NavigationThemeProvider value={resolved === "dark" ? DarkTheme : DefaultTheme}>
+			{children}
+		</NavigationThemeProvider>
+	);
+}
+
 export default function RootLayout() {
-	const colorScheme = useColorScheme();
 	const { data, isPending } = authClient.useSession();
 	const session = data?.session ?? null;
 
 	useProtectedRoute(session, isPending);
 
 	return (
-		<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-			<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-				<QueryClientProvider client={queryClient}>
-					<AnimatedSplashOverlay />
-					<Stack screenOptions={{ headerShown: false }}>
-						<Stack.Screen name="(drawer)" />
-						<Stack.Screen name="sign-in" />
-						<Stack.Screen name="sign-up" />
-						<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
-					</Stack>
-				</QueryClientProvider>
-			</TRPCProvider>
+		<ThemeProvider>
+			<ThemedNavigationProvider>
+				<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+					<QueryClientProvider client={queryClient}>
+						<AnimatedSplashOverlay />
+						<Stack screenOptions={{ headerShown: false }}>
+							<Stack.Screen name="(drawer)" />
+							<Stack.Screen name="sign-in" />
+							<Stack.Screen name="sign-up" />
+							<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
+						</Stack>
+					</QueryClientProvider>
+				</TRPCProvider>
+			</ThemedNavigationProvider>
 		</ThemeProvider>
 	);
 }
