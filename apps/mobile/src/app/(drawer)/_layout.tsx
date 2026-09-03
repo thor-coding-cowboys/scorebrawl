@@ -1,14 +1,12 @@
 import { Drawer } from "expo-router/drawer";
-import { useColorScheme } from "react-native";
 
 import { LeagueDrawerContent } from "@/components/league-drawer";
 import { AppHeaderLeft } from "@/components/app-header-left";
 import { ActiveLeagueTitle } from "@/components/active-league-title";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function DrawerLayout() {
-	const scheme = useColorScheme();
-	const colors = Colors[scheme === "unspecified" ? "light" : scheme];
+	const colors = useTheme();
 
 	return (
 		<Drawer
