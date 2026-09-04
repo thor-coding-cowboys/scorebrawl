@@ -1,51 +1,26 @@
-import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { StandingRow } from "@/components/standing-row";
+import { SeasonStandings } from "@/components/season-standings";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
 export default function HomeScreen() {
 	const trpc = useTRPC();
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
-	const [cookie, setCookie] = useState<string | undefined>();
-
-	useEffect(() => {
-		let active = true;
-		getAuthCookie().then((c) => {
-			if (active) setCookie(c);
-		});
-		return () => {
-			active = false;
-		};
-	}, []);
-	const avatarHeaders = cookie ? { cookie } : undefined;
-
 	const activeSeasonQuery = useQuery(
 		trpc.season.findActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
 	);
 	const activeSeason = activeSeasonQuery.data;
-	const standingsQuery = useQuery(
-		trpc.seasonPlayer.getStanding.queryOptions(
-			{ seasonSlug: activeSeason?.slug ?? "" },
-			{ enabled: Boolean(activeSeason) }
-		)
-	);
-	const sortedStandings = [...(standingsQuery.data ?? [])].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
-	});
 
 	useEffect(() => {
 		if (!isLoading && activeLeague && activeSeasonQuery.data === null) {
@@ -118,34 +93,7 @@ export default function HomeScreen() {
 						<ThemedText type="title">{activeSeason.name}</ThemedText>
 					</View>
 				)}
-				<FlatList
-					data={sortedStandings}
-					keyExtractor={(item) => item.id}
-					renderItem={({ item, index }) => (
-						<StandingRow item={item} rank={index + 1} headers={avatarHeaders} />
-					)}
-					contentContainerStyle={styles.list}
-					ListEmptyComponent={
-						standingsQuery.isPending ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-								Loading standings…
-							</ThemedText>
-						) : standingsQuery.isError ? (
-							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-									Couldn't load standings
-								</ThemedText>
-								<Button variant="outline" onPress={() => standingsQuery.refetch()}>
-									Retry
-								</Button>
-							</View>
-						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-								No matches registered
-							</ThemedText>
-						)
-					}
-				/>
+				{activeSeason && <SeasonStandings seasonSlug={activeSeason.slug} />}
 			</SafeAreaView>
 		</ThemedView>
 	);
@@ -182,16 +130,5 @@ const styles = StyleSheet.create({
 		gap: Spacing.one,
 		marginTop: Spacing.four,
 		marginBottom: Spacing.three,
-	},
-	list: {
-		paddingBottom: Spacing.four,
-	},
-	emptyText: {
-		textAlign: "center",
-		marginTop: Spacing.four,
-	},
-	emptyBox: {
-		alignItems: "center",
-		gap: Spacing.three,
 	},
 });
