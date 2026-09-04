@@ -28,6 +28,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [rounds, setRounds] = useState("10");
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isSlugTaken, setIsSlugTaken] = useState(false);
+	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -40,6 +42,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setRounds("10");
 			setApiError("");
 			setIsSubmitting(false);
+			setIsSlugTaken(false);
+			setIsCheckingSlug(false);
 		}
 	}, [isOpen]);
 
@@ -51,11 +55,39 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		}
 	}, [name, slugTouched]);
 
+	useEffect(() => {
+		if (!slug) return;
+		let active = true;
+		const timer = setTimeout(async () => {
+			if (!SLUG_REGEX.test(slug)) {
+				setIsSlugTaken(false);
+				setIsCheckingSlug(false);
+				return;
+			}
+			setIsCheckingSlug(true);
+			try {
+				const { available } = await trpcClient.season.checkSlugAvailability.query({ slug });
+				if (!active) return;
+				setIsSlugTaken(!available);
+			} catch {
+				if (active) setIsSlugTaken(false);
+			} finally {
+				if (active) setIsCheckingSlug(false);
+			}
+		}, 500);
+		return () => {
+			active = false;
+			clearTimeout(timer);
+		};
+	}, [slug]);
+
 	const slugError = !slug
 		? "Slug is required"
 		: !SLUG_REGEX.test(slug)
 			? "Slug must only contain lowercase letters, numbers, and hyphens"
-			: undefined;
+			: isSlugTaken
+				? "This slug is already taken"
+				: undefined;
 	const nameError = !name
 		? "Season name is required"
 		: name.length > 100
@@ -74,6 +106,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		isThreeOneZero && !isValidInt(rounds) ? "Rounds must be a positive whole number" : undefined;
 	const canSubmit =
 		!isSubmitting &&
+		!isCheckingSlug &&
+		!isSlugTaken &&
 		!!name &&
 		name.length <= 100 &&
 		!!slug &&
