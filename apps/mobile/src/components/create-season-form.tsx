@@ -14,6 +14,19 @@ import { trpcClient } from "@/lib/trpc";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 const SCORE_TYPES = ["elo", "3-1-0", "1-v-n-elo"] as const;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function toDateInput(date: Date) {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
+}
+
+function parseDate(value: string) {
+	const [y, m, d] = value.split("-").map(Number);
+	return new Date(y, m - 1, d);
+}
 
 export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
 	const insets = useSafeAreaInsets();
@@ -23,9 +36,11 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [slug, setSlug] = useState("");
 	const [slugTouched, setSlugTouched] = useState(false);
 	const [scoreType, setScoreType] = useState<(typeof SCORE_TYPES)[number]>("elo");
-	const [initialScore, setInitialScore] = useState("1000");
+	const [startDate, setStartDate] = useState(() => toDateInput(new Date()));
+	const [endDate, setEndDate] = useState("");
+	const [initialScore, setInitialScore] = useState("1200");
 	const [kFactor, setKFactor] = useState("32");
-	const [rounds, setRounds] = useState("10");
+	const [rounds, setRounds] = useState("1");
 	const [submitted, setSubmitted] = useState(false);
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,9 +53,11 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setSlug("");
 			setSlugTouched(false);
 			setScoreType("elo");
-			setInitialScore("1000");
+			setStartDate(toDateInput(new Date()));
+			setEndDate("");
+			setInitialScore("1200");
 			setKFactor("32");
-			setRounds("10");
+			setRounds("1");
 			setSubmitted(false);
 			setApiError("");
 			setIsSubmitting(false);
@@ -83,6 +100,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		};
 	}, [slug]);
 
+	const isElo = scoreType === "elo" || scoreType === "1-v-n-elo";
+
 	const slugError = !submitted
 		? undefined
 		: !slug
@@ -99,19 +118,34 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			: name.length > 100
 				? "Name is too long"
 				: undefined;
+	const startDateError = !submitted
+		? undefined
+		: !DATE_REGEX.test(startDate)
+			? "Start date must be YYYY-MM-DD"
+			: undefined;
+	const endDateError =
+		!submitted || !endDate
+			? undefined
+			: !DATE_REGEX.test(endDate)
+				? "End date must be YYYY-MM-DD"
+				: endDate < startDate
+					? "End date must be after start date"
+					: undefined;
 
-	const isThreeOneZero = scoreType === "3-1-0";
 	const isValidInt = (value: string) => /^\d+$/.test(value) && Number(value) >= 0;
 	const initialScoreError =
-		!submitted || !isValidInt(initialScore)
+		isElo && submitted && !isValidInt(initialScore)
 			? "Initial score must be a non-negative whole number"
 			: undefined;
 	const kFactorError =
-		!submitted || !isValidInt(kFactor) ? "K-factor must be a non-negative whole number" : undefined;
+		isElo && submitted && !isValidInt(kFactor)
+			? "K-factor must be a non-negative whole number"
+			: undefined;
 	const roundsError =
-		isThreeOneZero && submitted && (!isValidInt(rounds) || Number(rounds) < 1)
+		!isElo && submitted && (!isValidInt(rounds) || Number(rounds) < 1)
 			? "Rounds must be at least 1"
 			: undefined;
+
 	const canSubmit =
 		!isSubmitting &&
 		!isCheckingSlug &&
@@ -120,9 +154,10 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		name.length <= 100 &&
 		!!slug &&
 		SLUG_REGEX.test(slug) &&
-		isValidInt(initialScore) &&
-		isValidInt(kFactor) &&
-		(!isThreeOneZero || (isValidInt(rounds) && Number(rounds) >= 1));
+		DATE_REGEX.test(startDate) &&
+		(!endDate || (DATE_REGEX.test(endDate) && endDate >= startDate)) &&
+		(!isElo || (isValidInt(initialScore) && isValidInt(kFactor))) &&
+		(isElo || (isValidInt(rounds) && Number(rounds) >= 1));
 
 	const onSubmit = async () => {
 		if (isSubmitting) return;
@@ -134,10 +169,11 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 				name,
 				slug,
 				scoreType,
-				initialScore: Number(initialScore),
-				kFactor: Number(kFactor),
-				startDate: new Date(),
-				...(isThreeOneZero ? { rounds: Number(rounds) } : {}),
+				initialScore: isElo ? Number(initialScore) : 0,
+				kFactor: isElo ? Number(kFactor) : 0,
+				startDate: parseDate(startDate),
+				...(endDate ? { endDate: parseDate(endDate) } : {}),
+				...(!isElo ? { rounds: Number(rounds) } : {}),
 			});
 			await queryClient.invalidateQueries({ queryKey: ["season"] });
 			onClose();
@@ -209,25 +245,50 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 							</View>
 							<View style={styles.row}>
 								<Input
-									label="Initial Score"
-									value={initialScore}
-									onChangeText={setInitialScore}
-									keyboardType="numeric"
+									label="Start Date"
+									placeholder="YYYY-MM-DD"
+									value={startDate}
+									onChangeText={setStartDate}
+									autoCapitalize="none"
+									autoCorrect={false}
 									editable={!isSubmitting}
-									error={initialScoreError}
+									error={startDateError}
 									style={styles.half}
 								/>
 								<Input
-									label="K-Factor"
-									value={kFactor}
-									onChangeText={setKFactor}
-									keyboardType="numeric"
+									label="End Date (optional)"
+									placeholder="YYYY-MM-DD"
+									value={endDate}
+									onChangeText={setEndDate}
+									autoCapitalize="none"
+									autoCorrect={false}
 									editable={!isSubmitting}
-									error={kFactorError}
+									error={endDateError}
 									style={styles.half}
 								/>
 							</View>
-							{isThreeOneZero && (
+							{isElo ? (
+								<View style={styles.row}>
+									<Input
+										label="Initial ELO"
+										value={initialScore}
+										onChangeText={setInitialScore}
+										keyboardType="numeric"
+										editable={!isSubmitting}
+										error={initialScoreError}
+										style={styles.half}
+									/>
+									<Input
+										label="K-Factor"
+										value={kFactor}
+										onChangeText={setKFactor}
+										keyboardType="numeric"
+										editable={!isSubmitting}
+										error={kFactorError}
+										style={styles.half}
+									/>
+								</View>
+							) : (
 								<Input
 									label="Rounds"
 									value={rounds}
