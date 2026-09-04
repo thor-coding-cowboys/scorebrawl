@@ -1,14 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
 import { StandingRow } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
+import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
 export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const [cookie, setCookie] = useState<string | undefined>();
+
+	useEffect(() => {
+		let active = true;
+		getAuthCookie().then((c) => {
+			if (active) setCookie(c);
+		});
+		return () => {
+			active = false;
+		};
+	}, []);
+	const avatarHeaders = cookie ? { cookie } : undefined;
+
 	const standingsQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
 	const standings = [...(standingsQuery.data ?? [])].sort((a, b) => {
 		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
@@ -20,7 +35,9 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 		<FlatList
 			data={standings}
 			keyExtractor={(item) => item.id}
-			renderItem={({ item, index }) => <StandingRow item={item} rank={index + 1} />}
+			renderItem={({ item, index }) => (
+				<StandingRow item={item} rank={index + 1} headers={avatarHeaders} />
+			)}
 			contentContainerStyle={styles.list}
 			ListEmptyComponent={
 				standingsQuery.isPending ? (
