@@ -49,10 +49,10 @@ export default function AppTabs() {
 	const seasonSlug = params.seasonSlug;
 
 	const goToView = (view: SubView) => {
-		if (isActiveSeason) {
-			router.push({ pathname: "/", params: { view } });
-		} else if (isSeasonDetail && seasonSlug) {
-			router.push({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug, view } });
+		if (isSeasonDetail && seasonSlug) {
+			router.setParams({ seasonSlug, view });
+		} else if (isActiveSeason) {
+			router.setParams({ view });
 		}
 	};
 
