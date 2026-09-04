@@ -72,13 +72,8 @@ export default function AppTabs() {
 			active: activeView === key,
 			onPress: () => goToView(key),
 		}));
-		if (isSeasonDetail) {
-			leftTabs = [homeTab, ...subTabs.slice(0, 2)];
-			rightTabs = subTabs.slice(2);
-		} else {
-			leftTabs = subTabs.slice(0, 2);
-			rightTabs = subTabs.slice(2);
-		}
+		leftTabs = subTabs.slice(0, 2);
+		rightTabs = subTabs.slice(2);
 	} else if (isSeasonsList) {
 		leftTabs = [homeTab];
 		rightTabs = [];

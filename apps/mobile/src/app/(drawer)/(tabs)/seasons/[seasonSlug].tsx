@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,6 +9,9 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { useActiveLeague } from "@/hooks/use-active-league";
+import { getSeasonStatus } from "@/lib/collections/season";
+import { setLastViewedSeason } from "@/lib/last-viewed-season";
 import { useTRPC } from "@/lib/trpc";
 
 function SubViewPlaceholder({ label }: { label: string }) {
@@ -34,6 +38,14 @@ export default function SeasonOverviewScreen() {
 		isError: seasonError,
 		refetch: refetchSeason,
 	} = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+
+	const { activeLeague } = useActiveLeague();
+
+	useEffect(() => {
+		if (season && activeLeague && getSeasonStatus(season) === "active") {
+			void setLastViewedSeason(activeLeague.id, season.slug);
+		}
+	}, [season, activeLeague]);
 
 	const isLoading = seasonLoading;
 	const isError = seasonError;
