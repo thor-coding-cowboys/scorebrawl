@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -13,10 +13,21 @@ import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useTRPC } from "@/lib/trpc";
 
+function SubViewPlaceholder({ label }: { label: string }) {
+	return (
+		<View style={styles.center}>
+			<ThemedText type="small" themeColor="textSecondary">
+				{label} coming soon
+			</ThemedText>
+		</View>
+	);
+}
+
 export default function HomeScreen() {
 	const trpc = useTRPC();
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
+	const { view = "standings" } = useLocalSearchParams<{ view?: string }>();
 	const activeSeasonQuery = useQuery(
 		trpc.season.findActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
 	);
@@ -93,7 +104,16 @@ export default function HomeScreen() {
 						<ThemedText type="title">{activeSeason.name}</ThemedText>
 					</View>
 				)}
-				{activeSeason && <SeasonStandings seasonSlug={activeSeason.slug} />}
+				{activeSeason &&
+					(view === "standings" ? (
+						<SeasonStandings seasonSlug={activeSeason.slug} />
+					) : view === "matches" ? (
+						<SubViewPlaceholder label="Matches" />
+					) : view === "fixtures" ? (
+						<SubViewPlaceholder label="Fixtures" />
+					) : (
+						<SubViewPlaceholder label="History" />
+					))}
 			</SafeAreaView>
 		</ThemedView>
 	);

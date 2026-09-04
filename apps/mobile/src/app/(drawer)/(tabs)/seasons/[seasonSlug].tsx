@@ -1,17 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { SeasonStandings } from "@/components/season-standings";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { StandingRow } from "@/components/standing-row";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTRPC } from "@/lib/trpc";
 
+function SubViewPlaceholder({ label }: { label: string }) {
+	return (
+		<View style={styles.center}>
+			<ThemedText type="small" themeColor="textSecondary">
+				{label} coming soon
+			</ThemedText>
+		</View>
+	);
+}
+
 export default function SeasonOverviewScreen() {
-	const { seasonSlug } = useLocalSearchParams<{ seasonSlug: string }>();
+	const { seasonSlug, view = "standings" } = useLocalSearchParams<{
+		seasonSlug: string;
+		view?: string;
+	}>();
 	const router = useRouter();
 	const trpc = useTRPC();
 
@@ -19,17 +32,11 @@ export default function SeasonOverviewScreen() {
 		data: season,
 		isLoading: seasonLoading,
 		isError: seasonError,
+		refetch: refetchSeason,
 	} = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
-	const {
-		data: standings = [],
-		isLoading: standingsLoading,
-		isError: standingsError,
-		refetch,
-	} = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-
-	const isLoading = seasonLoading || standingsLoading;
-	const isError = seasonError || standingsError;
+	const isLoading = seasonLoading;
+	const isError = seasonError;
 
 	return (
 		<ThemedView style={styles.container}>
@@ -47,42 +54,29 @@ export default function SeasonOverviewScreen() {
 
 				{isLoading ? (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading standings…
+						Loading…
 					</ThemedText>
 				) : isError ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-							Couldn’t load standings
+							Couldn't load season
 						</ThemedText>
-						<Button variant="outline" onPress={() => refetch()}>
+						<Button variant="outline" onPress={() => refetchSeason()}>
 							Retry
 						</Button>
 					</View>
 				) : (
-					<FlatList
-						data={standings}
-						keyExtractor={(item) => item.id}
-						renderItem={({ item }) => (
-							<StandingRow
-								item={{
-									id: item.id,
-									name: item.name,
-									image: item.image,
-									score: item.score,
-									matchCount: item.matchCount,
-									winCount: item.winCount,
-									pointDiff: item.pointDiff,
-								}}
-								rank={item.rank}
-							/>
+					<>
+						{view === "standings" ? (
+							<SeasonStandings seasonSlug={seasonSlug} />
+						) : view === "matches" ? (
+							<SubViewPlaceholder label="Matches" />
+						) : view === "fixtures" ? (
+							<SubViewPlaceholder label="Fixtures" />
+						) : (
+							<SubViewPlaceholder label="History" />
 						)}
-						contentContainerStyle={styles.list}
-						ListEmptyComponent={
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								No players in this season yet
-							</ThemedText>
-						}
-					/>
+					</>
 				)}
 			</SafeAreaView>
 		</ThemedView>
@@ -109,8 +103,10 @@ const styles = StyleSheet.create({
 	title: {
 		marginTop: Spacing.one,
 	},
-	list: {
-		paddingBottom: Spacing.four,
+	center: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	empty: {
 		textAlign: "center",
