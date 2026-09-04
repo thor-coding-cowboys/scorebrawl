@@ -34,14 +34,18 @@ export default function HomeScreen() {
 	);
 	const activeSeasons = useMemo(() => activeSeasonsQuery.data ?? [], [activeSeasonsQuery.data]);
 	const [resolvedSeasonSlug, setResolvedSeasonSlug] = useState<string | null>(null);
+	const [resolvingSeason, setResolvingSeason] = useState(true);
 
 	useEffect(() => {
 		if (!activeLeague || activeSeasonsQuery.isPending) return;
 		let cancelled = false;
+		setResolvedSeasonSlug(null);
+		setResolvingSeason(true);
 		(async () => {
 			const active = activeSeasons ?? [];
 			if (active.length === 0) {
 				if (!cancelled) setResolvedSeasonSlug(null);
+				if (!cancelled) setResolvingSeason(false);
 				return;
 			}
 			const stored = await getLastViewedSeason(activeLeague.id);
@@ -51,6 +55,7 @@ export default function HomeScreen() {
 			if (chosen && !storedStillActive) {
 				void setLastViewedSeason(activeLeague.id, chosen);
 			}
+			if (!cancelled) setResolvingSeason(false);
 		})();
 		return () => {
 			cancelled = true;
@@ -114,7 +119,7 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonsQuery.isPending) {
+	if (activeSeasonsQuery.isPending || resolvingSeason) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary">
