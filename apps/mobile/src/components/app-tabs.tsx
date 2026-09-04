@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams, usePathname } from "expo-router";
+import { router, useGlobalSearchParams, usePathname } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
@@ -37,7 +37,7 @@ export default function AppTabs() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const pathname = usePathname();
-	const params = useLocalSearchParams<{ seasonSlug?: string; view?: SubView }>();
+	const params = useGlobalSearchParams<{ seasonSlug?: string; view?: SubView }>();
 	const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
 
 	const isSeasonDetail = pathname.startsWith("/seasons/");
