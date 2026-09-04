@@ -1,3 +1,4 @@
+import { SymbolView } from "expo-symbols";
 import { useQuery } from "@tanstack/react-query";
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,13 +9,44 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { useTheme } from "@/hooks/use-theme";
 import { formatDate, getSeasonStatus } from "@/lib/collections/season";
 import { useTRPC } from "@/lib/trpc";
 
+function StatusPill({
+	status,
+}: {
+	status: "active" | "upcoming" | "ended" | "locked" | "archived";
+}) {
+	const config: Record<string, { color: string; icon: Parameters<typeof SymbolView>[0]["name"] }> =
+		{
+			active: {
+				color: "#16a34a",
+				icon: { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" },
+			},
+			upcoming: {
+				color: "#2563eb",
+				icon: { ios: "clock.fill", android: "schedule", web: "schedule" },
+			},
+			ended: { color: "#d97706", icon: { ios: "flag.fill", android: "flag", web: "flag" } },
+			locked: { color: "#6b7280", icon: { ios: "lock.fill", android: "lock", web: "lock" } },
+			archived: {
+				color: "#9ca3af",
+				icon: { ios: "archivebox.fill", android: "archive", web: "archive" },
+			},
+		};
+	const { color, icon } = config[status] ?? config.ended;
+	return (
+		<View style={[styles.pill, { backgroundColor: `${color}1a`, borderColor: `${color}40` }]}>
+			<SymbolView name={icon} size={12} tintColor={color} />
+			<ThemedText type="small" style={{ color, fontSize: 11 }}>
+				{status.charAt(0).toUpperCase() + status.slice(1)}
+			</ThemedText>
+		</View>
+	);
+}
+
 export default function SeasonsScreen() {
 	const trpc = useTRPC();
-	const theme = useTheme();
 	const screenRouter = useRouter();
 	const { activeLeague } = useActiveLeague();
 	const {
@@ -50,34 +82,20 @@ export default function SeasonsScreen() {
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => {
 						const status = getSeasonStatus(item);
-						const isActive = item.id === activeSeason?.id;
 						return (
 							<Pressable
 								accessibilityRole="button"
 								onPress={() => handlePress(item.slug)}
-								style={({ pressed }) => [
-									styles.row,
-									isActive && { backgroundColor: theme.backgroundSelected },
-									pressed && styles.rowPressed,
-								]}
+								style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
 							>
 								<View style={styles.rowInfo}>
-									<ThemedText style={[styles.rowName, isActive && { color: theme.primary }]}>
-										{item.name}
-									</ThemedText>
+									<ThemedText style={styles.rowName}>{item.name}</ThemedText>
 									<ThemedText type="small" themeColor="textSecondary">
 										{formatDate(item.startDate)}
 										{item.endDate ? ` → ${formatDate(item.endDate)}` : ""}
 									</ThemedText>
 								</View>
-								<View style={styles.statusBox}>
-									<ThemedText
-										type="smallBold"
-										style={isActive ? { color: theme.primary } : undefined}
-									>
-										{isActive ? "Active" : status}
-									</ThemedText>
-								</View>
+								<StatusPill status={status} />
 							</Pressable>
 						);
 					}}
@@ -144,7 +162,14 @@ const styles = StyleSheet.create({
 	rowName: {
 		fontWeight: "600",
 	},
-	statusBox: {
+	pill: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.one,
+		borderWidth: 1,
+		borderRadius: 999,
+		paddingVertical: 2,
+		paddingHorizontal: Spacing.two,
 		marginLeft: Spacing.three,
 	},
 	empty: {
