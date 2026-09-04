@@ -83,6 +83,16 @@ export default function HomeScreen() {
 		);
 	}
 
+	if (activeSeasonQuery.isPending) {
+		return (
+			<ThemedView style={styles.center}>
+				<ThemedText type="small" themeColor="textSecondary">
+					Loading active season…
+				</ThemedText>
+			</ThemedView>
+		);
+	}
+
 	if (activeSeasonQuery.data === null) {
 		return (
 			<ThemedView style={styles.center}>
@@ -105,14 +115,14 @@ export default function HomeScreen() {
 					</View>
 				)}
 				{activeSeason &&
-					(view === "standings" ? (
-						<SeasonStandings seasonSlug={activeSeason.slug} />
-					) : view === "matches" ? (
+					(view === "matches" ? (
 						<SubViewPlaceholder label="Matches" />
 					) : view === "fixtures" ? (
 						<SubViewPlaceholder label="Fixtures" />
-					) : (
+					) : view === "history" ? (
 						<SubViewPlaceholder label="History" />
+					) : (
+						<SeasonStandings seasonSlug={activeSeason.slug} />
 					))}
 			</SafeAreaView>
 		</ThemedView>

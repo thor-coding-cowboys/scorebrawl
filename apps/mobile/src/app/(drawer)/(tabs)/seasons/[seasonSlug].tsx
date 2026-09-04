@@ -67,14 +67,14 @@ export default function SeasonOverviewScreen() {
 					</View>
 				) : (
 					<>
-						{view === "standings" ? (
-							<SeasonStandings seasonSlug={seasonSlug} />
-						) : view === "matches" ? (
+						{view === "matches" ? (
 							<SubViewPlaceholder label="Matches" />
 						) : view === "fixtures" ? (
 							<SubViewPlaceholder label="Fixtures" />
-						) : (
+						) : view === "history" ? (
 							<SubViewPlaceholder label="History" />
+						) : (
+							<SeasonStandings seasonSlug={seasonSlug} />
 						)}
 					</>
 				)}

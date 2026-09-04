@@ -103,7 +103,9 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		? "K-factor must be a non-negative whole number"
 		: undefined;
 	const roundsError =
-		isThreeOneZero && !isValidInt(rounds) ? "Rounds must be a positive whole number" : undefined;
+		isThreeOneZero && (!isValidInt(rounds) || Number(rounds) < 1)
+			? "Rounds must be at least 1"
+			: undefined;
 	const canSubmit =
 		!isSubmitting &&
 		!isCheckingSlug &&
