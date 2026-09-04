@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
+import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
 import { useTRPC } from "@/lib/trpc";
 
 function SubViewPlaceholder({ label }: { label: string }) {
@@ -28,16 +29,46 @@ export default function HomeScreen() {
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
 	const { view = "standings" } = useLocalSearchParams<{ view?: string }>();
-	const activeSeasonQuery = useQuery(
-		trpc.season.findActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
+	const activeSeasonsQuery = useQuery(
+		trpc.season.findAllActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
 	);
-	const activeSeason = activeSeasonQuery.data;
+	const activeSeasons = useMemo(() => activeSeasonsQuery.data ?? [], [activeSeasonsQuery.data]);
+	const [resolvedSeasonSlug, setResolvedSeasonSlug] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (!isLoading && activeLeague && activeSeasonQuery.data === null) {
+		if (!activeLeague || activeSeasonsQuery.isPending) return;
+		let cancelled = false;
+		(async () => {
+			const active = activeSeasons ?? [];
+			if (active.length === 0) {
+				if (!cancelled) setResolvedSeasonSlug(null);
+				return;
+			}
+			const stored = await getLastViewedSeason(activeLeague.id);
+			const storedStillActive = stored ? active.some((s) => s.slug === stored) : false;
+			const chosen = storedStillActive ? stored : active[0].slug;
+			if (!cancelled) setResolvedSeasonSlug(chosen);
+			if (chosen && !storedStillActive) {
+				void setLastViewedSeason(activeLeague.id, chosen);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons]);
+
+	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
+
+	useEffect(() => {
+		if (
+			!isLoading &&
+			activeLeague &&
+			activeSeasonsQuery.data !== undefined &&
+			activeSeasons.length === 0
+		) {
 			router.replace("/seasons");
 		}
-	}, [isLoading, activeLeague, activeSeasonQuery.data]);
+	}, [isLoading, activeLeague, activeSeasonsQuery.data, activeSeasons.length]);
 
 	if (isLoading) {
 		return (
@@ -68,14 +99,14 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonQuery.isError) {
+	if (activeSeasonsQuery.isError) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary" style={styles.centerText}>
 					Couldn't load the active season
 				</ThemedText>
 				<View style={styles.centerButton}>
-					<Button variant="outline" onPress={() => activeSeasonQuery.refetch()}>
+					<Button variant="outline" onPress={() => activeSeasonsQuery.refetch()}>
 						Retry
 					</Button>
 				</View>
@@ -83,7 +114,7 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonQuery.isPending) {
+	if (activeSeasonsQuery.isPending) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary">
@@ -93,7 +124,7 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonQuery.data === null) {
+	if (resolvedSeasonSlug === null) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary">
