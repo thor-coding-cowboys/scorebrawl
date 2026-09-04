@@ -63,8 +63,24 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			: undefined;
 
 	const isThreeOneZero = scoreType === "3-1-0";
+	const isValidInt = (value: string) => /^\d+$/.test(value) && Number(value) >= 0;
+	const initialScoreError = !isValidInt(initialScore)
+		? "Initial score must be a non-negative whole number"
+		: undefined;
+	const kFactorError = !isValidInt(kFactor)
+		? "K-factor must be a non-negative whole number"
+		: undefined;
+	const roundsError =
+		isThreeOneZero && !isValidInt(rounds) ? "Rounds must be a positive whole number" : undefined;
 	const canSubmit =
-		!isSubmitting && !!name && name.length <= 100 && !!slug && SLUG_REGEX.test(slug);
+		!isSubmitting &&
+		!!name &&
+		name.length <= 100 &&
+		!!slug &&
+		SLUG_REGEX.test(slug) &&
+		isValidInt(initialScore) &&
+		isValidInt(kFactor) &&
+		(!isThreeOneZero || (isValidInt(rounds) && Number(rounds) >= 1));
 
 	const onSubmit = async () => {
 		if (isSubmitting) return;
@@ -78,7 +94,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 				initialScore: Number(initialScore),
 				kFactor: Number(kFactor),
 				startDate: new Date(),
-				...((isThreeOneZero || scoreType === "elo") && rounds ? { rounds: Number(rounds) } : {}),
+				...(isThreeOneZero ? { rounds: Number(rounds) } : {}),
 			});
 			await queryClient.invalidateQueries({ queryKey: ["season"] });
 			onClose();
@@ -155,6 +171,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									onChangeText={setInitialScore}
 									keyboardType="numeric"
 									editable={!isSubmitting}
+									error={initialScoreError}
 									style={styles.half}
 								/>
 								<Input
@@ -163,6 +180,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									onChangeText={setKFactor}
 									keyboardType="numeric"
 									editable={!isSubmitting}
+									error={kFactorError}
 									style={styles.half}
 								/>
 							</View>
@@ -173,6 +191,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									onChangeText={setRounds}
 									keyboardType="numeric"
 									editable={!isSubmitting}
+									error={roundsError}
 								/>
 							)}
 							{apiError ? (
