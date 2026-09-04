@@ -2,13 +2,12 @@ import { SymbolView } from "expo-symbols";
 import { useQuery } from "@tanstack/react-query";
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { useActiveLeague } from "@/hooks/use-active-league";
 import { formatDate, getSeasonStatus } from "@/lib/collections/season";
 import { useTRPC } from "@/lib/trpc";
 
@@ -48,24 +47,16 @@ function StatusPill({
 export default function SeasonsScreen() {
 	const trpc = useTRPC();
 	const screenRouter = useRouter();
-	const { activeLeague } = useActiveLeague();
 	const {
 		data: seasons = [],
 		isLoading,
 		isError,
 		refetch,
 	} = useQuery(trpc.season.getAll.queryOptions());
-	const { data: activeSeason } = useQuery(
-		trpc.season.findActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
-	);
 
 	const handlePress = (slug: string) => {
 		if (!slug) {
 			console.warn("Season slug is missing");
-			return;
-		}
-		if (slug === activeSeason?.slug) {
-			router.replace("/");
 			return;
 		}
 		screenRouter.navigate(`/seasons/${slug}`);
