@@ -26,6 +26,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [initialScore, setInitialScore] = useState("1000");
 	const [kFactor, setKFactor] = useState("32");
 	const [rounds, setRounds] = useState("10");
+	const [submitted, setSubmitted] = useState(false);
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSlugTaken, setIsSlugTaken] = useState(false);
@@ -40,6 +41,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setInitialScore("1000");
 			setKFactor("32");
 			setRounds("10");
+			setSubmitted(false);
 			setApiError("");
 			setIsSubmitting(false);
 			setIsSlugTaken(false);
@@ -81,29 +83,33 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		};
 	}, [slug]);
 
-	const slugError = !slug
-		? "Slug is required"
-		: !SLUG_REGEX.test(slug)
-			? "Slug must only contain lowercase letters, numbers, and hyphens"
-			: isSlugTaken
-				? "This slug is already taken"
+	const slugError = !submitted
+		? undefined
+		: !slug
+			? "Slug is required"
+			: !SLUG_REGEX.test(slug)
+				? "Slug must only contain lowercase letters, numbers, and hyphens"
+				: isSlugTaken
+					? "This slug is already taken"
+					: undefined;
+	const nameError = !submitted
+		? undefined
+		: !name
+			? "Season name is required"
+			: name.length > 100
+				? "Name is too long"
 				: undefined;
-	const nameError = !name
-		? "Season name is required"
-		: name.length > 100
-			? "Name is too long"
-			: undefined;
 
 	const isThreeOneZero = scoreType === "3-1-0";
 	const isValidInt = (value: string) => /^\d+$/.test(value) && Number(value) >= 0;
-	const initialScoreError = !isValidInt(initialScore)
-		? "Initial score must be a non-negative whole number"
-		: undefined;
-	const kFactorError = !isValidInt(kFactor)
-		? "K-factor must be a non-negative whole number"
-		: undefined;
+	const initialScoreError =
+		!submitted || !isValidInt(initialScore)
+			? "Initial score must be a non-negative whole number"
+			: undefined;
+	const kFactorError =
+		!submitted || !isValidInt(kFactor) ? "K-factor must be a non-negative whole number" : undefined;
 	const roundsError =
-		isThreeOneZero && (!isValidInt(rounds) || Number(rounds) < 1)
+		isThreeOneZero && submitted && (!isValidInt(rounds) || Number(rounds) < 1)
 			? "Rounds must be at least 1"
 			: undefined;
 	const canSubmit =
@@ -120,6 +126,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 
 	const onSubmit = async () => {
 		if (isSubmitting) return;
+		setSubmitted(true);
 		setApiError("");
 		setIsSubmitting(true);
 		try {

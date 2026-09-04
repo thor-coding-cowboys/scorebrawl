@@ -21,6 +21,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
 	const [slugTouched, setSlugTouched] = useState(false);
+	const [submitted, setSubmitted] = useState(false);
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSlugTaken, setIsSlugTaken] = useState(false);
@@ -31,6 +32,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			setName("");
 			setSlug("");
 			setSlugTouched(false);
+			setSubmitted(false);
 			setApiError("");
 			setIsSubmitting(false);
 			setIsSlugTaken(false);
@@ -59,19 +61,23 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		};
 	}, [slug]);
 
-	const slugError = !slug
-		? "Slug is required"
-		: !SLUG_REGEX.test(slug)
-			? "Slug must only contain lowercase letters, numbers, and hyphens"
-			: isSlugTaken
-				? "This slug is already taken"
-				: undefined;
+	const slugError = !submitted
+		? undefined
+		: !slug
+			? "Slug is required"
+			: !SLUG_REGEX.test(slug)
+				? "Slug must only contain lowercase letters, numbers, and hyphens"
+				: isSlugTaken
+					? "This slug is already taken"
+					: undefined;
 
-	const nameError = !name
-		? "League name is required"
-		: name.length > 100
-			? "Name is too long"
-			: undefined;
+	const nameError = !submitted
+		? undefined
+		: !name
+			? "League name is required"
+			: name.length > 100
+				? "Name is too long"
+				: undefined;
 	const canSubmit =
 		!isSubmitting &&
 		!isCheckingSlug &&
@@ -83,6 +89,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 
 	const onSubmit = async () => {
 		if (isSubmitting) return;
+		setSubmitted(true);
 		setApiError("");
 		setIsSubmitting(true);
 		try {

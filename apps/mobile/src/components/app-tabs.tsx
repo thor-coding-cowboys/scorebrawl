@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CreateSeasonForm } from "@/components/create-season-form";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 type SubView = "standings" | "matches" | "fixtures" | "history";
@@ -56,6 +55,35 @@ export default function AppTabs() {
 		}
 	};
 
+	const homeTab = {
+		label: "Home",
+		icon: { ios: "house", android: "home", web: "home" } as const,
+		active: false,
+		onPress: () => router.push("/"),
+	};
+
+	let leftTabs: TabProps[] = [];
+	let rightTabs: TabProps[] = [];
+
+	if (isSeasonView) {
+		const subTabs: TabProps[] = SEASON_SUB_VIEWS.map(({ key, label, icon }) => ({
+			label,
+			icon,
+			active: activeView === key,
+			onPress: () => goToView(key),
+		}));
+		if (isSeasonDetail) {
+			leftTabs = [homeTab, ...subTabs.slice(0, 2)];
+			rightTabs = subTabs.slice(2);
+		} else {
+			leftTabs = subTabs.slice(0, 2);
+			rightTabs = subTabs.slice(2);
+		}
+	} else if (isSeasonsList) {
+		leftTabs = [homeTab];
+		rightTabs = [];
+	}
+
 	const handlePlus = () => {
 		if (isSeasonsList) {
 			setIsCreateSeasonOpen(true);
@@ -76,40 +104,19 @@ export default function AppTabs() {
 			]}
 		>
 			<View style={styles.inner}>
-				{!isActiveSeason && (
-					<TabButton
-						label="Home"
-						icon={{ ios: "house", android: "home", web: "home" }}
-						active={false}
-						tint={theme.text}
-						activeTint={theme.primary}
-						onPress={() => router.push("/")}
-					/>
-				)}
-
-				{isSeasonView &&
-					SEASON_SUB_VIEWS.map(({ key, label, icon }) => (
+				<View style={styles.side}>
+					{leftTabs.map((tab) => (
 						<TabButton
-							key={key}
-							label={label}
-							icon={icon}
-							active={activeView === key}
+							key={tab.label}
+							label={tab.label}
+							icon={tab.icon}
+							active={tab.active}
 							tint={theme.text}
 							activeTint={theme.primary}
-							onPress={() => goToView(key)}
+							onPress={tab.onPress}
 						/>
 					))}
-
-				{isSeasonsList && (
-					<TabButton
-						label="Seasons"
-						icon={{ ios: "trophy", android: "emoji_events", web: "emoji_events" }}
-						active
-						tint={theme.text}
-						activeTint={theme.primary}
-						onPress={() => router.push("/seasons")}
-					/>
-				)}
+				</View>
 
 				<View style={styles.plusSlot}>
 					<Pressable
@@ -129,11 +136,32 @@ export default function AppTabs() {
 						/>
 					</Pressable>
 				</View>
+
+				<View style={styles.side}>
+					{rightTabs.map((tab) => (
+						<TabButton
+							key={tab.label}
+							label={tab.label}
+							icon={tab.icon}
+							active={tab.active}
+							tint={theme.text}
+							activeTint={theme.primary}
+							onPress={tab.onPress}
+						/>
+					))}
+				</View>
 			</View>
 
 			<CreateSeasonForm isOpen={isCreateSeasonOpen} onClose={() => setIsCreateSeasonOpen(false)} />
 		</View>
 	);
+}
+
+interface TabProps {
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+	active: boolean;
+	onPress: () => void;
 }
 
 function TabButton({
@@ -173,9 +201,13 @@ const styles = StyleSheet.create({
 	inner: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-around",
 		height: 56,
-		paddingHorizontal: Spacing.two,
+	},
+	side: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-around",
 	},
 	tab: {
 		flex: 1,
@@ -183,7 +215,7 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	plusSlot: {
-		flex: 1,
+		width: 56,
 		alignItems: "center",
 	},
 	plusButton: {
