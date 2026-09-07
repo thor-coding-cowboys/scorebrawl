@@ -192,7 +192,10 @@ export default function AppTabs() {
 						onPress={handlePlus}
 						style={({ pressed }) => [
 							styles.plusButton,
-							{ backgroundColor: theme.buttonPrimary, borderColor: theme.buttonPrimary },
+							{
+								backgroundColor: theme.glowBlueBg,
+								borderColor: theme.glowBlueBorder,
+							},
 							pressed && { opacity: 0.8 },
 						]}
 					>
@@ -200,7 +203,7 @@ export default function AppTabs() {
 							<SymbolView
 								name={{ ios: "plus", android: "add", web: "add" }}
 								size={22}
-								tintColor={theme.primaryForeground}
+								tintColor={theme.glowBlueText}
 							/>
 						</Animated.View>
 					</Pressable>
