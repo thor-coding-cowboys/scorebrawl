@@ -153,7 +153,7 @@ export default function AppTabs() {
 						style={StyleSheet.absoluteFill}
 					/>
 
-					<View style={[styles.flyoutWrap, { bottom: 56 + insets.bottom }]}>
+					<View style={[styles.flyoutWrap, { bottom: 56 + insets.bottom + 24 }]}>
 						<Animated.View style={styles.flyout}>
 							{SEASON_CREATE_ACTIONS.map((action, i) => (
 								<FlyoutOption
