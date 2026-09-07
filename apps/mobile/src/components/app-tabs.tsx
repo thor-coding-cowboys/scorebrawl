@@ -282,19 +282,16 @@ function TabButton({
 	onPress: () => void;
 }) {
 	const theme = useTheme();
+	const activeTint = theme.glowBlueText;
 	return (
 		<Pressable
 			accessibilityRole="button"
 			accessibilityState={{ selected: active }}
 			onPress={onPress}
-			style={({ pressed }) => [
-				styles.tab,
-				active && { backgroundColor: theme.glowBlueBg, borderColor: theme.glowBlueBorder },
-				pressed && { opacity: 0.7 },
-			]}
+			style={({ pressed }) => [styles.tab, pressed && { opacity: 0.7 }]}
 		>
-			<SymbolView name={icon} size={22} tintColor={tint} />
-			<ThemedText type="small" style={{ color: tint, fontSize: 11 }}>
+			<SymbolView name={icon} size={22} tintColor={active ? activeTint : tint} />
+			<ThemedText type="small" style={{ color: active ? activeTint : tint, fontSize: 11 }}>
 				{label}
 			</ThemedText>
 		</Pressable>
@@ -323,9 +320,6 @@ const styles = StyleSheet.create({
 		gap: 2,
 		paddingVertical: Spacing.two,
 		marginHorizontal: Spacing.one,
-		borderRadius: 8,
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "transparent",
 	},
 	plusSlot: {
 		width: 56,
