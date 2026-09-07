@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient } from "@/lib/trpc";
 
 function SubViewPlaceholder({ label }: { label: string }) {
 	return (
@@ -25,7 +25,6 @@ function SubViewPlaceholder({ label }: { label: string }) {
 }
 
 export default function HomeScreen() {
-	const trpc = useTRPC();
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
 	const { view = "standings" } = useLocalSearchParams<{ view?: string }>();
