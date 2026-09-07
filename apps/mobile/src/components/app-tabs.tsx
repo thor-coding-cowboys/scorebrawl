@@ -144,7 +144,7 @@ export default function AppTabs() {
 			]}
 		>
 			{isSeasonView && (
-				<View style={styles.flyoutLayer}>
+				<View style={styles.flyoutLayer} pointerEvents="box-none">
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel="Close create menu"
