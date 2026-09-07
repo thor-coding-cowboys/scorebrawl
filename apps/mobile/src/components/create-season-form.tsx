@@ -379,25 +379,18 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									{apiError}
 								</ThemedText>
 							) : null}
-							<View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.two }]}>
-								<Button
-									variant="outline"
-									style={styles.actionButton}
-									onPress={onClose}
-									disabled={isSubmitting}
-								>
-									Cancel
-								</Button>
-								<Button
-									style={styles.actionButton}
-									onPress={onSubmit}
-									loading={isSubmitting}
-									disabled={!canSubmit}
-								>
-									{isSubmitting ? "Creating..." : "Create Season"}
-								</Button>
-							</View>
 						</ScrollView>
+
+						<View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.two }]}>
+							<Button
+								style={styles.actionButton}
+								onPress={onSubmit}
+								loading={isSubmitting}
+								disabled={!canSubmit}
+							>
+								{isSubmitting ? "Creating..." : "Create Season"}
+							</Button>
+						</View>
 					</View>
 				</KeyboardAvoidingView>
 			</ThemedView>
@@ -465,8 +458,6 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	actions: {
-		flexDirection: "row",
-		gap: Spacing.three,
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
 		borderTopColor: "rgba(128,128,128,0.3)",

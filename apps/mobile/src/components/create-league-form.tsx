@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -128,7 +128,11 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 							Start tracking scores and competing with your friends
 						</ThemedText>
 
-						<View style={styles.form}>
+						<ScrollView
+							style={styles.scroll}
+							contentContainerStyle={styles.form}
+							keyboardShouldPersistTaps="handled"
+						>
 							<Input
 								label="League Name"
 								placeholder="My Awesome League"
@@ -164,12 +168,9 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									{apiError}
 								</ThemedText>
 							) : null}
-						</View>
+						</ScrollView>
 
-						<View style={styles.actions}>
-							<Button variant="outline" fullWidth onPress={onClose} disabled={isSubmitting}>
-								Cancel
-							</Button>
+						<View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.two }]}>
 							<Button fullWidth onPress={onSubmit} loading={isSubmitting} disabled={!canSubmit}>
 								{isSubmitting ? "Creating..." : "Create League"}
 							</Button>
@@ -206,9 +207,14 @@ const styles = StyleSheet.create({
 	form: {
 		marginTop: Spacing.five,
 		gap: Spacing.three,
+		paddingBottom: Spacing.four,
+	},
+	scroll: {
+		flex: 1,
 	},
 	actions: {
-		marginTop: Spacing.five,
-		gap: Spacing.three,
+		paddingTop: Spacing.three,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "rgba(128,128,128,0.3)",
 	},
 });
