@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-end",
 	},
 	sheet: {
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
+		borderTopLeftRadius: 0,
+		borderTopRightRadius: 0,
 		paddingHorizontal: Spacing.three,
 		paddingTop: Spacing.two,
 		maxHeight: "70%",
