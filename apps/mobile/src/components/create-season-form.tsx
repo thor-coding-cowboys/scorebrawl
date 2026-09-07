@@ -305,7 +305,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 							) : null}
 						</ScrollView>
 
-						<View style={styles.actions}>
+						<View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.two }]}>
 							<Button
 								variant="outline"
 								style={styles.actionButton}
