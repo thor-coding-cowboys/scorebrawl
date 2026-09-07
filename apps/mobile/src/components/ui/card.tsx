@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
 	card: {
 		width: "100%",
 		borderWidth: 1,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 	header: {
 		gap: Spacing.two,

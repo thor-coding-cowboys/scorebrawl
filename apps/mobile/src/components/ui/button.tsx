@@ -69,7 +69,7 @@ export function Button({
 const styles = StyleSheet.create({
 	button: {
 		height: 44,
-		borderRadius: 10,
+		borderRadius: 0,
 		paddingHorizontal: Spacing.four,
 		alignItems: "center",
 		justifyContent: "center",

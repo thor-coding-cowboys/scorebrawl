@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
 	input: {
 		height: 44,
 		borderWidth: 1,
-		borderRadius: 10,
+		borderRadius: 0,
 		paddingHorizontal: Spacing.three,
 		fontSize: 16,
 		lineHeight: 24,
