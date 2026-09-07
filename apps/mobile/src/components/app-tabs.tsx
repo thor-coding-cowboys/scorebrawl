@@ -192,7 +192,7 @@ export default function AppTabs() {
 						onPress={handlePlus}
 						style={({ pressed }) => [
 							styles.plusButton,
-							{ backgroundColor: theme.primary },
+							{ backgroundColor: theme.primary, borderColor: theme.primary },
 							pressed && { opacity: 0.8 },
 						]}
 					>
@@ -324,7 +324,8 @@ const styles = StyleSheet.create({
 	plusButton: {
 		width: 44,
 		height: 44,
-		borderRadius: 22,
+		borderRadius: 8,
+		borderWidth: StyleSheet.hairlineWidth,
 		alignItems: "center",
 		justifyContent: "center",
 		zIndex: 2,
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.three,
-		borderRadius: 20,
+		borderRadius: 0,
 		minWidth: 132,
 		borderWidth: StyleSheet.hairlineWidth,
 	},
