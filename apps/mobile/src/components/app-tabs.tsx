@@ -289,7 +289,7 @@ function TabButton({
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.tab,
-				active && { backgroundColor: theme.backgroundSelected },
+				active && { backgroundColor: theme.glowBlueBg, borderColor: theme.glowBlueBorder },
 				pressed && { opacity: 0.7 },
 			]}
 		>
@@ -324,6 +324,8 @@ const styles = StyleSheet.create({
 		paddingVertical: Spacing.two,
 		marginHorizontal: Spacing.one,
 		borderRadius: 8,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: "transparent",
 	},
 	plusSlot: {
 		width: 56,
