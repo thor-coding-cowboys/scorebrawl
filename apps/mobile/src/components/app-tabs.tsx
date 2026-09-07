@@ -257,12 +257,14 @@ function FlyoutOption({
 				onPress={onPress}
 				style={({ pressed }) => [
 					styles.flyoutItem,
-					{ backgroundColor: theme.backgroundElement, borderColor: theme.border },
+					{ backgroundColor: theme.background, borderColor: theme.border },
 					pressed && { opacity: 0.7 },
 				]}
 			>
-				<SymbolView name={action.icon} size={18} tintColor={theme.text} />
-				<ThemedText type="small">{action.label}</ThemedText>
+				<View style={[styles.flyoutIcon, { backgroundColor: theme.glowBlueBg }]}>
+					<SymbolView name={action.icon} size={20} tintColor={theme.glowBlueText} />
+				</View>
+				<ThemedText type="smallBold">{action.label}</ThemedText>
 			</Pressable>
 		</Animated.View>
 	);
@@ -355,12 +357,18 @@ const styles = StyleSheet.create({
 	flyoutItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "center",
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.three,
-		borderRadius: 0,
-		minWidth: 132,
+		borderRadius: 8,
+		minWidth: 148,
 		borderWidth: StyleSheet.hairlineWidth,
+	},
+	flyoutIcon: {
+		width: 34,
+		height: 34,
+		borderRadius: 8,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 });
