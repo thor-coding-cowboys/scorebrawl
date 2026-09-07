@@ -382,7 +382,13 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 						</ScrollView>
 
 						<View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.two }]}>
-							<Button fullWidth onPress={onSubmit} loading={isSubmitting} disabled={!canSubmit}>
+							<Button
+								fullWidth
+								variant="glow"
+								onPress={onSubmit}
+								loading={isSubmitting}
+								disabled={!canSubmit}
+							>
 								{isSubmitting ? "Creating..." : "Create Season"}
 							</Button>
 						</View>

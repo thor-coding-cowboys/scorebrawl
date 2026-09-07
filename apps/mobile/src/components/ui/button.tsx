@@ -12,7 +12,7 @@ import {
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-type ButtonVariant = "primary" | "outline";
+type ButtonVariant = "primary" | "outline" | "glow";
 
 interface ButtonProps extends PressableProps {
 	variant?: ButtonVariant;
@@ -35,13 +35,20 @@ export function Button({
 	const [pressed, setPressed] = useState(false);
 
 	const isPrimary = variant === "primary";
+	const isGlow = variant === "glow";
 	const backgroundColor = isPrimary
 		? theme.buttonPrimary
-		: pressed
-			? theme.backgroundSelected
-			: "transparent";
-	const borderStyle: ViewStyle = isPrimary ? {} : { borderWidth: 1, borderColor: theme.border };
-	const textColor = isPrimary ? theme.primaryForeground : theme.text;
+		: isGlow
+			? theme.glowBlueBg
+			: pressed
+				? theme.backgroundSelected
+				: "transparent";
+	const borderStyle: ViewStyle = isPrimary
+		? {}
+		: isGlow
+			? { borderWidth: 1, borderColor: theme.glowBlueBorder }
+			: { borderWidth: 1, borderColor: theme.border };
+	const textColor = isPrimary ? theme.primaryForeground : isGlow ? theme.glowBlueText : theme.text;
 
 	return (
 		<Pressable
