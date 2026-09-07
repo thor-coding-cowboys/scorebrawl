@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -14,6 +14,11 @@ import { trpcClient } from "@/lib/trpc";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 const SCORE_TYPES = ["elo", "3-1-0", "1-v-n-elo"] as const;
+const SCORE_TYPE_LABELS: Record<(typeof SCORE_TYPES)[number], string> = {
+	elo: "ELO Rating",
+	"3-1-0": "Points (3-1-0)",
+	"1-v-n-elo": "1-v-N ELO",
+};
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function toDateInput(date: Date) {
@@ -193,15 +198,16 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 					behavior={Platform.OS === "ios" ? "padding" : undefined}
 					style={styles.keyboardAvoid}
 				>
-					<View style={[styles.content, { paddingTop: insets.top + Spacing.four }]}>
-						<ThemedText type="title" style={styles.title}>
-							Create a New Season
-						</ThemedText>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.subtitle}>
-							Set up a season for {scoreType} scoring
+					<View style={[styles.content, { paddingTop: insets.top + Spacing.three }]}>
+						<ThemedText type="subtitle" style={styles.title}>
+							Create Season
 						</ThemedText>
 
-						<View style={styles.form}>
+						<ScrollView
+							style={styles.scroll}
+							contentContainerStyle={styles.form}
+							keyboardShouldPersistTaps="handled"
+						>
 							<Input
 								label="Season Name"
 								placeholder="Season 1"
@@ -238,37 +244,33 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 											onPress={() => setScoreType(type)}
 											disabled={isSubmitting}
 										>
-											{type}
+											{SCORE_TYPE_LABELS[type]}
 										</Button>
 									);
 								})}
 							</View>
-							<View style={styles.row}>
-								<Input
-									label="Start Date"
-									placeholder="YYYY-MM-DD"
-									value={startDate}
-									onChangeText={setStartDate}
-									autoCapitalize="none"
-									autoCorrect={false}
-									editable={!isSubmitting}
-									error={startDateError}
-									style={styles.half}
-								/>
-								<Input
-									label="End Date (optional)"
-									placeholder="YYYY-MM-DD"
-									value={endDate}
-									onChangeText={setEndDate}
-									autoCapitalize="none"
-									autoCorrect={false}
-									editable={!isSubmitting}
-									error={endDateError}
-									style={styles.half}
-								/>
-							</View>
+							<Input
+								label="Start Date"
+								placeholder="YYYY-MM-DD"
+								value={startDate}
+								onChangeText={setStartDate}
+								autoCapitalize="none"
+								autoCorrect={false}
+								editable={!isSubmitting}
+								error={startDateError}
+							/>
+							<Input
+								label="End Date (optional)"
+								placeholder="YYYY-MM-DD"
+								value={endDate}
+								onChangeText={setEndDate}
+								autoCapitalize="none"
+								autoCorrect={false}
+								editable={!isSubmitting}
+								error={endDateError}
+							/>
 							{isElo ? (
-								<View style={styles.row}>
+								<>
 									<Input
 										label="Initial ELO"
 										value={initialScore}
@@ -276,7 +278,6 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 										keyboardType="numeric"
 										editable={!isSubmitting}
 										error={initialScoreError}
-										style={styles.half}
 									/>
 									<Input
 										label="K-Factor"
@@ -285,9 +286,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 										keyboardType="numeric"
 										editable={!isSubmitting}
 										error={kFactorError}
-										style={styles.half}
 									/>
-								</View>
+								</>
 							) : (
 								<Input
 									label="Rounds"
@@ -303,13 +303,23 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 									{apiError}
 								</ThemedText>
 							) : null}
-						</View>
+						</ScrollView>
 
 						<View style={styles.actions}>
-							<Button variant="outline" fullWidth onPress={onClose} disabled={isSubmitting}>
+							<Button
+								variant="outline"
+								style={styles.actionButton}
+								onPress={onClose}
+								disabled={isSubmitting}
+							>
 								Cancel
 							</Button>
-							<Button fullWidth onPress={onSubmit} loading={isSubmitting} disabled={!canSubmit}>
+							<Button
+								style={styles.actionButton}
+								onPress={onSubmit}
+								loading={isSubmitting}
+								disabled={!canSubmit}
+							>
 								{isSubmitting ? "Creating..." : "Create Season"}
 							</Button>
 						</View>
@@ -332,14 +342,17 @@ const styles = StyleSheet.create({
 		paddingHorizontal: Spacing.four,
 	},
 	title: {
-		marginTop: Spacing.two,
+		fontSize: 24,
+		lineHeight: 32,
+		fontWeight: "700",
+		marginBottom: Spacing.four,
 	},
-	subtitle: {
-		marginTop: Spacing.one,
+	scroll: {
+		flex: 1,
 	},
 	form: {
-		marginTop: Spacing.five,
 		gap: Spacing.three,
+		paddingBottom: Spacing.four,
 	},
 	segmentRow: {
 		flexDirection: "row",
@@ -348,15 +361,14 @@ const styles = StyleSheet.create({
 	segment: {
 		flex: 1,
 	},
-	row: {
-		flexDirection: "row",
-		gap: Spacing.two,
-	},
-	half: {
-		flex: 1,
-	},
 	actions: {
-		marginTop: Spacing.five,
+		flexDirection: "row",
 		gap: Spacing.three,
+		paddingTop: Spacing.three,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "rgba(128,128,128,0.3)",
+	},
+	actionButton: {
+		flex: 1,
 	},
 });
