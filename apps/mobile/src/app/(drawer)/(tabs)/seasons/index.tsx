@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.one,
 		borderWidth: 1,
-		borderRadius: 999,
+		borderRadius: 8,
 		paddingVertical: 2,
 		paddingHorizontal: Spacing.two,
 		marginLeft: Spacing.three,
