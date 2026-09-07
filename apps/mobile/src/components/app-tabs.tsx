@@ -153,7 +153,7 @@ export default function AppTabs() {
 						style={StyleSheet.absoluteFill}
 					/>
 
-					<View style={styles.flyoutWrap}>
+					<View style={[styles.flyoutWrap, { bottom: 56 + insets.bottom }]}>
 						<Animated.View style={styles.flyout}>
 							{SEASON_CREATE_ACTIONS.map((action, i) => (
 								<FlyoutOption
@@ -165,7 +165,6 @@ export default function AppTabs() {
 								/>
 							))}
 						</Animated.View>
-						<Animated.View style={[styles.flyoutStem, { opacity: flyoutProgress }]} />
 					</View>
 				</View>
 			)}
@@ -347,12 +346,6 @@ const styles = StyleSheet.create({
 	flyout: {
 		alignItems: "center",
 		gap: Spacing.two,
-	},
-	flyoutStem: {
-		width: 2,
-		height: 8,
-		backgroundColor: "rgba(128,128,128,0.35)",
-		marginTop: 1,
 	},
 	flyoutItem: {
 		flexDirection: "row",
