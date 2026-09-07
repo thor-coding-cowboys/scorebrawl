@@ -36,7 +36,7 @@ export function Button({
 
 	const isPrimary = variant === "primary";
 	const backgroundColor = isPrimary
-		? theme.primary
+		? theme.buttonPrimary
 		: pressed
 			? theme.backgroundSelected
 			: "transparent";

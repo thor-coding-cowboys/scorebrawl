@@ -192,7 +192,7 @@ export default function AppTabs() {
 						onPress={handlePlus}
 						style={({ pressed }) => [
 							styles.plusButton,
-							{ backgroundColor: theme.primary, borderColor: theme.primary },
+							{ backgroundColor: theme.buttonPrimary, borderColor: theme.buttonPrimary },
 							pressed && { opacity: 0.8 },
 						]}
 					>
