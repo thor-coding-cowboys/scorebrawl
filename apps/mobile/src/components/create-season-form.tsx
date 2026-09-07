@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { slugify } from "@/lib/slug";
@@ -276,9 +277,12 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 					style={styles.keyboardAvoid}
 				>
 					<View style={[styles.content, { paddingTop: insets.top + Spacing.three }]}>
-						<ThemedText type="subtitle" style={styles.title}>
-							Create Season
-						</ThemedText>
+						<View style={styles.headerRow}>
+							<ThemedText type="subtitle" style={styles.title}>
+								Create Season
+							</ThemedText>
+							<ModalCloseButton onPress={onClose} />
+						</View>
 
 						<ScrollView
 							style={styles.scroll}
@@ -417,6 +421,11 @@ const styles = StyleSheet.create({
 		lineHeight: 32,
 		fontWeight: "700",
 		marginBottom: Spacing.four,
+	},
+	headerRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
 	scroll: {
 		flex: 1,

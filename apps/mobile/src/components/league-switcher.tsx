@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { CreateLeagueForm } from "@/components/create-league-form";
 import { ThemedText } from "@/components/themed-text";
+import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
@@ -108,9 +109,12 @@ export function LeagueSwitcher() {
 						onPress={(e) => e.stopPropagation()}
 					>
 						<View style={styles.sheetHandle} />
-						<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sheetLabel}>
-							Leagues
-						</ThemedText>
+						<View style={styles.sheetHeader}>
+							<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sheetLabel}>
+								Leagues
+							</ThemedText>
+							<ModalCloseButton onPress={() => setIsOpen(false)} />
+						</View>
 						<ScrollView style={styles.sheetList}>
 							{(organizations ?? []).map((org) => {
 								const isActive = org.id === activeLeague.id;
@@ -196,6 +200,11 @@ const styles = StyleSheet.create({
 	},
 	sheetLabel: {
 		marginBottom: Spacing.two,
+	},
+	sheetHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
 	sheetList: {
 		flexGrow: 0,

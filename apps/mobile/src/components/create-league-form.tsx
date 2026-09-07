@@ -7,6 +7,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
@@ -117,9 +118,12 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 					style={styles.keyboardAvoid}
 				>
 					<View style={[styles.content, { paddingTop: insets.top + Spacing.four }]}>
-						<ThemedText type="title" style={styles.title}>
-							Create a New League
-						</ThemedText>
+						<View style={styles.headerRow}>
+							<ThemedText type="title" style={styles.title}>
+								Create a New League
+							</ThemedText>
+							<ModalCloseButton onPress={onClose} />
+						</View>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.subtitle}>
 							Start tracking scores and competing with your friends
 						</ThemedText>
@@ -190,6 +194,11 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		marginTop: Spacing.two,
+	},
+	headerRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
 	subtitle: {
 		marginTop: Spacing.one,
