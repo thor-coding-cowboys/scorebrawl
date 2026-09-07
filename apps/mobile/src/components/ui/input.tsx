@@ -56,8 +56,9 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderRadius: 0,
 		paddingHorizontal: Spacing.three,
+		paddingVertical: 0,
 		fontSize: 16,
-		lineHeight: 24,
+		textAlignVertical: "center",
 	},
 	error: {
 		fontSize: 13,
