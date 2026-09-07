@@ -147,6 +147,34 @@ export default function AppTabs() {
 				},
 			]}
 		>
+			{isSeasonView && (
+				<View style={styles.flyoutLayer}>
+					<Animated.View
+						style={[styles.flyoutOverlay, overlayStyle]}
+						pointerEvents={isFlyoutOpen ? "auto" : "none"}
+					>
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel="Close create menu"
+							onPress={() => setIsFlyoutOpen(false)}
+							style={StyleSheet.absoluteFill}
+						/>
+					</Animated.View>
+
+					<Animated.View style={styles.flyout}>
+						{SEASON_CREATE_ACTIONS.map((action, i) => (
+							<FlyoutOption
+								key={action.label}
+								action={action}
+								progress={flyoutProgress}
+								index={i}
+								onPress={() => handleFlyoutAction(action.label)}
+							/>
+						))}
+					</Animated.View>
+				</View>
+			)}
+
 			<View style={styles.inner}>
 				<View style={styles.side}>
 					{leftTabs.map((tab) => (
@@ -163,34 +191,6 @@ export default function AppTabs() {
 				</View>
 
 				<View style={styles.plusSlot}>
-					{isSeasonView && (
-						<>
-							<Animated.View
-								style={[styles.flyoutOverlay, overlayStyle]}
-								pointerEvents={isFlyoutOpen ? "auto" : "none"}
-							>
-								<Pressable
-									accessibilityRole="button"
-									accessibilityLabel="Close create menu"
-									onPress={() => setIsFlyoutOpen(false)}
-									style={StyleSheet.absoluteFill}
-								/>
-							</Animated.View>
-
-							<Animated.View style={styles.flyout}>
-								{SEASON_CREATE_ACTIONS.map((action, i) => (
-									<FlyoutOption
-										key={action.label}
-										action={action}
-										progress={flyoutProgress}
-										index={i}
-										onPress={() => handleFlyoutAction(action.label)}
-									/>
-								))}
-							</Animated.View>
-						</>
-					)}
-
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel="Create"
@@ -335,20 +335,28 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		zIndex: 2,
 	},
+	flyoutLayer: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		top: -600,
+		alignItems: "center",
+		justifyContent: "flex-end",
+		zIndex: 1,
+	},
 	flyoutOverlay: {
 		position: "absolute",
-		bottom: 56,
-		left: -200,
-		right: -200,
-		height: 400,
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
 		backgroundColor: "#000",
 	},
 	flyout: {
-		position: "absolute",
-		bottom: 52,
 		alignItems: "center",
 		gap: Spacing.two,
-		zIndex: 1,
+		paddingBottom: 8,
 	},
 	flyoutItem: {
 		flexDirection: "row",
