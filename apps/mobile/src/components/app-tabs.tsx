@@ -1,11 +1,19 @@
 import { router, useGlobalSearchParams, usePathname } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+	withTiming,
+	type SharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CreateSeasonForm } from "@/components/create-season-form";
 import { ThemedText } from "@/components/themed-text";
+import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 type SubView = "standings" | "matches" | "fixtures" | "history";
@@ -33,12 +41,31 @@ const SEASON_SUB_VIEWS: {
 	{ key: "history", label: "History", icon: { ios: "clock", android: "history", web: "history" } },
 ];
 
+interface CreateAction {
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+}
+
+const SEASON_CREATE_ACTIONS: CreateAction[] = [
+	{
+		label: "Match",
+		icon: { ios: "sportscourt", android: "sports_soccer", web: "sports_soccer" },
+	},
+	{
+		label: "Session",
+		icon: { ios: "play.fill", android: "play_arrow", web: "play_arrow" },
+	},
+];
+
 export default function AppTabs() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const pathname = usePathname();
 	const params = useGlobalSearchParams<{ seasonSlug?: string; view?: SubView }>();
 	const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
+	const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
+	const flyoutProgress = useSharedValue(0);
+	const rotation = useSharedValue(0);
 
 	const isSeasonDetail = pathname.startsWith("/seasons/");
 	const isSeasonsList = pathname === "/seasons";
@@ -80,12 +107,34 @@ export default function AppTabs() {
 	}
 
 	const handlePlus = () => {
-		if (isSeasonsList) {
+		if (isSeasonView) {
+			setIsFlyoutOpen((open) => !open);
+		} else if (isSeasonsList) {
 			setIsCreateSeasonOpen(true);
 		} else {
 			Alert.alert("Not supported yet", "Match creation is coming soon.");
 		}
 	};
+
+	const handleFlyoutAction = (label: string) => {
+		setIsFlyoutOpen(false);
+		const message =
+			label === "Match" ? "Match creation is coming soon." : "Session creation is coming soon.";
+		Alert.alert("Not supported yet", message);
+	};
+
+	useEffect(() => {
+		rotation.value = withSpring(isFlyoutOpen ? 1 : 0, { damping: 20, stiffness: 260 });
+		flyoutProgress.value = withTiming(isFlyoutOpen ? 1 : 0, { duration: 180 });
+	}, [isFlyoutOpen, rotation, flyoutProgress]);
+
+	const plusIconStyle = useAnimatedStyle(() => ({
+		transform: [{ rotate: `${rotation.value * 45}deg` }],
+	}));
+
+	const overlayStyle = useAnimatedStyle(() => ({
+		opacity: flyoutProgress.value * 0.4,
+	}));
 
 	return (
 		<View
@@ -114,9 +163,38 @@ export default function AppTabs() {
 				</View>
 
 				<View style={styles.plusSlot}>
+					{isSeasonView && (
+						<>
+							<Animated.View
+								style={[styles.flyoutOverlay, overlayStyle]}
+								pointerEvents={isFlyoutOpen ? "auto" : "none"}
+							>
+								<Pressable
+									accessibilityRole="button"
+									accessibilityLabel="Close create menu"
+									onPress={() => setIsFlyoutOpen(false)}
+									style={StyleSheet.absoluteFill}
+								/>
+							</Animated.View>
+
+							<Animated.View style={styles.flyout}>
+								{SEASON_CREATE_ACTIONS.map((action, i) => (
+									<FlyoutOption
+										key={action.label}
+										action={action}
+										progress={flyoutProgress}
+										index={i}
+										onPress={() => handleFlyoutAction(action.label)}
+									/>
+								))}
+							</Animated.View>
+						</>
+					)}
+
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel="Create"
+						accessibilityState={{ expanded: isFlyoutOpen }}
 						onPress={handlePlus}
 						style={({ pressed }) => [
 							styles.plusButton,
@@ -124,11 +202,13 @@ export default function AppTabs() {
 							pressed && { opacity: 0.8 },
 						]}
 					>
-						<SymbolView
-							name={{ ios: "plus", android: "add", web: "add" }}
-							size={22}
-							tintColor={theme.primaryForeground}
-						/>
+						<Animated.View style={plusIconStyle}>
+							<SymbolView
+								name={{ ios: "plus", android: "add", web: "add" }}
+								size={22}
+								tintColor={theme.primaryForeground}
+							/>
+						</Animated.View>
 					</Pressable>
 				</View>
 
@@ -157,6 +237,40 @@ interface TabProps {
 	icon: Parameters<typeof SymbolView>[0]["name"];
 	active: boolean;
 	onPress: () => void;
+}
+
+function FlyoutOption({
+	action,
+	progress,
+	index,
+	onPress,
+}: {
+	action: CreateAction;
+	progress: SharedValue<number>;
+	index: number;
+	onPress: () => void;
+}) {
+	const theme = useTheme();
+	const style = useAnimatedStyle(() => ({
+		opacity: progress.value,
+		transform: [{ translateY: (1 - progress.value) * (14 + index * 10) }],
+	}));
+	return (
+		<Animated.View style={style}>
+			<Pressable
+				accessibilityRole="button"
+				onPress={onPress}
+				style={({ pressed }) => [
+					styles.flyoutItem,
+					{ backgroundColor: theme.backgroundElement },
+					pressed && { opacity: 0.7 },
+				]}
+			>
+				<SymbolView name={action.icon} size={18} tintColor={theme.text} />
+				<ThemedText type="small">{action.label}</ThemedText>
+			</Pressable>
+		</Animated.View>
+	);
 }
 
 function TabButton({
@@ -219,5 +333,30 @@ const styles = StyleSheet.create({
 		borderRadius: 22,
 		alignItems: "center",
 		justifyContent: "center",
+		zIndex: 2,
+	},
+	flyoutOverlay: {
+		position: "absolute",
+		bottom: 56,
+		left: -200,
+		right: -200,
+		height: 400,
+		backgroundColor: "#000",
+	},
+	flyout: {
+		position: "absolute",
+		bottom: 52,
+		alignItems: "center",
+		gap: Spacing.two,
+		zIndex: 1,
+	},
+	flyoutItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
+		paddingVertical: Spacing.two,
+		paddingHorizontal: Spacing.three,
+		borderRadius: 12,
+		minWidth: 120,
 	},
 });
