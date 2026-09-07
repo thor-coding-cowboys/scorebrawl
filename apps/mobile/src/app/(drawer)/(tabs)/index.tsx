@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
-import { useTRPC } from "@/lib/trpc";
+import { trpcClient, useTRPC } from "@/lib/trpc";
 
 function SubViewPlaceholder({ label }: { label: string }) {
 	return (
@@ -29,9 +29,11 @@ export default function HomeScreen() {
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
 	const { view = "standings" } = useLocalSearchParams<{ view?: string }>();
-	const activeSeasonsQuery = useQuery(
-		trpc.season.findAllActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
-	);
+	const activeSeasonsQuery = useQuery({
+		queryKey: ["season", "findAllActive", activeLeague?.id],
+		queryFn: () => trpcClient.season.findAllActive.query(),
+		enabled: Boolean(activeLeague),
+	});
 	const activeSeasons = useMemo(() => activeSeasonsQuery.data ?? [], [activeSeasonsQuery.data]);
 	const [resolvedSeasonSlug, setResolvedSeasonSlug] = useState<string | null>(null);
 	const [resolvingSeason, setResolvingSeason] = useState(true);
