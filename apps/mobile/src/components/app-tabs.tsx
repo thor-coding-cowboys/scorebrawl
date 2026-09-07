@@ -178,7 +178,6 @@ export default function AppTabs() {
 							icon={tab.icon}
 							active={tab.active}
 							tint={theme.text}
-							activeTint={theme.primary}
 							onPress={tab.onPress}
 						/>
 					))}
@@ -217,7 +216,6 @@ export default function AppTabs() {
 							icon={tab.icon}
 							active={tab.active}
 							tint={theme.text}
-							activeTint={theme.primary}
 							onPress={tab.onPress}
 						/>
 					))}
@@ -275,25 +273,28 @@ function TabButton({
 	icon,
 	active,
 	tint,
-	activeTint,
 	onPress,
 }: {
 	label: string;
 	icon: Parameters<typeof SymbolView>[0]["name"];
 	active: boolean;
 	tint: string;
-	activeTint: string;
 	onPress: () => void;
 }) {
+	const theme = useTheme();
 	return (
 		<Pressable
 			accessibilityRole="button"
 			accessibilityState={{ selected: active }}
 			onPress={onPress}
-			style={({ pressed }) => [styles.tab, pressed && { opacity: 0.7 }]}
+			style={({ pressed }) => [
+				styles.tab,
+				active && { backgroundColor: theme.backgroundSelected },
+				pressed && { opacity: 0.7 },
+			]}
 		>
-			<SymbolView name={icon} size={22} tintColor={active ? activeTint : tint} />
-			<ThemedText type="small" style={{ color: active ? activeTint : tint, fontSize: 11 }}>
+			<SymbolView name={icon} size={22} tintColor={tint} />
+			<ThemedText type="small" style={{ color: tint, fontSize: 11 }}>
 				{label}
 			</ThemedText>
 		</Pressable>
@@ -318,7 +319,11 @@ const styles = StyleSheet.create({
 	tab: {
 		flex: 1,
 		alignItems: "center",
+		justifyContent: "center",
 		gap: 2,
+		paddingVertical: Spacing.two,
+		marginHorizontal: Spacing.one,
+		borderRadius: 8,
 	},
 	plusSlot: {
 		width: 56,
