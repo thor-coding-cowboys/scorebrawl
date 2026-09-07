@@ -34,7 +34,7 @@ export function Avatar({
 		return (
 			<Image
 				source={{ uri: image, headers }}
-				style={{ width: size, height: size, borderRadius: size / 2 }}
+				style={{ width: size, height: size, borderRadius: 8 }}
 				contentFit="cover"
 				onError={() => setImageFailed(true)}
 			/>
@@ -46,7 +46,7 @@ export function Avatar({
 			style={{
 				width: size,
 				height: size,
-				borderRadius: size / 2,
+				borderRadius: 8,
 				backgroundColor: theme.primary,
 				alignItems: "center",
 				justifyContent: "center",
