@@ -69,25 +69,29 @@ function ScoreTypeCard({
 	type,
 	selected,
 	onPress,
+	disabled,
 }: {
 	type: (typeof SCORE_TYPES)[number];
 	selected: boolean;
 	onPress: () => void;
+	disabled: boolean;
 }) {
 	const theme = useTheme();
 	const config = SCORE_TYPE_CONFIG[type];
 	return (
 		<Pressable
 			accessibilityRole="button"
-			accessibilityState={{ selected }}
+			accessibilityState={{ selected, disabled }}
 			onPress={onPress}
+			disabled={disabled}
 			style={({ pressed }) => [
 				styles.scoreCard,
 				{
 					borderColor: selected ? config.color : theme.border,
 					backgroundColor: selected ? `${config.color}14` : theme.background,
+					opacity: disabled ? 0.6 : 1,
 				},
-				pressed && { opacity: 0.7 },
+				pressed && !disabled && { opacity: 0.7 },
 			]}
 		>
 			{selected && <View style={[styles.scoreCardAccent, { backgroundColor: config.color }]} />}
@@ -313,6 +317,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 										type={type}
 										selected={scoreType === type}
 										onPress={() => setScoreType(type)}
+										disabled={isSubmitting}
 									/>
 								))}
 							</View>
