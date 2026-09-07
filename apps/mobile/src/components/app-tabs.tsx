@@ -132,10 +132,6 @@ export default function AppTabs() {
 		transform: [{ rotate: `${rotation.value * 45}deg` }],
 	}));
 
-	const overlayStyle = useAnimatedStyle(() => ({
-		opacity: flyoutProgress.value * 0.4,
-	}));
-
 	return (
 		<View
 			style={[
@@ -149,29 +145,28 @@ export default function AppTabs() {
 		>
 			{isSeasonView && (
 				<View style={styles.flyoutLayer}>
-					<Animated.View
-						style={[styles.flyoutOverlay, overlayStyle]}
+					<Pressable
+						accessibilityRole="button"
+						accessibilityLabel="Close create menu"
+						onPress={() => setIsFlyoutOpen(false)}
 						pointerEvents={isFlyoutOpen ? "auto" : "none"}
-					>
-						<Pressable
-							accessibilityRole="button"
-							accessibilityLabel="Close create menu"
-							onPress={() => setIsFlyoutOpen(false)}
-							style={StyleSheet.absoluteFill}
-						/>
-					</Animated.View>
+						style={StyleSheet.absoluteFill}
+					/>
 
-					<Animated.View style={styles.flyout}>
-						{SEASON_CREATE_ACTIONS.map((action, i) => (
-							<FlyoutOption
-								key={action.label}
-								action={action}
-								progress={flyoutProgress}
-								index={i}
-								onPress={() => handleFlyoutAction(action.label)}
-							/>
-						))}
-					</Animated.View>
+					<View style={styles.flyoutWrap}>
+						<Animated.View style={styles.flyout}>
+							{SEASON_CREATE_ACTIONS.map((action, i) => (
+								<FlyoutOption
+									key={action.label}
+									action={action}
+									progress={flyoutProgress}
+									index={i}
+									onPress={() => handleFlyoutAction(action.label)}
+								/>
+							))}
+						</Animated.View>
+						<Animated.View style={[styles.flyoutStem, { opacity: flyoutProgress }]} />
+					</View>
 				</View>
 			)}
 
@@ -262,7 +257,7 @@ function FlyoutOption({
 				onPress={onPress}
 				style={({ pressed }) => [
 					styles.flyoutItem,
-					{ backgroundColor: theme.backgroundElement },
+					{ backgroundColor: theme.backgroundElement, borderColor: theme.border },
 					pressed && { opacity: 0.7 },
 				]}
 			>
@@ -337,34 +332,37 @@ const styles = StyleSheet.create({
 	},
 	flyoutLayer: {
 		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		top: -600,
-		alignItems: "center",
-		justifyContent: "flex-end",
-		zIndex: 1,
-	},
-	flyoutOverlay: {
-		position: "absolute",
 		top: 0,
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: "#000",
+		zIndex: 1,
+		alignItems: "center",
+	},
+	flyoutWrap: {
+		position: "absolute",
+		bottom: 56,
+		alignItems: "center",
 	},
 	flyout: {
 		alignItems: "center",
 		gap: Spacing.two,
-		paddingBottom: 8,
+	},
+	flyoutStem: {
+		width: 2,
+		height: 8,
+		backgroundColor: "rgba(128,128,128,0.35)",
+		marginTop: 1,
 	},
 	flyoutItem: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.three,
-		borderRadius: 12,
-		minWidth: 120,
+		borderRadius: 20,
+		minWidth: 132,
+		borderWidth: StyleSheet.hairlineWidth,
 	},
 });
