@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	codeSnippet: {
-		borderRadius: Spacing.two,
+		borderRadius: 0,
 		paddingVertical: Spacing.half,
 		paddingHorizontal: Spacing.two,
 	},

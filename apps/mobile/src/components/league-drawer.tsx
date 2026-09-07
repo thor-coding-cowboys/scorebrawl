@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 	footer: {
 		marginTop: Spacing.three,

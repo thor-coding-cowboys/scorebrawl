@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 	switcherText: {
 		flex: 1,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
 		alignSelf: "center",
 		width: 40,
 		height: 4,
-		borderRadius: 2,
+		borderRadius: 0,
 		backgroundColor: "rgba(128,128,128,0.4)",
 		marginBottom: Spacing.three,
 	},
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 	leagueName: {
 		flex: 1,

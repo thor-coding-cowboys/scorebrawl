@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 	userInfo: {
 		flex: 1,
@@ -134,6 +134,6 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
 });
