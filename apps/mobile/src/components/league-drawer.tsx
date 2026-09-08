@@ -10,17 +10,51 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { authClient } from "@/lib/auth-client";
+
+interface NavItem {
+	label: string;
+	path: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+	requireEditor?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+	{
+		label: "Seasons",
+		path: "/seasons",
+		icon: { ios: "trophy", android: "emoji_events", web: "emoji_events" },
+	},
+	{ label: "Teams", path: "/teams", icon: { ios: "person.3", android: "groups", web: "groups" } },
+	{ label: "Players", path: "/players", icon: { ios: "person", android: "person", web: "person" } },
+	{
+		label: "Members",
+		path: "/members",
+		icon: { ios: "shield", android: "verified_user", web: "verified_user" },
+		requireEditor: true,
+	},
+	{
+		label: "Invitations",
+		path: "/invitations",
+		icon: { ios: "envelope", android: "mail", web: "mail" },
+		requireEditor: true,
+	},
+];
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
 	const insets = useSafeAreaInsets();
 	const theme = useTheme();
 	const pathname = usePathname();
-	const isSeasonsActive = pathname.startsWith("/seasons");
+	const { data: activeMember } = authClient.useActiveMember();
+	const role = activeMember?.role;
+	const canManage = role === "owner" || role === "editor";
 
-	const handleSeasonsPress = () => {
+	const handleNavPress = (path: string) => {
 		navigation.closeDrawer();
-		router.push("/seasons");
+		router.push(path as Parameters<typeof router.push>[0]);
 	};
+
+	const visibleItems = NAV_ITEMS.filter((item) => !item.requireEditor || canManage);
 
 	return (
 		<ThemedView
@@ -35,23 +69,25 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 				<ThemedText type="smallBold" themeColor="textSecondary" style={styles.navLabel}>
 					League
 				</ThemedText>
-				<Pressable
-					accessibilityRole="button"
-					accessibilityState={{ selected: isSeasonsActive }}
-					onPress={handleSeasonsPress}
-					style={({ pressed }) => [
-						styles.navItem,
-						isSeasonsActive && { backgroundColor: theme.backgroundElement },
-						pressed && { opacity: 0.7 },
-					]}
-				>
-					<SymbolView
-						name={{ ios: "trophy", android: "emoji_events", web: "emoji_events" }}
-						size={18}
-						tintColor={theme.text}
-					/>
-					<ThemedText type="small">Seasons</ThemedText>
-				</Pressable>
+				{visibleItems.map((item) => {
+					const isActive = pathname.startsWith(item.path);
+					return (
+						<Pressable
+							key={item.path}
+							accessibilityRole="button"
+							accessibilityState={{ selected: isActive }}
+							onPress={() => handleNavPress(item.path)}
+							style={({ pressed }) => [
+								styles.navItem,
+								isActive && { backgroundColor: theme.backgroundElement },
+								pressed && { opacity: 0.7 },
+							]}
+						>
+							<SymbolView name={item.icon} size={18} tintColor={theme.text} />
+							<ThemedText type="small">{item.label}</ThemedText>
+						</Pressable>
+					);
+				})}
 			</View>
 
 			<View style={styles.footer}>

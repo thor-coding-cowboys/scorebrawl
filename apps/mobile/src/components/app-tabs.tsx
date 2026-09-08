@@ -71,6 +71,11 @@ export default function AppTabs() {
 	const isSeasonsList = pathname === "/seasons";
 	const isActiveSeason = pathname === "/";
 	const isSeasonView = isActiveSeason || isSeasonDetail;
+	const isLeaguePage =
+		pathname === "/teams" ||
+		pathname === "/players" ||
+		pathname === "/members" ||
+		pathname === "/invitations";
 	const activeView = params.view ?? "standings";
 	const seasonSlug = params.seasonSlug;
 
@@ -101,7 +106,7 @@ export default function AppTabs() {
 		}));
 		leftTabs = subTabs.slice(0, 2);
 		rightTabs = subTabs.slice(2);
-	} else if (isSeasonsList) {
+	} else if (isSeasonsList || isLeaguePage) {
 		leftTabs = [homeTab];
 		rightTabs = [];
 	}
@@ -111,6 +116,14 @@ export default function AppTabs() {
 			setIsFlyoutOpen((open) => !open);
 		} else if (isSeasonsList) {
 			setIsCreateSeasonOpen(true);
+		} else if (pathname === "/teams") {
+			Alert.alert("Not supported yet", "Team creation is coming soon.");
+		} else if (pathname === "/players") {
+			router.push({ pathname: "/players", params: { create: "1" } });
+		} else if (pathname === "/members") {
+			Alert.alert("Not supported yet", "No create action for members.");
+		} else if (pathname === "/invitations") {
+			router.push({ pathname: "/invitations", params: { create: "1" } });
 		} else {
 			Alert.alert("Not supported yet", "Match creation is coming soon.");
 		}
