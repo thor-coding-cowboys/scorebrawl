@@ -322,11 +322,13 @@ export default function PlayersScreen() {
 										</ThemedText>
 										{item.isGuest ? <GuestBadge /> : null}
 									</View>
-									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-										{item.email ?? "No email"}
-									</ThemedText>
+									<View style={styles.subRow}>
+										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+											{item.email ?? "No email"}
+										</ThemedText>
+										<PlayerStatusPill disabled={item.disabled} />
+									</View>
 								</View>
-								<PlayerStatusPill disabled={item.disabled} />
 								{isEditor ? (
 									<Button
 										variant="outline"
@@ -420,6 +422,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	nameRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
+	},
+	subRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
