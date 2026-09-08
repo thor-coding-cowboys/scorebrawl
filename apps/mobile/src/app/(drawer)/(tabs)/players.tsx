@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
 	},
 	cardRow: {
 		flexDirection: "row",
-		alignItems: "center",
+		alignItems: "flex-start",
 		gap: Spacing.three,
 	},
 	rowInfo: {
