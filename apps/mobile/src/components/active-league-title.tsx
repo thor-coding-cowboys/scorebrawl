@@ -1,5 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
+import { useActiveLeague } from "@/hooks/use-active-league";
 
 export function ActiveLeagueTitle() {
-	return <ThemedText type="subtitle">Scorebrawl</ThemedText>;
+	const { activeLeague } = useActiveLeague();
+
+	return <ThemedText type="subtitle">{activeLeague?.name ?? ""}</ThemedText>;
 }
