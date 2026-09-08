@@ -274,6 +274,7 @@ export default function PlayersScreen() {
 					Players
 				</ThemedText>
 				<FlatList
+					style={styles.list}
 					data={players}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
@@ -362,6 +363,7 @@ const styles = StyleSheet.create({
 		marginBottom: Spacing.three,
 	},
 	list: {
+		flex: 1,
 		gap: Spacing.two,
 		paddingBottom: Spacing.six,
 	},

@@ -354,6 +354,7 @@ export default function InvitationsScreen() {
 					) : null}
 				</View>
 				<FlatList
+					style={styles.list}
 					data={invitations}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => {
@@ -463,6 +464,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	list: {
+		flex: 1,
 		paddingBottom: Spacing.six,
 	},
 	rowBlock: {

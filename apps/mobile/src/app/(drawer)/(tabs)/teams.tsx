@@ -47,6 +47,7 @@ export default function TeamsScreen() {
 					Teams
 				</ThemedText>
 				<FlatList
+					style={styles.list}
 					data={teams}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
@@ -111,6 +112,7 @@ const styles = StyleSheet.create({
 		marginBottom: Spacing.three,
 	},
 	list: {
+		flex: 1,
 		paddingBottom: Spacing.six,
 	},
 	row: {
