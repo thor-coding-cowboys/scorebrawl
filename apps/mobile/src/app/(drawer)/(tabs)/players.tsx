@@ -17,7 +17,6 @@ import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
@@ -290,37 +289,35 @@ export default function PlayersScreen() {
 					data={visiblePlayers}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
-						<Card style={styles.card}>
-							<View style={styles.cardRow}>
-								<Avatar
-									name={item.name}
-									image={getAvatarUri(item.image)}
-									headers={avatarHeaders}
-									size={40}
-								/>
-								<View style={styles.rowInfo}>
-									<View style={styles.nameRow}>
-										<ThemedText style={styles.rowName} numberOfLines={1}>
-											{item.name}
-										</ThemedText>
-										{item.isGuest ? <GuestBadge /> : null}
-									</View>
-									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-										{item.email ?? "No email"}
+						<View style={styles.row}>
+							<Avatar
+								name={item.name}
+								image={getAvatarUri(item.image)}
+								headers={avatarHeaders}
+								size={40}
+							/>
+							<View style={styles.rowInfo}>
+								<View style={styles.nameRow}>
+									<ThemedText style={styles.rowName} numberOfLines={1}>
+										{item.name}
 									</ThemedText>
+									{item.isGuest ? <GuestBadge /> : null}
 								</View>
-								{isEditor ? (
-									<Button
-										variant="outline"
-										size="sm"
-										onPress={() => confirmToggleDisabled(item)}
-										loading={pendingToggleId === item.id}
-									>
-										{item.disabled ? "Enable" : "Disable"}
-									</Button>
-								) : null}
+								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+									{item.email ?? "No email"}
+								</ThemedText>
 							</View>
-						</Card>
+							{isEditor ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onPress={() => confirmToggleDisabled(item)}
+									loading={pendingToggleId === item.id}
+								>
+									{item.disabled ? "Enable" : "Disable"}
+								</Button>
+							) : null}
+						</View>
 					)}
 					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
@@ -387,16 +384,15 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	listContent: {
-		gap: Spacing.two,
 		paddingBottom: Spacing.six,
 	},
-	card: {
-		padding: Spacing.three,
-	},
-	cardRow: {
+	row: {
 		flexDirection: "row",
-		alignItems: "flex-start",
+		alignItems: "center",
 		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: "rgba(128,128,128,0.25)",
 	},
 	rowInfo: {
 		flex: 1,

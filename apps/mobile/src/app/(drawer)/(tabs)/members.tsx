@@ -8,7 +8,6 @@ import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -242,49 +241,47 @@ export default function MembersScreen() {
 						const roleColor =
 							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
 						return (
-							<Card style={styles.card}>
-								<View style={styles.cardRow}>
-									<Avatar
-										name={name}
-										image={getAvatarUri(item.user?.image ?? item.image)}
-										headers={avatarHeaders}
-										size={40}
-									/>
-									<View style={styles.rowInfo}>
-										<ThemedText style={styles.rowName} numberOfLines={1}>
-											{name}
-										</ThemedText>
-										<View
-											style={[
-												styles.rolePill,
-												{
-													backgroundColor: `${roleColor}1a`,
-													borderColor: `${roleColor}40`,
-												},
-											]}
+							<View style={styles.row}>
+								<Avatar
+									name={name}
+									image={getAvatarUri(item.user?.image ?? item.image)}
+									headers={avatarHeaders}
+									size={40}
+								/>
+								<View style={styles.rowInfo}>
+									<ThemedText style={styles.rowName} numberOfLines={1}>
+										{name}
+									</ThemedText>
+									<View
+										style={[
+											styles.rolePill,
+											{
+												backgroundColor: `${roleColor}1a`,
+												borderColor: `${roleColor}40`,
+											},
+										]}
+									>
+										<ThemedText
+											type="small"
+											style={{
+												color: roleColor,
+												fontSize: 11,
+												lineHeight: 16,
+											}}
 										>
-											<ThemedText
-												type="small"
-												style={{
-													color: roleColor,
-													fontSize: 11,
-													lineHeight: 16,
-												}}
-											>
-												{formatRole(currentRole)}
-											</ThemedText>
-										</View>
-										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-											{email || "No email"}
+											{formatRole(currentRole)}
 										</ThemedText>
 									</View>
-									{canEditThisRole ? (
-										<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
-											Change Role
-										</Button>
-									) : null}
+									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+										{email || "No email"}
+									</ThemedText>
 								</View>
-							</Card>
+								{canEditThisRole ? (
+									<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
+										Change Role
+									</Button>
+								) : null}
+							</View>
 						);
 					}}
 					contentContainerStyle={styles.listContent}
@@ -391,16 +388,15 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	listContent: {
-		gap: Spacing.two,
 		paddingBottom: Spacing.six,
 	},
-	card: {
-		padding: Spacing.three,
-	},
-	cardRow: {
+	row: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: "rgba(128,128,128,0.25)",
 	},
 	rowInfo: {
 		flex: 1,
