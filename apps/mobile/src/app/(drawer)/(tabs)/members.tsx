@@ -33,11 +33,11 @@ type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["editor", "member", "viewer"] as const;
 
-const ROLE_COLORS: Record<string, string> = {
-	owner: "#f59e0b",
-	editor: "#10b981",
-	member: "#2563eb",
-	viewer: "#6b7280",
+const ROLE_COLORS: Record<string, { light: string; dark: string }> = {
+	owner: { light: "#b45309", dark: "#fbbf24" },
+	editor: { light: "#047857", dark: "#34d399" },
+	member: { light: "#1d4ed8", dark: "#60a5fa" },
+	viewer: { light: "#64748b", dark: "#94a3b8" },
 };
 
 function formatRole(role: string) {
@@ -239,6 +239,8 @@ export default function MembersScreen() {
 						const email = item.user?.email || item.email || "";
 						const currentRole = item.role || "member";
 						const canEditThisRole = currentRole !== "owner";
+						const roleColor =
+							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
 						return (
 							<Card style={styles.card}>
 								<View style={styles.cardRow}>
@@ -256,15 +258,15 @@ export default function MembersScreen() {
 											style={[
 												styles.rolePill,
 												{
-													backgroundColor: `${ROLE_COLORS[currentRole] ?? "#6b7280"}1a`,
-													borderColor: `${ROLE_COLORS[currentRole] ?? "#6b7280"}40`,
+													backgroundColor: `${roleColor}1a`,
+													borderColor: `${roleColor}40`,
 												},
 											]}
 										>
 											<ThemedText
 												type="small"
 												style={{
-													color: ROLE_COLORS[currentRole] ?? "#6b7280",
+													color: roleColor,
 													fontSize: 11,
 													lineHeight: 16,
 												}}
@@ -412,7 +414,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		borderWidth: 1,
-		borderRadius: 8,
+		borderRadius: 0,
 		paddingVertical: 1,
 		paddingHorizontal: Spacing.two,
 		marginBottom: Spacing.one,
