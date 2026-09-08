@@ -12,14 +12,7 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 
-interface NavItem {
-	label: string;
-	path: string;
-	icon: Parameters<typeof SymbolView>[0]["name"];
-	requireEditor?: boolean;
-}
-
-const NAV_ITEMS: NavItem[] = [
+const NAV_ITEMS = [
 	{
 		label: "Seasons",
 		path: "/seasons",
@@ -39,7 +32,9 @@ const NAV_ITEMS: NavItem[] = [
 		icon: { ios: "envelope", android: "mail", web: "mail" },
 		requireEditor: true,
 	},
-];
+] as const;
+
+type NavItem = (typeof NAV_ITEMS)[number];
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
 	const insets = useSafeAreaInsets();
@@ -49,12 +44,14 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 	const role = activeMember?.role;
 	const canManage = role === "owner" || role === "editor";
 
-	const handleNavPress = (path: string) => {
+	const handleNavPress = (path: NavItem["path"]) => {
 		navigation.closeDrawer();
-		router.push(path as Parameters<typeof router.push>[0]);
+		router.push(path);
 	};
 
-	const visibleItems = NAV_ITEMS.filter((item) => !item.requireEditor || canManage);
+	const visibleItems = NAV_ITEMS.filter(
+		(item) => !("requireEditor" in item && item.requireEditor) || canManage
+	);
 
 	return (
 		<ThemedView
