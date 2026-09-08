@@ -487,11 +487,16 @@ function PlayersPage() {
 				]}
 				rightContent={
 					canManagePlayers ? (
-						<Button size="sm" className="gap-1.5" onClick={() => setGuestDialogOpen(true)}>
-							<HugeiconsIcon icon={UserAdd01Icon} className="size-4" />
+						<GlowButton
+							icon={UserAdd01Icon}
+							glowColor={glowColors.blue}
+							size="sm"
+							className="gap-1.5"
+							onClick={() => setGuestDialogOpen(true)}
+						>
 							<span className="hidden sm:inline">Add Guest Player</span>
 							<span className="sm:hidden">Guest</span>
-						</Button>
+						</GlowButton>
 					) : undefined
 				}
 			/>
