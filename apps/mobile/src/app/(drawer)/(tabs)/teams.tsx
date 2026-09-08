@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
 		marginBottom: Spacing.three,
 	},
 	list: {
-		paddingBottom: Spacing.four,
+		paddingBottom: Spacing.six,
 	},
 	row: {
 		flexDirection: "row",

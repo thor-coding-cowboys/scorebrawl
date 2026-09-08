@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	list: {
-		paddingBottom: Spacing.four,
+		paddingBottom: Spacing.six,
 	},
 	rowBlock: {
 		paddingVertical: Spacing.three,

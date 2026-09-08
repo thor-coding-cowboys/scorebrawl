@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
 	},
 	list: {
 		gap: Spacing.two,
-		paddingBottom: Spacing.four,
+		paddingBottom: Spacing.six,
 	},
 	card: {
 		padding: Spacing.three,
