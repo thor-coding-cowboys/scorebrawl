@@ -246,7 +246,7 @@ export default function MembersScreen() {
 											{name}
 										</ThemedText>
 										<ThemedText type="small" numberOfLines={1} style={styles.roleText}>
-											{formatRole(currentRole)}
+											{formatRole(currentRole).toUpperCase()}
 										</ThemedText>
 										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 											{email || "No email"}
@@ -256,21 +256,7 @@ export default function MembersScreen() {
 										<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
 											Change Role
 										</Button>
-									) : (
-										<View
-											style={[
-												styles.rolePill,
-												{
-													backgroundColor: `${theme.primary}1a`,
-													borderColor: `${theme.primary}40`,
-												},
-											]}
-										>
-											<ThemedText type="small" style={{ color: theme.primary, fontSize: 11 }}>
-												{formatRole(currentRole)}
-											</ThemedText>
-										</View>
-									)}
+									) : null}
 								</View>
 							</Card>
 						);
@@ -399,12 +385,10 @@ const styles = StyleSheet.create({
 	},
 	roleText: {
 		fontWeight: "600",
-	},
-	rolePill: {
-		borderWidth: 1,
-		borderRadius: 8,
-		paddingVertical: 2,
-		paddingHorizontal: Spacing.two,
+		fontSize: 11,
+		lineHeight: 16,
+		letterSpacing: 1,
+		textTransform: "uppercase",
 	},
 	empty: {
 		textAlign: "center",
