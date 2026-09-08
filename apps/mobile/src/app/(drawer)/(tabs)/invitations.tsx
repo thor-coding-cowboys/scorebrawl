@@ -343,16 +343,9 @@ export default function InvitationsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
-				<View style={styles.headerRow}>
-					<ThemedText type="title" style={styles.title}>
-						Invitations
-					</ThemedText>
-					{canAccess ? (
-						<Button variant="outline" onPress={() => setIsInviteOpen(true)}>
-							Invite
-						</Button>
-					) : null}
-				</View>
+				<ThemedText type="title" style={styles.title}>
+					Invitations
+				</ThemedText>
 				<FlatList
 					style={styles.list}
 					data={invitations}
@@ -452,13 +445,6 @@ const styles = StyleSheet.create({
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.four,
 		paddingBottom: Spacing.three,
-	},
-	headerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginTop: Spacing.four,
-		marginBottom: Spacing.three,
 	},
 	title: {
 		flex: 1,
