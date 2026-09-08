@@ -31,7 +31,7 @@ type Member = {
 
 type MembersData = { members: Member[]; total: number } | Member[];
 
-const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
+const ROLE_OPTIONS = ["editor", "member", "viewer"] as const;
 
 function formatRole(role: string) {
 	return role
@@ -245,12 +245,15 @@ export default function MembersScreen() {
 										<ThemedText style={styles.rowName} numberOfLines={1}>
 											{name}
 										</ThemedText>
+										<ThemedText type="small" numberOfLines={1} style={styles.roleText}>
+											{formatRole(currentRole)}
+										</ThemedText>
 										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 											{email || "No email"}
 										</ThemedText>
 									</View>
 									{canEditThisRole ? (
-										<Button variant="outline" onPress={() => setSelectedMember(item)}>
+										<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
 											Change Role
 										</Button>
 									) : (
@@ -393,6 +396,9 @@ const styles = StyleSheet.create({
 	rowName: {
 		fontWeight: "600",
 		flexShrink: 1,
+	},
+	roleText: {
+		fontWeight: "600",
 	},
 	rolePill: {
 		borderWidth: 1,
