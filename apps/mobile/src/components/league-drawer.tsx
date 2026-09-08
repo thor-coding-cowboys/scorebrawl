@@ -41,18 +41,16 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 					onPress={handleSeasonsPress}
 					style={({ pressed }) => [
 						styles.navItem,
-						isSeasonsActive && { backgroundColor: theme.backgroundSelected },
+						isSeasonsActive && { backgroundColor: theme.backgroundElement },
 						pressed && { opacity: 0.7 },
 					]}
 				>
 					<SymbolView
 						name={{ ios: "trophy", android: "emoji_events", web: "emoji_events" }}
 						size={18}
-						tintColor={isSeasonsActive ? theme.primary : theme.text}
+						tintColor={theme.text}
 					/>
-					<ThemedText type="small" style={isSeasonsActive ? { color: theme.primary } : undefined}>
-						Seasons
-					</ThemedText>
+					<ThemedText type="small">Seasons</ThemedText>
 				</Pressable>
 			</View>
 
