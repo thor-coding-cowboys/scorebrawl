@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { SymbolView } from "expo-symbols";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -31,14 +30,6 @@ type Player = RouterOutput["player"]["getAll"][number];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const DISABLED_STATUS: {
-	color: string;
-	icon: Parameters<typeof SymbolView>[0]["name"];
-} = {
-	color: "#dc2626",
-	icon: { ios: "minus.circle.fill", android: "remove_circle", web: "remove_circle" },
-};
-
 function GuestBadge() {
 	const theme = useTheme();
 	return (
@@ -53,19 +44,6 @@ function GuestBadge() {
 		>
 			<ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 10 }}>
 				Guest
-			</ThemedText>
-		</View>
-	);
-}
-
-function PlayerStatusPill({ disabled }: { disabled: boolean }) {
-	if (!disabled) return null;
-	const { color, icon } = DISABLED_STATUS;
-	return (
-		<View style={[styles.pill, { backgroundColor: `${color}1a`, borderColor: `${color}40` }]}>
-			<SymbolView name={icon} size={12} tintColor={color} />
-			<ThemedText type="small" style={{ color, fontSize: 11 }}>
-				Disabled
 			</ThemedText>
 		</View>
 	);
@@ -224,11 +202,12 @@ function GuestPlayerForm({
 
 export default function PlayersScreen() {
 	const router = useRouter();
-	const params = useLocalSearchParams<{ create?: string }>();
+	const params = useLocalSearchParams<{ create?: string; view?: "enabled" | "disabled" }>();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
+	const playerView = params.view ?? "enabled";
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [guestForm, setGuestForm] = useState<GuestFormState | null>(null);
 	const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
@@ -262,6 +241,10 @@ export default function PlayersScreen() {
 		queryKey: ["player", "getAll"],
 		queryFn: () => trpcClient.player.getAll.query(),
 	});
+
+	const visiblePlayers = players.filter((p) =>
+		playerView === "disabled" ? p.disabled : !p.disabled
+	);
 
 	const confirmToggleDisabled = (player: Player) => {
 		Alert.alert(
@@ -304,7 +287,7 @@ export default function PlayersScreen() {
 				</ThemedText>
 				<FlatList
 					style={styles.list}
-					data={players}
+					data={visiblePlayers}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
 						<Card style={styles.card}>
@@ -322,12 +305,9 @@ export default function PlayersScreen() {
 										</ThemedText>
 										{item.isGuest ? <GuestBadge /> : null}
 									</View>
-									<View style={styles.subRow}>
-										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-											{item.email ?? "No email"}
-										</ThemedText>
-										<PlayerStatusPill disabled={item.disabled} />
-									</View>
+									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+										{item.email ?? "No email"}
+									</ThemedText>
 								</View>
 								{isEditor ? (
 									<Button
@@ -426,11 +406,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.two,
 	},
-	subRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
-	},
 	rowName: {
 		fontWeight: "600",
 		flexShrink: 1,
@@ -441,15 +416,6 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderRadius: 8,
 		paddingVertical: 1,
-		paddingHorizontal: Spacing.two,
-	},
-	pill: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.one,
-		borderWidth: 1,
-		borderRadius: 8,
-		paddingVertical: 2,
 		paddingHorizontal: Spacing.two,
 	},
 	empty: {

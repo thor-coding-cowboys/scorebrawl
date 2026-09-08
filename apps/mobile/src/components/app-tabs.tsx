@@ -58,11 +58,27 @@ const SEASON_CREATE_ACTIONS: CreateAction[] = [
 	},
 ];
 
+const PLAYER_SUB_VIEWS: {
+	key: "enabled" | "disabled";
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+}[] = [
+	{ key: "enabled", label: "Enabled", icon: { ios: "person", android: "person", web: "person" } },
+	{
+		key: "disabled",
+		label: "Disabled",
+		icon: { ios: "person.slash", android: "person_off", web: "person_off" },
+	},
+];
+
 export default function AppTabs() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const pathname = usePathname();
-	const params = useGlobalSearchParams<{ seasonSlug?: string; view?: SubView }>();
+	const params = useGlobalSearchParams<{
+		seasonSlug?: string;
+		view?: SubView | "enabled" | "disabled";
+	}>();
 	const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
 	const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
 	const flyoutProgress = useSharedValue(0);
@@ -110,6 +126,15 @@ export default function AppTabs() {
 		}));
 		leftTabs = subTabs.slice(0, 2);
 		rightTabs = subTabs.slice(2);
+	} else if (pathname === "/players") {
+		const playerTabs: TabProps[] = PLAYER_SUB_VIEWS.map(({ key, label, icon }) => ({
+			label,
+			icon,
+			active: activeView === key,
+			onPress: () => router.setParams({ view: key }),
+		}));
+		leftTabs = [homeTab];
+		rightTabs = playerTabs;
 	} else if (isSeasonsList || isLeaguePage) {
 		leftTabs = [homeTab];
 		rightTabs = [];
