@@ -399,7 +399,7 @@ export default function InvitationsScreen() {
 							</View>
 						);
 					}}
-					contentContainerStyle={styles.list}
+					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isMemberPending ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
@@ -465,6 +465,8 @@ const styles = StyleSheet.create({
 	},
 	list: {
 		flex: 1,
+	},
+	listContent: {
 		paddingBottom: Spacing.six,
 	},
 	rowBlock: {

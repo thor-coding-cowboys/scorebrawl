@@ -301,7 +301,7 @@ export default function PlayersScreen() {
 							</View>
 						</Card>
 					)}
-					contentContainerStyle={styles.list}
+					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isLoading ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
@@ -364,6 +364,8 @@ const styles = StyleSheet.create({
 	},
 	list: {
 		flex: 1,
+	},
+	listContent: {
 		gap: Spacing.two,
 		paddingBottom: Spacing.six,
 	},

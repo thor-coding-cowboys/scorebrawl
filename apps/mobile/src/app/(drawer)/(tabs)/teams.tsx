@@ -68,7 +68,7 @@ export default function TeamsScreen() {
 							</View>
 						</View>
 					)}
-					contentContainerStyle={styles.list}
+					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isLoading ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
@@ -113,6 +113,8 @@ const styles = StyleSheet.create({
 	},
 	list: {
 		flex: 1,
+	},
+	listContent: {
 		paddingBottom: Spacing.six,
 	},
 	row: {
