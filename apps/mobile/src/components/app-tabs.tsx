@@ -15,6 +15,7 @@ import { CreateSeasonForm } from "@/components/create-season-form";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { authClient } from "@/lib/auth-client";
 
 type SubView = "standings" | "matches" | "fixtures" | "history";
 
@@ -66,6 +67,8 @@ export default function AppTabs() {
 	const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
 	const flyoutProgress = useSharedValue(0);
 	const rotation = useSharedValue(0);
+	const { data: activeMember } = authClient.useActiveMember();
+	const canManage = activeMember?.role === "owner" || activeMember?.role === "editor";
 
 	const isSeasonDetail = pathname.startsWith("/seasons/");
 	const isSeasonsList = pathname === "/seasons";
@@ -119,11 +122,19 @@ export default function AppTabs() {
 		} else if (pathname === "/teams") {
 			Alert.alert("Not supported yet", "Team creation is coming soon.");
 		} else if (pathname === "/players") {
-			router.push({ pathname: "/players", params: { create: "1" } });
+			if (canManage) {
+				router.push({ pathname: "/players", params: { create: "1" } });
+			} else {
+				Alert.alert("No access", "Only league editors can add guest players.");
+			}
 		} else if (pathname === "/members") {
 			Alert.alert("Not supported yet", "No create action for members.");
 		} else if (pathname === "/invitations") {
-			router.push({ pathname: "/invitations", params: { create: "1" } });
+			if (canManage) {
+				router.push({ pathname: "/invitations", params: { create: "1" } });
+			} else {
+				Alert.alert("No access", "Only league editors can invite members.");
+			}
 		} else {
 			Alert.alert("Not supported yet", "Match creation is coming soon.");
 		}
