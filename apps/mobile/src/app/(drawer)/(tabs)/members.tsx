@@ -33,6 +33,13 @@ type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["editor", "member", "viewer"] as const;
 
+const ROLE_COLORS: Record<string, string> = {
+	owner: "#f59e0b",
+	editor: "#10b981",
+	member: "#2563eb",
+	viewer: "#6b7280",
+};
+
 function formatRole(role: string) {
 	return role
 		.replace(/_/g, " ")
@@ -245,9 +252,26 @@ export default function MembersScreen() {
 										<ThemedText style={styles.rowName} numberOfLines={1}>
 											{name}
 										</ThemedText>
-										<ThemedText type="small" numberOfLines={1} style={styles.roleText}>
-											{formatRole(currentRole).toUpperCase()}
-										</ThemedText>
+										<View
+											style={[
+												styles.rolePill,
+												{
+													backgroundColor: `${ROLE_COLORS[currentRole] ?? "#6b7280"}1a`,
+													borderColor: `${ROLE_COLORS[currentRole] ?? "#6b7280"}40`,
+												},
+											]}
+										>
+											<ThemedText
+												type="small"
+												style={{
+													color: ROLE_COLORS[currentRole] ?? "#6b7280",
+													fontSize: 11,
+													lineHeight: 16,
+												}}
+											>
+												{formatRole(currentRole)}
+											</ThemedText>
+										</View>
 										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 											{email || "No email"}
 										</ThemedText>
@@ -383,12 +407,15 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		flexShrink: 1,
 	},
-	roleText: {
-		fontWeight: "600",
-		fontSize: 11,
-		lineHeight: 16,
-		letterSpacing: 1,
-		textTransform: "uppercase",
+	rolePill: {
+		alignSelf: "flex-start",
+		flexDirection: "row",
+		alignItems: "center",
+		borderWidth: 1,
+		borderRadius: 8,
+		paddingVertical: 1,
+		paddingHorizontal: Spacing.two,
+		marginBottom: Spacing.one,
 	},
 	empty: {
 		textAlign: "center",
