@@ -13,9 +13,11 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 type ButtonVariant = "primary" | "outline" | "glow";
+type ButtonSize = "default" | "sm";
 
 interface ButtonProps extends PressableProps {
 	variant?: ButtonVariant;
+	size?: ButtonSize;
 	loading?: boolean;
 	fullWidth?: boolean;
 	style?: StyleProp<ViewStyle>;
@@ -24,6 +26,7 @@ interface ButtonProps extends PressableProps {
 
 export function Button({
 	variant = "primary",
+	size = "default",
 	loading = false,
 	fullWidth = false,
 	disabled,
@@ -57,6 +60,7 @@ export function Button({
 			onPressOut={() => setPressed(false)}
 			style={[
 				styles.button,
+				size === "sm" && styles.buttonSm,
 				borderStyle,
 				{ backgroundColor, opacity: disabled || loading ? 0.6 : 1 },
 				fullWidth && styles.fullWidth,
@@ -67,7 +71,9 @@ export function Button({
 			{loading ? (
 				<ActivityIndicator color={textColor} />
 			) : (
-				<Text style={[styles.label, { color: textColor }]}>{children}</Text>
+				<Text style={[styles.label, size === "sm" && styles.labelSm, { color: textColor }]}>
+					{children}
+				</Text>
 			)}
 		</Pressable>
 	);
@@ -83,6 +89,10 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: Spacing.two,
 	},
+	buttonSm: {
+		height: 32,
+		paddingHorizontal: Spacing.three,
+	},
 	fullWidth: {
 		width: "100%",
 	},
@@ -90,5 +100,9 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		fontWeight: "600",
 		lineHeight: 20,
+	},
+	labelSm: {
+		fontSize: 13,
+		lineHeight: 18,
 	},
 });
