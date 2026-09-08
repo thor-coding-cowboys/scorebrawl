@@ -79,6 +79,7 @@ export default function AppTabs() {
 		pathname === "/players" ||
 		pathname === "/members" ||
 		pathname === "/invitations";
+	const hasPlus = !(pathname === "/teams" || pathname === "/members");
 	const activeView = params.view ?? "standings";
 	const seasonSlug = params.seasonSlug;
 
@@ -208,28 +209,30 @@ export default function AppTabs() {
 				</View>
 
 				<View style={styles.plusSlot}>
-					<Pressable
-						accessibilityRole="button"
-						accessibilityLabel="Create"
-						accessibilityState={{ expanded: isFlyoutOpen }}
-						onPress={handlePlus}
-						style={({ pressed }) => [
-							styles.plusButton,
-							{
-								backgroundColor: theme.glowBlueBg,
-								borderColor: theme.glowBlueBorder,
-							},
-							pressed && { opacity: 0.8 },
-						]}
-					>
-						<Animated.View style={plusIconStyle}>
-							<SymbolView
-								name={{ ios: "plus", android: "add", web: "add" }}
-								size={22}
-								tintColor={theme.glowBlueText}
-							/>
-						</Animated.View>
-					</Pressable>
+					{hasPlus && (
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel="Create"
+							accessibilityState={{ expanded: isFlyoutOpen }}
+							onPress={handlePlus}
+							style={({ pressed }) => [
+								styles.plusButton,
+								{
+									backgroundColor: theme.glowBlueBg,
+									borderColor: theme.glowBlueBorder,
+								},
+								pressed && { opacity: 0.8 },
+							]}
+						>
+							<Animated.View style={plusIconStyle}>
+								<SymbolView
+									name={{ ios: "plus", android: "add", web: "add" }}
+									size={22}
+									tintColor={theme.glowBlueText}
+								/>
+							</Animated.View>
+						</Pressable>
+					)}
 				</View>
 
 				<View style={styles.side}>
