@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.four,
-		paddingBottom: BottomTabInset + Spacing.three,
+		paddingBottom: Spacing.three,
 	},
 	headerRow: {
 		flexDirection: "row",

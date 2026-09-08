@@ -9,7 +9,7 @@ import { SeasonStandings } from "@/components/season-standings";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
 import { trpcClient } from "@/lib/trpc";
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.four,
-		paddingBottom: BottomTabInset + Spacing.three,
+		paddingBottom: Spacing.three,
 	},
 	center: {
 		flex: 1,

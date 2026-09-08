@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.four,
-		paddingBottom: BottomTabInset + Spacing.three,
+		paddingBottom: Spacing.three,
 	},
 	title: {
 		marginTop: Spacing.four,
