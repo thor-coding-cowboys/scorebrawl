@@ -232,7 +232,7 @@ export default function PlayersScreen() {
 	const params = useLocalSearchParams<{ create?: string }>();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
-	const { data: activeMember } = authClient.useActiveMember();
+	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [guestForm, setGuestForm] = useState<GuestFormState | null>(null);
@@ -251,11 +251,12 @@ export default function PlayersScreen() {
 
 	useEffect(() => {
 		if (params.create !== "1") return;
+		if (isMemberPending) return;
 		if (isEditor) {
 			setGuestForm({ mode: "create" });
 		}
 		router.setParams({ create: undefined });
-	}, [params.create, isEditor, router]);
+	}, [params.create, isEditor, isMemberPending, router]);
 
 	const {
 		data: players = [],
