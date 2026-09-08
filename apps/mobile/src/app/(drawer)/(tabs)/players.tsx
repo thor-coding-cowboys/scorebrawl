@@ -3,7 +3,6 @@ import { SymbolView } from "expo-symbols";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-	Alert,
 	FlatList,
 	KeyboardAvoidingView,
 	Modal,
@@ -18,6 +17,7 @@ import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
@@ -236,7 +236,6 @@ export default function PlayersScreen() {
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [guestForm, setGuestForm] = useState<GuestFormState | null>(null);
-	const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
 
 	useEffect(() => {
 		let active = true;
@@ -268,58 +267,18 @@ export default function PlayersScreen() {
 		queryFn: () => trpcClient.player.getAll.query(),
 	});
 
-	const confirmToggleDisabled = (player: Player) => {
-		Alert.alert(
-			player.disabled ? "Enable player" : "Disable player",
-			player.disabled
-				? `${player.name} will be able to join matches again.`
-				: `${player.name} won't be able to join matches while disabled.`,
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: player.disabled ? "Enable" : "Disable",
-					style: player.disabled ? undefined : "destructive",
-					onPress: () => handleSetDisabled(player),
-				},
-			]
-		);
-	};
-
-	const handleSetDisabled = async (player: Player) => {
-		if (pendingToggleId) return;
-		setPendingToggleId(player.id);
-		try {
-			await trpcClient.player.setDisabled.mutate({
-				playerId: player.id,
-				disabled: !player.disabled,
-			});
-			await queryClient.invalidateQueries({ queryKey: ["player"] });
-		} catch (err) {
-			Alert.alert("Error", err instanceof Error ? err.message : "Failed to update player.");
-		} finally {
-			setPendingToggleId(null);
-		}
-	};
-
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
-				<View style={styles.headerRow}>
-					<ThemedText type="title" style={styles.title}>
-						Players
-					</ThemedText>
-					{isEditor ? (
-						<Button variant="outline" onPress={() => setGuestForm({ mode: "create" })}>
-							Add Guest
-						</Button>
-					) : null}
-				</View>
+				<ThemedText type="title" style={styles.title}>
+					Players
+				</ThemedText>
 				<FlatList
 					data={players}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
-						<View style={styles.rowBlock}>
-							<View style={styles.row}>
+						<Card style={styles.card}>
+							<View style={styles.cardRow}>
 								<Avatar
 									name={item.name}
 									image={getAvatarUri(item.image)}
@@ -339,36 +298,7 @@ export default function PlayersScreen() {
 								</View>
 								<PlayerStatusPill disabled={item.disabled} />
 							</View>
-							{isEditor ? (
-								<View style={styles.actions}>
-									{item.isGuest ? (
-										<Button
-											variant="outline"
-											onPress={() =>
-												setGuestForm({
-													mode: "edit",
-													player: {
-														id: item.id,
-														email: item.email,
-														name: item.name,
-													},
-												})
-											}
-										>
-											Edit
-										</Button>
-									) : null}
-									<Button
-										variant="outline"
-										onPress={() => confirmToggleDisabled(item)}
-										loading={pendingToggleId === item.id}
-										style={item.disabled ? { borderColor: theme.destructive } : undefined}
-									>
-										{item.disabled ? "Enable" : "Disable"}
-									</Button>
-								</View>
-							) : null}
-						</View>
+						</Card>
 					)}
 					contentContainerStyle={styles.list}
 					ListEmptyComponent={
@@ -428,17 +358,17 @@ const styles = StyleSheet.create({
 		marginBottom: Spacing.three,
 	},
 	title: {
-		flex: 1,
+		marginTop: Spacing.four,
+		marginBottom: Spacing.three,
 	},
 	list: {
+		gap: Spacing.two,
 		paddingBottom: Spacing.four,
 	},
-	rowBlock: {
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+	card: {
+		padding: Spacing.three,
 	},
-	row: {
+	cardRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
@@ -471,12 +401,6 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		paddingVertical: 2,
 		paddingHorizontal: Spacing.two,
-	},
-	actions: {
-		flexDirection: "row",
-		justifyContent: "flex-end",
-		gap: Spacing.two,
-		marginTop: Spacing.two,
 	},
 	empty: {
 		textAlign: "center",
