@@ -3,6 +3,7 @@ import { SymbolView } from "expo-symbols";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+	Alert,
 	FlatList,
 	KeyboardAvoidingView,
 	Modal,
@@ -30,18 +31,12 @@ type Player = RouterOutput["player"]["getAll"][number];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const PLAYER_STATUS: Record<
-	"active" | "disabled",
-	{ color: string; icon: Parameters<typeof SymbolView>[0]["name"] }
-> = {
-	active: {
-		color: "#16a34a",
-		icon: { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" },
-	},
-	disabled: {
-		color: "#dc2626",
-		icon: { ios: "minus.circle.fill", android: "remove_circle", web: "remove_circle" },
-	},
+const DISABLED_STATUS: {
+	color: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+} = {
+	color: "#dc2626",
+	icon: { ios: "minus.circle.fill", android: "remove_circle", web: "remove_circle" },
 };
 
 function GuestBadge() {
@@ -64,13 +59,13 @@ function GuestBadge() {
 }
 
 function PlayerStatusPill({ disabled }: { disabled: boolean }) {
-	const status = disabled ? "disabled" : "active";
-	const { color, icon } = PLAYER_STATUS[status];
+	if (!disabled) return null;
+	const { color, icon } = DISABLED_STATUS;
 	return (
 		<View style={[styles.pill, { backgroundColor: `${color}1a`, borderColor: `${color}40` }]}>
 			<SymbolView name={icon} size={12} tintColor={color} />
 			<ThemedText type="small" style={{ color, fontSize: 11 }}>
-				{disabled ? "Disabled" : "Active"}
+				Disabled
 			</ThemedText>
 		</View>
 	);
@@ -236,6 +231,7 @@ export default function PlayersScreen() {
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [guestForm, setGuestForm] = useState<GuestFormState | null>(null);
+	const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
 
 	useEffect(() => {
 		let active = true;
@@ -266,6 +262,39 @@ export default function PlayersScreen() {
 		queryKey: ["player", "getAll"],
 		queryFn: () => trpcClient.player.getAll.query(),
 	});
+
+	const confirmToggleDisabled = (player: Player) => {
+		Alert.alert(
+			player.disabled ? "Enable player" : "Disable player",
+			player.disabled
+				? `${player.name} will be able to join matches again.`
+				: `${player.name} won't be able to join matches while disabled.`,
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: player.disabled ? "Enable" : "Disable",
+					style: player.disabled ? undefined : "destructive",
+					onPress: () => handleSetDisabled(player),
+				},
+			]
+		);
+	};
+
+	const handleSetDisabled = async (player: Player) => {
+		if (pendingToggleId) return;
+		setPendingToggleId(player.id);
+		try {
+			await trpcClient.player.setDisabled.mutate({
+				playerId: player.id,
+				disabled: !player.disabled,
+			});
+			await queryClient.invalidateQueries({ queryKey: ["player"] });
+		} catch (err) {
+			Alert.alert("Error", err instanceof Error ? err.message : "Failed to update player.");
+		} finally {
+			setPendingToggleId(null);
+		}
+	};
 
 	return (
 		<ThemedView style={styles.container}>
@@ -298,6 +327,16 @@ export default function PlayersScreen() {
 									</ThemedText>
 								</View>
 								<PlayerStatusPill disabled={item.disabled} />
+								{isEditor ? (
+									<Button
+										variant="outline"
+										size="sm"
+										onPress={() => confirmToggleDisabled(item)}
+										loading={pendingToggleId === item.id}
+									>
+										{item.disabled ? "Enable" : "Disable"}
+									</Button>
+								) : null}
 							</View>
 						</Card>
 					)}
