@@ -21,7 +21,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient } from "@/lib/trpc";
 
 function memberSummary(players: { name: string | null }[]) {
 	const firstNames = players.map((p) => p.name?.split(" ")[0] ?? "Unknown");
@@ -140,7 +140,6 @@ function EditTeamModal({
 }
 
 export default function TeamsScreen() {
-	const trpc = useTRPC();
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [editingTeam, setEditingTeam] = useState<{ id: string; name: string } | null>(null);
 	const { data: activeMember } = authClient.useActiveMember();
@@ -158,9 +157,10 @@ export default function TeamsScreen() {
 	}, []);
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
-	const { data, isLoading, isError, refetch } = useQuery(
-		trpc.leagueTeam.list.queryOptions({ limit: 100 })
-	);
+	const { data, isLoading, isError, refetch } = useQuery({
+		queryKey: ["leagueTeam", "list"],
+		queryFn: () => trpcClient.leagueTeam.list.query({ limit: 100 }),
+	});
 	const teams = data?.teams ?? [];
 
 	return (
