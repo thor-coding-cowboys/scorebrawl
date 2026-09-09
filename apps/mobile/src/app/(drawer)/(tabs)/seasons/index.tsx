@@ -18,6 +18,7 @@ import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
@@ -227,25 +228,20 @@ function EditSeasonModal({
 								editable={!isSubmitting}
 								error={slugError}
 							/>
-							<Input
+							<DateField
 								label="Start Date"
-								placeholder="YYYY-MM-DD"
 								value={startDate}
-								onChangeText={setStartDate}
-								autoCapitalize="none"
-								autoCorrect={false}
+								onChange={setStartDate}
 								editable={!isSubmitting}
 								error={startDateError}
 							/>
-							<Input
+							<DateField
 								label="End Date (optional)"
-								placeholder="YYYY-MM-DD"
 								value={endDate}
-								onChangeText={setEndDate}
-								autoCapitalize="none"
-								autoCorrect={false}
+								onChange={setEndDate}
 								editable={!isSubmitting}
 								error={endDateError}
+								minimumDate={startDate ? parseDate(startDate) : undefined}
 							/>
 							{apiError ? (
 								<ThemedText type="small" style={{ color: theme.destructive }}>
