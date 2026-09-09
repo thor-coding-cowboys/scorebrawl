@@ -55,10 +55,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 
 	return (
 		<ThemedView
-			style={[
-				styles.container,
-				{ paddingTop: insets.top + Spacing.two, paddingBottom: insets.bottom },
-			]}
+			style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
 		>
 			<LeagueSwitcher />
 
