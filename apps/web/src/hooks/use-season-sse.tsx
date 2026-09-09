@@ -160,6 +160,19 @@ export function useSeasonSSE({
 								</span>
 							</span>
 						);
+						if (player.id === currentUserId) {
+							window.dispatchEvent(
+								new CustomEvent("achievement-event", {
+									detail: {
+										playerId: player.id,
+										playerName: player.name,
+										playerImage: player.image,
+										type,
+										timestamp: Date.now(),
+									},
+								})
+							);
+						}
 						return;
 					}
 

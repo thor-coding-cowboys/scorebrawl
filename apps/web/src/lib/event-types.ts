@@ -13,9 +13,18 @@ export interface StreakEventDetail {
 	isTeam?: boolean;
 }
 
+export interface AchievementEventDetail {
+	playerId: string;
+	playerName: string;
+	playerImage?: string | null;
+	type: string;
+	timestamp?: number;
+}
+
 declare global {
 	interface WindowEventMap {
 		"session-event": CustomEvent<SessionEventDetail>;
 		"streak-event": CustomEvent<StreakEventDetail>;
+		"achievement-event": CustomEvent<AchievementEventDetail>;
 	}
 }
