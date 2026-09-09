@@ -3,7 +3,9 @@ import { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
+import { useThemeMode } from "@/hooks/use-theme-mode";
 
 interface DateFieldProps {
 	label: string;
@@ -48,6 +50,10 @@ export function DateField({
 	editable = true,
 }: DateFieldProps) {
 	const theme = useTheme();
+	const { themeMode } = useThemeMode();
+	const deviceScheme = useColorScheme();
+	const resolvedScheme =
+		themeMode === "system" ? (deviceScheme === "dark" ? "dark" : "light") : themeMode;
 	const [open, setOpen] = useState(false);
 
 	const currentDate = value ? parseDate(value) : (minimumDate ?? new Date());
@@ -91,6 +97,7 @@ export function DateField({
 						presentation="dialog"
 						minimumDate={minimumDate}
 						maximumDate={maximumDate}
+						themeVariant={resolvedScheme}
 						onValueChange={(event, selectedDate) => handleSelect(selectedDate)}
 						onDismiss={() => setOpen(false)}
 					/>
@@ -102,6 +109,7 @@ export function DateField({
 							display="inline"
 							minimumDate={minimumDate}
 							maximumDate={maximumDate}
+							themeVariant={resolvedScheme}
 							onValueChange={(event, selectedDate) => {
 								onChange(toDateInput(selectedDate));
 							}}
