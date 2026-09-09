@@ -231,6 +231,17 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 							contentContainerStyle={styles.form}
 							keyboardShouldPersistTaps="handled"
 						>
+							<View style={styles.scoreCards}>
+								{SCORE_TYPES.map((type) => (
+									<ScoreTypeCard
+										key={type}
+										type={type}
+										selected={scoreType === type}
+										onPress={() => setScoreType(type)}
+										disabled={isSubmitting}
+									/>
+								))}
+							</View>
 							<Input
 								label="Season Name"
 								placeholder="Season 1"
@@ -256,17 +267,6 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 								editable={!isSubmitting}
 								error={slugError}
 							/>
-							<View style={styles.scoreCards}>
-								{SCORE_TYPES.map((type) => (
-									<ScoreTypeCard
-										key={type}
-										type={type}
-										selected={scoreType === type}
-										onPress={() => setScoreType(type)}
-										disabled={isSubmitting}
-									/>
-								))}
-							</View>
 							<DateField
 								label="Start Date"
 								value={startDate}
