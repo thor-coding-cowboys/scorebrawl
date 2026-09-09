@@ -354,41 +354,54 @@ export default function InvitationsScreen() {
 						const expired = new Date(item.expiresAt) < new Date();
 						const actionable = item.status === "pending" || expired;
 						return (
-							<View style={styles.rowBlock}>
-								<View style={styles.row}>
-									<View style={styles.rowInfo}>
-										<ThemedText style={styles.rowName} numberOfLines={1}>
-											{item.email}
-										</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-											{formatRole(item.role || "member")} • Sent {formatDate(item.createdAt)}
-										</ThemedText>
-									</View>
-									<StatusPill status={item.status} />
+							<View style={styles.row}>
+								<View style={[styles.iconTile, { backgroundColor: `${theme.primary}1a` }]}>
+									<SymbolView
+										name={{
+											ios: "envelope.fill",
+											android: "mail",
+											web: "mail",
+										}}
+										size={20}
+										tintColor={theme.primary}
+									/>
 								</View>
-								{actionable ? (
-									<View style={styles.actions}>
-										<Button
-											variant="outline"
-											onPress={() => handleResend(item)}
-											loading={pendingAction?.id === item.id && pendingAction.kind === "resend"}
-											disabled={!!pendingAction}
-										>
-											Resend
-										</Button>
-										{item.status === "pending" ? (
+								<View style={styles.rowInfo}>
+									<ThemedText style={styles.rowName} numberOfLines={1}>
+										{item.email}
+									</ThemedText>
+									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+										{formatRole(item.role || "member")} • Sent {formatDate(item.createdAt)}
+									</ThemedText>
+								</View>
+								<View style={styles.rowRail}>
+									<StatusPill status={item.status} />
+									{actionable ? (
+										<View style={styles.actions}>
 											<Button
 												variant="outline"
-												onPress={() => confirmCancel(item)}
-												loading={pendingAction?.id === item.id && pendingAction.kind === "cancel"}
+												size="sm"
+												onPress={() => handleResend(item)}
+												loading={pendingAction?.id === item.id && pendingAction.kind === "resend"}
 												disabled={!!pendingAction}
-												style={{ borderColor: theme.destructive }}
 											>
-												Cancel
+												Resend
 											</Button>
-										) : null}
-									</View>
-								) : null}
+											{item.status === "pending" ? (
+												<Button
+													variant="outline"
+													size="sm"
+													onPress={() => confirmCancel(item)}
+													loading={pendingAction?.id === item.id && pendingAction.kind === "cancel"}
+													disabled={!!pendingAction}
+													style={{ borderColor: theme.destructive }}
+												>
+													Cancel
+												</Button>
+											) : null}
+										</View>
+									) : null}
+								</View>
 							</View>
 						);
 					}}
@@ -455,22 +468,36 @@ const styles = StyleSheet.create({
 	listContent: {
 		paddingBottom: Spacing.six,
 	},
-	rowBlock: {
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
-	},
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: "rgba(128,128,128,0.25)",
+	},
+	iconTile: {
+		width: 44,
+		height: 44,
+		borderRadius: 8,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	rowInfo: {
 		flex: 1,
+		gap: Spacing.one,
 	},
 	rowName: {
 		fontWeight: "600",
-		flexShrink: 1,
+	},
+	rowRail: {
+		borderLeftWidth: StyleSheet.hairlineWidth,
+		borderLeftColor: "rgba(128,128,128,0.25)",
+		paddingLeft: Spacing.three,
+		alignItems: "flex-end",
+		alignSelf: "stretch",
+		justifyContent: "center",
+		gap: Spacing.two,
 	},
 	pill: {
 		flexDirection: "row",
@@ -483,9 +510,7 @@ const styles = StyleSheet.create({
 	},
 	actions: {
 		flexDirection: "row",
-		justifyContent: "flex-end",
-		gap: Spacing.two,
-		marginTop: Spacing.two,
+		gap: Spacing.one,
 	},
 	empty: {
 		textAlign: "center",

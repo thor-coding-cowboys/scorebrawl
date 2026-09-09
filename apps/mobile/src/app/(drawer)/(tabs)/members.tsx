@@ -242,16 +242,28 @@ export default function MembersScreen() {
 							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
 						return (
 							<View style={styles.row}>
-								<Avatar
-									name={name}
-									image={getAvatarUri(item.user?.image ?? item.image)}
-									headers={avatarHeaders}
-									size={40}
-								/>
-								<View style={styles.rowInfo}>
-									<ThemedText style={styles.rowName} numberOfLines={1}>
-										{name}
-									</ThemedText>
+								<View style={styles.rowMain}>
+									<Avatar
+										name={name}
+										image={getAvatarUri(item.user?.image ?? item.image)}
+										headers={avatarHeaders}
+										size={40}
+									/>
+									<View style={styles.rowInfo}>
+										<ThemedText style={styles.rowName} numberOfLines={1}>
+											{name}
+										</ThemedText>
+										<ThemedText
+											type="small"
+											themeColor="textSecondary"
+											numberOfLines={1}
+											style={styles.rowEmail}
+										>
+											{email || "No email"}
+										</ThemedText>
+									</View>
+								</View>
+								<View style={styles.rowRail}>
 									<View
 										style={[
 											styles.rolePill,
@@ -272,15 +284,12 @@ export default function MembersScreen() {
 											{formatRole(currentRole)}
 										</ThemedText>
 									</View>
-									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-										{email || "No email"}
-									</ThemedText>
+									{canEditThisRole ? (
+										<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
+											Change Role
+										</Button>
+									) : null}
 								</View>
-								{canEditThisRole ? (
-									<Button variant="outline" size="sm" onPress={() => setSelectedMember(item)}>
-										Change Role
-									</Button>
-								) : null}
 							</View>
 						);
 					}}
@@ -398,22 +407,38 @@ const styles = StyleSheet.create({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: "rgba(128,128,128,0.25)",
 	},
+	rowMain: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+	},
 	rowInfo: {
 		flex: 1,
+		gap: Spacing.one,
 	},
 	rowName: {
 		fontWeight: "600",
+	},
+	rowEmail: {
 		flexShrink: 1,
 	},
+	rowRail: {
+		borderLeftWidth: StyleSheet.hairlineWidth,
+		borderLeftColor: "rgba(128,128,128,0.25)",
+		paddingLeft: Spacing.three,
+		alignItems: "flex-end",
+		alignSelf: "stretch",
+		justifyContent: "center",
+		gap: Spacing.two,
+	},
 	rolePill: {
-		alignSelf: "flex-start",
 		flexDirection: "row",
 		alignItems: "center",
 		borderWidth: 1,
-		borderRadius: 0,
+		borderRadius: 8,
 		paddingVertical: 1,
 		paddingHorizontal: Spacing.two,
-		marginBottom: Spacing.one,
 	},
 	empty: {
 		textAlign: "center",
