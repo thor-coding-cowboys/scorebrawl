@@ -142,7 +142,7 @@ export default function HomeScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
-			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+			<SafeAreaView edges={[]} style={styles.safeArea}>
 				{activeSeason && (
 					<View style={styles.header}>
 						<ThemedText type="small" themeColor="textSecondary">

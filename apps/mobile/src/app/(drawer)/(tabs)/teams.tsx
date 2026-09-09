@@ -165,7 +165,7 @@ export default function TeamsScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
-			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<ThemedText type="title" style={styles.title}>
 					Teams
 				</ThemedText>

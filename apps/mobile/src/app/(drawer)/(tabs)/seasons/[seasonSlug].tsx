@@ -52,7 +52,7 @@ export default function SeasonOverviewScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
-			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<View style={styles.header}>
 					<Pressable onPress={() => router.back()}>
 						<ThemedText type="small" themeColor="primary">

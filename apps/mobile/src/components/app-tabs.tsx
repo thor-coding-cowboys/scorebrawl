@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
 	inner: {
 		flexDirection: "row",
 		alignItems: "center",
-		height: 56,
+		height: 50,
 	},
 	side: {
 		flex: 1,
