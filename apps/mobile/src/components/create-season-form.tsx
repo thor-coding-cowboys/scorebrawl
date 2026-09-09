@@ -48,6 +48,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSlugTaken, setIsSlugTaken] = useState(false);
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+	const [openDateField, setOpenDateField] = useState<"start" | "end" | null>(null);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -250,6 +251,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 								onChange={setStartDate}
 								editable={!isSubmitting}
 								error={startDateError}
+								open={openDateField === "start"}
+								onOpenChange={(open) => setOpenDateField(open ? "start" : null)}
 							/>
 							<DateField
 								label="End Date (optional)"
@@ -258,6 +261,8 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 								editable={!isSubmitting}
 								error={endDateError}
 								minimumDate={startDate ? parseDate(startDate) : undefined}
+								open={openDateField === "end"}
+								onOpenChange={(open) => setOpenDateField(open ? "end" : null)}
 							/>
 							{isElo ? (
 								<>

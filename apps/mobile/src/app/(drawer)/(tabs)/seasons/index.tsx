@@ -125,6 +125,7 @@ function EditSeasonModal({
 	const [submitted, setSubmitted] = useState(false);
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [openDateField, setOpenDateField] = useState<"start" | "end" | null>(null);
 
 	useEffect(() => {
 		if (isOpen && season) {
@@ -341,6 +342,8 @@ function EditSeasonModal({
 								onChange={setStartDate}
 								editable={!isSubmitting}
 								error={startDateError}
+								open={openDateField === "start"}
+								onOpenChange={(open) => setOpenDateField(open ? "start" : null)}
 							/>
 							<DateField
 								label="End Date (optional)"
@@ -349,6 +352,8 @@ function EditSeasonModal({
 								editable={!isSubmitting}
 								error={endDateError}
 								minimumDate={startDate ? parseDate(startDate) : undefined}
+								open={openDateField === "end"}
+								onOpenChange={(open) => setOpenDateField(open ? "end" : null)}
 							/>
 							{apiError ? (
 								<ThemedText type="small" style={{ color: theme.destructive }}>

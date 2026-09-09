@@ -1,5 +1,4 @@
 import DateTimePickerDefault from "@expo/ui/community/datetime-picker";
-import { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Spacing } from "@/constants/theme";
@@ -16,6 +15,8 @@ interface DateFieldProps {
 	minimumDate?: Date;
 	maximumDate?: Date;
 	editable?: boolean;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 }
 
 function parseDate(value: string) {
@@ -48,21 +49,22 @@ export function DateField({
 	minimumDate,
 	maximumDate,
 	editable = true,
+	open = false,
+	onOpenChange,
 }: DateFieldProps) {
 	const theme = useTheme();
 	const { themeMode } = useThemeMode();
 	const deviceScheme = useColorScheme();
 	const resolvedScheme =
 		themeMode === "system" ? (deviceScheme === "dark" ? "dark" : "light") : themeMode;
-	const [open, setOpen] = useState(false);
 
 	const currentDate = value ? parseDate(value) : (minimumDate ?? new Date());
 
+	const close = () => onOpenChange?.(false);
+
 	const handleSelect = (date: Date) => {
 		onChange(toDateInput(date));
-		if (Platform.OS === "android") {
-			setOpen(false);
-		}
+		close();
 	};
 
 	return (
@@ -70,7 +72,7 @@ export function DateField({
 			<Text style={[styles.label, { color: theme.text }]}>{label}</Text>
 			<Pressable
 				disabled={!editable}
-				onPress={() => setOpen((v) => !v)}
+				onPress={() => onOpenChange?.(!open)}
 				style={({ pressed }) => [
 					styles.field,
 					{
@@ -99,7 +101,7 @@ export function DateField({
 						maximumDate={maximumDate}
 						themeVariant={resolvedScheme}
 						onValueChange={(event, selectedDate) => handleSelect(selectedDate)}
-						onDismiss={() => setOpen(false)}
+						onDismiss={close}
 					/>
 				) : (
 					<View style={styles.pickerArea}>
@@ -110,11 +112,9 @@ export function DateField({
 							minimumDate={minimumDate}
 							maximumDate={maximumDate}
 							themeVariant={resolvedScheme}
-							onValueChange={(event, selectedDate) => {
-								onChange(toDateInput(selectedDate));
-							}}
+							onValueChange={(event, selectedDate) => handleSelect(selectedDate)}
 						/>
-						<Pressable onPress={() => setOpen(false)} style={styles.doneButton}>
+						<Pressable onPress={close} style={styles.doneButton}>
 							<Text style={[styles.doneLabel, { color: theme.glowBlueText }]}>Done</Text>
 						</Pressable>
 					</View>
