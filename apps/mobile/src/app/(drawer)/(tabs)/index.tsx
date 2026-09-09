@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,31 +37,33 @@ export default function HomeScreen() {
 	const [resolvedSeasonSlug, setResolvedSeasonSlug] = useState<string | null>(null);
 	const [resolvingSeason, setResolvingSeason] = useState(true);
 
-	useEffect(() => {
-		if (!activeLeague || activeSeasonsQuery.isPending) return;
-		let cancelled = false;
-		setResolvedSeasonSlug(null);
-		setResolvingSeason(true);
-		(async () => {
-			const active = activeSeasons ?? [];
-			if (active.length === 0) {
-				if (!cancelled) setResolvedSeasonSlug(null);
+	useFocusEffect(
+		useCallback(() => {
+			if (!activeLeague || activeSeasonsQuery.isPending) return;
+			let cancelled = false;
+			setResolvedSeasonSlug(null);
+			setResolvingSeason(true);
+			(async () => {
+				const active = activeSeasons ?? [];
+				if (active.length === 0) {
+					if (!cancelled) setResolvedSeasonSlug(null);
+					if (!cancelled) setResolvingSeason(false);
+					return;
+				}
+				const stored = await getLastViewedSeason(activeLeague.id);
+				const storedStillActive = stored ? active.some((s) => s.slug === stored) : false;
+				const chosen = storedStillActive ? stored : active[0].slug;
+				if (!cancelled) setResolvedSeasonSlug(chosen);
+				if (chosen && !storedStillActive) {
+					void setLastViewedSeason(activeLeague.id, chosen);
+				}
 				if (!cancelled) setResolvingSeason(false);
-				return;
-			}
-			const stored = await getLastViewedSeason(activeLeague.id);
-			const storedStillActive = stored ? active.some((s) => s.slug === stored) : false;
-			const chosen = storedStillActive ? stored : active[0].slug;
-			if (!cancelled) setResolvedSeasonSlug(chosen);
-			if (chosen && !storedStillActive) {
-				void setLastViewedSeason(activeLeague.id, chosen);
-			}
-			if (!cancelled) setResolvingSeason(false);
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons]);
+			})();
+			return () => {
+				cancelled = true;
+			};
+		}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons])
+	);
 
 	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
 
