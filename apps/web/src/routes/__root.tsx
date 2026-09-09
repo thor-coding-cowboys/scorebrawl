@@ -4,6 +4,7 @@ import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { StreakFlyout } from "@/components/streak-flyout";
+import { AchievementFlyout } from "@/components/achievement-flyout";
 
 export type RouterContext = {
 	queryClient: QueryClient;
@@ -15,6 +16,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 		<>
 			<Outlet />
 			<StreakFlyout />
+			<AchievementFlyout />
 			<TanStackRouterDevtools position="bottom-right" />
 		</>
 	),

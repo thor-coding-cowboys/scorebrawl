@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
+import * as achievementRepository from "../../repositories/achievement-repository";
 import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
@@ -224,11 +225,20 @@ export const seasonRouter = {
 				leagueId: ctx.organizationId,
 			});
 
-			return seasonRepository.updateClosedStatus({
+			const updated = await seasonRepository.updateClosedStatus({
 				db: ctx.db,
 				seasonId: comp.id,
 				userId: ctx.authentication.user.id,
 				closed: input.closed,
 			});
+
+			if (input.closed) {
+				await achievementRepository.awardSeasonWinner({
+					db: ctx.db,
+					seasonId: comp.id,
+				});
+			}
+
+			return updated;
 		}),
 } satisfies TRPCRouterRecord;

@@ -1,0 +1,28 @@
+@keyframes achievement-confetti {
+	0% {
+		opacity: 0;
+		transform: translateY(0) rotate(0deg);
+	}
+	10% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(90vh) rotate(var(--rotate, 360deg));
+	}
+}
+
+@keyframes achievement-burst {
+	0% {
+		opacity: 0;
+		transform: rotate(var(--angle, 0deg)) scaleY(0);
+	}
+	30% {
+		opacity: 0.6;
+		transform: rotate(var(--angle, 0deg)) scaleY(1);
+	}
+	100% {
+		opacity: 0;
+		transform: rotate(var(--angle, 0deg)) scaleY(1.2);
+	}
+}

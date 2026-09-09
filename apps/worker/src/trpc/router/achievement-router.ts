@@ -13,4 +13,11 @@ export const achievementRouter = {
 				leagueId: ctx.organizationId,
 			});
 		}),
+
+	getLeagueBoard: leagueProcedure.query(async ({ ctx }) => {
+		return achievementRepository.getLeagueBoard({
+			db: ctx.db,
+			leagueId: ctx.organizationId,
+		});
+	}),
 } satisfies TRPCRouterRecord;

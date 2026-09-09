@@ -1,4 +1,4 @@
-# In-App Notifications
+# In-App Notifications (Remaining)
 
 ## Summary
 
@@ -6,13 +6,7 @@ A notification inbox so users see streaks, new matches, achievements, and sessio
 
 ## Status
 
-Shipped (PR #651): real-time toast notifications via season SSE — match result, match deleted, session started/ended, achievement unlocked.
-
-Remaining: the persistent inbox (bell, unread badge, list, mark-read).
-
-## Why / Goal
-
-The app already generates rich events (matches, streaks, sessions) via SSE. #651 surfaces them as ephemeral toasts; the inbox makes them durable, so users catch what they missed. It's the foundation for future push/mobile.
+Not implemented. The real-time toast layer is shipped (see `01-a-in-app-notifications.md`); the persistent inbox (bell, unread badge, list, mark-read) is remaining.
 
 ## Remaining scope
 
@@ -31,7 +25,7 @@ The app already generates rich events (matches, streaks, sessions) via SSE. #651
 - Frontend hook: `apps/web/src/hooks/use-season-sse.tsx`
 - Header/sidebar: `apps/web/src/routes/-components/layout/header.tsx`, `-components/sidebar/*`
 
-## Acceptance criteria (remaining)
+## Acceptance criteria
 
 - Bell shows unread count; badge updates live via SSE
 - Clicking a notification navigates to the relevant entity (match/session/achievement)
