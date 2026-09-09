@@ -1,8 +1,21 @@
 import { TRPCClientError } from "@trpc/client";
+import { env } from "cloudflare:test";
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
+import { getDb } from "../../src/db/index";
+import { playerAchievement } from "../../src/db/schema/league-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
+
+async function getAchievementTypes(playerId: string): Promise<string[]> {
+	const db = getDb(env.DB);
+	const rows = await db
+		.select({ type: playerAchievement.type })
+		.from(playerAchievement)
+		.where(eq(playerAchievement.playerId, playerId));
+	return rows.map((r) => r.type);
+}
 
 describe("season router", () => {
 	let sessionToken: string;
@@ -135,5 +148,101 @@ describe("season router", () => {
 		const client = createTRPCTestClient();
 
 		await expect(client.season.getAll.query()).rejects.toThrow(TRPCClientError);
+	});
+});
+
+describe("season router — season_winner", () => {
+	let ctx: Awaited<ReturnType<typeof createAuthContext>>;
+	let client: ReturnType<typeof createTRPCTestClient>;
+
+	beforeEach(async () => {
+		ctx = await createAuthContext();
+		client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+	});
+
+	it("grants season_winner to the top-scoring player when season is closed", async () => {
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Winner Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		const winner = standings[0];
+		const loser = standings[1];
+
+		// Winner gains elo, loser loses it
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 3,
+			awayScore: 0,
+			homeTeamPlayerIds: [winner.id],
+			awayTeamPlayerIds: [loser.id],
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const winnerTypes = await getAchievementTypes(winner.playerId);
+		const loserTypes = await getAchievementTypes(loser.playerId);
+		expect(winnerTypes).toContain("season_winner");
+		expect(loserTypes).not.toContain("season_winner");
+	});
+
+	it("is idempotent when closing an already-closed season", async () => {
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Winner Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 0,
+			homeTeamPlayerIds: [standings[0].id],
+			awayTeamPlayerIds: [standings[1].id],
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const types = await getAchievementTypes(standings[0].playerId);
+		expect(types.filter((t) => t === "season_winner")).toHaveLength(1);
+	});
+
+	it("does not revoke season_winner when season is reopened", async () => {
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Winner Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 0,
+			homeTeamPlayerIds: [standings[0].id],
+			awayTeamPlayerIds: [standings[1].id],
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		const closedTypes = await getAchievementTypes(standings[0].playerId);
+		expect(closedTypes).toContain("season_winner");
+
+		// Reopening must not revoke the already-earned achievement
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: false });
+		const reopenedTypes = await getAchievementTypes(standings[0].playerId);
+		expect(reopenedTypes).toContain("season_winner");
 	});
 });
