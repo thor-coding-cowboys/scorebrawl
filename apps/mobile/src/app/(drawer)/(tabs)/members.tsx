@@ -30,7 +30,7 @@ type Member = {
 
 type MembersData = { members: Member[]; total: number } | Member[];
 
-const ROLE_OPTIONS = ["editor", "member", "viewer"] as const;
+const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
 
 const ROLE_COLORS: Record<string, { light: string; dark: string }> = {
 	owner: { light: "#b45309", dark: "#fbbf24" },
@@ -51,10 +51,12 @@ function ChangeRoleModal({
 	member,
 	isOpen,
 	onClose,
+	currentUserRole,
 }: {
 	member: Member | null;
 	isOpen: boolean;
 	onClose: () => void;
+	currentUserRole?: string;
 }) {
 	const insets = useSafeAreaInsets();
 	const theme = useTheme();
@@ -119,7 +121,9 @@ function ChangeRoleModal({
 					</View>
 
 					<View style={styles.roleList}>
-						{ROLE_OPTIONS.map((role) => {
+						{ROLE_OPTIONS.filter(
+							(roleOption) => currentUserRole === "owner" || roleOption !== "owner"
+						).map((role) => {
 							const selected = selectedRole === role;
 							return (
 								<Pressable
@@ -237,7 +241,7 @@ export default function MembersScreen() {
 						const name = item.user?.name || item.name || "Unknown";
 						const email = item.user?.email || item.email || "";
 						const currentRole = item.role || "member";
-						const canEditThisRole = currentRole !== "owner";
+						const canEditThisRole = role === "owner" || (canAccess && currentRole !== "owner");
 						const roleColor =
 							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
 						return (
@@ -328,6 +332,7 @@ export default function MembersScreen() {
 				member={selectedMember}
 				isOpen={selectedMember !== null}
 				onClose={() => setSelectedMember(null)}
+				currentUserRole={role}
 			/>
 		</ThemedView>
 	);
