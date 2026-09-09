@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 
 function keyFor(leagueId: string) {
-	return `last-active-season:${leagueId}`;
+	return `last-active-season-${leagueId}`;
 }
 
 export async function getLastViewedSeason(leagueId: string): Promise<string | null> {
