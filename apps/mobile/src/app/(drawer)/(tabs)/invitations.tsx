@@ -460,7 +460,8 @@ const styles = StyleSheet.create({
 		paddingBottom: Spacing.three,
 	},
 	title: {
-		flex: 1,
+		marginTop: Spacing.four,
+		marginBottom: Spacing.three,
 	},
 	list: {
 		flex: 1,
