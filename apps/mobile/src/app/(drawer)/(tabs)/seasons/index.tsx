@@ -343,7 +343,7 @@ export default function SeasonsScreen() {
 									style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
 								>
 									<View style={[styles.scoreIcon, { backgroundColor: `${scoreConfig.color}1a` }]}>
-										<SymbolView name={scoreConfig.icon} size={20} tintColor={scoreConfig.color} />
+										<SymbolView name={scoreConfig.icon} size={22} tintColor={scoreConfig.color} />
 									</View>
 									<View style={styles.rowInfo}>
 										<ThemedText style={styles.rowName} numberOfLines={1}>
@@ -353,14 +353,20 @@ export default function SeasonsScreen() {
 											<ThemedText type="small" style={{ color: scoreConfig.color, fontSize: 12 }}>
 												{scoreConfig.label}
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<View style={styles.dot} />
+											<ThemedText
+												type="small"
+												themeColor="textSecondary"
+												numberOfLines={1}
+												style={styles.rowDates}
+											>
 												{formatDate(item.startDate)}
-												{item.endDate ? ` → ${formatDate(item.endDate)}` : ""}
+												{item.endDate ? ` — ${formatDate(item.endDate)}` : ""}
 											</ThemedText>
 										</View>
 									</View>
 								</Pressable>
-								<View style={styles.rowRight}>
+								<View style={styles.rowRail}>
 									<StatusPill status={status} />
 									{isEditor ? (
 										<View style={styles.rowActions}>
@@ -428,11 +434,15 @@ const styles = StyleSheet.create({
 		paddingBottom: Spacing.four,
 	},
 	row: {
+		flexDirection: "row",
+		alignItems: "center",
 		paddingVertical: Spacing.three,
+		gap: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: "rgba(128,128,128,0.25)",
 	},
 	rowMain: {
+		flex: 1,
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
@@ -449,6 +459,7 @@ const styles = StyleSheet.create({
 	},
 	rowInfo: {
 		flex: 1,
+		gap: Spacing.one,
 	},
 	rowName: {
 		fontWeight: "600",
@@ -459,12 +470,24 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
-		marginTop: 2,
 	},
-	rowRight: {
+	dot: {
+		width: 3,
+		height: 3,
+		borderRadius: 2,
+		backgroundColor: "rgba(128,128,128,0.6)",
+	},
+	rowDates: {
+		flexShrink: 1,
+	},
+	rowRail: {
+		borderLeftWidth: StyleSheet.hairlineWidth,
+		borderLeftColor: "rgba(128,128,128,0.25)",
+		paddingLeft: Spacing.three,
 		alignItems: "flex-end",
+		alignSelf: "stretch",
+		justifyContent: "center",
 		gap: Spacing.two,
-		marginTop: Spacing.two,
 	},
 	rowActions: {
 		flexDirection: "row",
