@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC } from "@/lib/trpc";
 import { truncateSlug } from "@/lib/utils";
-import { achievementCatalog } from "@/lib/achievements";
+import { achievementCatalog, type AchievementType } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/achievements/")({
 	component: LeagueAchievementsPage,
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/ach
 
 type BoardRow = {
 	playerId: string;
-	type: string;
+	type: AchievementType;
 	createdAt: Date;
 	name: string;
 	image: string | null;
@@ -29,7 +29,7 @@ type PlayerStats = {
 	name: string;
 	image: string | null;
 	count: number;
-	types: string[];
+	types: AchievementType[];
 };
 
 function LeagueAchievementsPage() {
@@ -102,17 +102,12 @@ function LeagueAchievementsPage() {
 										className="flex items-center gap-3 rounded-lg hover:bg-muted/50 p-2 transition-colors"
 									>
 										<span className="w-6 text-sm font-bold text-muted-foreground">{index + 1}</span>
-										<Avatar className="rounded-lg">
-											<AvatarImage src={p.image ?? undefined} alt={p.name} className="rounded-lg" />
-											<AvatarFallback className="rounded-lg">{p.name.charAt(0)}</AvatarFallback>
-										</Avatar>
+										<AvatarWithFallback src={p.image} name={p.name} size="md" />
 										<div className="flex-1 min-w-0">
 											<p className="font-medium truncate">{p.name}</p>
 											<p className="text-sm text-muted-foreground truncate">
 												{p.types
-													.map(
-														(t) => achievementCatalog[t as keyof typeof achievementCatalog]?.name
-													)
+													.map((t) => achievementCatalog[t]?.name)
 													.filter(Boolean)
 													.join(" · ")}
 											</p>
@@ -166,19 +161,13 @@ function LeagueAchievementsPage() {
 											) : (
 												<div className="flex -space-x-2">
 													{holders.map((h) => (
-														<Avatar
+														<AvatarWithFallback
 															key={`${h.playerId}-${h.type}`}
-															className="size-7 rounded-full ring-2 ring-background"
-														>
-															<AvatarImage
-																src={h.image ?? undefined}
-																alt={h.name}
-																className="rounded-full"
-															/>
-															<AvatarFallback className="text-[10px] rounded-full">
-																{h.name.charAt(0)}
-															</AvatarFallback>
-														</Avatar>
+															src={h.image}
+															name={h.name}
+															size="sm"
+															className="rounded-full ring-2 ring-background"
+														/>
 													))}
 												</div>
 											)}
