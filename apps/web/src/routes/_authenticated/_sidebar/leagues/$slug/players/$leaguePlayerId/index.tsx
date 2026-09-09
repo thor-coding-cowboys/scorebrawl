@@ -514,7 +514,6 @@ function PlayerProfilePage() {
 									return (
 										<div key={type} className="flex flex-col items-center space-y-2 text-center">
 											<div
-												title={meta.description}
 												className={cn(
 													"w-16 h-16 rounded-full flex items-center justify-center border-2 transition-colors",
 													earned
@@ -526,17 +525,12 @@ function PlayerProfilePage() {
 											</div>
 											<div className="space-y-0.5">
 												<p
-													className={cn(
-														"text-sm font-medium",
-														!earned && "text-muted-foreground/70"
-													)}
+													className={cn("text-sm font-medium", !earned && "text-muted-foreground")}
 												>
 													{meta.name}
 												</p>
-												<p className="text-[11px] text-muted-foreground/60">
-													{earned
-														? new Date(earnedAtMap.get(type)!).toLocaleDateString()
-														: meta.requirement}
+												<p className="text-[11px] text-muted-foreground/70">
+													{earned ? earnedAtMap.get(type)!.toLocaleDateString() : meta.requirement}
 												</p>
 											</div>
 										</div>
