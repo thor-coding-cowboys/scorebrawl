@@ -7,10 +7,10 @@ import {
 	FireIcon,
 	Shield01Icon,
 	Shield02Icon,
-	ShieldIcon,
+	ShieldEnergyIcon,
 	Target01Icon,
 	Target02Icon,
-	TargetIcon,
+	Target03Icon,
 } from "@hugeicons/core-free-icons";
 
 export type AchievementType =
@@ -76,37 +76,37 @@ export const achievementCatalog: Record<AchievementType, AchievementMetadata> = 
 		name: "5 Clean Sheets",
 		description: "5 straight matches without conceding",
 		requirement: "5 straight matches without conceding",
-		icon: ShieldIcon,
+		icon: Shield01Icon,
 	},
 	"10_clean_sheet_streak": {
 		name: "10 Clean Sheets",
 		description: "10 straight matches without conceding",
 		requirement: "10 straight matches without conceding",
-		icon: Shield01Icon,
+		icon: Shield02Icon,
 	},
 	"15_clean_sheet_streak": {
 		name: "15 Clean Sheets",
 		description: "15 straight matches without conceding",
 		requirement: "15 straight matches without conceding",
-		icon: Shield02Icon,
+		icon: ShieldEnergyIcon,
 	},
 	"3_goals_5_games": {
 		name: "Goal Machine",
 		description: "Score 3+ goals in 5 straight matches",
 		requirement: "Score 3+ goals in 5 straight matches",
-		icon: TargetIcon,
+		icon: Target01Icon,
 	},
 	"5_goals_5_games": {
 		name: "Sharpshooter",
 		description: "Score 5+ goals in 5 straight matches",
 		requirement: "Score 5+ goals in 5 straight matches",
-		icon: Target01Icon,
+		icon: Target02Icon,
 	},
 	"8_goals_5_games": {
 		name: "Goal Overlord",
 		description: "Score 8+ goals in 5 straight matches",
 		requirement: "Score 8+ goals in 5 straight matches",
-		icon: Target02Icon,
+		icon: Target03Icon,
 	},
 	season_winner: {
 		name: "Season Winner",
