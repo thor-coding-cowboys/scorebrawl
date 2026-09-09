@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
 	FlatList,
@@ -140,6 +141,8 @@ function EditTeamModal({
 }
 
 export default function TeamsScreen() {
+	const params = useLocalSearchParams<{ view?: "all" | "my" }>();
+	const teamView = params.view ?? "all";
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [editingTeam, setEditingTeam] = useState<{ id: string; name: string } | null>(null);
 	const { data: activeMember } = authClient.useActiveMember();
@@ -157,9 +160,21 @@ export default function TeamsScreen() {
 	}, []);
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
+	const { data: myPlayer } = useQuery({
+		queryKey: ["player", "getMyPlayer"],
+		queryFn: () => trpcClient.player.getMyPlayer.query(),
+	});
+
+	const showMyTeams = teamView === "my" && !!myPlayer;
+
 	const { data, isLoading, isError, refetch } = useQuery({
-		queryKey: ["leagueTeam", "list"],
-		queryFn: () => trpcClient.leagueTeam.list.query({ limit: 100 }),
+		queryKey: ["leagueTeam", "list", showMyTeams ? myPlayer?.id : undefined],
+		queryFn: () =>
+			trpcClient.leagueTeam.list.query({
+				limit: 100,
+				playerId: showMyTeams && myPlayer?.id ? myPlayer.id : undefined,
+			}),
+		enabled: !showMyTeams || !!myPlayer,
 	});
 	const teams = data?.teams ?? [];
 

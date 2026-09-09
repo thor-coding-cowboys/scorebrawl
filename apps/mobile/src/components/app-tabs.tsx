@@ -71,13 +71,30 @@ const PLAYER_SUB_VIEWS: {
 	},
 ];
 
+const TEAM_SUB_VIEWS: {
+	key: "all" | "my";
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+}[] = [
+	{
+		key: "all",
+		label: "All Teams",
+		icon: { ios: "person.3", android: "groups", web: "groups" },
+	},
+	{
+		key: "my",
+		label: "My Teams",
+		icon: { ios: "person.crop.circle", android: "person", web: "person" },
+	},
+];
+
 export default function AppTabs() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const pathname = usePathname();
 	const params = useGlobalSearchParams<{
 		seasonSlug?: string;
-		view?: SubView | "enabled" | "disabled";
+		view?: SubView | "enabled" | "disabled" | "all" | "my";
 	}>();
 	const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
 	const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
@@ -135,6 +152,15 @@ export default function AppTabs() {
 		}));
 		leftTabs = [homeTab];
 		rightTabs = playerTabs;
+	} else if (pathname === "/teams") {
+		const teamTabs: TabProps[] = TEAM_SUB_VIEWS.map(({ key, label, icon }) => ({
+			label,
+			icon,
+			active: activeView === key,
+			onPress: () => router.setParams({ view: key }),
+		}));
+		leftTabs = [homeTab];
+		rightTabs = teamTabs;
 	} else if (isSeasonsList || isLeaguePage) {
 		leftTabs = [homeTab];
 		rightTabs = [];
