@@ -1,17 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
-import {
-	KeyboardAvoidingView,
-	Modal,
-	Platform,
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	View,
-} from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ScoreTypeCard, SCORE_TYPES } from "@/components/score-type-card";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -24,35 +16,6 @@ import { slugify } from "@/lib/slug";
 import { trpcClient } from "@/lib/trpc";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
-const SCORE_TYPES = ["elo", "3-1-0", "1-v-n-elo"] as const;
-const SCORE_TYPE_CONFIG: Record<
-	(typeof SCORE_TYPES)[number],
-	{
-		label: string;
-		description: string;
-		color: string;
-		icon: Parameters<typeof SymbolView>[0]["name"];
-	}
-> = {
-	elo: {
-		label: "ELO Standard",
-		description: "Dynamic skill-based rating system",
-		color: "#10b981",
-		icon: { ios: "trophy.fill", android: "emoji_events", web: "emoji_events" },
-	},
-	"1-v-n-elo": {
-		label: "ELO 1-v-N",
-		description: "One winner, everyone else loses",
-		color: "#a855f7",
-		icon: { ios: "person.3.fill", android: "groups", web: "groups" },
-	},
-	"3-1-0": {
-		label: "Points (3-1-0)",
-		description: "Win 3 • Draw 1 • Loss 0",
-		color: "#3b82f6",
-		icon: { ios: "target", android: "track_changes", web: "track_changes" },
-	},
-};
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function toDateInput(date: Date) {
@@ -65,51 +28,6 @@ function toDateInput(date: Date) {
 function parseDate(value: string) {
 	const [y, m, d] = value.split("-").map(Number);
 	return new Date(y, m - 1, d);
-}
-
-function ScoreTypeCard({
-	type,
-	selected,
-	onPress,
-	disabled,
-}: {
-	type: (typeof SCORE_TYPES)[number];
-	selected: boolean;
-	onPress: () => void;
-	disabled: boolean;
-}) {
-	const theme = useTheme();
-	const config = SCORE_TYPE_CONFIG[type];
-	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityState={{ selected, disabled }}
-			onPress={onPress}
-			disabled={disabled}
-			style={({ pressed }) => [
-				styles.scoreCard,
-				{
-					borderColor: selected ? config.color : theme.border,
-					backgroundColor: selected ? `${config.color}14` : theme.background,
-					opacity: disabled ? 0.6 : 1,
-				},
-				pressed && !disabled && { opacity: 0.7 },
-			]}
-		>
-			{selected && <View style={[styles.scoreCardAccent, { backgroundColor: config.color }]} />}
-			<View style={[styles.scoreIcon, { backgroundColor: `${config.color}20` }]}>
-				<SymbolView name={config.icon} size={20} tintColor={config.color} />
-			</View>
-			<View style={styles.scoreText}>
-				<ThemedText type="smallBold" style={{ color: selected ? config.color : theme.text }}>
-					{config.label}
-				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
-					{config.description}
-				</ThemedText>
-			</View>
-		</Pressable>
-	);
 }
 
 export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -426,33 +344,6 @@ const styles = StyleSheet.create({
 	},
 	scoreCards: {
 		gap: Spacing.two,
-	},
-	scoreCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
-		borderWidth: 2,
-		borderRadius: 0,
-		padding: Spacing.three,
-		overflow: "hidden",
-	},
-	scoreCardAccent: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		height: 3,
-	},
-	scoreIcon: {
-		width: 40,
-		height: 40,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	scoreText: {
-		flex: 1,
-		gap: 2,
 	},
 	actions: {
 		paddingTop: Spacing.three,

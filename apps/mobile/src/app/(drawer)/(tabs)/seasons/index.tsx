@@ -15,6 +15,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
+import {
+	ScoreTypeCard,
+	SCORE_TYPES,
+	SCORE_TYPE_CONFIG as SCORE_TYPE_CARD_CONFIG,
+	type ScoreType,
+} from "@/components/score-type-card";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -110,6 +116,10 @@ function EditSeasonModal({
 	const queryClient = useQueryClient();
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
+	const [scoreType, setScoreType] = useState<ScoreType>("elo");
+	const [initialScore, setInitialScore] = useState("1200");
+	const [kFactor, setKFactor] = useState("32");
+	const [rounds, setRounds] = useState("1");
 	const [startDate, setStartDate] = useState("");
 	const [endDate, setEndDate] = useState("");
 	const [submitted, setSubmitted] = useState(false);
@@ -120,6 +130,14 @@ function EditSeasonModal({
 		if (isOpen && season) {
 			setName(season.name);
 			setSlug(season.slug);
+			setScoreType(
+				SCORE_TYPE_CARD_CONFIG[season.scoreType as ScoreType]
+					? (season.scoreType as ScoreType)
+					: "elo"
+			);
+			setInitialScore(String(season.initialScore ?? 1200));
+			setKFactor(String(season.kFactor ?? 32));
+			setRounds(String(season.rounds ?? 1));
 			setStartDate(toDateInput(new Date(season.startDate)));
 			setEndDate(season.endDate ? toDateInput(new Date(season.endDate)) : "");
 			setSubmitted(false);
@@ -127,6 +145,17 @@ function EditSeasonModal({
 			setIsSubmitting(false);
 		}
 	}, [isOpen, season]);
+
+	const { data: countInfo } = useQuery({
+		queryKey: ["season", "countInfo", season?.slug],
+		queryFn: () =>
+			season ? trpcClient.season.getCountInfo.query({ seasonSlug: season.slug }) : null,
+		enabled: !!season && isOpen,
+	});
+
+	const hasMatches = (countInfo?.matchCount ?? 0) > 0;
+	const isElo = scoreType === "elo" || scoreType === "1-v-n-elo";
+	const scoreFieldsDisabled = hasMatches || isSubmitting;
 
 	const nameError = !submitted
 		? undefined
@@ -153,6 +182,24 @@ function EditSeasonModal({
 				: endDate < startDate
 					? "End date must be after start date"
 					: undefined;
+	const initialScoreError =
+		hasMatches || !isElo || !submitted
+			? undefined
+			: !/^\d+$/.test(initialScore) || Number(initialScore) < 0
+				? "Initial score must be a non-negative whole number"
+				: undefined;
+	const kFactorError =
+		hasMatches || !isElo || !submitted
+			? undefined
+			: !/^\d+$/.test(kFactor) || Number(kFactor) < 1
+				? "K-factor must be at least 1"
+				: undefined;
+	const roundsError =
+		hasMatches || isElo || !submitted
+			? undefined
+			: !/^\d+$/.test(rounds) || Number(rounds) < 1
+				? "Rounds must be at least 1"
+				: undefined;
 
 	const canSubmit =
 		!isSubmitting &&
@@ -160,7 +207,10 @@ function EditSeasonModal({
 		name.trim().length <= 100 &&
 		/^[a-z0-9-]+$/.test(slug) &&
 		/^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
-		(!endDate || (/^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= startDate));
+		(!endDate || (/^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= startDate)) &&
+		(!isElo || (/^\d+$/.test(initialScore) && Number(initialScore) >= 0)) &&
+		(!isElo || (/^\d+$/.test(kFactor) && Number(kFactor) >= 1)) &&
+		(isElo || (/^\d+$/.test(rounds) && Number(rounds) >= 1));
 
 	const onSubmit = async () => {
 		if (!season || isSubmitting) return;
@@ -174,6 +224,10 @@ function EditSeasonModal({
 				slug,
 				startDate: parseDate(startDate),
 				...(endDate ? { endDate: parseDate(endDate) } : {}),
+				...(!hasMatches && isElo
+					? { initialScore: Number(initialScore), kFactor: Number(kFactor) }
+					: {}),
+				...(!hasMatches && !isElo ? { rounds: Number(rounds) } : {}),
 			});
 			await queryClient.invalidateQueries({ queryKey: ["season"] });
 			onClose();
@@ -204,6 +258,30 @@ function EditSeasonModal({
 							contentContainerStyle={styles.form}
 							keyboardShouldPersistTaps="handled"
 						>
+							<View style={styles.scoreCards}>
+								{SCORE_TYPES.map((type) => (
+									<ScoreTypeCard
+										key={type}
+										type={type}
+										selected={scoreType === type}
+										onPress={() => {
+											setScoreType(type);
+											setApiError("");
+										}}
+										disabled={scoreFieldsDisabled}
+									/>
+								))}
+							</View>
+							{hasMatches ? (
+								<View style={[styles.scoringNotice, { borderColor: theme.glowBlueBorder }]}>
+									<ThemedText
+										type="small"
+										style={{ color: theme.glowBlueText, textAlign: "center" }}
+									>
+										Scoring system cannot be changed - matches already exist
+									</ThemedText>
+								</View>
+							) : null}
 							<Input
 								label="Season Name"
 								placeholder="Season 1"
@@ -228,6 +306,35 @@ function EditSeasonModal({
 								editable={!isSubmitting}
 								error={slugError}
 							/>
+							{isElo ? (
+								<>
+									<Input
+										label="Initial ELO"
+										value={initialScore}
+										onChangeText={setInitialScore}
+										keyboardType="numeric"
+										editable={!scoreFieldsDisabled}
+										error={initialScoreError}
+									/>
+									<Input
+										label="K-Factor"
+										value={kFactor}
+										onChangeText={setKFactor}
+										keyboardType="numeric"
+										editable={!scoreFieldsDisabled}
+										error={kFactorError}
+									/>
+								</>
+							) : (
+								<Input
+									label="Rounds"
+									value={rounds}
+									onChangeText={setRounds}
+									keyboardType="numeric"
+									editable={!scoreFieldsDisabled}
+									error={roundsError}
+								/>
+							)}
 							<DateField
 								label="Start Date"
 								value={startDate}
@@ -534,6 +641,15 @@ const styles = StyleSheet.create({
 	form: {
 		gap: Spacing.three,
 		paddingBottom: Spacing.four,
+	},
+	scoreCards: {
+		gap: Spacing.two,
+	},
+	scoringNotice: {
+		borderWidth: 1,
+		borderRadius: 0,
+		paddingVertical: Spacing.two,
+		paddingHorizontal: Spacing.three,
 	},
 	modalActions: {
 		paddingTop: Spacing.three,
