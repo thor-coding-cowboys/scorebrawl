@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -49,6 +49,27 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 	const [isSlugTaken, setIsSlugTaken] = useState(false);
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 	const [openDateField, setOpenDateField] = useState<"start" | "end" | null>(null);
+	const scrollRef = useRef<ScrollView>(null);
+	const startDateRef = useRef<View>(null);
+	const endDateRef = useRef<View>(null);
+
+	useEffect(() => {
+		if (!openDateField || Platform.OS !== "ios") return;
+		const fieldRef = openDateField === "start" ? startDateRef : endDateRef;
+		const timer = setTimeout(() => {
+			const field = fieldRef.current;
+			const scroll = scrollRef.current;
+			if (!field || !scroll) return;
+			field.measureLayout(
+				scroll.getInnerViewNode(),
+				(_, y) => {
+					scroll.scrollTo({ y: Math.max(0, y - Spacing.two), animated: true });
+				},
+				() => {}
+			);
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [openDateField]);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -205,6 +226,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 						</View>
 
 						<ScrollView
+							ref={scrollRef}
 							style={styles.scroll}
 							contentContainerStyle={styles.form}
 							keyboardShouldPersistTaps="handled"
@@ -253,6 +275,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 								error={startDateError}
 								open={openDateField === "start"}
 								onOpenChange={(open) => setOpenDateField(open ? "start" : null)}
+								containerRef={startDateRef}
 							/>
 							<DateField
 								label="End Date (optional)"
@@ -263,6 +286,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 								minimumDate={startDate ? parseDate(startDate) : undefined}
 								open={openDateField === "end"}
 								onOpenChange={(open) => setOpenDateField(open ? "end" : null)}
+								containerRef={endDateRef}
 							/>
 							{isElo ? (
 								<>

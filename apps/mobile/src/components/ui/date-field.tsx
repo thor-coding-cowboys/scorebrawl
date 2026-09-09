@@ -1,5 +1,6 @@
 import DateTimePickerDefault from "@expo/ui/community/datetime-picker";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import type { RefObject } from "react";
 
 import { Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -17,6 +18,7 @@ interface DateFieldProps {
 	editable?: boolean;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	containerRef?: RefObject<View | null>;
 }
 
 function parseDate(value: string) {
@@ -51,6 +53,7 @@ export function DateField({
 	editable = true,
 	open = false,
 	onOpenChange,
+	containerRef,
 }: DateFieldProps) {
 	const theme = useTheme();
 	const { themeMode } = useThemeMode();
@@ -68,7 +71,7 @@ export function DateField({
 	};
 
 	return (
-		<View style={styles.container}>
+		<View ref={containerRef} style={styles.container}>
 			<Text style={[styles.label, { color: theme.text }]}>{label}</Text>
 			<Pressable
 				disabled={!editable}

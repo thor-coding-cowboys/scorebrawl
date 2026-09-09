@@ -1,6 +1,6 @@
 import { SymbolView } from "expo-symbols";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	FlatList,
@@ -126,6 +126,27 @@ function EditSeasonModal({
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [openDateField, setOpenDateField] = useState<"start" | "end" | null>(null);
+	const scrollRef = useRef<ScrollView>(null);
+	const startDateRef = useRef<View>(null);
+	const endDateRef = useRef<View>(null);
+
+	useEffect(() => {
+		if (!openDateField || Platform.OS !== "ios") return;
+		const fieldRef = openDateField === "start" ? startDateRef : endDateRef;
+		const timer = setTimeout(() => {
+			const field = fieldRef.current;
+			const scroll = scrollRef.current;
+			if (!field || !scroll) return;
+			field.measureLayout(
+				scroll.getInnerViewNode(),
+				(_, y) => {
+					scroll.scrollTo({ y: Math.max(0, y - Spacing.two), animated: true });
+				},
+				() => {}
+			);
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [openDateField]);
 
 	useEffect(() => {
 		if (isOpen && season) {
@@ -255,6 +276,7 @@ function EditSeasonModal({
 						</View>
 
 						<ScrollView
+							ref={scrollRef}
 							style={styles.scroll}
 							contentContainerStyle={styles.form}
 							keyboardShouldPersistTaps="handled"
@@ -344,6 +366,7 @@ function EditSeasonModal({
 								error={startDateError}
 								open={openDateField === "start"}
 								onOpenChange={(open) => setOpenDateField(open ? "start" : null)}
+								containerRef={startDateRef}
 							/>
 							<DateField
 								label="End Date (optional)"
@@ -354,6 +377,7 @@ function EditSeasonModal({
 								minimumDate={startDate ? parseDate(startDate) : undefined}
 								open={openDateField === "end"}
 								onOpenChange={(open) => setOpenDateField(open ? "end" : null)}
+								containerRef={endDateRef}
 							/>
 							{apiError ? (
 								<ThemedText type="small" style={{ color: theme.destructive }}>
