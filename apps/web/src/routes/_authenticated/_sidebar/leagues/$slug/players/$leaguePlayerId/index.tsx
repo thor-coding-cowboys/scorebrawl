@@ -6,14 +6,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
-import { truncateSlug } from "@/lib/utils";
+import { cn, truncateSlug } from "@/lib/utils";
 import { achievementCatalog } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
 	Award01Icon,
 	UserMultiple02Icon,
-	Medal01Icon,
 	ArrowUp01Icon,
 	ArrowDown01Icon,
 	Calendar01Icon,
@@ -130,6 +129,8 @@ function PlayerProfilePage() {
 	const { data: achievements, isLoading: achievementsLoading } = useQuery(
 		trpc.achievement.getByPlayerId.queryOptions({ playerId: leaguePlayerId })
 	);
+
+	const earnedAtMap = new Map<string, Date>((achievements ?? []).map((a) => [a.type, a.createdAt]));
 
 	// Handle errors
 	if (playerError) {
@@ -496,7 +497,7 @@ function PlayerProfilePage() {
 					<CardContent>
 						{achievementsLoading ? (
 							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-								{Array.from({ length: 4 }).map((_, i) => (
+								{Array.from({ length: 6 }).map((_, i) => (
 									<div
 										key={`achievement-skeleton-${String(i)}`}
 										className="flex flex-col items-center space-y-2"
@@ -506,23 +507,42 @@ function PlayerProfilePage() {
 									</div>
 								))}
 							</div>
-						) : achievements && achievements.length > 0 ? (
-							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-								{achievements.map((achievement) => (
-									<div key={achievement.type} className="flex flex-col items-center space-y-2">
-										<div className="w-16 h-16 rounded-full flex items-center justify-center border-2 bg-primary/10 border-primary/20">
-											<HugeiconsIcon icon={Medal01Icon} className="size-8 text-primary" />
-										</div>
-										<div className="text-center">
-											<p className="text-sm font-medium">
-												{achievementCatalog[achievement.type as keyof typeof achievementCatalog]?.name ?? achievement.type}
-											</p>
-										</div>
-									</div>
-								))}
-							</div>
 						) : (
-							<div className="text-center text-muted-foreground py-8">No achievements yet</div>
+							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+								{Object.entries(achievementCatalog).map(([type, meta]) => {
+									const earned = earnedAtMap.has(type);
+									return (
+										<div key={type} className="flex flex-col items-center space-y-2 text-center">
+											<div
+												title={meta.description}
+												className={cn(
+													"w-16 h-16 rounded-full flex items-center justify-center border-2 transition-colors",
+													earned
+														? "bg-primary/10 border-primary/30 text-primary"
+														: "bg-muted/30 border-border/50 text-muted-foreground/40 grayscale"
+												)}
+											>
+												<HugeiconsIcon icon={meta.icon} className="size-8" />
+											</div>
+											<div className="space-y-0.5">
+												<p
+													className={cn(
+														"text-sm font-medium",
+														!earned && "text-muted-foreground/70"
+													)}
+												>
+													{meta.name}
+												</p>
+												<p className="text-[11px] text-muted-foreground/60">
+													{earned
+														? new Date(earnedAtMap.get(type)!).toLocaleDateString()
+														: meta.requirement}
+												</p>
+											</div>
+										</div>
+									);
+								})}
+							</div>
 						)}
 					</CardContent>
 				</Card>
