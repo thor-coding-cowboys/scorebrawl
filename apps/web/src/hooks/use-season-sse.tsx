@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
 import { buildMatchResultToast, type MatchDisplayPlayer } from "@/lib/match-names";
-import { formatAchievementName } from "@/lib/achievements";
+import { achievementCatalog } from "@/lib/achievements";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import "@/lib/event-types";
 
@@ -155,7 +155,8 @@ export function useSeasonSSE({
 							<span className="flex items-center gap-2">
 								<AvatarWithFallback src={player.image} name={player.name} size="sm" />
 								<span>
-									{player.name} unlocked <b>{formatAchievementName(type)}</b>
+									{player.name} unlocked{" "}
+									<b>{achievementCatalog[type as keyof typeof achievementCatalog]?.name ?? type}</b>
 								</span>
 							</span>
 						);

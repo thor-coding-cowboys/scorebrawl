@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { truncateSlug } from "@/lib/utils";
-import { formatAchievementName } from "@/lib/achievements";
+import { achievementCatalog } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
@@ -515,7 +515,7 @@ function PlayerProfilePage() {
 										</div>
 										<div className="text-center">
 											<p className="text-sm font-medium">
-												{formatAchievementName(achievement.type)}
+												{achievementCatalog[achievement.type as keyof typeof achievementCatalog]?.name ?? achievement.type}
 											</p>
 										</div>
 									</div>
