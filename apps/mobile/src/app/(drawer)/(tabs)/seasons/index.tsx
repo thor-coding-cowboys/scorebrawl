@@ -59,6 +59,27 @@ function StatusPill({
 	);
 }
 
+const SCORE_TYPE_CONFIG: Record<
+	string,
+	{ label: string; color: string; icon: Parameters<typeof SymbolView>[0]["name"] }
+> = {
+	elo: {
+		label: "ELO",
+		color: "#10b981",
+		icon: { ios: "trophy.fill", android: "emoji_events", web: "emoji_events" },
+	},
+	"3-1-0": {
+		label: "Points",
+		color: "#3b82f6",
+		icon: { ios: "target", android: "track_changes", web: "track_changes" },
+	},
+	"1-v-n-elo": {
+		label: "1-v-N ELO",
+		color: "#a855f7",
+		icon: { ios: "person.3.fill", android: "groups", web: "groups" },
+	},
+};
+
 function toDateInput(date: Date) {
 	const d = new Date(date);
 	const y = d.getFullYear();
@@ -313,30 +334,45 @@ export default function SeasonsScreen() {
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => {
 						const status = getSeasonStatus(item);
+						const scoreConfig = SCORE_TYPE_CONFIG[item.scoreType] ?? SCORE_TYPE_CONFIG.elo;
 						return (
 							<View style={styles.row}>
 								<Pressable
 									accessibilityRole="button"
 									onPress={() => handlePress(item.slug)}
-									style={({ pressed }) => [styles.rowInfo, pressed && styles.rowPressed]}
+									style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
 								>
-									<ThemedText style={styles.rowName}>{item.name}</ThemedText>
-									<ThemedText type="small" themeColor="textSecondary">
-										{formatDate(item.startDate)}
-										{item.endDate ? ` → ${formatDate(item.endDate)}` : ""}
-									</ThemedText>
-								</Pressable>
-								<StatusPill status={status} />
-								{isEditor ? (
-									<View style={styles.rowActions}>
-										<Button variant="outline" size="sm" onPress={() => setEditingSeason(item)}>
-											Edit
-										</Button>
-										<Button variant="outline" size="sm" onPress={() => confirmToggleLock(item)}>
-											{item.closed ? "Unlock" : "Lock"}
-										</Button>
+									<View style={[styles.scoreIcon, { backgroundColor: `${scoreConfig.color}1a` }]}>
+										<SymbolView name={scoreConfig.icon} size={20} tintColor={scoreConfig.color} />
 									</View>
-								) : null}
+									<View style={styles.rowInfo}>
+										<ThemedText style={styles.rowName} numberOfLines={1}>
+											{item.name}
+										</ThemedText>
+										<View style={styles.rowSub}>
+											<ThemedText type="small" style={{ color: scoreConfig.color, fontSize: 12 }}>
+												{scoreConfig.label}
+											</ThemedText>
+											<ThemedText type="small" themeColor="textSecondary">
+												{formatDate(item.startDate)}
+												{item.endDate ? ` → ${formatDate(item.endDate)}` : ""}
+											</ThemedText>
+										</View>
+									</View>
+								</Pressable>
+								<View style={styles.rowRight}>
+									<StatusPill status={status} />
+									{isEditor ? (
+										<View style={styles.rowActions}>
+											<Button variant="outline" size="sm" onPress={() => setEditingSeason(item)}>
+												Edit
+											</Button>
+											<Button variant="outline" size="sm" onPress={() => confirmToggleLock(item)}>
+												{item.closed ? "Unlock" : "Lock"}
+											</Button>
+										</View>
+									) : null}
+								</View>
 							</View>
 						);
 					}}
@@ -392,26 +428,47 @@ const styles = StyleSheet.create({
 		paddingBottom: Spacing.four,
 	},
 	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: "rgba(128,128,128,0.25)",
 	},
+	rowMain: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+	},
 	rowPressed: {
-		backgroundColor: "rgba(128,128,128,0.08)",
+		opacity: 0.7,
+	},
+	scoreIcon: {
+		width: 44,
+		height: 44,
+		borderRadius: 8,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	rowInfo: {
 		flex: 1,
 	},
 	rowName: {
 		fontWeight: "600",
+		fontSize: 16,
+		lineHeight: 22,
+	},
+	rowSub: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
+		marginTop: 2,
+	},
+	rowRight: {
+		alignItems: "flex-end",
+		gap: Spacing.two,
+		marginTop: Spacing.two,
 	},
 	rowActions: {
 		flexDirection: "row",
 		gap: Spacing.one,
-		marginLeft: Spacing.two,
 	},
 	pill: {
 		flexDirection: "row",
@@ -421,7 +478,6 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		paddingVertical: 2,
 		paddingHorizontal: Spacing.two,
-		marginLeft: Spacing.three,
 	},
 	empty: {
 		textAlign: "center",
