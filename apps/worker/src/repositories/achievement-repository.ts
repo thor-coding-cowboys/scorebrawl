@@ -87,13 +87,7 @@ export const addAchievement = async ({
 		.onConflictDoNothing();
 };
 
-export const awardSeasonWinner = async ({
-	db,
-	seasonId,
-}: {
-	db: DrizzleDB;
-	seasonId: string;
-}) => {
+export const awardSeasonWinner = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
 	// Top-scoring season players (all tied at the max score) become season winners
 	const rows = await db
 		.select({ playerId: seasonPlayer.playerId, score: seasonPlayer.score })
