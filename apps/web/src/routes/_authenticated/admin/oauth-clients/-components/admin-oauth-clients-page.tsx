@@ -8,7 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+
+const DEFAULT_SCOPES = [
+	"openid",
+	"profile",
+	"email",
+	"offline_access",
+	"create:matches",
+	"read:matches",
+];
 
 function formatDate(date: Date | null): string {
 	if (!date) return "—";
@@ -40,14 +50,24 @@ export function AdminOAuthClientsPage() {
 		clientSecret: string | null;
 	} | null>(null);
 
-	const [name, setName] = useState("BullsAI");
-	const [redirectUris, setRedirectUris] = useState("https://app.bullsai.app/callback");
-	const [scopes, setScopes] = useState(
-		"openid profile email offline_access create:matches read:matches"
-	);
+	const [name, setName] = useState("");
+	const [redirectUris, setRedirectUris] = useState("");
+	const [scopes, setScopes] = useState<Set<string>>(new Set(DEFAULT_SCOPES));
 	const [publicClient, setPublicClient] = useState(true);
 	const [requirePkce, setRequirePkce] = useState(true);
 	const [skipConsent, setSkipConsent] = useState(false);
+
+	const toggleScope = (scope: string) => {
+		setScopes((prev) => {
+			const next = new Set(prev);
+			if (next.has(scope)) {
+				next.delete(scope);
+			} else {
+				next.add(scope);
+			}
+			return next;
+		});
+	};
 
 	const { data: clients, isPending } = useQuery({
 		queryKey: ["admin", "oauthClients"],
@@ -64,10 +84,7 @@ export function AdminOAuthClientsPage() {
 					.split("\n")
 					.map((u) => u.trim())
 					.filter(Boolean),
-				scopes: scopes
-					.split(/\s+/)
-					.map((s) => s.trim())
-					.filter(Boolean),
+				scopes: [...scopes],
 				publicClient,
 				requirePkce,
 				skipConsent,
@@ -80,6 +97,9 @@ export function AdminOAuthClientsPage() {
 			});
 			toast.success("OAuth client created");
 			queryClient.invalidateQueries({ queryKey: ["admin", "oauthClients"] });
+			setName("");
+			setRedirectUris("");
+			setScopes(new Set(DEFAULT_SCOPES));
 			setDialogOpen(false);
 		},
 		onError: (error) => {
@@ -226,20 +246,36 @@ export function AdminOAuthClientsPage() {
 						<FieldGroup>
 							<Field>
 								<FieldLabel htmlFor="name">Name</FieldLabel>
-								<Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+								<Input
+									id="name"
+									placeholder="App Name OAuth Client"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+								/>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="redirectUris">Redirect URIs (one per line)</FieldLabel>
 								<textarea
 									id="redirectUris"
 									className="min-h-20 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm"
+									placeholder={"https://example.com/oauth/scorebrawl/callback"}
 									value={redirectUris}
 									onChange={(e) => setRedirectUris(e.target.value)}
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="scopes">Scopes (space-separated)</FieldLabel>
-								<Input id="scopes" value={scopes} onChange={(e) => setScopes(e.target.value)} />
+								<FieldLabel>Scopes</FieldLabel>
+								<div className="grid grid-cols-1 gap-2">
+									{DEFAULT_SCOPES.map((scope) => (
+										<label key={scope} className="flex cursor-pointer items-center gap-2 text-sm">
+											<Checkbox
+												checked={scopes.has(scope)}
+												onCheckedChange={() => toggleScope(scope)}
+											/>
+											<code>{scope}</code>
+										</label>
+									))}
+								</div>
 							</Field>
 							<Field>
 								<FieldLabel>Public client (PKCE)</FieldLabel>
@@ -260,7 +296,7 @@ export function AdminOAuthClientsPage() {
 							</Button>
 							<Button
 								type="button"
-								disabled={createMutation.isPending}
+								disabled={createMutation.isPending || !name.trim() || !redirectUris.trim()}
 								onClick={() => createMutation.mutate()}
 							>
 								Create
