@@ -1,9 +1,8 @@
 import { StyleSheet, View } from "react-native";
 
-import { Avatar } from "@/components/avatar";
+import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
-import { getAvatarUri } from "@/hooks/use-user-avatar";
 
 export type StandingItem = {
 	id: string;
@@ -41,40 +40,6 @@ const FORM_COLORS = {
 } as const;
 
 const RANK_COLORS = ["#f59e0b", "#94a3b8", "#d97706"] as const;
-
-function StreakAvatar({
-	name,
-	image,
-	headers,
-	streak,
-}: {
-	name: string;
-	image?: string | null;
-	headers?: Record<string, string>;
-	streak: number;
-}) {
-	const isHot = streak >= 5;
-	const isCold = streak <= -5;
-	const ringColor = isHot ? "#f97316" : isCold ? "#38bdf8" : "transparent";
-
-	return (
-		<View
-			style={[
-				styles.avatarWrap,
-				isHot || isCold
-					? {
-							borderColor: ringColor,
-							shadowColor: ringColor,
-							shadowOpacity: 0.5,
-							shadowRadius: 5,
-						}
-					: null,
-			]}
-		>
-			<Avatar name={name} image={getAvatarUri(image)} headers={headers} size={36} />
-		</View>
-	);
-}
 
 function FormDots({
 	form,
@@ -180,13 +145,6 @@ const styles = StyleSheet.create({
 		width: 24,
 		textAlign: "center",
 		color: "#60646C",
-	},
-	avatarWrap: {
-		borderWidth: 1.5,
-		borderColor: "transparent",
-		borderRadius: 10,
-		padding: 1,
-		shadowOffset: { width: 0, height: 0 },
 	},
 	info: {
 		flex: 1,
