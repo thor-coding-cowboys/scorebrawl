@@ -1,19 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
 	useAnimatedStyle,
+	useDerivedValue,
 	useSharedValue,
-	withDelay,
 	withRepeat,
 	withTiming,
 } from "react-native-reanimated";
+import { Canvas, Circle, Group, RadialGradient } from "@shopify/react-native-skia";
 
 import { Avatar } from "@/components/avatar";
 
 type StreakType = "fire" | "ice" | "none";
 
-const FIRE_COLORS = ["#ff4500", "#ff8c00", "#ffcc00", "#ff6a00"];
-const ICE_COLORS = ["#87ceeb", "#00bfff", "#e0f7ff", "#b0e0ff"];
+const FIRE_COLORS = ["#ffd700", "#ff8c00", "#ff4500", "#ffcc00"];
+const ICE_COLORS = ["#e0f7ff", "#7dd3fc", "#38bdf8", "#a5f3fc"];
 
 function getStreakType(streak: number): StreakType {
 	if (streak >= 5) return "fire";
@@ -28,135 +29,169 @@ interface StreakAvatarProps {
 	streak: number;
 }
 
-function OrbitRing({ type }: { type: "fire" | "ice" }) {
-	const rotation = useSharedValue(0);
-	const colors = type === "fire" ? FIRE_COLORS : ICE_COLORS;
-
+function useSpin(duration: number, reverse = false) {
+	const progress = useSharedValue(0);
 	useEffect(() => {
-		rotation.value = withRepeat(withTiming(360, { duration: 6000 }), -1, false);
-	}, [rotation]);
-
-	const ringStyle = useAnimatedStyle(() => ({
-		transform: [{ rotateZ: `${rotation.value}deg` }],
-	}));
-
-	const particles = Array.from({ length: 12 }, (_, i) => (i * 360) / 12);
-
-return (
-			<Animated.View style={[styles.orbit, ringStyle]} pointerEvents="none">
-				{particles.map((angle, i) => {
-					const rad = (angle * Math.PI) / 180;
-					const radius = 20;
-					const x = radius * Math.cos(rad);
-					const y = radius * Math.sin(rad);
-					const isStreak = i % 3 === 0;
-					return (
-						<View
-							key={angle}
-							style={[
-							styles.particle,
-							isStreak ? styles.comet : styles.spark,
-							{
-								backgroundColor: colors[i % colors.length],
-								transform: [{ translateX: x }, { translateY: y }],
-							},
-						]}
-					/>
-				);
-			})}
-		</Animated.View>
-	);
+		progress.value = withRepeat(withTiming(1, { duration }), -1, false);
+	}, [duration, progress]);
+	return useDerivedValue(() => (reverse ? -progress.value * 360 : progress.value * 360));
 }
 
-function PulseGlow({ type }: { type: "fire" | "ice" }) {
+function usePulse(duration: number) {
 	const pulse = useSharedValue(0);
-	const color = type === "fire" ? "#f97316" : "#38bdf8";
-
 	useEffect(() => {
-		pulse.value = withRepeat(withTiming(1, { duration: 1800 }), -1, true);
-	}, [pulse]);
+		pulse.value = withRepeat(withTiming(1, { duration }), -1, true);
+	}, [duration, pulse]);
+	return pulse;
+}
 
-	const glowStyle = useAnimatedStyle(() => ({
-		opacity: 0.25 + pulse.value * 0.35,
-		transform: [{ scale: 1 + pulse.value * 0.08 }],
-	}));
+function FireEffect() {
+	const pulse = usePulse(1600);
+	const rotation = useSpin(4000);
 
-	const ringStyle = useAnimatedStyle(() => ({
-		opacity: 0.5 + pulse.value * 0.5,
-		transform: [{ scale: 1 + pulse.value * 0.05 }],
-	}));
+	const ringRotation = useDerivedValue(() => [{ rotate: rotation.value }]);
+
+	const sparks = useMemo(() => {
+		return Array.from({ length: 14 }, (_, i) => {
+			const angle = (i / 14) * Math.PI * 2;
+			return {
+				angle,
+				radius: 17 + (i % 3) * 2,
+				length: i % 4 === 0 ? 7 : 3,
+				color: FIRE_COLORS[i % FIRE_COLORS.length],
+			};
+		});
+	}, []);
 
 	return (
-		<View style={StyleSheet.absoluteFill} pointerEvents="none">
+		<>
+			<Canvas style={styles.canvas}>
+				<Group>
+					<Circle cx={22} cy={22} r={21}>
+						<RadialGradient
+							c={{ x: 22, y: 22 }}
+							r={21}
+							colors={["rgba(255,120,0,0.55)", "rgba(255,60,0,0.18)", "rgba(255,60,0,0)"]}
+						/>
+					</Circle>
+				</Group>
+
+				<Group transform={ringRotation}>
+					{sparks.map((spark) => (
+						<Group
+							key={spark.angle}
+							transform={[
+								{ translateX: 22 + spark.radius * Math.cos(spark.angle) },
+								{ translateY: 22 + spark.radius * Math.sin(spark.angle) },
+								{ rotate: spark.angle + Math.PI / 2 },
+							]}
+						>
+							<Circle cx={0} cy={0} r={spark.length * 0.5} color={spark.color} opacity={0.9} />
+						</Group>
+					))}
+				</Group>
+
+				<Circle cx={22} cy={38} r={2.5} color="#ff8c00" opacity={0.6} />
+				<Circle cx={14} cy={37} r={2} color="#ffd700" opacity={0.5} />
+				<Circle cx={30} cy={37} r={2} color="#ff4500" opacity={0.5} />
+			</Canvas>
 			<Animated.View
 				style={[
-					styles.glow,
+					styles.pulseRing,
 					{
-						backgroundColor: color,
-						shadowColor: color,
+						borderColor: "#f97316",
+						shadowColor: "#f97316",
 					},
-					glowStyle,
+					useAnimatedStyle(() => ({
+						opacity: 0.5 + pulse.value * 0.5,
+						transform: [{ scale: 1 + pulse.value * 0.06 }],
+					})),
 				]}
 			/>
-			<Animated.View style={[styles.ring, { borderColor: color }, ringStyle]} />
-		</View>
+		</>
 	);
 }
 
-function Twinkle({ type, index, color }: { type: "fire" | "ice"; index: number; color: string }) {
-	const opacity = useSharedValue(0);
+function IceEffect() {
+	const pulse = usePulse(1800);
+	const rotation = useSpin(5200, true);
 
-	useEffect(() => {
-		opacity.value = withRepeat(withDelay(index * 180, withTiming(1, { duration: 600 })), -1, true);
-	}, [opacity, index]);
+	const ringRotation = useDerivedValue(() => [{ rotate: rotation.value }]);
 
-	const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-	const sparkle = type === "fire" ? styles.fireSparkle : styles.iceSparkle;
+	const shards = useMemo(() => {
+		return Array.from({ length: 16 }, (_, i) => {
+			const angle = (i / 16) * Math.PI * 2;
+			return {
+				angle,
+				radius: 18,
+				height: i % 3 === 0 ? 9 : 5,
+				color: ICE_COLORS[i % ICE_COLORS.length],
+			};
+		});
+	}, []);
 
 	return (
-		<View
-			pointerEvents="none"
-			style={[
-				styles.twinkle,
-				{
-					top: index % 2 === 0 ? -6 : -3,
-					left: index % 3 === 0 ? -3 : -5,
-				},
-			]}
-		>
-			<Animated.View style={[sparkle, { backgroundColor: color }, style]} />
-		</View>
+		<>
+			<Canvas style={styles.canvas}>
+				<Group>
+					<Circle cx={22} cy={22} r={21}>
+						<RadialGradient
+							c={{ x: 22, y: 22 }}
+							r={21}
+							colors={["rgba(125,211,252,0.5)", "rgba(56,189,248,0.16)", "rgba(56,189,248,0)"]}
+						/>
+					</Circle>
+				</Group>
+
+				<Group transform={ringRotation}>
+					{shards.map((shard) => (
+						<Group
+							key={shard.angle}
+							transform={[
+								{ translateX: 22 + shard.radius * Math.cos(shard.angle) },
+								{ translateY: 22 + shard.radius * Math.sin(shard.angle) },
+								{ rotate: shard.angle + Math.PI / 2 },
+							]}
+						>
+							<Circle cx={0} cy={0} r={shard.height * 0.22} color={shard.color} opacity={0.85} />
+							<Circle
+								cx={0}
+								cy={shard.height * 0.5}
+								r={shard.height * 0.14}
+								color={shard.color}
+								opacity={0.5}
+							/>
+						</Group>
+					))}
+				</Group>
+
+				<Circle cx={22} cy={6} r={2} color="#bae6fd" opacity={0.7} />
+				<Circle cx={15} cy={8} r={1.5} color="#7dd3fc" opacity={0.6} />
+				<Circle cx={29} cy={7} r={1.8} color="#a5f3fc" opacity={0.6} />
+			</Canvas>
+			<Animated.View
+				style={[
+					styles.pulseRing,
+					{
+						borderColor: "#38bdf8",
+						shadowColor: "#38bdf8",
+					},
+					useAnimatedStyle(() => ({
+						opacity: 0.5 + pulse.value * 0.5,
+						transform: [{ scale: 1 + pulse.value * 0.06 }],
+					})),
+				]}
+			/>
+		</>
 	);
 }
 
 export function StreakAvatar({ name, image, headers, streak }: StreakAvatarProps) {
 	const type = getStreakType(streak);
 
-	if (type === "none") {
-		return (
-			<View style={styles.wrap}>
-				<Avatar name={name} image={image} headers={headers} size={36} />
-			</View>
-		);
-	}
-
 	return (
 		<View style={styles.wrap}>
-			<PulseGlow type={type} />
-			<OrbitRing type={type} />
-			{Array.from({ length: 4 }, (_, i) => (
-				<Twinkle
-					key={i}
-					type={type}
-					index={i}
-					color={
-						type === "fire"
-							? FIRE_COLORS[i % FIRE_COLORS.length]
-							: ICE_COLORS[i % ICE_COLORS.length]
-					}
-				/>
-			))}
+			{type === "fire" ? <FireEffect /> : type === "ice" ? <IceEffect /> : null}
 			<View style={styles.avatarInner}>
 				<Avatar name={name} image={image} headers={headers} size={36} />
 			</View>
@@ -174,59 +209,21 @@ const styles = StyleSheet.create({
 	avatarInner: {
 		zIndex: 2,
 	},
-	glow: {
+	canvas: {
 		position: "absolute",
+		top: 0,
+		left: 0,
 		width: 44,
 		height: 44,
+	},
+	pulseRing: {
+		position: "absolute",
+		width: 40,
+		height: 40,
 		borderRadius: 12,
+		borderWidth: 1.5,
 		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.6,
-		shadowRadius: 8,
-	},
-	ring: {
-		position: "absolute",
-		width: 42,
-		height: 42,
-		borderRadius: 12,
-		borderWidth: 2,
-	},
-	orbit: {
-		position: "absolute",
-		width: 44,
-		height: 44,
-		alignItems: "center",
-		justifyContent: "center",
-		zIndex: 1,
-	},
-	particle: {
-		position: "absolute",
-		left: 21,
-		top: 21,
-	},
-	spark: {
-		width: 4,
-		height: 4,
-		borderRadius: 2,
-		opacity: 0.9,
-	},
-	comet: {
-		width: 8,
-		height: 3,
-		borderRadius: 2,
-		opacity: 0.95,
-	},
-	twinkle: {
-		position: "absolute",
-		zIndex: 3,
-	},
-	fireSparkle: {
-		width: 3,
-		height: 3,
-		borderRadius: 2,
-	},
-	iceSparkle: {
-		width: 2,
-		height: 6,
-		borderRadius: 1,
+		shadowOpacity: 0.5,
+		shadowRadius: 6,
 	},
 });
