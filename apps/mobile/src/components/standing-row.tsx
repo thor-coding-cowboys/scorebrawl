@@ -39,8 +39,6 @@ const FORM_COLORS = {
 	L: "#dc2626",
 } as const;
 
-const RANK_COLORS = ["#f59e0b", "#94a3b8", "#d97706"] as const;
-
 function FormDots({
 	form,
 	pointDiff,
@@ -92,24 +90,15 @@ function FormDots({
 
 export function StandingRow({
 	item,
-	rank,
 	headers,
 }: {
 	item: StandingItem;
-	rank: number;
 	headers?: Record<string, string>;
 }) {
 	const streak = calculateStreak(item.form);
-	const rankColor = RANK_COLORS[rank - 1];
 
 	return (
 		<View style={styles.row}>
-			<ThemedText
-				type="small"
-				style={[styles.rank, rankColor ? { color: rankColor, fontWeight: "700" } : undefined]}
-			>
-				{rank}
-			</ThemedText>
 			<StreakAvatar name={item.name} image={item.image} headers={headers} streak={streak} />
 			<View style={styles.info}>
 				<ThemedText numberOfLines={1} style={styles.name}>
@@ -140,11 +129,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.two,
 		paddingVertical: Spacing.three,
-	},
-	rank: {
-		width: 24,
-		textAlign: "center",
-		color: "#60646C",
 	},
 	info: {
 		flex: 1,

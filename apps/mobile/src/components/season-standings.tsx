@@ -37,9 +37,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 		<FlatList
 			data={standings}
 			keyExtractor={(item) => item.id}
-			renderItem={({ item, index }) => (
-				<StandingRow item={item} rank={index + 1} headers={avatarHeaders} />
-			)}
+			renderItem={({ item }) => <StandingRow item={item} headers={avatarHeaders} />}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
 			ListEmptyComponent={
