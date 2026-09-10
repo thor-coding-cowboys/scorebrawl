@@ -10,6 +10,7 @@ import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
 import { mcpRouter } from "./routes/mcp-router";
+import { matchesV1Router } from "./routes/matches-v1";
 import { sseRouter, broadcastSeasonEvent } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
 import {
@@ -40,6 +41,7 @@ const app = new Hono<HonoEnv>()
 	})
 	.route("/api/auth", authRouter)
 	.route("/api/sse", sseRouter)
+	.route("/api/v1/leagues/:leagueId/seasons/:seasonId/matches", matchesV1Router)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
 	.route("/api/mcp", mcpRouter)

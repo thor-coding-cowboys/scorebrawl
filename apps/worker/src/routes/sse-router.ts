@@ -32,5 +32,8 @@ export function broadcastSeasonEvent(
 				body: JSON.stringify(event),
 			})
 		)
+		.then((res) => {
+			res.body?.cancel().catch(() => {});
+		})
 		.then(() => {});
 }
