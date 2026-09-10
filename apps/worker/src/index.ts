@@ -58,7 +58,7 @@ const app = new Hono<HonoEnv>()
 	});
 
 export default {
-	fetch: async (request, env, ctx) => {
+	fetch: async (request: Request, env: Env, ctx: ExecutionContext) => {
 		try {
 			return await app.fetch(request, env, ctx);
 		} catch (error) {
