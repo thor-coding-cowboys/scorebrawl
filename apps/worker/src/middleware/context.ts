@@ -61,7 +61,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		resendApiKey,
 		adminUserIds,
 		oauthResource,
-		baseURL: betterAuthUrl,
+		baseURL: betterAuthUrl ?? origin,
 	});
 	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
 	// request so no storage work is left floating after the response.
