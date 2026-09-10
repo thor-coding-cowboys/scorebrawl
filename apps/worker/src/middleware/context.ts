@@ -65,7 +65,19 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	});
 	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
 	// request so no storage work is left floating after the response.
-	await auth.$context;
+	try {
+		await auth.$context;
+	} catch (initError) {
+		console.error("[context] better-auth init failed", initError);
+		return c.json(
+			{
+				error: "auth_init_failed",
+				message: (initError as Error)?.message,
+				stack: (initError as Error)?.stack,
+			},
+			500
+		);
+	}
 	c.set("db", db);
 	c.set("betterAuth", auth);
 	c.set("userAssets", {
