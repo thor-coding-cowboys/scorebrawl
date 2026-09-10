@@ -21,6 +21,7 @@ Status reflects merged PRs as of 2026-09-10. **Done** = shipped in product; **Pa
 | 16  | [Mobile polish](16-mobile-polish.md)                               | Partial — mobile sidebar/drawers; ongoing                                                                   |                                                                    |
 | 17  | [API key management UI](17-api-key-management.md)                  | Not started — API key feature removed in [#637](https://github.com/thor-coding-cowboys/scorebrawl/pull/637) |                                                                    |
 | 18  | [AI weekly recaps](18-ai-weekly-recaps.md)                         | Not started                                                                                                 |                                                                    |
+| 19  | [BullsAI integration](19-bullsai-integration.md)                   | Not started — push BullsAI match results into ScoreBrawl; start with 1-v-n games                            |                                                                    |
 
 ## Done
 
