@@ -6,7 +6,7 @@ A notification inbox so users see streaks, new matches, achievements, and sessio
 
 ## Status
 
-Not implemented. The real-time toast layer is shipped (see `01-a-in-app-notifications.md`); the persistent inbox (bell, unread badge, list, mark-read) is remaining.
+Not implemented. The real-time toast layer is shipped (see `done/01-a-in-app-notifications.md`); the persistent inbox (bell, unread badge, list, mark-read) is remaining.
 
 ## Remaining scope
 

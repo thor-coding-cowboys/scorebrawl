@@ -1,5 +1,9 @@
 # Achievements Showcase & Celebration
 
+## Status
+
+Done (PR #661): all 13 achievement types surface on the player profile with earned/locked states and date earned; league-wide achievements board at `/leagues/$slug/achievements` renders from a single query; unlocking your own achievement fires a confetti celebration; `season_winner` is granted to top-scoring players when a season closes.
+
 ## Summary
 
 Surface the 13 achievement types already computed in the backend as visible, celebratory UI on profiles and league pages.
@@ -32,5 +36,5 @@ The achievement engine fully works but players never see it — profiles just sa
 
 ## Open questions / notes
 
-- `season_winner` achievement is declared but never computed — see 03-season-close-ceremony
-- Iconography: use Hugeicons; need a per-type icon mapping
+- `season_winner` is granted on season close (idempotently, all players tied at top score) — a full ceremony/podium view is story 03-season-close-ceremony
+- Iconography uses a per-type Hugeicons mapping in `achievementCatalog`

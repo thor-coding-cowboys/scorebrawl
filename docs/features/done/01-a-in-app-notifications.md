@@ -1,12 +1,12 @@
 # In-App Notifications (Shipped)
 
+## Status
+
+Done (PR #651): real-time toast notifications via season SSE — match result, match deleted, session started/ended, achievement unlocked.
+
 ## Summary
 
 Real-time toast notifications surfaced via the season SSE stream — match result, match deleted, session started/ended, achievement unlocked.
-
-## Status
-
-Shipped (PR #651): real-time toast notifications via season SSE — match result, match deleted, session started/ended, achievement unlocked.
 
 ## Why / Goal
 

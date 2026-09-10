@@ -1,5 +1,9 @@
 # Head-to-Head Rivalry Records on Player Profiles
 
+## Status
+
+Done (PR #630): player comparison page with head-to-head stats.
+
 ## Summary
 
 Show per-pair head-to-head records ("Emma vs Fatima: 5W–2L") on player profiles and a dedicated rivalry view.
