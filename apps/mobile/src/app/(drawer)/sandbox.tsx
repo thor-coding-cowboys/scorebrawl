@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
 	createAnimatedComponent,
+	useAnimatedProps,
 	useSharedValue,
 	useAnimatedStyle,
 	withRepeat,
@@ -32,6 +33,10 @@ const VERSIONS: { key: Version; label: string }[] = [
 ];
 
 const AnimatedSvg = createAnimatedComponent(Svg);
+const AnimatedPath = createAnimatedComponent(Path);
+
+const FLAME_PATH =
+	"M12 2C12 2 6 8.5 6 13.5C6 16.8 8.7 19.5 12 19.5C15.3 19.5 18 16.8 18 13.5C18 8.5 12 2 12 2ZM12 17C10.3 17 9 15.7 9 14C9 12 12 9 12 9C12 9 15 12 15 14C15 15.7 13.7 17 12 17Z";
 
 function FireParticle({ index, progress }: { index: number; progress: SharedValue<number> }) {
 	const xOffset = (index % 9) * (AVATAR_SIZE * 0.28) - AVATAR_SIZE * 1.12;
@@ -106,23 +111,23 @@ function FireV2Particle({ index, progress }: { index: number; progress: SharedVa
 		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
 		const dynamicSize = sizeSeed * scale;
 
-		const color = p < 0.2 ? "rgb(255, 240, 150)" : p < 0.5 ? "rgb(255, 140, 0)" : "rgb(255, 69, 0)";
-
 		return {
 			transform: [{ translateX }, { translateY }],
 			width: dynamicSize,
 			height: dynamicSize,
 			opacity: 1 - p,
-			tintColor: color,
 		};
+	});
+
+	const animatedProps = useAnimatedProps(() => {
+		const p = (progress.value + spawnDelay) % 1;
+		const color = p < 0.2 ? "rgb(255, 240, 150)" : p < 0.5 ? "rgb(255, 140, 0)" : "rgb(255, 69, 0)";
+		return { fill: color };
 	});
 
 	return (
 		<AnimatedSvg viewBox="0 0 24 24" style={[styles.particle, animatedStyle]}>
-			<Path
-				fill="black"
-				d="M12 2C12 2 6 8.5 6 13.5C6 16.8 8.7 19.5 12 19.5C15.3 19.5 18 16.8 18 13.5C18 8.5 12 2 12 2ZM12 17C10.3 17 9 15.7 9 14C9 12 12 9 12 9C12 9 15 12 15 14C15 15.7 13.7 17 12 17Z"
-			/>
+			<AnimatedPath animatedProps={animatedProps} d={FLAME_PATH} />
 		</AnimatedSvg>
 	);
 }
@@ -244,13 +249,13 @@ const styles = StyleSheet.create({
 	},
 	particle: {
 		position: "absolute",
-		left: AVATAR_SIZE * 1.25,
-		top: AVATAR_SIZE * 2.1,
+		left: AVATAR_SIZE / 2,
+		bottom: 0,
 	},
 	fireWrapper: {
 		position: "relative",
-		width: AVATAR_SIZE * 2.5,
-		height: AVATAR_SIZE * 2.6,
+		width: AVATAR_SIZE,
+		height: AVATAR_SIZE,
 		justifyContent: "center",
 		alignItems: "center",
 	},
