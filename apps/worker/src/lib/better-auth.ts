@@ -3,13 +3,7 @@ import { passkey } from "@better-auth/passkey";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-	organization,
-	admin,
-	bearer,
-	deviceAuthorization,
-	jwt,
-} from "better-auth/plugins";
+import { organization, admin, bearer, deviceAuthorization, jwt } from "better-auth/plugins";
 import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
@@ -346,14 +340,7 @@ export function createAuth({
 			oauthProvider({
 				loginPage: "/auth/sign-in",
 				consentPage: "/consent",
-				scopes: [
-					"openid",
-					"profile",
-					"email",
-					"offline_access",
-					"create:matches",
-					"read:matches",
-				],
+				scopes: ["openid", "profile", "email", "offline_access", "create:matches", "read:matches"],
 				resources: oauthResource ? [oauthResource] : [],
 				enforcePerClientResources: false,
 			}),

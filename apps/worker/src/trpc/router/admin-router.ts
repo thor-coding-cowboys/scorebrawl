@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { user, league as organization, member } from "../../db/schema/auth-schema";
+import { oauthClient } from "../../db/schema/auth-schema";
 import { season, match } from "../../db/schema/league-schema";
 import { desc, count, and, gte, lt, eq, sql } from "drizzle-orm";
 import type { SeedInput } from "../../services/seed";
@@ -210,4 +211,89 @@ export const adminRouter = createTRPCRouter({
 
 			return { queued: true };
 		}),
+
+	oauthClients: {
+		list: adminProcedure.query(async ({ ctx }) => {
+			return ctx.db
+				.select({
+					clientId: oauthClient.clientId,
+					name: oauthClient.name,
+					uri: oauthClient.uri,
+					redirectUris: oauthClient.redirectUris,
+					scopes: oauthClient.scopes,
+					grantTypes: oauthClient.grantTypes,
+					tokenEndpointAuthMethod: oauthClient.tokenEndpointAuthMethod,
+					applicationType: oauthClient.applicationType,
+					requirePKCE: oauthClient.requirePKCE,
+					skipConsent: oauthClient.skipConsent,
+					disabled: oauthClient.disabled,
+					createdAt: oauthClient.createdAt,
+					updatedAt: oauthClient.updatedAt,
+				})
+				.from(oauthClient)
+				.orderBy(desc(oauthClient.createdAt));
+		}),
+
+		create: adminProcedure
+			.input(
+				z.object({
+					name: z.string().min(1).max(100),
+					redirectUris: z.array(z.string().url()).min(1),
+					scopes: z
+						.array(z.string())
+						.default([
+							"openid",
+							"profile",
+							"email",
+							"offline_access",
+							"create:matches",
+							"read:matches",
+						]),
+					publicClient: z.boolean().default(true),
+					requirePkce: z.boolean().default(true),
+					skipConsent: z.boolean().default(false),
+				})
+			)
+			.mutation(async ({ ctx, input }) => {
+				const api = ctx.betterAuth.api as unknown as {
+					adminCreateOAuthClient: (opts: {
+						headers: Headers;
+						body: {
+							redirect_uris: string[];
+							scope: string;
+							client_name: string;
+							token_endpoint_auth_method: string;
+							application_type: string;
+							grant_types: string[];
+							require_pkce: boolean;
+							skip_consent: boolean;
+						};
+					}) => Promise<{ client_id: string; client_secret?: string | null }>;
+				};
+				const res = await api.adminCreateOAuthClient({
+					headers: ctx.headers,
+					body: {
+						redirect_uris: input.redirectUris,
+						scope: input.scopes.join(" "),
+						client_name: input.name,
+						token_endpoint_auth_method: input.publicClient ? "none" : "client_secret_basic",
+						application_type: "web",
+						grant_types: ["authorization_code", "refresh_token"],
+						require_pkce: input.requirePkce,
+						skip_consent: input.skipConsent,
+					},
+				});
+				return res;
+			}),
+
+		delete: adminProcedure
+			.input(z.object({ clientId: z.string().min(1) }))
+			.mutation(async ({ ctx, input }) => {
+				const deleted = await ctx.db
+					.delete(oauthClient)
+					.where(eq(oauthClient.clientId, input.clientId))
+					.returning({ clientId: oauthClient.clientId });
+				return { deleted: deleted.length > 0 };
+			}),
+	},
 });

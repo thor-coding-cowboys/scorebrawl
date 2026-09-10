@@ -75,11 +75,14 @@ export async function registerOAuthClient({
 	});
 
 	return {
-		clientId: (res as { client_id?: string; clientId?: string }).client_id ??
+		clientId:
+			(res as { client_id?: string; clientId?: string }).client_id ??
 			(res as { client_id?: string; clientId?: string }).clientId ??
 			"",
-		clientSecret: (res as { client_secret?: string | null; clientSecret?: string | null })
-			.client_secret ?? (res as { client_secret?: string | null; clientSecret?: string | null }).clientSecret ?? null,
+		clientSecret:
+			(res as { client_secret?: string | null; clientSecret?: string | null }).client_secret ??
+			(res as { client_secret?: string | null; clientSecret?: string | null }).clientSecret ??
+			null,
 		redirectUri,
 		scope,
 	};
@@ -110,21 +113,16 @@ export async function getAccessToken({
 	authorizeUrl.searchParams.set("resource", resource);
 
 	const authorizeRes = await SELF.fetch(authorizeUrl.toString(), {
-		headers: authHeaders(sessionToken),
+		headers: { ...authHeaders(sessionToken), Accept: "application/json" },
 		redirect: "manual",
 	});
 
-	if (authorizeRes.status !== 302) {
-		const body = await authorizeRes.text();
-		throw new Error(`Authorize failed (${authorizeRes.status}): ${body}`);
+	const authorizeJson = (await authorizeRes.json()) as { redirect?: boolean; url?: string };
+	if (!authorizeRes.ok || !authorizeJson.url) {
+		throw new Error(`Authorize failed (${authorizeRes.status}): ${JSON.stringify(authorizeJson)}`);
 	}
 
-	const rawLocation = authorizeRes.headers.get("location")!;
-	const location = new URL(rawLocation, "http://example.com");
-	await authorizeRes.body?.cancel();
-	if (!location.searchParams.get("code") && !acceptConsent) {
-		throw new Error(`Consent required. Location: ${location}`);
-	}
+	const location = new URL(authorizeJson.url, "http://example.com");
 	let code = location.searchParams.get("code");
 
 	// Consent flow: redirect points at the consent page; accept it server-side.
@@ -135,6 +133,7 @@ export async function getAccessToken({
 			headers: {
 				...authHeaders(sessionToken),
 				"Content-Type": "application/json",
+				Accept: "application/json",
 				Origin: "http://example.com",
 			},
 			body: JSON.stringify({
@@ -143,27 +142,15 @@ export async function getAccessToken({
 			}),
 			redirect: "manual",
 		});
-		if (consentRes.status !== 302) {
-			const body = await consentRes.text();
-			let consentUrlValue: string | null = null;
-			try {
-				consentUrlValue = (JSON.parse(body) as { url?: string }).url ?? null;
-			} catch {
-				// not json
-			}
-			if (!consentUrlValue) {
-				throw new Error(`Consent failed (${consentRes.status}): ${body}`);
-			}
-			code = new URL(consentUrlValue).searchParams.get("code");
-		} else {
-			await consentRes.body?.cancel();
-			const consentLocation = consentRes.headers.get("location")!;
-			code = new URL(consentLocation).searchParams.get("code");
+		const consentJson = (await consentRes.json()) as { redirect?: boolean; url?: string };
+		if (!consentRes.ok || !consentJson.url) {
+			throw new Error(`Consent failed (${consentRes.status}): ${JSON.stringify(consentJson)}`);
 		}
+		code = new URL(consentJson.url).searchParams.get("code");
 	}
 
 	if (!code) {
-		throw new Error(`No authorization code returned. Location: ${location}`);
+		throw new Error(`No authorization code returned. URL: ${location}`);
 	}
 
 	const tokenBody = new URLSearchParams({

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,7 @@ import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
 import { Route as AuthAuthForgotPasswordRouteImport } from './routes/_auth/auth/forgot-password'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
+import { Route as AuthenticatedAdminOauthClientsIndexRouteImport } from './routes/_authenticated/admin/oauth-clients/index'
 import { Route as AuthenticatedAdminLeaguesIndexRouteImport } from './routes/_authenticated/admin/leagues/index'
 import { Route as AuthenticatedSidebarLeaguesSlugRouteRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/route'
 import { Route as AuthenticatedSidebarLeaguesSlugIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/index'
@@ -45,6 +47,11 @@ import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRo
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/index'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdSummaryRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary'
 
+const ConsentRoute = ConsentRouteImport.update({
+  id: '/consent',
+  path: '/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -127,6 +134,12 @@ const AuthenticatedAdminUsersIndexRoute =
   AuthenticatedAdminUsersIndexRouteImport.update({
     id: '/users/',
     path: '/users/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminOauthClientsIndexRoute =
+  AuthenticatedAdminOauthClientsIndexRouteImport.update({
+    id: '/oauth-clients/',
+    path: '/oauth-clients/',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminLeaguesIndexRoute =
@@ -257,6 +270,7 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdSummaryRou
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/consent': typeof ConsentRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
@@ -270,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/admin/oauth-clients': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
@@ -291,6 +306,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/consent': typeof ConsentRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
@@ -303,6 +319,7 @@ export interface FileRoutesByTo {
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/admin/oauth-clients': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
@@ -325,6 +342,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/consent': typeof ConsentRoute
   '/_authenticated/_sidebar': typeof AuthenticatedSidebarRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_public/home': typeof PublicHomeRoute
@@ -339,6 +357,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/_authenticated/_sidebar/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugRouteRouteWithChildren
   '/_authenticated/admin/leagues/': typeof AuthenticatedAdminLeaguesIndexRoute
+  '/_authenticated/admin/oauth-clients/': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/_authenticated/_sidebar/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
@@ -362,6 +381,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/consent'
     | '/admin'
     | '/home'
     | '/accept-invitation/$invitationId'
@@ -375,6 +395,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/leagues/$slug'
     | '/admin/leagues'
+    | '/admin/oauth-clients'
     | '/admin/users'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
@@ -396,6 +417,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/consent'
     | '/admin'
     | '/home'
     | '/accept-invitation/$invitationId'
@@ -408,6 +430,7 @@ export interface FileRouteTypes {
     | '/leagues'
     | '/onboarding'
     | '/admin/leagues'
+    | '/admin/oauth-clients'
     | '/admin/users'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
@@ -429,6 +452,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/_authenticated'
+    | '/consent'
     | '/_authenticated/_sidebar'
     | '/_authenticated/admin'
     | '/_public/home'
@@ -443,6 +467,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding/'
     | '/_authenticated/_sidebar/leagues/$slug'
     | '/_authenticated/admin/leagues/'
+    | '/_authenticated/admin/oauth-clients/'
     | '/_authenticated/admin/users/'
     | '/_authenticated/_sidebar/leagues/$slug/invitations'
     | '/_authenticated/_sidebar/leagues/$slug/members'
@@ -467,6 +492,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ConsentRoute: typeof ConsentRoute
   PublicHomeRoute: typeof PublicHomeRoute
   AcceptInvitationInvitationIdRoute: typeof AcceptInvitationInvitationIdRoute
   DeviceIndexRoute: typeof DeviceIndexRoute
@@ -474,6 +500,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/consent': {
+      id: '/consent'
+      path: '/consent'
+      fullPath: '/consent'
+      preLoaderRoute: typeof ConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -584,6 +617,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/oauth-clients/': {
+      id: '/_authenticated/admin/oauth-clients/'
+      path: '/oauth-clients'
+      fullPath: '/admin/oauth-clients'
+      preLoaderRoute: typeof AuthenticatedAdminOauthClientsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/leagues/': {
@@ -844,12 +884,15 @@ const AuthenticatedSidebarRouteRouteWithChildren =
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminLeaguesIndexRoute: typeof AuthenticatedAdminLeaguesIndexRoute
+  AuthenticatedAdminOauthClientsIndexRoute: typeof AuthenticatedAdminOauthClientsIndexRoute
   AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminLeaguesIndexRoute: AuthenticatedAdminLeaguesIndexRoute,
+    AuthenticatedAdminOauthClientsIndexRoute:
+      AuthenticatedAdminOauthClientsIndexRoute,
     AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
   }
 
@@ -882,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ConsentRoute: ConsentRoute,
   PublicHomeRoute: PublicHomeRoute,
   AcceptInvitationInvitationIdRoute: AcceptInvitationInvitationIdRoute,
   DeviceIndexRoute: DeviceIndexRoute,

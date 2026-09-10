@@ -130,17 +130,14 @@ matchesV1Router.use("*", async (c, next) => {
 			new URL(c.req.raw.url).origin;
 		const basePath = (auth.options as { basePath?: string }).basePath ?? "/api/auth";
 		const issuer = `${baseUrl}${basePath}`;
-		const payload = (await verifyAccessTokenRequest(
-			requestToResourceInput(c.req.raw),
-			{
-				verifyOptions: {
-					issuer,
-					audience: c.env.OAUTH_RESOURCE,
-				},
-				requiredScopes: [requiredScope],
-				jwksUrl: (() => getJwksSet(c.get("db"))) as unknown as string,
-			}
-		)) as OAuthTokenPayload;
+		const payload = (await verifyAccessTokenRequest(requestToResourceInput(c.req.raw), {
+			verifyOptions: {
+				issuer,
+				audience: c.env.OAUTH_RESOURCE,
+			},
+			requiredScopes: [requiredScope],
+			jwksUrl: (() => getJwksSet(c.get("db"))) as unknown as string,
+		})) as OAuthTokenPayload;
 		c.set("oauthToken", payload);
 		await next();
 	} catch (error) {

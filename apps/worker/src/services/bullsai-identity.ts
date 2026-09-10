@@ -183,7 +183,9 @@ export async function resolveParticipantsToSeasonPlayers({
 
 	// Ensure a seasonPlayer row exists for every resolved player.
 	const missingPlayerIds = [
-		...new Set([...playerIdByParticipant.values()].filter((id) => !seasonPlayerIdsByPlayerId.has(id))),
+		...new Set(
+			[...playerIdByParticipant.values()].filter((id) => !seasonPlayerIdsByPlayerId.has(id))
+		),
 	];
 	if (missingPlayerIds.length > 0) {
 		const createdSeasonPlayers = await db

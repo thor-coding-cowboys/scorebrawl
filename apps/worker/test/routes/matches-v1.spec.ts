@@ -6,13 +6,7 @@ import { guest } from "../../src/db/schema/league-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
-import {
-	getAccessToken,
-	registerOAuthClient,
-	type OAuthTestClient,
-} from "../setup/oauth-util";
-
-const RESOURCE = "https://scorebrawl.com/api/v1";
+import { getAccessToken, registerOAuthClient } from "../setup/oauth-util";
 
 async function createOneVnSeason() {
 	const ctx = await createAuthContext();
@@ -57,7 +51,10 @@ describe("matches v1 public API", () => {
 		const [winner, ...losers] = seasonPlayers;
 
 		const oauthClient = await registerOAuthClient({ sessionToken: ctx.sessionToken });
-		const { accessToken } = await getAccessToken({ sessionToken: ctx.sessionToken, client: oauthClient });
+		const { accessToken } = await getAccessToken({
+			sessionToken: ctx.sessionToken,
+			client: oauthClient,
+		});
 
 		const res = await pushMatch({
 			leagueId: ctx.league.id,
@@ -89,7 +86,10 @@ describe("matches v1 public API", () => {
 		const { ctx, season, seasonPlayers } = await createOneVnSeason();
 		const [winner, ...losers] = seasonPlayers;
 		const oauthClient = await registerOAuthClient({ sessionToken: ctx.sessionToken });
-		const { accessToken } = await getAccessToken({ sessionToken: ctx.sessionToken, client: oauthClient });
+		const { accessToken } = await getAccessToken({
+			sessionToken: ctx.sessionToken,
+			client: oauthClient,
+		});
 
 		const body = {
 			gameId: "bullsai-game-dup",
@@ -126,7 +126,10 @@ describe("matches v1 public API", () => {
 		const { ctx, season, seasonPlayers } = await createOneVnSeason();
 		const [winner] = seasonPlayers;
 		const oauthClient = await registerOAuthClient({ sessionToken: ctx.sessionToken });
-		const { accessToken } = await getAccessToken({ sessionToken: ctx.sessionToken, client: oauthClient });
+		const { accessToken } = await getAccessToken({
+			sessionToken: ctx.sessionToken,
+			client: oauthClient,
+		});
 
 		const res = await pushMatch({
 			leagueId: ctx.league.id,
@@ -327,7 +330,10 @@ describe("matches v1 authorization", () => {
 		const { ctx, season, seasonPlayers } = await createOneVnSeason();
 		const [winner] = seasonPlayers;
 		const oauthClient = await registerOAuthClient({ sessionToken: ctx.sessionToken });
-		const { accessToken } = await getAccessToken({ sessionToken: ctx.sessionToken, client: oauthClient });
+		const { accessToken } = await getAccessToken({
+			sessionToken: ctx.sessionToken,
+			client: oauthClient,
+		});
 
 		const res = await pushMatch({
 			leagueId: ctx.league.id,
