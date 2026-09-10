@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
+	createAnimatedComponent,
 	useSharedValue,
 	useAnimatedStyle,
 	withRepeat,
@@ -9,6 +10,7 @@ import Animated, {
 	Easing,
 	type SharedValue,
 } from "react-native-reanimated";
+import Svg, { Path } from "react-native-svg";
 
 import { Avatar } from "@/components/avatar";
 import { StreakAvatar } from "@/components/streak-avatar";
@@ -17,27 +19,30 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 
-const PARTICLE_COUNT = 35;
+const PARTICLE_COUNT = 40;
 const ANIMATION_DURATION = 1600;
 const AVATAR_SIZE = 120;
 
-type Version = "border" | "fire-v1";
+type Version = "border" | "fire-v1" | "fire-v2";
 
 const VERSIONS: { key: Version; label: string }[] = [
 	{ key: "border", label: "Border" },
 	{ key: "fire-v1", label: "Fire V1" },
+	{ key: "fire-v2", label: "Fire V2" },
 ];
 
+const AnimatedSvg = createAnimatedComponent(Svg);
+
 function FireParticle({ index, progress }: { index: number; progress: SharedValue<number> }) {
-	const randomXSeed = Math.sin(index * 233.1) * (AVATAR_SIZE * 0.4);
-	const sizeSeed = 15 + Math.abs(Math.cos(index * 721.4)) * 25;
-	const spawnDelay = index / PARTICLE_COUNT;
+	const xOffset = (index % 9) * (AVATAR_SIZE * 0.28) - AVATAR_SIZE * 1.12;
+	const sizeSeed = 20 + Math.abs(Math.cos(index * 721.4)) * 32;
+	const spawnDelay = (index % PARTICLE_COUNT) / PARTICLE_COUNT;
 
 	const animatedStyle = useAnimatedStyle(() => {
 		const p = (progress.value + spawnDelay) % 1;
 
-		const translateY = -p * (AVATAR_SIZE * 1.3);
-		const translateX = Math.sin(p * 6 + index) * randomXSeed;
+		const translateY = -p * (AVATAR_SIZE * 2.2);
+		const translateX = xOffset + Math.sin(p * 6 + index) * AVATAR_SIZE * 0.2;
 		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
 		const dynamicSize = sizeSeed * scale;
 
@@ -47,8 +52,11 @@ function FireParticle({ index, progress }: { index: number; progress: SharedValu
 		return {
 			transform: [{ translateX }, { translateY }],
 			width: dynamicSize,
-			height: dynamicSize,
-			borderRadius: dynamicSize / 2,
+			height: dynamicSize * 1.5,
+			borderTopLeftRadius: 0,
+			borderTopRightRadius: 0,
+			borderBottomLeftRadius: dynamicSize * 0.6,
+			borderBottomRightRadius: dynamicSize * 0.6,
 			backgroundColor: color,
 			opacity: 1 - p,
 		};
@@ -76,6 +84,68 @@ function FireAvatar() {
 					index: i,
 				})).map((p) => (
 					<FireParticle key={p.key} index={p.index} progress={progress} />
+				))}
+			</View>
+			<View style={styles.avatarRim}>
+				<Avatar name="Test Player" size={AVATAR_SIZE} />
+			</View>
+		</View>
+	);
+}
+
+function FireV2Particle({ index, progress }: { index: number; progress: SharedValue<number> }) {
+	const randomXSeed = Math.sin(index * 443.1) * (AVATAR_SIZE * 0.65);
+	const sizeSeed = 25 + Math.abs(Math.cos(index * 812.7)) * 30;
+	const spawnDelay = index / PARTICLE_COUNT;
+
+	const animatedStyle = useAnimatedStyle(() => {
+		const p = (progress.value + spawnDelay) % 1;
+
+		const translateY = -p * (AVATAR_SIZE * 1.5);
+		const translateX = Math.sin(p * 7 + index) * randomXSeed;
+		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+		const dynamicSize = sizeSeed * scale;
+
+		const color = p < 0.2 ? "rgb(255, 240, 150)" : p < 0.5 ? "rgb(255, 140, 0)" : "rgb(255, 69, 0)";
+
+		return {
+			transform: [{ translateX }, { translateY }],
+			width: dynamicSize,
+			height: dynamicSize,
+			opacity: 1 - p,
+			tintColor: color,
+		};
+	});
+
+	return (
+		<AnimatedSvg viewBox="0 0 24 24" style={[styles.particle, animatedStyle]}>
+			<Path
+				fill="black"
+				d="M12 2C12 2 6 8.5 6 13.5C6 16.8 8.7 19.5 12 19.5C15.3 19.5 18 16.8 18 13.5C18 8.5 12 2 12 2ZM12 17C10.3 17 9 15.7 9 14C9 12 12 9 12 9C12 9 15 12 15 14C15 15.7 13.7 17 12 17Z"
+			/>
+		</AnimatedSvg>
+	);
+}
+
+function FireV2Avatar() {
+	const progress = useSharedValue(0);
+
+	useEffect(() => {
+		progress.value = withRepeat(
+			withTiming(1, { duration: ANIMATION_DURATION, easing: Easing.linear }),
+			-1,
+			false
+		);
+	}, [progress]);
+
+	return (
+		<View style={styles.fireWrapper}>
+			<View style={styles.fireLayer}>
+				{Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+					key: `fire2-${i}`,
+					index: i,
+				})).map((p) => (
+					<FireV2Particle key={p.key} index={p.index} progress={progress} />
 				))}
 			</View>
 			<View style={styles.avatarRim}>
@@ -135,6 +205,8 @@ export default function SandboxScreen() {
 						</>
 					) : version === "fire-v1" ? (
 						<FireAvatar />
+					) : version === "fire-v2" ? (
+						<FireV2Avatar />
 					) : null}
 				</View>
 			</SafeAreaView>
@@ -172,12 +244,13 @@ const styles = StyleSheet.create({
 	},
 	particle: {
 		position: "absolute",
-		bottom: AVATAR_SIZE * 0.1,
+		left: AVATAR_SIZE * 1.25,
+		top: AVATAR_SIZE * 2.1,
 	},
 	fireWrapper: {
 		position: "relative",
-		width: AVATAR_SIZE,
-		height: AVATAR_SIZE,
+		width: AVATAR_SIZE * 2.5,
+		height: AVATAR_SIZE * 2.6,
 		justifyContent: "center",
 		alignItems: "center",
 	},
