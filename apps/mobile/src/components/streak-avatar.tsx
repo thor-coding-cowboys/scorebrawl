@@ -1,20 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, {
-	useAnimatedStyle,
-	useDerivedValue,
-	useSharedValue,
-	withRepeat,
-	withTiming,
-} from "react-native-reanimated";
-import { Canvas, Circle, Group, RadialGradient } from "@shopify/react-native-skia";
+import { useDerivedValue, useFrameCallback, useSharedValue } from "react-native-reanimated";
+import { Canvas, Circle, RadialGradient } from "@shopify/react-native-skia";
 
 import { Avatar } from "@/components/avatar";
 
 type StreakType = "fire" | "ice" | "none";
-
-const FIRE_COLORS = ["#ffd700", "#ff8c00", "#ff4500", "#ffcc00"];
-const ICE_COLORS = ["#e0f7ff", "#7dd3fc", "#38bdf8", "#a5f3fc"];
 
 function getStreakType(streak: number): StreakType {
 	if (streak >= 5) return "fire";
@@ -29,160 +20,124 @@ interface StreakAvatarProps {
 	streak: number;
 }
 
-function useSpin(duration: number, reverse = false) {
-	const progress = useSharedValue(0);
-	useEffect(() => {
-		progress.value = withRepeat(withTiming(1, { duration }), -1, false);
-	}, [duration, progress]);
-	return useDerivedValue(() => (reverse ? -progress.value * 360 : progress.value * 360));
-}
+const FIRE_GLOW = ["rgba(255,140,0,0.6)", "rgba(255,60,0,0.2)", "rgba(255,60,0,0)"];
+const ICE_GLOW = ["rgba(125,211,252,0.55)", "rgba(56,189,248,0.18)", "rgba(56,189,248,0)"];
 
-function usePulse(duration: number) {
-	const pulse = useSharedValue(0);
-	useEffect(() => {
-		pulse.value = withRepeat(withTiming(1, { duration }), -1, true);
-	}, [duration, pulse]);
-	return pulse;
+function useClock() {
+	const clock = useSharedValue(0);
+	useFrameCallback((info) => {
+		clock.value = info.timeSinceFirstFrame;
+	});
+	return clock;
 }
 
 function FireEffect() {
-	const pulse = usePulse(1600);
-	const rotation = useSpin(4000);
+	const clock = useClock();
 
-	const ringRotation = useDerivedValue(() => [{ rotate: rotation.value }]);
-
-	const sparks = useMemo(() => {
-		return Array.from({ length: 14 }, (_, i) => {
-			const angle = (i / 14) * Math.PI * 2;
-			return {
-				angle,
-				radius: 17 + (i % 3) * 2,
-				length: i % 4 === 0 ? 7 : 3,
-				color: FIRE_COLORS[i % FIRE_COLORS.length],
-			};
-		});
+	const embers = useMemo(() => {
+		return Array.from({ length: 18 }, (_, i) => ({
+			x: 6 + (i % 6) * 6.4,
+			speed: 0.06 + (i % 5) * 0.02,
+			phase: (i / 18) * 2 * Math.PI,
+			sway: 1.5 + (i % 3),
+			size: 1.6 + (i % 4) * 0.7,
+			colors: ["#ffd700", "#ff8c00", "#ff4500", "#ffb300"],
+		}));
 	}, []);
 
 	return (
-		<>
-			<Canvas style={styles.canvas}>
-				<Group>
-					<Circle cx={22} cy={22} r={21}>
-						<RadialGradient
-							c={{ x: 22, y: 22 }}
-							r={21}
-							colors={["rgba(255,120,0,0.55)", "rgba(255,60,0,0.18)", "rgba(255,60,0,0)"]}
-						/>
-					</Circle>
-				</Group>
+		<Canvas style={styles.canvas}>
+			<Circle cx={22} cy={22} r={21}>
+				<RadialGradient c={{ x: 22, y: 22 }} r={21} colors={FIRE_GLOW} />
+			</Circle>
 
-				<Group transform={ringRotation}>
-					{sparks.map((spark) => (
-						<Group
-							key={spark.angle}
-							transform={[
-								{ translateX: 22 + spark.radius * Math.cos(spark.angle) },
-								{ translateY: 22 + spark.radius * Math.sin(spark.angle) },
-								{ rotate: spark.angle + Math.PI / 2 },
-							]}
-						>
-							<Circle cx={0} cy={0} r={spark.length * 0.5} color={spark.color} opacity={0.9} />
-						</Group>
-					))}
-				</Group>
+			{embers.map((ember, i) => {
+				const rise = useDerivedValue(() => {
+					const t = (clock.value * ember.speed + ember.phase) % (2 * Math.PI);
+					return (Math.sin(t) + 1) / 2;
+				});
+				const cy = useDerivedValue(() => 36 - rise.value * 30);
+				const cx = useDerivedValue(
+					() => 22 + Math.sin(clock.value * 0.004 + ember.phase) * ember.sway
+				);
+				const opacity = useDerivedValue(() => rise.value * 0.9);
+				const size = useDerivedValue(() => ember.size * (0.4 + rise.value * 0.6));
 
-				<Circle cx={22} cy={38} r={2.5} color="#ff8c00" opacity={0.6} />
-				<Circle cx={14} cy={37} r={2} color="#ffd700" opacity={0.5} />
-				<Circle cx={30} cy={37} r={2} color="#ff4500" opacity={0.5} />
-			</Canvas>
-			<Animated.View
-				style={[
-					styles.pulseRing,
-					{
-						borderColor: "#f97316",
-						shadowColor: "#f97316",
-					},
-					useAnimatedStyle(() => ({
-						opacity: 0.5 + pulse.value * 0.5,
-						transform: [{ scale: 1 + pulse.value * 0.06 }],
-					})),
-				]}
-			/>
-		</>
+				return (
+					<Circle
+						key={ember.phase}
+						cx={cx}
+						cy={cy}
+						r={size}
+						color={ember.colors[i % ember.colors.length]}
+						opacity={opacity}
+					/>
+				);
+			})}
+
+			<Circle cx={22} cy={22} r={18}>
+				<RadialGradient
+					c={{ x: 22, y: 22 }}
+					r={18}
+					colors={["rgba(255,200,100,0.12)", "rgba(255,100,0,0.06)", "rgba(255,100,0,0)"]}
+				/>
+			</Circle>
+		</Canvas>
 	);
 }
 
 function IceEffect() {
-	const pulse = usePulse(1800);
-	const rotation = useSpin(5200, true);
+	const clock = useClock();
 
-	const ringRotation = useDerivedValue(() => [{ rotate: rotation.value }]);
-
-	const shards = useMemo(() => {
-		return Array.from({ length: 16 }, (_, i) => {
-			const angle = (i / 16) * Math.PI * 2;
-			return {
-				angle,
-				radius: 18,
-				height: i % 3 === 0 ? 9 : 5,
-				color: ICE_COLORS[i % ICE_COLORS.length],
-			};
-		});
+	const crystals = useMemo(() => {
+		return Array.from({ length: 16 }, (_, i) => ({
+			x: 6 + (i % 5) * 7.5,
+			speed: 0.05 + (i % 4) * 0.018,
+			phase: (i / 16) * 2 * Math.PI,
+			drift: 1.5 + (i % 3),
+			size: 1.4 + (i % 4) * 0.6,
+			colors: ["#e0f7ff", "#7dd3fc", "#38bdf8", "#a5f3fc"],
+		}));
 	}, []);
 
 	return (
-		<>
-			<Canvas style={styles.canvas}>
-				<Group>
-					<Circle cx={22} cy={22} r={21}>
-						<RadialGradient
-							c={{ x: 22, y: 22 }}
-							r={21}
-							colors={["rgba(125,211,252,0.5)", "rgba(56,189,248,0.16)", "rgba(56,189,248,0)"]}
-						/>
-					</Circle>
-				</Group>
+		<Canvas style={styles.canvas}>
+			<Circle cx={22} cy={22} r={21}>
+				<RadialGradient c={{ x: 22, y: 22 }} r={21} colors={ICE_GLOW} />
+			</Circle>
 
-				<Group transform={ringRotation}>
-					{shards.map((shard) => (
-						<Group
-							key={shard.angle}
-							transform={[
-								{ translateX: 22 + shard.radius * Math.cos(shard.angle) },
-								{ translateY: 22 + shard.radius * Math.sin(shard.angle) },
-								{ rotate: shard.angle + Math.PI / 2 },
-							]}
-						>
-							<Circle cx={0} cy={0} r={shard.height * 0.22} color={shard.color} opacity={0.85} />
-							<Circle
-								cx={0}
-								cy={shard.height * 0.5}
-								r={shard.height * 0.14}
-								color={shard.color}
-								opacity={0.5}
-							/>
-						</Group>
-					))}
-				</Group>
+			{crystals.map((crystal, i) => {
+				const fall = useDerivedValue(() => {
+					const t = (clock.value * crystal.speed + crystal.phase) % (2 * Math.PI);
+					return (Math.sin(t) + 1) / 2;
+				});
+				const cy = useDerivedValue(() => 8 + fall.value * 30);
+				const cx = useDerivedValue(
+					() => 22 + Math.sin(clock.value * 0.0035 + crystal.phase * 2) * crystal.drift
+				);
+				const opacity = useDerivedValue(() => 0.3 + fall.value * 0.7);
+				const size = useDerivedValue(() => crystal.size * (1 - fall.value * 0.4));
 
-				<Circle cx={22} cy={6} r={2} color="#bae6fd" opacity={0.7} />
-				<Circle cx={15} cy={8} r={1.5} color="#7dd3fc" opacity={0.6} />
-				<Circle cx={29} cy={7} r={1.8} color="#a5f3fc" opacity={0.6} />
-			</Canvas>
-			<Animated.View
-				style={[
-					styles.pulseRing,
-					{
-						borderColor: "#38bdf8",
-						shadowColor: "#38bdf8",
-					},
-					useAnimatedStyle(() => ({
-						opacity: 0.5 + pulse.value * 0.5,
-						transform: [{ scale: 1 + pulse.value * 0.06 }],
-					})),
-				]}
-			/>
-		</>
+				return (
+					<Circle
+						key={crystal.phase}
+						cx={cx}
+						cy={cy}
+						r={size}
+						color={crystal.colors[i % crystal.colors.length]}
+						opacity={opacity}
+					/>
+				);
+			})}
+
+			<Circle cx={22} cy={22} r={18}>
+				<RadialGradient
+					c={{ x: 22, y: 22 }}
+					r={18}
+					colors={["rgba(190,230,255,0.12)", "rgba(120,190,255,0.06)", "rgba(120,190,255,0)"]}
+				/>
+			</Circle>
+		</Canvas>
 	);
 }
 
@@ -215,15 +170,5 @@ const styles = StyleSheet.create({
 		left: 0,
 		width: 44,
 		height: 44,
-	},
-	pulseRing: {
-		position: "absolute",
-		width: 40,
-		height: 40,
-		borderRadius: 12,
-		borderWidth: 1.5,
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.5,
-		shadowRadius: 6,
 	},
 });
