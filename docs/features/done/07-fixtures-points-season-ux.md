@@ -1,5 +1,9 @@
 # Fixtures & Points-Season (3-1-0) UX
 
+## Status
+
+Done: round-robin fixtures + inline score entry.
+
 ## Summary
 
 Polish the round-robin / scheduled-match experience for 3-1-0 points seasons. Fixtures are auto-generated but have minimal UI and no easy way to enter results.

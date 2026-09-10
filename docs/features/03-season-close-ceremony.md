@@ -1,8 +1,12 @@
 # Season Close Ceremony & Champion Crowning
 
+## Status
+
+Partial — `season_winner` achievement is granted on close (PR #661, idempotently, to all players tied at top score). The ceremony/podium view is not started.
+
 ## Summary
 
-A satisfying end-of-season flow: closing a season crowns the champion, awards the `season_winner` achievement (currently declared but never computed), and shows a podium/ceremony view.
+A satisfying end-of-season flow: closing a season crowns the champion and shows a podium/ceremony view.
 
 ## Why / Goal
 
@@ -28,7 +32,7 @@ Seasons can currently be closed ("Lock Season") but nothing celebrates the resul
 - Closing a season awards `season_winner` exactly once to the champion
 - Champion/ceremony view renders with final standings
 - Re-opening a closed season and re-closing does not duplicate achievements
-- Pairs with 02-achievements-showcase for display
+- Pairs with `done/02-achievements-showcase.md` for display
 
 ## Open questions / notes
 

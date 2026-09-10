@@ -1,5 +1,9 @@
 # Guest Player Claiming Journey
 
+## Status
+
+Done (PRs #589, #597): guest create + claim-on-signup via invite email.
+
 ## Summary
 
 Make the existing guest→registered-user claim flow a first-class, discoverable experience instead of relying purely on invitation emails.

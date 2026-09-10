@@ -1,5 +1,9 @@
 # Manual Session Lineup Assist
 
+## Status
+
+Done (PR #608): `manual` rotation mode with lineup picker.
+
 ## Summary
 
 Make the `manual` rotation mode functional: it currently has no auto lineup — `computeManualLineup()` returns `null`, so the "Next Match" panel is empty.
