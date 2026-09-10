@@ -58,7 +58,21 @@ const app = new Hono<HonoEnv>()
 	});
 
 export default {
-	fetch: app.fetch,
+	fetch: async (request, env, ctx) => {
+		try {
+			return await app.fetch(request, env, ctx);
+		} catch (error) {
+			console.error("[fetch] uncaught error", error);
+			return new Response(
+				JSON.stringify({
+					error: "uncaught",
+					message: (error as Error)?.message,
+					stack: (error as Error)?.stack,
+				}),
+				{ status: 500, headers: { "Content-Type": "application/json" } }
+			);
+		}
+	},
 	async queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {
 		const db = getDb(env.DB);
 		for (const msg of batch.messages) {
