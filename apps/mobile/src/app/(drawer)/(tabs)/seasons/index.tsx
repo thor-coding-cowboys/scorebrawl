@@ -31,7 +31,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 import { formatDate, getSeasonStatus } from "@/lib/collections/season";
-import { trpcClient, useTRPC, type RouterOutput } from "@/lib/trpc";
+import { trpcClient, type RouterOutput } from "@/lib/trpc";
 
 function StatusPill({
 	status,
@@ -405,7 +405,6 @@ function EditSeasonModal({
 }
 
 export default function SeasonsScreen() {
-	const trpc = useTRPC();
 	const screenRouter = useRouter();
 	const queryClient = useQueryClient();
 	const [editingSeason, setEditingSeason] = useState<SeasonListItem | null>(null);
@@ -417,7 +416,10 @@ export default function SeasonsScreen() {
 		isLoading,
 		isError,
 		refetch,
-	} = useQuery(trpc.season.getAll.queryOptions());
+	} = useQuery({
+		queryKey: ["season", "getAll"],
+		queryFn: () => trpcClient.season.getAll.query(),
+	});
 
 	const handlePress = (slug: string) => {
 		if (!slug) {
