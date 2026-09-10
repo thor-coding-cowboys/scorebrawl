@@ -6,17 +6,20 @@ import Animated, {
 	useAnimatedStyle,
 	withRepeat,
 	withTiming,
+	Easing,
 	type SharedValue,
 } from "react-native-reanimated";
 
+import { Avatar } from "@/components/avatar";
 import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 
-const PARTICLE_COUNT = 40;
-const ANIMATION_DURATION = 1500;
+const PARTICLE_COUNT = 35;
+const ANIMATION_DURATION = 1600;
+const AVATAR_SIZE = 120;
 
 type Version = "border" | "fire-v1";
 
@@ -25,19 +28,21 @@ const VERSIONS: { key: Version; label: string }[] = [
 	{ key: "fire-v1", label: "Fire V1" },
 ];
 
-function FireV1Particle({ index, progress }: { index: number; progress: SharedValue<number> }) {
-	const randomXSeed = Math.sin(index * 452.3) * 40;
-	const sizeSeed = 20 + Math.abs(Math.cos(index * 943.1)) * 30;
-	const speedDelay = index / PARTICLE_COUNT;
+function FireParticle({ index, progress }: { index: number; progress: SharedValue<number> }) {
+	const randomXSeed = Math.sin(index * 233.1) * (AVATAR_SIZE * 0.4);
+	const sizeSeed = 15 + Math.abs(Math.cos(index * 721.4)) * 25;
+	const spawnDelay = index / PARTICLE_COUNT;
 
 	const animatedStyle = useAnimatedStyle(() => {
-		const p = (progress.value + speedDelay) % 1;
-		const translateY = -p * 220;
-		const translateX = Math.sin(p * 5 + index) * randomXSeed;
-		const scale = p < 0.2 ? p / 0.2 : 1 - (p - 0.2) / 0.8;
+		const p = (progress.value + spawnDelay) % 1;
+
+		const translateY = -p * (AVATAR_SIZE * 1.3);
+		const translateX = Math.sin(p * 6 + index) * randomXSeed;
+		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
 		const dynamicSize = sizeSeed * scale;
-		const color = p < 0.2 ? "rgb(255, 230, 100)" : p < 0.6 ? "rgb(255, 120, 0)" : "rgb(255, 69, 0)";
-		const opacity = 1 - p;
+
+		const color =
+			p < 0.25 ? "rgb(255, 220, 90)" : p < 0.65 ? "rgb(255, 110, 0)" : "rgb(255, 69, 0)";
 
 		return {
 			transform: [{ translateX }, { translateY }],
@@ -45,36 +50,43 @@ function FireV1Particle({ index, progress }: { index: number; progress: SharedVa
 			height: dynamicSize,
 			borderRadius: dynamicSize / 2,
 			backgroundColor: color,
-			opacity,
+			opacity: 1 - p,
 		};
 	});
 
 	return <Animated.View style={[styles.particle, animatedStyle]} />;
 }
 
-function FireV1Effect() {
+function FireAvatar() {
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
-		progress.value = withRepeat(withTiming(1, { duration: ANIMATION_DURATION }), -1, false);
+		progress.value = withRepeat(
+			withTiming(1, { duration: ANIMATION_DURATION, easing: Easing.linear }),
+			-1,
+			false
+		);
 	}, [progress]);
 
-	const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-		key: `fire-${i}`,
-		index: i,
-	}));
-
 	return (
-		<View style={styles.fireBase}>
-			{particles.map((p) => (
-				<FireV1Particle key={p.key} index={p.index} progress={progress} />
-			))}
+		<View style={styles.fireWrapper}>
+			<View style={styles.fireLayer}>
+				{Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+					key: `fire-${i}`,
+					index: i,
+				})).map((p) => (
+					<FireParticle key={p.key} index={p.index} progress={progress} />
+				))}
+			</View>
+			<View style={styles.avatarRim}>
+				<Avatar name="Test Player" size={AVATAR_SIZE} />
+			</View>
 		</View>
 	);
 }
 
 export default function SandboxScreen() {
-	const [version, setVersion] = useState<Version>("border");
+	const [version, setVersion] = useState<Version>("fire-v1");
 	const [streak, setStreak] = useState(6);
 
 	return (
@@ -122,7 +134,7 @@ export default function SandboxScreen() {
 							</View>
 						</>
 					) : version === "fire-v1" ? (
-						<FireV1Effect />
+						<FireAvatar />
 					) : null}
 				</View>
 			</SafeAreaView>
@@ -160,18 +172,35 @@ const styles = StyleSheet.create({
 	},
 	particle: {
 		position: "absolute",
-		bottom: 0,
+		bottom: AVATAR_SIZE * 0.1,
 	},
-	fireBase: {
+	fireWrapper: {
 		position: "relative",
-		width: 60,
-		height: 20,
+		width: AVATAR_SIZE,
+		height: AVATAR_SIZE,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	fireLayer: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 1,
 		shadowColor: "#ff4500",
 		shadowOffset: { width: 0, height: -4 },
 		shadowOpacity: 0.8,
 		shadowRadius: 30,
 		elevation: 20,
+	},
+	avatarRim: {
+		zIndex: 2,
+		borderRadius: AVATAR_SIZE * 0.2,
+		borderWidth: 3,
+		borderColor: "#ff6a00",
+		overflow: "hidden",
 	},
 });
