@@ -24,6 +24,13 @@ import { trpcServer } from "./trpc/server";
 const app = new Hono<HonoEnv>()
 	.use("*", contextStorage())
 	.use("*", contextMiddleware)
+	.onError((err, c) => {
+		console.error("[worker error]", err);
+		return c.json(
+			{ error: "Internal Server Error", message: (err as Error)?.message, stack: (err as Error)?.stack },
+			500
+		);
+	})
 	.use(
 		"/api/*",
 		cors({
