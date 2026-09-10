@@ -336,7 +336,15 @@ export function createAuth({
 				verificationUri: "/device",
 				schema: {},
 			}),
-			jwt(),
+			jwt({
+				jwks: {
+					// Preview deployments rotate BETTER_AUTH_SECRET on every deploy,
+					// which would make encrypted private keys undecryptable (500 on
+					// session lookups). Store signing keys unencrypted so secret
+					// rotation never breaks token signing/verification.
+					disablePrivateKeyEncryption: true,
+				},
+			}),
 			oauthProvider({
 				loginPage: "/auth/sign-in",
 				consentPage: "/consent",

@@ -24,13 +24,6 @@ import { trpcServer } from "./trpc/server";
 const app = new Hono<HonoEnv>()
 	.use("*", contextStorage())
 	.use("*", contextMiddleware)
-	.onError((err, c) => {
-		console.error("[worker error]", err);
-		return c.json(
-			{ error: "Internal Server Error", message: (err as Error)?.message, stack: (err as Error)?.stack },
-			500
-		);
-	})
 	.use(
 		"/api/*",
 		cors({
@@ -58,21 +51,7 @@ const app = new Hono<HonoEnv>()
 	});
 
 export default {
-	fetch: async (request: Request, env: Env, ctx: ExecutionContext) => {
-		try {
-			return await app.fetch(request, env, ctx);
-		} catch (error) {
-			console.error("[fetch] uncaught error", error);
-			return new Response(
-				JSON.stringify({
-					error: "uncaught",
-					message: (error as Error)?.message,
-					stack: (error as Error)?.stack,
-				}),
-				{ status: 500, headers: { "Content-Type": "application/json" } }
-			);
-		}
-	},
+	fetch: app.fetch,
 	async queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {
 		const db = getDb(env.DB);
 		for (const msg of batch.messages) {
