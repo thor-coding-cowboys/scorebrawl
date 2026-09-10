@@ -9,6 +9,8 @@ import { Spacing } from "@/constants/theme";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
+const Separator = () => <View style={styles.separator} />;
+
 export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const [cookie, setCookie] = useState<string | undefined>();
@@ -38,6 +40,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 			renderItem={({ item, index }) => (
 				<StandingRow item={item} rank={index + 1} headers={avatarHeaders} />
 			)}
+			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
 			ListEmptyComponent={
 				standingsQuery.isPending ? (
@@ -66,6 +69,11 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 const styles = StyleSheet.create({
 	list: {
 		paddingBottom: Spacing.four,
+	},
+	separator: {
+		height: StyleSheet.hairlineWidth,
+		backgroundColor: "rgba(128,128,128,0.25)",
+		marginLeft: 44,
 	},
 	empty: {
 		textAlign: "center",
