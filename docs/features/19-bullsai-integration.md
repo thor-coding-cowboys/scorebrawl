@@ -30,16 +30,24 @@ Near-identical stack on both sides: **Cloudflare Workers + Hono + D1 + better-au
 ### 1. ScoreBrawl as OAuth provider
 
 - Add the **OAuth Provider plugin** — `@better-auth/oauth-provider` (`oauthProvider()`), the better-auth 1.7 successor to the removed `oidcProvider`. It provides authorization-code flow, PKCE, public + confidential clients, refresh tokens, an OAuth consent screen, UserInfo, and JWKS for token verification.
-- Register BullsAI as a trusted OAuth client (client id/secret via env config or dynamic registration). Configure the login page (ScoreBrawl's `/auth/sign-in`) and consent UI.
-- Access tokens are JWTs signed by ScoreBrawl; `sub` = ScoreBrawl user id.
+- Scopes: `create:matches` and `read:matches` (Phase 1); future Phase 2 reads add e.g. `leagues:read`, `standings:read`.
+- Client registration: support **dynamic client registration (DCR)** (`allowDynamicClientRegistration`, `allowUnauthenticatedClientRegistration`) in addition to a trusted BullsAI client.
+- Configure the login page (ScoreBrawl's `/auth/sign-in`) and consent UI.
+- Access tokens are JWTs signed by ScoreBrawl; `sub` = ScoreBrawl user id, `scope` = granted scopes.
 
-### 2. Public receiving API
+### 2. Public matches API
 
-Add a Hono route e.g. `POST /api/v1/integrations/bullsai/matches` (zod-validated per AGENTS.md):
+Native **Hono** endpoints (zod-validated with `@hono/zod-validator` per AGENTS.md, not tRPC). League and season are in the URL path, so the target is explicit:
 
-- Auth: `Authorization: Bearer <OAuth access token>` — ScoreBrawl validates the JWT (its own JWKS), resolves `sub` → user → league membership. No session cookie needed.
-- Payload: `gameId` (used as ScoreBrawl `match.id` for idempotency), game type, `winner`, `losers`, final scores, timestamp, per-player identities, optional stats (average, 180s, checkout, darts thrown).
+```
+POST /api/leagues/:leagueId/seasons/:seasonId/matches/v1   (scope: create:matches)
+GET  /api/leagues/:leagueId/seasons/:seasonId/matches/v1   (scope: read:matches)
+```
+
+- Auth: `Authorization: Bearer <OAuth access token>` — ScoreBrawl validates the JWT (its own JWKS), checks the required scope, and resolves `sub` → user → league membership. No session cookie needed.
+- POST body: `gameId` (used as ScoreBrawl `match.id` for idempotency), game type, `winner`, `losers`, final scores, timestamp, per-player identities, optional stats (average, 180s, checkout, darts thrown).
 - Internally map to the existing `match.createOneVn` flow (winner → home of 1, losers → away of N), which already handles ELO, standings, achievements, and SSE broadcast. Reuse `finalizeMatchCreation`.
+- GET returns matches for the season (read side feeds BullsAI lobby/Phase 2 context).
 
 ### 3. Player identity resolution
 
@@ -51,12 +59,12 @@ BullsAI game participants (users or seats) must resolve to ScoreBrawl **seasonPl
 
 ### 4. Season/league targeting
 
-A pushed result must know which ScoreBrawl league + season to land in. Recommend explicit `leagueSlug` + `seasonSlug` selected in the BullsAI lobby/venue config ("this board feeds league X season Y"), defaulting to the target league's active season (`season.findActive`) when not set.
+League and season are in the URL path (`/api/leagues/:leagueId/seasons/:seasonId/matches/v1`), so the result lands in an explicit target. The BullsAI link/lobby flow selects a league + season and stores their **ids** (`leagueId`, `seasonId`) per board/lobby config. No slug guessing or active-season fallback on the receiving side.
 
 ## BullsAI side (coordinated with #328)
 
-- **Profile:** "Link Scorebrawl" → authorization-code + PKCE redirect to ScoreBrawl → sign-in/consent → callback → BullsAI exchanges code for access + refresh token. Store link (`bullsai_user_id` ↔ ScoreBrawl token pair) + a link-idempotency key per game.
-- **Lobby:** if the lobby owner (or board) has a linked ScoreBrawl account, show a season/league selector + "automatically register games" toggle. On game completion (`GameRoom.persistCommand`), push the result with the stored access token; refresh the token on 401 and retry.
+- **Profile:** "Link Scorebrawl" → authorization-code + PKCE redirect to ScoreBrawl → sign-in/consent → callback → BullsAI exchanges code for access + refresh token (scopes `create:matches`, `read:matches`). Store link (`bullsai_user_id` ↔ ScoreBrawl token pair) + a link-idempotency key per game.
+- **Lobby:** if the lobby owner (or board) has a linked ScoreBrawl account, show a league/season selector (resolves to `leagueId` + `seasonId`) + "automatically register games" toggle. On game completion (`GameRoom.persistCommand`), push the result to `POST /api/leagues/:leagueId/seasons/:seasonId/matches/v1` with the stored access token; refresh the token on 401 and retry.
 - Storage: an `integration_link` table on the BullsAI side (owns the tokens, can revoke). Optionally mirror the link id in ScoreBrawl for display.
 
 ## Out of scope (Phases 2–3, later)
@@ -69,9 +77,9 @@ A pushed result must know which ScoreBrawl league + season to land in. Recommend
 
 **ScoreBrawl:**
 
-- `apps/worker/src/lib/better-auth.ts` — add `oauthProvider()` from `@better-auth/oauth-provider`; register BullsAI client; consent/login page wiring
+- `apps/worker/src/lib/better-auth.ts` — add `oauthProvider()` from `@better-auth/oauth-provider`; scopes `create:matches`/`read:matches`; DCR enabled; consent/login page wiring
 - `apps/worker/src/trpc/router/match-router.ts` — `createOneVn` (+ `create`), `finalizeMatchCreation`
-- `apps/worker/src/routes/` — new `v1-router.ts` (public, bearer-auth); mount in `apps/worker/src/index.ts`
+- `apps/worker/src/routes/` — new `matches-v1.ts` Hono router (bearer + scope auth); mount at `/api/leagues/:leagueId/seasons/:seasonId/matches/v1` in `apps/worker/src/index.ts`
 - `apps/worker/src/db/schema/league-schema.ts` — `player`, `guest`, `seasonPlayer`; OAuth client/token tables come from the plugin migration (`bun db:generate` / `db:migrate`)
 - Guest-claim precedent for email resolution: `apps/worker/src/lib/better-auth.ts` user-create hook
 
@@ -84,18 +92,18 @@ A pushed result must know which ScoreBrawl league + season to land in. Recommend
 
 ## Acceptance criteria (Phase 1)
 
-- A BullsAI user can link their ScoreBrawl account from their BullsAI profile via authorization-code + PKCE OAuth, with an explicit consent screen; tokens refresh automatically.
+- A BullsAI user can link their ScoreBrawl account from their BullsAI profile via authorization-code + PKCE OAuth (scopes `create:matches`, `read:matches`), with an explicit consent screen; tokens refresh automatically.
 - Completing a 1-v-n game on BullsAI creates a match in the configured ScoreBrawl season automatically — correct winner/losers, ELO + standings update, no manual entry.
 - Idempotent: replaying a game push cannot duplicate the match (BullsAI `gameId` = ScoreBrawl `match.id`).
 - Unresolved participants fail the push with a clear error; nothing is silently dropped.
-- Public API rejects missing/expired/invalid bearer tokens; JWKS verification works.
-- Integration tests (Vitest, `apps/worker/test/trpc/` pattern): OAuth link/consent, push→match mapping, idempotency, bearer validation, unresolved-player rejection.
+- `POST` requires `create:matches`, `GET` requires `read:matches`; missing scope → `403 insufficient_scope`; missing/expired/invalid bearer token → `401` with `WWW-Authenticate`; JWKS verification works.
+- Integration tests (Vitest, `apps/worker/test/trpc/` pattern): OAuth link/consent, push→match mapping, idempotency, bearer + scope validation, unresolved-player rejection.
 
 ## Open questions
 
 - Verify `@better-auth/oauth-provider` compatibility with the pinned better-auth catalog version (1.7.2) before committing; may need a bump.
-- Which OAuth client registration model — env-configured trusted client (BullsAI only) vs dynamic registration endpoint?
-- Scopes: e.g. `profile`, `leagues:read`, `matches:write` — granularity for future Phase 2 reads.
+- DCR: accept fully unauthenticated registration, or require a shared registration token/secret for trusted-only public clients?
+- Which scopes beyond `create:matches`/`read:matches` for Phase 2 reads (e.g. `leagues:read`, `standings:read`)?
 - Where does the link live — BullsAI-side table (recommended) vs mirrored in ScoreBrawl?
 - Payload format — JSON webhook; should it mirror the MCP tool schemas or BullsAI #328 RFC?
 - Game-type mapping beyond 1-v-n: x01/cricket → which ScoreBrawl score types?
