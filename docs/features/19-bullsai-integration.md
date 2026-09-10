@@ -104,7 +104,7 @@ League and season are in the URL path (`/api/leagues/:leagueId/seasons/:seasonId
 - ~~Verify `@better-auth/oauth-provider` compatibility with the pinned better-auth catalog version (1.7.2)~~ — **done**: both bumped to 1.7.3. The 1.7.3 schema generator emits `relations()`-style relations incompatible with the pinned drizzle-orm RC; the generated relations wrapper was stripped (relations are defined via `defineRelations(schema)` in `db/index.ts`).
 - ~~DCR: accept fully unauthenticated registration...~~ — **decided**: DCR disabled; OAuth clients are created admin-only via the `/admin/oauth-clients` UI (better-auth `adminCreateOAuthClient`).
 - Which scopes beyond `create:matches`/`read:matches` for Phase 2 reads (e.g. `leagues:read`, `standings:read`)?
-- ~~Where does the link live~~ — **decided**: BullsAI-side. The OAuth grant is the link; BullsAI stores `bullsaiUserId ↔ scorebrawlUserId` (from token `sub`) and sends `scorebrawlUserId`/`email` per participant. No link table on ScoreBrawl.
+- ~~Where does the link live~~ — **decided**: BullsAI-side. The OAuth grant is the link; BullsAI stores `bullsaiUserId ↔ scorebrawlUserId` (from token `sub`) and sends `externalUserId`/`email` per participant. No link table on ScoreBrawl.
 - ~~Payload format~~ — **decided**: `POST /api/v1/leagues/:leagueId/seasons/:seasonId/matches` with `{ gameId, gameType, playedAt?, winner, losers, ... }`. Unknown emails auto-create a claimable guest + player + seasonPlayer.
 - Game-type mapping beyond 1-v-n: x01/cricket → which ScoreBrawl score types?
 - ~~Who builds first~~ — **decided**: ScoreBrawl OAuth provider + receiving endpoint first (done); BullsAI side coordinated in #328.

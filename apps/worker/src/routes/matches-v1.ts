@@ -15,7 +15,7 @@ import {
 	resolveParticipantsToSeasonPlayers,
 	UnresolvedParticipantsError,
 	type MatchParticipant,
-} from "../services/bullsai-identity";
+} from "../services/external-identity";
 import * as matchRepository from "../repositories/match-repository";
 import { TRPCError } from "@trpc/server";
 
@@ -23,12 +23,12 @@ const memberRoles = ["owner", "editor", "member"];
 
 const participantSchema = z
 	.object({
-		scorebrawlUserId: z.string().min(1).optional(),
+		externalUserId: z.string().min(1).optional(),
 		email: z.string().email().optional(),
 		name: z.string().min(1).optional(),
 	})
-	.refine((p) => p.scorebrawlUserId || p.email, {
-		message: "participant must have scorebrawlUserId or email",
+	.refine((p) => p.externalUserId || p.email, {
+		message: "participant must have externalUserId or email",
 	});
 
 const createMatchSchema = z.object({
@@ -197,7 +197,7 @@ matchesV1Router.post("/", zValidator("json", createMatchSchema), async (c) => {
 				env: c.env,
 				waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
 				organization: { slug: target.org.slug },
-				user: { id: target.userId, name: "BullsAI" },
+				user: { id: target.userId, name: "OAuth API" },
 			} satisfies MatchCreationContext,
 			seasonSlug: season.slug,
 			id: input.gameId,

@@ -126,8 +126,7 @@ export function AdminOAuthClientsPage() {
 				<div>
 					<h1 className="text-2xl font-semibold tracking-tight">OAuth Clients</h1>
 					<p className="mt-1 text-sm text-muted-foreground">
-						OAuth clients (e.g. BullsAI) can push results to the public API on behalf of linked
-						users.
+						OAuth clients can push results to the public API on behalf of linked users.
 					</p>
 				</div>
 				<Button type="button" onClick={() => setDialogOpen(true)}>

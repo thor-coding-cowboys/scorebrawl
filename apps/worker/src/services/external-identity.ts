@@ -7,7 +7,7 @@ import { guest, player, seasonPlayer } from "../db/schema/league-schema";
 
 export interface MatchParticipant {
 	role: "winner" | "loser";
-	scorebrawlUserId?: string;
+	externalUserId?: string;
 	email?: string;
 	name?: string;
 }
@@ -20,7 +20,7 @@ export interface ResolvedParticipants {
 export class UnresolvedParticipantsError extends Error {
 	constructor(public unresolved: string[]) {
 		super(
-			`Could not match participants: ${unresolved.join(", ")}. Provide a scorebrawlUserId or a league email for every player.`
+			`Could not match participants: ${unresolved.join(", ")}. Provide an externalUserId or a league email for every player.`
 		);
 		this.name = "UnresolvedParticipantsError";
 	}
@@ -44,7 +44,7 @@ export async function resolveParticipantsToSeasonPlayers({
 	participants: MatchParticipant[];
 }): Promise<ResolvedParticipants> {
 	const userIds = [
-		...new Set(participants.map((p) => p.scorebrawlUserId).filter(Boolean) as string[]),
+		...new Set(participants.map((p) => p.externalUserId).filter(Boolean) as string[]),
 	];
 	const emails = [
 		...new Set(
@@ -112,8 +112,8 @@ export async function resolveParticipantsToSeasonPlayers({
 	for (const participant of participants) {
 		let playerId: string | undefined;
 
-		if (participant.scorebrawlUserId) {
-			playerId = playerIdByUserId.get(participant.scorebrawlUserId);
+		if (participant.externalUserId) {
+			playerId = playerIdByUserId.get(participant.externalUserId);
 		}
 
 		if (!playerId && participant.email) {
@@ -140,7 +140,7 @@ export async function resolveParticipantsToSeasonPlayers({
 			continue;
 		}
 
-		unresolved.push(participant.name || participant.scorebrawlUserId || "unknown");
+		unresolved.push(participant.name || participant.externalUserId || "unknown");
 	}
 
 	if (unresolved.length > 0) {

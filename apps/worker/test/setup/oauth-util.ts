@@ -42,7 +42,7 @@ export async function registerOAuthClient({
 	redirectUri = "https://app.example.com/callback",
 	skipConsent = true,
 	requirePkce = true,
-	name = "Test BullsAI Client",
+	name = "Test OAuth Client",
 }: {
 	sessionToken: string;
 	scope?: string;

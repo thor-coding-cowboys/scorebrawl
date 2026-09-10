@@ -13,7 +13,7 @@ async function createOneVnSeason() {
 	const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 	await createPlayers(ctx, 4);
 	const season = await client.season.create.mutate({
-		name: "BullsAI 1-v-N",
+		name: "1-v-N Test Season",
 		initialScore: 1000,
 		scoreType: "1-v-n-elo",
 		kFactor: 32,
@@ -61,15 +61,15 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-123",
-				winner: { scorebrawlUserId: winner.userId },
-				losers: losers.map((l) => ({ scorebrawlUserId: l.userId })),
+				gameId: "game-123",
+				winner: { externalUserId: winner.userId },
+				losers: losers.map((l) => ({ externalUserId: l.userId })),
 			},
 		});
 
 		expect(res.status).toBe(201);
 		const data = (await res.json()) as { match: { id: string } };
-		expect(data.match.id).toBe("bullsai-game-123");
+		expect(data.match.id).toBe("game-123");
 
 		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 		const standing = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
@@ -92,9 +92,9 @@ describe("matches v1 public API", () => {
 		});
 
 		const body = {
-			gameId: "bullsai-game-dup",
-			winner: { scorebrawlUserId: winner.userId },
-			losers: losers.map((l) => ({ scorebrawlUserId: l.userId })),
+			gameId: "game-dup",
+			winner: { externalUserId: winner.userId },
+			losers: losers.map((l) => ({ externalUserId: l.userId })),
 		};
 
 		const first = await pushMatch({
@@ -136,8 +136,8 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-guest",
-				winner: { scorebrawlUserId: winner.userId },
+				gameId: "game-guest",
+				winner: { externalUserId: winner.userId },
 				losers: [{ email: "guest@example.com", name: "Guest" }],
 			},
 		});
@@ -178,9 +178,9 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-noscope",
-				winner: { scorebrawlUserId: winner.userId },
-				losers: losers.map((l) => ({ scorebrawlUserId: l.userId })),
+				gameId: "game-noscope",
+				winner: { externalUserId: winner.userId },
+				losers: losers.map((l) => ({ externalUserId: l.userId })),
 			},
 		});
 
@@ -198,7 +198,7 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken: "not-a-real-token",
 			body: {
-				gameId: "bullsai-game-x",
+				gameId: "game-x",
 				winner: { email: "a@b.com" },
 				losers: [{ email: "c@d.com" }],
 			},
@@ -211,7 +211,7 @@ describe("matches v1 public API", () => {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
-				gameId: "bullsai-game-y",
+				gameId: "game-y",
 				winner: { email: "a@b.com" },
 				losers: [{ email: "c@d.com" }],
 			}),
@@ -238,9 +238,9 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-get",
-				winner: { scorebrawlUserId: winner.userId },
-				losers: losers.map((l) => ({ scorebrawlUserId: l.userId })),
+				gameId: "game-get",
+				winner: { externalUserId: winner.userId },
+				losers: losers.map((l) => ({ externalUserId: l.userId })),
 			},
 		});
 		expect(push.status).toBe(201);
@@ -267,7 +267,7 @@ describe("matches v1 public API", () => {
 		expect(readRes.status).toBe(200);
 		const list = (await readRes.json()) as { matches: Array<{ id: string }> };
 		expect(list.matches).toHaveLength(1);
-		expect(list.matches[0].id).toBe("bullsai-game-get");
+		expect(list.matches[0].id).toBe("game-get");
 	});
 
 	it("completes the consent flow when the client does not skip consent", async () => {
@@ -290,9 +290,9 @@ describe("matches v1 public API", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-consent",
-				winner: { scorebrawlUserId: winner.userId },
-				losers: losers.map((l) => ({ scorebrawlUserId: l.userId })),
+				gameId: "game-consent",
+				winner: { externalUserId: winner.userId },
+				losers: losers.map((l) => ({ externalUserId: l.userId })),
 			},
 		});
 		expect(res.status).toBe(201);
@@ -317,8 +317,8 @@ describe("matches v1 authorization", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-notmember",
-				winner: { scorebrawlUserId: winner.userId },
+				gameId: "game-notmember",
+				winner: { externalUserId: winner.userId },
 				losers: [{ email: "someone@else.com" }],
 			},
 		});
@@ -340,8 +340,8 @@ describe("matches v1 authorization", () => {
 			seasonId: season.id,
 			accessToken,
 			body: {
-				gameId: "bullsai-game-noid",
-				winner: { scorebrawlUserId: winner.userId },
+				gameId: "game-noid",
+				winner: { externalUserId: winner.userId },
 				losers: [{ name: "Anonymous" }],
 			},
 		});
