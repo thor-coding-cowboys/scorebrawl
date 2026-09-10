@@ -19,6 +19,19 @@ function formatDate(date: Date | null): string {
 	});
 }
 
+function formatRedirectUris(redirectUris: unknown): string {
+	if (Array.isArray(redirectUris)) return (redirectUris as string[]).join(", ");
+	if (typeof redirectUris === "string") {
+		try {
+			const parsed = JSON.parse(redirectUris);
+			if (Array.isArray(parsed)) return parsed.join(", ");
+		} catch {
+			return redirectUris;
+		}
+	}
+	return "—";
+}
+
 export function AdminOAuthClientsPage() {
 	const queryClient = useQueryClient();
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -178,9 +191,7 @@ export function AdminOAuthClientsPage() {
 												<code className="break-all text-xs">{client.clientId}</code>
 											</td>
 											<td className="px-5 py-3.5 text-xs text-muted-foreground">
-												{Array.isArray(client.redirectUris)
-													? (client.redirectUris as string[]).join(", ")
-													: "—"}
+												{formatRedirectUris(client.redirectUris)}
 											</td>
 											<td className="px-5 py-3.5 text-xs text-muted-foreground">
 												{client.tokenEndpointAuthMethod ?? "—"}
