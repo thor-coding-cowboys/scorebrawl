@@ -15,6 +15,7 @@ export type HonoEnv = {
 		betterAuth: ReturnType<typeof createAuth>;
 		authentication?: AuthType;
 		userAssets: R2BucketRef;
+		oauthToken?: { sub?: string; scope?: string };
 	};
 };
 
@@ -30,6 +31,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		BETTER_AUTH_SECRET: betterAuthSecret,
 		RESEND_API_KEY: resendApiKey,
 		ADMIN_USER_IDS: adminUserIdsEnv,
+		OAUTH_RESOURCE: oauthResource,
 	} = c.env;
 
 	const adminUserIds = adminUserIdsEnv
@@ -46,6 +48,8 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		c.req.header("origin") ||
 		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
 
+	const betterAuthUrl = (c.env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL;
+
 	const auth = createAuth({
 		db,
 		betterAuthSecret,
@@ -56,7 +60,12 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		origin,
 		resendApiKey,
 		adminUserIds,
+		oauthResource,
+		baseURL: betterAuthUrl ?? origin,
 	});
+	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
+	// request so no storage work is left floating after the response.
+	await auth.$context;
 	c.set("db", db);
 	c.set("betterAuth", auth);
 	c.set("userAssets", {
@@ -71,6 +80,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 export const auth = createAuth({
 	db: drizzle(undefined as unknown as D1Database, { relations: defineRelations(schema) }),
 	betterAuthSecret: "",
+	baseURL: "http://localhost",
 });
 
 export type AuthType = {

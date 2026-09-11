@@ -1,4 +1,4 @@
-import { UserIcon, Award01Icon } from "@hugeicons/core-free-icons";
+import { UserIcon, Award01Icon, AiLockIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type * as React from "react";
 
@@ -59,6 +59,7 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
 	// Check which routes are active - use path from generated routes
 	const isUsersRoute = matchRoute({ to: "/admin/users", fuzzy: false });
 	const isLeaguesRoute = matchRoute({ to: "/admin/leagues", fuzzy: false });
+	const isOAuthClientsRoute = matchRoute({ to: "/admin/oauth-clients", fuzzy: false });
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -86,6 +87,14 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
 								<Link to="/admin/leagues" onClick={handleNavClick}>
 									<HugeiconsIcon icon={Award01Icon} className="size-4" />
 									<span>Leagues</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						<SidebarMenuItem>
+							<SidebarMenuButton asChild isActive={!!isOAuthClientsRoute}>
+								<Link to="/admin/oauth-clients" onClick={handleNavClick}>
+									<HugeiconsIcon icon={AiLockIcon} className="size-4" />
+									<span>OAuth Clients</span>
 								</Link>
 							</SidebarMenuButton>
 						</SidebarMenuItem>

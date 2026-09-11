@@ -22,8 +22,60 @@ const workerName = `scorebrawl-pr-${prNumber}`;
 const configPath = "apps/worker/wrangler.jsonc";
 const configContent = await Bun.file(configPath).text();
 
-// Parse JSONC (remove comments)
-const jsonContent = configContent.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+// Parse JSONC (remove comments, respecting string literals)
+function stripJsoncComments(input: string): string {
+	let result = "";
+	let inString = false;
+	let inLineComment = false;
+	let inBlockComment = false;
+	for (let i = 0; i < input.length; i++) {
+		const ch = input[i];
+		const next = input[i + 1];
+		if (inLineComment) {
+			if (ch === "\n") {
+				inLineComment = false;
+				result += ch;
+			}
+			continue;
+		}
+		if (inBlockComment) {
+			if (ch === "*" && next === "/") {
+				inBlockComment = false;
+				i++;
+			}
+			continue;
+		}
+		if (inString) {
+			result += ch;
+			if (ch === "\\") {
+				result += next ?? "";
+				i++;
+			} else if (ch === '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (ch === '"') {
+			inString = true;
+			result += ch;
+			continue;
+		}
+		if (ch === "/" && next === "/") {
+			inLineComment = true;
+			i++;
+			continue;
+		}
+		if (ch === "/" && next === "*") {
+			inBlockComment = true;
+			i++;
+			continue;
+		}
+		result += ch;
+	}
+	return result;
+}
+
+const jsonContent = stripJsoncComments(configContent);
 const config = JSON.parse(jsonContent);
 
 // Update config for preview deployment from root
@@ -58,6 +110,7 @@ config.routes = undefined;
 // Set preview-specific vars (avoid production values)
 config.vars = {
 	ADMIN_USER_IDS: "seed-user-id",
+	OAUTH_RESOURCE: "https://scorebrawl.com/api/v1",
 };
 
 // Write preview config

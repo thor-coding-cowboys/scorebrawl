@@ -1,8 +1,9 @@
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, admin, bearer, deviceAuthorization } from "better-auth/plugins";
+import { organization, admin, bearer, deviceAuthorization, jwt } from "better-auth/plugins";
 import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
@@ -50,6 +51,8 @@ export function createAuth({
 	origin,
 	resendApiKey,
 	adminUserIds,
+	oauthResource,
+	baseURL,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -60,6 +63,8 @@ export function createAuth({
 	origin?: string;
 	resendApiKey?: string;
 	adminUserIds?: string[];
+	oauthResource?: string;
+	baseURL?: string;
 }) {
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
@@ -88,6 +93,7 @@ export function createAuth({
 			schema,
 		}),
 		secret: betterAuthSecret,
+		baseURL,
 		trustedOrigins: origin ? [origin, "scorebrawl://"] : undefined,
 		databaseHooks: {
 			user: {
@@ -329,6 +335,22 @@ export function createAuth({
 			deviceAuthorization({
 				verificationUri: "/device",
 				schema: {},
+			}),
+			jwt({
+				jwks: {
+					// Preview deployments rotate BETTER_AUTH_SECRET on every deploy,
+					// which would make encrypted private keys undecryptable (500 on
+					// session lookups). Store signing keys unencrypted so secret
+					// rotation never breaks token signing/verification.
+					disablePrivateKeyEncryption: true,
+				},
+			}),
+			oauthProvider({
+				loginPage: "/auth/sign-in",
+				consentPage: "/consent",
+				scopes: ["openid", "profile", "email", "offline_access", "create:matches", "read:matches"],
+				resources: oauthResource ? [oauthResource] : [],
+				enforcePerClientResources: false,
 			}),
 		],
 	});

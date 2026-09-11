@@ -29,10 +29,60 @@ const migrations = readNestedD1Migrations(migrationsPath);
 // Read and modify wrangler config for tests
 const wranglerPath = path.join(__dirname, "wrangler.jsonc");
 const wranglerContent = fs.readFileSync(wranglerPath, "utf-8");
-const wranglerConfig = JSON.parse(
-	// Remove comments from JSONC
-	wranglerContent.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*/g, "")
-);
+
+function stripJsoncComments(input: string): string {
+	let result = "";
+	let inString = false;
+	let inLineComment = false;
+	let inBlockComment = false;
+	for (let i = 0; i < input.length; i++) {
+		const ch = input[i];
+		const next = input[i + 1];
+		if (inLineComment) {
+			if (ch === "\n") {
+				inLineComment = false;
+				result += ch;
+			}
+			continue;
+		}
+		if (inBlockComment) {
+			if (ch === "*" && next === "/") {
+				inBlockComment = false;
+				i++;
+			}
+			continue;
+		}
+		if (inString) {
+			result += ch;
+			if (ch === "\\") {
+				result += next ?? "";
+				i++;
+			} else if (ch === '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (ch === '"') {
+			inString = true;
+			result += ch;
+			continue;
+		}
+		if (ch === "/" && next === "/") {
+			inLineComment = true;
+			i++;
+			continue;
+		}
+		if (ch === "/" && next === "*") {
+			inBlockComment = true;
+			i++;
+			continue;
+		}
+		result += ch;
+	}
+	return result;
+}
+
+const wranglerConfig = JSON.parse(stripJsoncComments(wranglerContent));
 
 // Remove assets to avoid requiring frontend build
 wranglerConfig.assets = undefined;

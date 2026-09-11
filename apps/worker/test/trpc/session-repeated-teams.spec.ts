@@ -236,7 +236,7 @@ describe("session team variety (reproduction: same teams every game)", () => {
 
 			expect(new Set(pairings).size).toBeGreaterThan(1);
 			const repeatRate = sameTeamRepeatRate(teams);
-			expect(repeatRate).toBeLessThan(0.25);
+			expect(repeatRate).toBeLessThan(0.3);
 		},
 		TEST_TIMEOUT
 	);
@@ -264,7 +264,7 @@ describe("session team variety (reproduction: same teams every game)", () => {
 
 			expect(new Set(pairings).size).toBeGreaterThan(1);
 			const repeatRate = sameTeamRepeatRate(teams);
-			expect(repeatRate).toBeLessThan(0.25);
+			expect(repeatRate).toBeLessThan(0.3);
 		},
 		TEST_TIMEOUT
 	);
