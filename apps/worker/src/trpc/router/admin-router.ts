@@ -248,6 +248,8 @@ export const adminRouter = createTRPCRouter({
 							"offline_access",
 							"create:matches",
 							"read:matches",
+							"read:leagues",
+							"read:seasons",
 						]),
 					publicClient: z.boolean().default(true),
 					requirePkce: z.boolean().default(true),

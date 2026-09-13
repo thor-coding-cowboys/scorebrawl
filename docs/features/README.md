@@ -28,13 +28,14 @@ Status reflects merged PRs as of 2026-09-10. **Done** = shipped in product; **Pa
 
 Shipped stories, kept for reference in [`done/`](done/):
 
-| #   | Feature                                                            | Resolved by                                                                                                                            |
-| --- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 01a | [In-app notifications (toasts)](done/01-a-in-app-notifications.md) | [#651](https://github.com/thor-coding-cowboys/scorebrawl/pull/651)                                                                     |
-| 02  | [Achievements showcase](done/02-achievements-showcase.md)          | [#661](https://github.com/thor-coding-cowboys/scorebrawl/pull/661)                                                                     |
-| 06  | [Manual session lineup](done/06-manual-session-lineup.md)          | [#608](https://github.com/thor-coding-cowboys/scorebrawl/pull/608)                                                                     |
-| 07  | [Fixtures / 3-1-0 UX](done/07-fixtures-points-season-ux.md)        |                                                                                                                                        |
-| 11  | [Head-to-head rivalries](done/11-head-to-head-rivalries.md)        | [#630](https://github.com/thor-coding-cowboys/scorebrawl/pull/630)                                                                     |
-| 12  | [Guest player claiming](done/12-guest-player-claiming.md)          | [#589](https://github.com/thor-coding-cowboys/scorebrawl/pull/589), [#597](https://github.com/thor-coding-cowboys/scorebrawl/pull/597) |
+| #   | Feature                                                                 | Resolved by                                                                                                                            |
+| --- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 01a | [In-app notifications (toasts)](done/01-a-in-app-notifications.md)      | [#651](https://github.com/thor-coding-cowboys/scorebrawl/pull/651)                                                                     |
+| 02  | [Achievements showcase](done/02-achievements-showcase.md)               | [#661](https://github.com/thor-coding-cowboys/scorebrawl/pull/661)                                                                     |
+| 06  | [Manual session lineup](done/06-manual-session-lineup.md)               | [#608](https://github.com/thor-coding-cowboys/scorebrawl/pull/608)                                                                     |
+| 07  | [Fixtures / 3-1-0 UX](done/07-fixtures-points-season-ux.md)             |                                                                                                                                        |
+| 11  | [Head-to-head rivalries](done/11-head-to-head-rivalries.md)             | [#630](https://github.com/thor-coding-cowboys/scorebrawl/pull/630)                                                                     |
+| 12  | [Guest player claiming](done/12-guest-player-claiming.md)               | [#589](https://github.com/thor-coding-cowboys/scorebrawl/pull/589), [#597](https://github.com/thor-coding-cowboys/scorebrawl/pull/597) |
+| 21  | [Public API — leagues & seasons](done/21-public-api-leagues-seasons.md) |                                                                                                                                        |
 
 Suggested sequencing note: 01 → 02 → 03 form a coherent "engagement" slice and build on the same event/achievement plumbing (01 toasts and 02 showcase now shipped; 03 ceremony remains). 05 is independent and cheap. 15 depends on 01.

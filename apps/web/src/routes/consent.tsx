@@ -12,6 +12,8 @@ const scopeLabels: Record<string, string> = {
 	offline_access: "Keep access when you're offline",
 	"create:matches": "Record match results in your leagues",
 	"read:matches": "Read match results from your leagues",
+	"read:leagues": "List the leagues you are a member of",
+	"read:seasons": "List the seasons in your leagues",
 };
 
 export const Route = createFileRoute("/consent")({
