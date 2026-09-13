@@ -202,7 +202,6 @@ function GuestPlayerForm({
 export default function PlayersScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ create?: string; view?: "enabled" | "disabled" }>();
-	const theme = useTheme();
 	const queryClient = useQueryClient();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
@@ -366,7 +365,7 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		maxWidth: MaxContentWidth,
-		paddingHorizontal: Spacing.four,
+		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.three,
 	},
 	headerRow: {

@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ViewProps, Text, type TextProps } from "react-native";
 
-import { Spacing } from "@/constants/theme";
+import { Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 export function Card({ style, ...props }: ViewProps) {
@@ -46,11 +46,13 @@ const styles = StyleSheet.create({
 		paddingBottom: Spacing.four,
 	},
 	title: {
+		fontFamily: Fonts.sans,
+		fontWeight: "700",
 		fontSize: 24,
 		lineHeight: 32,
-		fontWeight: "700",
 	},
 	description: {
+		fontFamily: Fonts.sans,
 		fontSize: 14,
 		lineHeight: 20,
 	},

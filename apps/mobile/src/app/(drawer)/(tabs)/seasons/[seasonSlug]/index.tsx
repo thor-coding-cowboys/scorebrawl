@@ -4,7 +4,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { LatestMatches } from "@/components/latest-matches";
 import { SeasonStandings } from "@/components/season-standings";
+import { ActiveSessionBanner } from "@/components/session/active-session-banner";
+import { SeasonTeamStandings } from "@/components/season-team-standings";
+import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -14,18 +18,8 @@ import { getSeasonStatus } from "@/lib/collections/season";
 import { setLastViewedSeason } from "@/lib/last-viewed-season";
 import { useTRPC } from "@/lib/trpc";
 
-function SubViewPlaceholder({ label }: { label: string }) {
-	return (
-		<View style={styles.center}>
-			<ThemedText type="small" themeColor="textSecondary">
-				{label} coming soon
-			</ThemedText>
-		</View>
-	);
-}
-
 export default function SeasonOverviewScreen() {
-	const { seasonSlug, view = "standings" } = useLocalSearchParams<{
+	const { seasonSlug, view = "players" } = useLocalSearchParams<{
 		seasonSlug: string;
 		view?: string;
 	}>();
@@ -64,6 +58,8 @@ export default function SeasonOverviewScreen() {
 					</ThemedText>
 				</View>
 
+				<ActiveSessionBanner seasonSlug={seasonSlug} />
+
 				{isLoading ? (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 						Loading…
@@ -80,11 +76,11 @@ export default function SeasonOverviewScreen() {
 				) : (
 					<>
 						{view === "matches" ? (
-							<SubViewPlaceholder label="Matches" />
-						) : view === "fixtures" ? (
-							<SubViewPlaceholder label="Fixtures" />
-						) : view === "history" ? (
-							<SubViewPlaceholder label="History" />
+							<LatestMatches seasonSlug={seasonSlug} season={season} />
+						) : view === "session" ? (
+							<SessionHistory seasonSlug={seasonSlug} />
+						) : view === "teams" ? (
+							<SeasonTeamStandings seasonSlug={seasonSlug} />
 						) : (
 							<SeasonStandings seasonSlug={seasonSlug} />
 						)}
@@ -104,7 +100,7 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		maxWidth: MaxContentWidth,
-		paddingHorizontal: Spacing.four,
+		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.three,
 	},
 	header: {
@@ -114,11 +110,6 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		marginTop: Spacing.one,
-	},
-	center: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
 	},
 	empty: {
 		textAlign: "center",

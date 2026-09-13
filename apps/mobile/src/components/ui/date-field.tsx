@@ -2,7 +2,7 @@ import DateTimePickerDefault from "@expo/ui/community/datetime-picker";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { RefObject } from "react";
 
-import { Spacing } from "@/constants/theme";
+import { Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 import { useThemeMode } from "@/hooks/use-theme-mode";
@@ -132,8 +132,9 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 	},
 	label: {
-		fontSize: 14,
+		fontFamily: Fonts.sans,
 		fontWeight: "600",
+		fontSize: 14,
 		lineHeight: 20,
 	},
 	field: {
@@ -144,9 +145,11 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	value: {
+		fontFamily: Fonts.sans,
 		fontSize: 16,
 	},
 	error: {
+		fontFamily: Fonts.sans,
 		fontSize: 13,
 		lineHeight: 18,
 	},
@@ -159,7 +162,8 @@ const styles = StyleSheet.create({
 		paddingHorizontal: Spacing.two,
 	},
 	doneLabel: {
-		fontSize: 15,
+		fontFamily: Fonts.sans,
 		fontWeight: "600",
+		fontSize: 15,
 	},
 });

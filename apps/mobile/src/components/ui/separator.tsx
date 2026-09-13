@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { Spacing } from "@/constants/theme";
+import { Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 export function Separator({ label }: { label?: string }) {
@@ -31,8 +31,9 @@ const styles = StyleSheet.create({
 		height: StyleSheet.hairlineWidth,
 	},
 	label: {
-		fontSize: 12,
+		fontFamily: Fonts.sans,
 		fontWeight: "600",
+		fontSize: 12,
 		textTransform: "uppercase",
 		lineHeight: 16,
 	},

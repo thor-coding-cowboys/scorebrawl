@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 
-import { Spacing } from "@/constants/theme";
+import { Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 interface InputProps extends TextInputProps {
@@ -47,8 +47,9 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 	},
 	label: {
-		fontSize: 14,
+		fontFamily: Fonts.sans,
 		fontWeight: "600",
+		fontSize: 14,
 		lineHeight: 20,
 	},
 	input: {
@@ -58,9 +59,11 @@ const styles = StyleSheet.create({
 		paddingHorizontal: Spacing.three,
 		paddingVertical: 0,
 		fontSize: 16,
+		fontFamily: Fonts.sans,
 		textAlignVertical: "center",
 	},
 	error: {
+		fontFamily: Fonts.sans,
 		fontSize: 13,
 		lineHeight: 18,
 	},

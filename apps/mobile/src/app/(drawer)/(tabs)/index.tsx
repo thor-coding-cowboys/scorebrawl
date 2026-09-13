@@ -5,7 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { LatestMatches } from "@/components/latest-matches";
 import { SeasonStandings } from "@/components/season-standings";
+import { ActiveSessionBanner } from "@/components/session/active-session-banner";
+import { SeasonTeamStandings } from "@/components/season-team-standings";
+import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -14,20 +18,13 @@ import { useActiveLeague } from "@/hooks/use-active-league";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
 import { trpcClient } from "@/lib/trpc";
 
-function SubViewPlaceholder({ label }: { label: string }) {
-	return (
-		<View style={styles.center}>
-			<ThemedText type="small" themeColor="textSecondary">
-				{label} coming soon
-			</ThemedText>
-		</View>
-	);
-}
-
 export default function HomeScreen() {
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
-	const { view = "standings" } = useLocalSearchParams<{ view?: string }>();
+	const { view = "players", seasonSlug: paramSeasonSlug } = useLocalSearchParams<{
+		view?: string;
+		seasonSlug?: string;
+	}>();
 	const activeSeasonsQuery = useQuery({
 		queryKey: ["season", "findAllActive", activeLeague?.id],
 		queryFn: () => trpcClient.season.findAllActive.query(),
@@ -54,6 +51,9 @@ export default function HomeScreen() {
 				const storedStillActive = stored ? active.some((s) => s.slug === stored) : false;
 				const chosen = storedStillActive ? stored : active[0].slug;
 				if (!cancelled) setResolvedSeasonSlug(chosen);
+				if (chosen && chosen !== paramSeasonSlug) {
+					router.setParams({ seasonSlug: chosen });
+				}
 				if (chosen && !storedStillActive) {
 					void setLastViewedSeason(activeLeague.id, chosen);
 				}
@@ -62,7 +62,7 @@ export default function HomeScreen() {
 			return () => {
 				cancelled = true;
 			};
-		}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons])
+		}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons, paramSeasonSlug])
 	);
 
 	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
@@ -153,13 +153,14 @@ export default function HomeScreen() {
 						<ThemedText type="title">{activeSeason.name}</ThemedText>
 					</View>
 				)}
+				{activeSeason ? <ActiveSessionBanner seasonSlug={activeSeason.slug} /> : null}
 				{activeSeason &&
 					(view === "matches" ? (
-						<SubViewPlaceholder label="Matches" />
-					) : view === "fixtures" ? (
-						<SubViewPlaceholder label="Fixtures" />
-					) : view === "history" ? (
-						<SubViewPlaceholder label="History" />
+						<LatestMatches seasonSlug={activeSeason.slug} season={activeSeason} />
+					) : view === "session" ? (
+						<SessionHistory seasonSlug={activeSeason.slug} />
+					) : view === "teams" ? (
+						<SeasonTeamStandings seasonSlug={activeSeason.slug} />
 					) : (
 						<SeasonStandings seasonSlug={activeSeason.slug} />
 					))}
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		maxWidth: MaxContentWidth,
-		paddingHorizontal: Spacing.four,
+		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.three,
 	},
 	center: {

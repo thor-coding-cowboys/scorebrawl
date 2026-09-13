@@ -91,14 +91,16 @@ function FormDots({
 export function StandingRow({
 	item,
 	headers,
+	dimmed,
 }: {
 	item: StandingItem;
 	headers?: Record<string, string>;
+	dimmed?: boolean;
 }) {
 	const streak = calculateStreak(item.form);
 
 	return (
-		<View style={styles.row}>
+		<View style={[styles.row, dimmed && styles.dimmed]}>
 			<StreakAvatar name={item.name} image={item.image} headers={headers} streak={streak} />
 			<View style={styles.info}>
 				<ThemedText numberOfLines={1} style={styles.name}>
@@ -129,6 +131,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.two,
 		paddingVertical: Spacing.three,
+	},
+	dimmed: {
+		opacity: 0.4,
 	},
 	info: {
 		flex: 1,

@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		maxWidth: MaxContentWidth,
-		paddingHorizontal: Spacing.four,
+		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.three,
 	},
 	title: {

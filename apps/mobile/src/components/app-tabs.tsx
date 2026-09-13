@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { router, useGlobalSearchParams, usePathname } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
@@ -11,13 +12,17 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CreateMatchFlow } from "@/components/create-match-flow";
 import { CreateSeasonForm } from "@/components/create-season-form";
+import { AddPlayerModal } from "@/components/session/add-player-modal";
+import { StartSessionModal } from "@/components/start-session-modal";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { useTRPC } from "@/lib/trpc";
 
-type SubView = "standings" | "matches" | "fixtures" | "history";
+type SubView = "players" | "teams" | "matches" | "session";
 
 const SEASON_SUB_VIEWS: {
 	key: SubView;
@@ -25,21 +30,45 @@ const SEASON_SUB_VIEWS: {
 	icon: Parameters<typeof SymbolView>[0]["name"];
 }[] = [
 	{
-		key: "standings",
-		label: "Standings",
-		icon: { ios: "list.bullet", android: "format_list_bulleted", web: "format_list_bulleted" },
+		key: "players",
+		label: "Players",
+		icon: { ios: "person.2", android: "group", web: "group" },
+	},
+	{
+		key: "teams",
+		label: "Teams",
+		icon: { ios: "person.3", android: "groups", web: "groups" },
 	},
 	{
 		key: "matches",
 		label: "Matches",
 		icon: { ios: "sportscourt", android: "sports_soccer", web: "sports_soccer" },
 	},
+	{ key: "session", label: "Session", icon: { ios: "clock", android: "history", web: "history" } },
+];
+
+type SessionTab = "next" | "standings" | "teams";
+
+const SESSION_SUB_VIEWS: {
+	key: SessionTab;
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+}[] = [
 	{
-		key: "fixtures",
-		label: "Fixtures",
-		icon: { ios: "calendar", android: "calendar_month", web: "calendar_month" },
+		key: "next",
+		label: "Next Match",
+		icon: { ios: "play.circle", android: "play_circle", web: "play_circle" },
 	},
-	{ key: "history", label: "History", icon: { ios: "clock", android: "history", web: "history" } },
+	{
+		key: "standings",
+		label: "Standings",
+		icon: { ios: "list.bullet", android: "format_list_bulleted", web: "format_list_bulleted" },
+	},
+	{
+		key: "teams",
+		label: "Teams",
+		icon: { ios: "person.2", android: "group", web: "group" },
+	},
 ];
 
 interface CreateAction {
@@ -94,30 +123,44 @@ export default function AppTabs() {
 	const pathname = usePathname();
 	const params = useGlobalSearchParams<{
 		seasonSlug?: string;
-		view?: SubView | "enabled" | "disabled" | "all" | "my";
+		sessionId?: string;
+		view?: SubView | SessionTab | "enabled" | "disabled" | "all" | "my";
 	}>();
 	const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
+	const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
+	const [isStartSessionOpen, setIsStartSessionOpen] = useState(false);
+	const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
 	const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
 	const flyoutProgress = useSharedValue(0);
 	const rotation = useSharedValue(0);
 	const { data: activeMember } = authClient.useActiveMember();
 	const canManage = activeMember?.role === "owner" || activeMember?.role === "editor";
+	const trpc = useTRPC();
+	const { data: seasonInfo } = useQuery({
+		...trpc.season.getBySlug.queryOptions({ seasonSlug: params.seasonSlug ?? "" }),
+		enabled: !!params.seasonSlug,
+	});
+	const is1vNSeason = seasonInfo?.scoreType === "1-v-n-elo";
 
+	const isSessionView = pathname.includes("/session/");
 	const isSeasonDetail = pathname.startsWith("/seasons/");
 	const isSeasonsList = pathname === "/seasons";
 	const isActiveSeason = pathname === "/";
-	const isSeasonView = isActiveSeason || isSeasonDetail;
+	const isSeasonView = !isSessionView && (isActiveSeason || isSeasonDetail);
 	const isLeaguePage =
 		pathname === "/teams" ||
 		pathname === "/players" ||
 		pathname === "/members" ||
 		pathname === "/invitations";
 	const hasPlus = !(pathname === "/teams" || pathname === "/members");
-	const activeView = params.view ?? "standings";
+	const activeView = params.view ?? (isSessionView ? "next" : "players");
 	const seasonSlug = params.seasonSlug;
+	const sessionId = params.sessionId;
 
-	const goToView = (view: SubView) => {
-		if (isSeasonDetail && seasonSlug) {
+	const goToView = (view: SubView | SessionTab) => {
+		if (isSessionView) {
+			router.setParams({ view });
+		} else if (isSeasonDetail && seasonSlug) {
 			router.setParams({ seasonSlug, view });
 		} else if (isActiveSeason) {
 			router.setParams({ view });
@@ -134,8 +177,19 @@ export default function AppTabs() {
 	let leftTabs: TabProps[] = [];
 	let rightTabs: TabProps[] = [];
 
-	if (isSeasonView) {
-		const subTabs: TabProps[] = SEASON_SUB_VIEWS.map(({ key, label, icon }) => ({
+	if (isSessionView) {
+		const subTabs: TabProps[] = SESSION_SUB_VIEWS.map(({ key, label, icon }) => ({
+			label,
+			icon,
+			active: activeView === key,
+			onPress: () => goToView(key),
+		}));
+		leftTabs = subTabs.slice(0, 1);
+		rightTabs = subTabs.slice(1);
+	} else if (isSeasonView) {
+		const subTabs: TabProps[] = SEASON_SUB_VIEWS.filter(
+			(v) => !(is1vNSeason && v.key === "session")
+		).map(({ key, label, icon }) => ({
 			label,
 			icon,
 			active: activeView === key,
@@ -167,7 +221,9 @@ export default function AppTabs() {
 	}
 
 	const handlePlus = () => {
-		if (isSeasonView) {
+		if (isSessionView) {
+			setIsAddPlayerOpen(true);
+		} else if (isSeasonView) {
 			setIsFlyoutOpen((open) => !open);
 		} else if (isSeasonsList) {
 			setIsCreateSeasonOpen(true);
@@ -194,9 +250,11 @@ export default function AppTabs() {
 
 	const handleFlyoutAction = (label: string) => {
 		setIsFlyoutOpen(false);
-		const message =
-			label === "Match" ? "Match creation is coming soon." : "Session creation is coming soon.";
-		Alert.alert("Not supported yet", message);
+		if (label === "Match") {
+			setIsCreateMatchOpen(true);
+			return;
+		}
+		setIsStartSessionOpen(true);
 	};
 
 	useEffect(() => {
@@ -231,15 +289,17 @@ export default function AppTabs() {
 
 					<View style={[styles.flyoutWrap, { bottom: 56 + insets.bottom + 9 }]}>
 						<Animated.View style={styles.flyout}>
-							{SEASON_CREATE_ACTIONS.map((action, i) => (
-								<FlyoutOption
-									key={action.label}
-									action={action}
-									progress={flyoutProgress}
-									index={i}
-									onPress={() => handleFlyoutAction(action.label)}
-								/>
-							))}
+							{SEASON_CREATE_ACTIONS.filter((a) => !(is1vNSeason && a.label === "Session")).map(
+								(action, i) => (
+									<FlyoutOption
+										key={action.label}
+										action={action}
+										progress={flyoutProgress}
+										index={i}
+										onPress={() => handleFlyoutAction(action.label)}
+									/>
+								)
+							)}
 						</Animated.View>
 					</View>
 				</View>
@@ -301,6 +361,28 @@ export default function AppTabs() {
 			</View>
 
 			<CreateSeasonForm isOpen={isCreateSeasonOpen} onClose={() => setIsCreateSeasonOpen(false)} />
+			{isSeasonView && seasonSlug ? (
+				<CreateMatchFlow
+					isOpen={isCreateMatchOpen}
+					onClose={() => setIsCreateMatchOpen(false)}
+					seasonSlug={seasonSlug}
+				/>
+			) : null}
+			{isSeasonView && seasonSlug ? (
+				<StartSessionModal
+					isOpen={isStartSessionOpen}
+					onClose={() => setIsStartSessionOpen(false)}
+					seasonSlug={seasonSlug}
+				/>
+			) : null}
+			{isSessionView && sessionId && seasonSlug ? (
+				<AddPlayerModal
+					isOpen={isAddPlayerOpen}
+					onClose={() => setIsAddPlayerOpen(false)}
+					sessionId={sessionId}
+					seasonSlug={seasonSlug}
+				/>
+			) : null}
 		</View>
 	);
 }

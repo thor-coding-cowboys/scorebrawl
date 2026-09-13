@@ -1,218 +1,76 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, {
-	createAnimatedComponent,
-	useAnimatedProps,
-	useSharedValue,
-	useAnimatedStyle,
-	withRepeat,
-	withTiming,
-	Easing,
-	type SharedValue,
-} from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 
-import { Avatar } from "@/components/avatar";
 import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 
-const PARTICLE_COUNT = 40;
-const ANIMATION_DURATION = 1600;
-const AVATAR_SIZE = 120;
-
-type Version = "border" | "fire-v1" | "fire-v2";
-
-const VERSIONS: { key: Version; label: string }[] = [
-	{ key: "border", label: "Border" },
-	{ key: "fire-v1", label: "Fire V1" },
-	{ key: "fire-v2", label: "Fire V2" },
+const PRESETS = [
+	{ label: "Fire (7)", value: 7 },
+	{ label: "Ice (-7)", value: -7 },
+	{ label: "None (0)", value: 0 },
 ];
 
-const AnimatedSvg = createAnimatedComponent(Svg);
-const AnimatedPath = createAnimatedComponent(Path);
-
-const FLAME_PATH =
-	"M12 2C12 2 6 8.5 6 13.5C6 16.8 8.7 19.5 12 19.5C15.3 19.5 18 16.8 18 13.5C18 8.5 12 2 12 2ZM12 17C10.3 17 9 15.7 9 14C9 12 12 9 12 9C12 9 15 12 15 14C15 15.7 13.7 17 12 17Z";
-
-function FireParticle({ index, progress }: { index: number; progress: SharedValue<number> }) {
-	const xOffset = (index % 9) * (AVATAR_SIZE * 0.28) - AVATAR_SIZE * 1.12;
-	const sizeSeed = 20 + Math.abs(Math.cos(index * 721.4)) * 32;
-	const spawnDelay = (index % PARTICLE_COUNT) / PARTICLE_COUNT;
-
-	const animatedStyle = useAnimatedStyle(() => {
-		const p = (progress.value + spawnDelay) % 1;
-
-		const translateY = -p * (AVATAR_SIZE * 2.2);
-		const translateX = xOffset + Math.sin(p * 6 + index) * AVATAR_SIZE * 0.2;
-		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
-		const dynamicSize = sizeSeed * scale;
-
-		const color =
-			p < 0.25 ? "rgb(255, 220, 90)" : p < 0.65 ? "rgb(255, 110, 0)" : "rgb(255, 69, 0)";
-
-		return {
-			transform: [{ translateX }, { translateY }],
-			width: dynamicSize,
-			height: dynamicSize * 1.5,
-			borderTopLeftRadius: 0,
-			borderTopRightRadius: 0,
-			borderBottomLeftRadius: dynamicSize * 0.6,
-			borderBottomRightRadius: dynamicSize * 0.6,
-			backgroundColor: color,
-			opacity: 1 - p,
-		};
-	});
-
-	return <Animated.View style={[styles.particle, animatedStyle]} />;
-}
-
-function FireAvatar() {
-	const progress = useSharedValue(0);
-
-	useEffect(() => {
-		progress.value = withRepeat(
-			withTiming(1, { duration: ANIMATION_DURATION, easing: Easing.linear }),
-			-1,
-			false
-		);
-	}, [progress]);
-
-	return (
-		<View style={styles.fireWrapper}>
-			<View style={styles.fireLayer}>
-				{Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-					key: `fire-${i}`,
-					index: i,
-				})).map((p) => (
-					<FireParticle key={p.key} index={p.index} progress={progress} />
-				))}
-			</View>
-			<View style={styles.avatarRim}>
-				<Avatar name="Test Player" size={AVATAR_SIZE} />
-			</View>
-		</View>
-	);
-}
-
-function FireV2Particle({ index, progress }: { index: number; progress: SharedValue<number> }) {
-	const randomXSeed = Math.sin(index * 443.1) * (AVATAR_SIZE * 0.65);
-	const sizeSeed = 25 + Math.abs(Math.cos(index * 812.7)) * 30;
-	const spawnDelay = index / PARTICLE_COUNT;
-
-	const animatedStyle = useAnimatedStyle(() => {
-		const p = (progress.value + spawnDelay) % 1;
-
-		const translateY = -p * (AVATAR_SIZE * 1.5);
-		const translateX = Math.sin(p * 7 + index) * randomXSeed;
-		const scale = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
-		const dynamicSize = sizeSeed * scale;
-
-		return {
-			transform: [{ translateX }, { translateY }],
-			width: dynamicSize,
-			height: dynamicSize,
-			opacity: 1 - p,
-		};
-	});
-
-	const animatedProps = useAnimatedProps(() => {
-		const p = (progress.value + spawnDelay) % 1;
-		const color = p < 0.2 ? "rgb(255, 240, 150)" : p < 0.5 ? "rgb(255, 140, 0)" : "rgb(255, 69, 0)";
-		return { fill: color };
-	});
-
-	return (
-		<AnimatedSvg viewBox="0 0 24 24" style={[styles.particle, animatedStyle]}>
-			<AnimatedPath animatedProps={animatedProps} d={FLAME_PATH} />
-		</AnimatedSvg>
-	);
-}
-
-function FireV2Avatar() {
-	const progress = useSharedValue(0);
-
-	useEffect(() => {
-		progress.value = withRepeat(
-			withTiming(1, { duration: ANIMATION_DURATION, easing: Easing.linear }),
-			-1,
-			false
-		);
-	}, [progress]);
-
-	return (
-		<View style={styles.fireWrapper}>
-			<View style={styles.fireLayer}>
-				{Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-					key: `fire2-${i}`,
-					index: i,
-				})).map((p) => (
-					<FireV2Particle key={p.key} index={p.index} progress={progress} />
-				))}
-			</View>
-			<View style={styles.avatarRim}>
-				<Avatar name="Test Player" size={AVATAR_SIZE} />
-			</View>
-		</View>
-	);
-}
-
 export default function SandboxScreen() {
-	const [version, setVersion] = useState<Version>("fire-v1");
-	const [streak, setStreak] = useState(6);
+	const [streak, setStreak] = useState(7);
 
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<ThemedText type="title" style={styles.title}>
-					Sandbox
+					Streak Effects
 				</ThemedText>
 
 				<View style={styles.controls}>
-					{VERSIONS.map((v) => (
+					<Button variant="outline" size="sm" onPress={() => setStreak((s) => s - 1)}>
+						−1
+					</Button>
+					<Button variant="outline" size="sm" onPress={() => setStreak((s) => s + 1)}>
+						+1
+					</Button>
+					{PRESETS.map((p) => (
 						<Button
-							key={v.key}
-							variant={version === v.key ? "primary" : "outline"}
+							key={p.label}
+							variant={streak === p.value ? "primary" : "outline"}
 							size="sm"
-							onPress={() => setVersion(v.key)}
+							onPress={() => setStreak(p.value)}
 						>
-							{v.label}
+							{p.label}
 						</Button>
 					))}
 				</View>
 
-				<View style={styles.body}>
-					{version === "border" ? (
-						<>
-							<StreakAvatar name="Test Player" streak={streak} />
+				<ThemedText type="small" themeColor="textSecondary">
+					Streak: {streak}
+				</ThemedText>
+
+				<View style={styles.hero}>
+					<StreakAvatar name="Test Player" streak={streak} size={130} />
+				</View>
+
+				<View style={styles.sizes}>
+					{[36, 56, 80].map((size) => (
+						<View key={size} style={styles.sizeItem}>
+							<StreakAvatar name="Test Player" streak={streak} size={size} />
 							<ThemedText type="small" themeColor="textSecondary">
-								Streak: {streak}
+								{size}
 							</ThemedText>
-							<View style={styles.controls}>
-								<Button variant="outline" size="sm" onPress={() => setStreak((s) => s - 1)}>
-									−1
-								</Button>
-								<Button variant="outline" size="sm" onPress={() => setStreak((s) => s + 1)}>
-									+1
-								</Button>
-							</View>
-							<View style={styles.controls}>
-								<Button variant="outline" size="sm" onPress={() => setStreak(6)}>
-									Fire (6)
-								</Button>
-								<Button variant="outline" size="sm" onPress={() => setStreak(-6)}>
-									Ice (-6)
-								</Button>
-							</View>
-						</>
-					) : version === "fire-v1" ? (
-						<FireAvatar />
-					) : version === "fire-v2" ? (
-						<FireV2Avatar />
-					) : null}
+						</View>
+					))}
+				</View>
+
+				<View style={styles.comparison}>
+					{[7, 0, -7].map((s) => (
+						<View key={s} style={styles.sizeItem}>
+							<StreakAvatar name="Test Player" streak={s} size={36} />
+							<ThemedText type="small" themeColor="textSecondary">
+								{s > 0 ? `+${s}` : s}
+							</ThemedText>
+						</View>
+					))}
 				</View>
 			</SafeAreaView>
 		</ThemedView>
@@ -238,47 +96,30 @@ const styles = StyleSheet.create({
 	controls: {
 		flexDirection: "row",
 		gap: Spacing.two,
-		marginBottom: Spacing.four,
+		marginBottom: Spacing.three,
 		flexWrap: "wrap",
 	},
-	body: {
-		flex: 1,
+	hero: {
 		alignItems: "center",
 		justifyContent: "center",
-		gap: Spacing.four,
+		paddingVertical: 100,
 	},
-	particle: {
-		position: "absolute",
-		left: AVATAR_SIZE / 2,
-		bottom: 0,
-	},
-	fireWrapper: {
-		position: "relative",
-		width: AVATAR_SIZE,
-		height: AVATAR_SIZE,
+	sizes: {
+		flexDirection: "row",
+		alignItems: "flex-end",
 		justifyContent: "center",
-		alignItems: "center",
+		gap: 56,
+		paddingVertical: 40,
 	},
-	fireLayer: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
+	comparison: {
+		flexDirection: "row",
+		alignItems: "center",
 		justifyContent: "center",
-		alignItems: "center",
-		zIndex: 1,
-		shadowColor: "#ff4500",
-		shadowOffset: { width: 0, height: -4 },
-		shadowOpacity: 0.8,
-		shadowRadius: 30,
-		elevation: 20,
+		gap: 40,
+		paddingVertical: 32,
 	},
-	avatarRim: {
-		zIndex: 2,
-		borderRadius: AVATAR_SIZE * 0.2,
-		borderWidth: 3,
-		borderColor: "#ff6a00",
-		overflow: "hidden",
+	sizeItem: {
+		alignItems: "center",
+		gap: Spacing.two,
 	},
 });

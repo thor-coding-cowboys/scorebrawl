@@ -2,16 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
-import { StandingRow } from "@/components/standing-row";
+import { StandingRow, type StandingItem } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
+import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
 const Separator = () => <View style={styles.separator} />;
 
-export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
+export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const [cookie, setCookie] = useState<string | undefined>();
 
@@ -26,12 +27,23 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	}, []);
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
-	const standingsQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const standings = [...(standingsQuery.data ?? [])].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
-	});
+	const standingsQuery = useQuery(trpc.seasonTeam.getStanding.queryOptions({ seasonSlug }));
+	const standings: StandingItem[] = [...(standingsQuery.data ?? [])]
+		.sort((a, b) => {
+			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
+			if (a.matchCount !== 0 && b.matchCount === 0) return -1;
+			return b.score - a.score;
+		})
+		.map((item) => ({
+			id: item.id,
+			name: item.name,
+			image: getAvatarUri(item.logo),
+			score: item.score,
+			matchCount: item.matchCount,
+			winCount: item.winCount,
+			pointDiff: item.pointDiff,
+			form: item.form,
+		}));
 
 	return (
 		<FlatList
@@ -49,7 +61,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 				) : standingsQuery.isError ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-							Couldn't load standings
+							Couldn't load team standings
 						</ThemedText>
 						<Button variant="outline" onPress={() => standingsQuery.refetch()}>
 							Retry
@@ -57,7 +69,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 					</View>
 				) : (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						No matches registered
+						No team standings
 					</ThemedText>
 				)
 			}
