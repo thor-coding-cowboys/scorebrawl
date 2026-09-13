@@ -8,7 +8,6 @@ import Animated, {
 	useSharedValue,
 	withSpring,
 	withTiming,
-	type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -266,6 +265,14 @@ export default function AppTabs() {
 		transform: [{ rotate: `${rotation.value * 45}deg` }],
 	}));
 
+	const flyoutPanelStyle = useAnimatedStyle(() => ({
+		opacity: flyoutProgress.value,
+		transform: [
+			{ translateY: (1 - flyoutProgress.value) * 12 },
+			{ scale: 0.9 + flyoutProgress.value * 0.1 },
+		],
+	}));
+
 	return (
 		<View
 			style={[
@@ -288,16 +295,33 @@ export default function AppTabs() {
 					/>
 
 					<View style={[styles.flyoutWrap, { bottom: 56 + insets.bottom + 9 }]}>
-						<Animated.View style={styles.flyout}>
+						<Animated.View
+							style={[
+								styles.flyout,
+								{ backgroundColor: theme.background, borderColor: theme.border },
+								flyoutPanelStyle,
+							]}
+						>
 							{SEASON_CREATE_ACTIONS.filter((a) => !(is1vNSeason && a.label === "Session")).map(
 								(action, i) => (
-									<FlyoutOption
+									<Pressable
 										key={action.label}
-										action={action}
-										progress={flyoutProgress}
-										index={i}
+										accessibilityRole="button"
 										onPress={() => handleFlyoutAction(action.label)}
-									/>
+										style={({ pressed }) => [
+											styles.flyoutRow,
+											i > 0 && {
+												borderTopWidth: StyleSheet.hairlineWidth,
+												borderTopColor: theme.border,
+											},
+											pressed && { backgroundColor: theme.backgroundSelected },
+										]}
+									>
+										<View style={[styles.flyoutIcon, { backgroundColor: theme.glowBlueBg }]}>
+											<SymbolView name={action.icon} size={18} tintColor={theme.glowBlueText} />
+										</View>
+										<ThemedText type="smallBold">{action.label}</ThemedText>
+									</Pressable>
 								)
 							)}
 						</Animated.View>
@@ -394,42 +418,6 @@ interface TabProps {
 	onPress: () => void;
 }
 
-function FlyoutOption({
-	action,
-	progress,
-	index,
-	onPress,
-}: {
-	action: CreateAction;
-	progress: SharedValue<number>;
-	index: number;
-	onPress: () => void;
-}) {
-	const theme = useTheme();
-	const style = useAnimatedStyle(() => ({
-		opacity: progress.value,
-		transform: [{ translateY: (1 - progress.value) * (14 + index * 10) }],
-	}));
-	return (
-		<Animated.View style={style}>
-			<Pressable
-				accessibilityRole="button"
-				onPress={onPress}
-				style={({ pressed }) => [
-					styles.flyoutItem,
-					{ backgroundColor: theme.background, borderColor: theme.border },
-					pressed && { opacity: 0.7 },
-				]}
-			>
-				<View style={[styles.flyoutIcon, { backgroundColor: theme.glowBlueBg }]}>
-					<SymbolView name={action.icon} size={20} tintColor={theme.glowBlueText} />
-				</View>
-				<ThemedText type="smallBold">{action.label}</ThemedText>
-			</Pressable>
-		</Animated.View>
-	);
-}
-
 function TabButton({
 	label,
 	icon,
@@ -511,18 +499,17 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	flyout: {
-		alignItems: "center",
-		gap: Spacing.two,
+		minWidth: 190,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 0,
+		overflow: "hidden",
 	},
-	flyoutItem: {
+	flyoutRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.three,
-		borderRadius: 8,
-		minWidth: 148,
-		borderWidth: StyleSheet.hairlineWidth,
 	},
 	flyoutIcon: {
 		width: 34,
