@@ -348,7 +348,16 @@ export function createAuth({
 			oauthProvider({
 				loginPage: "/auth/sign-in",
 				consentPage: "/consent",
-				scopes: ["openid", "profile", "email", "offline_access", "create:matches", "read:matches"],
+				scopes: [
+					"openid",
+					"profile",
+					"email",
+					"offline_access",
+					"create:matches",
+					"read:matches",
+					"read:leagues",
+					"read:seasons",
+				],
 				resources: oauthResource ? [oauthResource] : [],
 				enforcePerClientResources: false,
 			}),

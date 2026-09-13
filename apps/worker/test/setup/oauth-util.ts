@@ -38,7 +38,7 @@ export async function createPkce(): Promise<{ verifier: string; challenge: strin
 
 export async function registerOAuthClient({
 	sessionToken,
-	scope = "openid profile email offline_access create:matches read:matches",
+	scope = "openid profile email offline_access create:matches read:matches read:leagues read:seasons",
 	redirectUri = "https://app.example.com/callback",
 	skipConsent = true,
 	requirePkce = true,
@@ -91,7 +91,7 @@ export async function registerOAuthClient({
 export async function getAccessToken({
 	sessionToken,
 	client,
-	scopes = "openid profile email offline_access create:matches read:matches",
+	scopes = "openid profile email offline_access create:matches read:matches read:leagues read:seasons",
 	resource = "https://scorebrawl.com/api/v1",
 	acceptConsent = false,
 }: {

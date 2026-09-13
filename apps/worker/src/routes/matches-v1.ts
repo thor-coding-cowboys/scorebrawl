@@ -4,12 +4,10 @@ import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
-import { requestToResourceInput, verifyAccessTokenRequest } from "better-auth/oauth2";
-import type { JSONWebKeySet } from "jose";
 import type { HonoEnv } from "../middleware/context";
 import { member as memberTable, league as organization } from "../db/schema/auth-schema";
 import { season as seasonTable } from "../db/schema/league-schema";
-import { jwks as jwksTable } from "../db/schema/auth-schema";
+import { requireScope } from "./v1-auth";
 import { createOneVnMatch, type MatchCreationContext } from "../services/match-creation";
 import {
 	resolveParticipantsToSeasonPlayers,
@@ -38,23 +36,6 @@ const createMatchSchema = z.object({
 	winner: participantSchema,
 	losers: z.array(participantSchema).min(1),
 });
-
-type OAuthTokenPayload = {
-	sub?: string | undefined;
-	scope?: string | undefined;
-};
-
-async function getJwksSet(db: HonoEnv["Variables"]["db"]): Promise<JSONWebKeySet> {
-	const keys = await db
-		.select({ id: jwksTable.id, publicKey: jwksTable.publicKey })
-		.from(jwksTable);
-	return {
-		keys: keys.map((k) => ({
-			kid: k.id,
-			...JSON.parse(k.publicKey),
-		})),
-	};
-}
 
 function mapTrpcError(error: unknown): HTTPException {
 	if (error instanceof UnresolvedParticipantsError) {
@@ -120,98 +101,58 @@ async function resolveTarget(c: MatchContext) {
 
 export const matchesV1Router = new Hono<HonoEnv>();
 
-matchesV1Router.use("*", async (c, next) => {
-	const auth = c.get("betterAuth");
-	const requiredScope = c.req.method === "GET" ? "read:matches" : "create:matches";
-	try {
-		const baseUrl =
-			(auth.options as { baseURL?: string }).baseURL ??
-			(c.env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL ??
-			new URL(c.req.raw.url).origin;
-		const basePath = (auth.options as { basePath?: string }).basePath ?? "/api/auth";
-		const issuer = `${baseUrl}${basePath}`;
-		const payload = (await verifyAccessTokenRequest(requestToResourceInput(c.req.raw), {
-			verifyOptions: {
-				issuer,
-				audience: c.env.OAUTH_RESOURCE,
-			},
-			requiredScopes: [requiredScope],
-			jwksUrl: (() => getJwksSet(c.get("db"))) as unknown as string,
-		})) as OAuthTokenPayload;
-		c.set("oauthToken", payload);
-		await next();
-	} catch (error) {
-		const apiError = error as { status?: string; body?: { error?: string; scope?: string } };
-		if (apiError.status === "FORBIDDEN" || apiError.body?.error === "insufficient_scope") {
-			const scope = apiError.body?.scope ?? requiredScope;
-			return c.json(
-				{
-					error: "insufficient_scope",
-					error_description: `The access token is missing the required scope: ${scope}`,
-					scope,
-				},
-				403,
-				{ "WWW-Authenticate": `Bearer error="insufficient_scope", scope="${scope}"` }
-			);
+matchesV1Router.post(
+	"/",
+	requireScope("create:matches"),
+	zValidator("json", createMatchSchema),
+	async (c) => {
+		const target = await resolveTarget(c);
+		const { db, leagueId, seasonId, season } = target;
+		const input = c.req.valid("json");
+
+		if (season.closed) {
+			return c.json({ error: "This season is closed" }, 403);
 		}
-		return c.json(
-			{
-				error: "invalid_token",
-				error_description: "The access token is missing, invalid or expired.",
-			},
-			401,
-			{ "WWW-Authenticate": 'Bearer error="invalid_token"' }
-		);
-	}
-});
+		if (season.scoreType !== "1-v-n-elo") {
+			return c.json({ error: "1-v-n games can only be recorded in 1-v-n-elo seasons" }, 400);
+		}
 
-matchesV1Router.post("/", zValidator("json", createMatchSchema), async (c) => {
-	const target = await resolveTarget(c);
-	const { db, leagueId, seasonId, season } = target;
-	const input = c.req.valid("json");
+		const participants: MatchParticipant[] = [
+			{ ...input.winner, role: "winner" },
+			...input.losers.map((loser) => ({ ...loser, role: "loser" })),
+		] as MatchParticipant[];
 
-	if (season.closed) {
-		return c.json({ error: "This season is closed" }, 403);
-	}
-	if (season.scoreType !== "1-v-n-elo") {
-		return c.json({ error: "1-v-n games can only be recorded in 1-v-n-elo seasons" }, 400);
-	}
-
-	const participants: MatchParticipant[] = [
-		{ ...input.winner, role: "winner" },
-		...input.losers.map((loser) => ({ ...loser, role: "loser" })),
-	] as MatchParticipant[];
-
-	try {
-		const resolved = await resolveParticipantsToSeasonPlayers({
-			db,
-			leagueId,
-			seasonId,
-			initialScore: season.initialScore,
-			participants,
-		});
-
-		const match = await createOneVnMatch({
-			ctx: {
+		try {
+			const resolved = await resolveParticipantsToSeasonPlayers({
 				db,
-				env: c.env,
-				waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
-				organization: { slug: target.org.slug },
-				user: { id: target.userId, name: "OAuth API" },
-			} satisfies MatchCreationContext,
-			seasonSlug: season.slug,
-			id: input.gameId,
-			winnerId: resolved.winnerSeasonPlayerId,
-			loserIds: resolved.loserSeasonPlayerIds,
-		});
+				leagueId,
+				seasonId,
+				initialScore: season.initialScore,
+				participants,
+			});
 
-		return c.json({ match }, 201);
-	} catch (error) {
-		throw mapTrpcError(error);
+			const match = await createOneVnMatch({
+				ctx: {
+					db,
+					env: c.env,
+					waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
+					organization: { slug: target.org.slug },
+					user: { id: target.userId, name: "OAuth API" },
+				} satisfies MatchCreationContext,
+				seasonSlug: season.slug,
+				id: input.gameId,
+				winnerId: resolved.winnerSeasonPlayerId,
+				loserIds: resolved.loserSeasonPlayerIds,
+			});
+
+			return c.json({ match }, 201);
+		} catch (error) {
+			throw mapTrpcError(error);
+		}
 	}
-});
+);
 
-matchesV1Router.get("/", async (c) => {
+matchesV1Router.get("/", requireScope("read:matches"), async (c) => {
 	const target = await resolveTarget(c);
 	const limit = Number(c.req.query("limit") ?? 30);
 	const offset = Number(c.req.query("offset") ?? 0);

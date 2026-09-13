@@ -18,6 +18,8 @@ const DEFAULT_SCOPES = [
 	"offline_access",
 	"create:matches",
 	"read:matches",
+	"read:leagues",
+	"read:seasons",
 ];
 
 function formatDate(date: Date | null): string {
