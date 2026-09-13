@@ -138,7 +138,7 @@ jobs:
             **Queues:** \`${achievementQueueName}\`, \`${seedQueueName}\`
 
             **Test Account:**
-            - Email: \`seed@scorebrawl.com\`
+            - Email: \`seed@example.com\`
             - Password: \`Test.1234\`
 
             This preview environment will be automatically cleaned up when the PR is closed.`;
