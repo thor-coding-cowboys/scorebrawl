@@ -9,7 +9,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Spacing } from "@/constants/theme";
+import { Fonts, Spacing } from "@/constants/theme";
+import { useSessionTheme } from "@/components/session/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -46,6 +47,7 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 	const insets = useSafeAreaInsets();
 	const theme = useTheme();
 	const trpc = useTRPC();
+	const sessionTheme = useSessionTheme();
 	const queryClient = useQueryClient();
 
 	const [players, setPlayers] = useState<SelectablePlayer[]>([]);
@@ -240,7 +242,7 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 						contentContainerStyle={styles.form}
 						keyboardShouldPersistTaps="handled"
 					>
-						<View style={[styles.stepperRow, { backgroundColor: theme.backgroundElement }]}>
+						<View style={styles.scoreBoard}>
 							<ScoreStepper
 								label="Home"
 								score={homeScore}
@@ -253,6 +255,7 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 									setHomeScore((s) => s + 1);
 								}}
 							/>
+							<View style={[styles.scoreDivider, { backgroundColor: sessionTheme.border }]} />
 							<ScoreStepper
 								label="Away"
 								score={awayScore}
@@ -272,10 +275,6 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 							<RosterCard label="Away" players={awayPlayers} />
 						</View>
 
-						<Button variant="outline" onPress={() => setIsSelectOpen(true)}>
-							Select Players
-						</Button>
-
 						<View style={styles.messages}>
 							{!teamsValid && selectedCount > 0 ? (
 								<Warning text="Teams must have equal number of players (at least 1 each)" />
@@ -291,32 +290,41 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 							) : null}
 						</View>
 
-						<View style={[styles.actions, { borderTopColor: theme.border }]}>
-							<View style={styles.checks}>
-								<CheckRow
-									label="Keep open"
-									value={keepOpen}
-									onToggle={() => setKeepOpen((v) => !v)}
-								/>
-								<CheckRow
-									label="Keep players"
-									value={keepPlayers}
-									onToggle={() => setKeepPlayers((v) => !v)}
-								/>
-							</View>
-							<View style={styles.actionRow}>
-								<Button variant="outline" onPress={handleClose}>
-									Cancel
-								</Button>
-								<Button
-									style={styles.submit}
-									onPress={submit}
-									loading={isSubmitting}
-									disabled={!teamsValid}
-								>
-									{duplicateWarning ? "Create Anyway" : "Create Match"}
-								</Button>
-							</View>
+						<View style={styles.checks}>
+							<CheckRow
+								label="Keep open"
+								value={keepOpen}
+								onToggle={() => setKeepOpen((v) => !v)}
+							/>
+							<CheckRow
+								label="Keep players"
+								value={keepPlayers}
+								onToggle={() => setKeepPlayers((v) => !v)}
+							/>
+						</View>
+
+						<View style={styles.stack}>
+							<Button
+								variant="outline"
+								fullWidth
+								icon={{ ios: "person.3", android: "groups", web: "groups" }}
+								onPress={() => setIsSelectOpen(true)}
+							>
+								Select Players
+							</Button>
+							<Button
+								variant="glow"
+								fullWidth
+								icon={{ ios: "checkmark.circle", android: "check_circle", web: "check_circle" }}
+								onPress={submit}
+								loading={isSubmitting}
+								disabled={!teamsValid}
+							>
+								{duplicateWarning ? "Create Anyway" : "Create Match"}
+							</Button>
+							<Button variant="ghost" fullWidth onPress={handleClose}>
+								Cancel
+							</Button>
 						</View>
 					</ScrollView>
 				</View>
@@ -348,46 +356,65 @@ function ScoreStepper({
 }) {
 	return (
 		<View style={styles.stepper}>
-			<ThemedText type="small" themeColor="textSecondary">
+			<ThemedText themeColor="textSecondary" style={styles.stepperLabel}>
 				{label}
 			</ThemedText>
 			<View style={styles.stepperControls}>
-				<Button variant="outline" size="sm" onPress={onDecrement} disabled={score <= 0}>
-					−
-				</Button>
+				<Button
+					variant="outline"
+					size="iconSm"
+					icon={{ ios: "minus", android: "remove", web: "remove" }}
+					onPress={onDecrement}
+					disabled={score <= 0}
+				/>
 				<ThemedText style={styles.stepperValue}>{score}</ThemedText>
-				<Button variant="outline" size="sm" onPress={onIncrement}>
-					+
-				</Button>
+				<Button
+					variant="outline"
+					size="iconSm"
+					icon={{ ios: "plus", android: "add", web: "add" }}
+					onPress={onIncrement}
+				/>
 			</View>
 		</View>
 	);
 }
 
 function RosterCard({ label, players }: { label: string; players: SelectablePlayer[] }) {
-	const theme = useTheme();
+	const sessionTheme = useSessionTheme();
 	return (
-		<View style={[styles.roster, { borderColor: theme.border }]}>
-			<View style={[styles.rosterHeader, { borderBottomColor: theme.border }]}>
-				<ThemedText type="small" themeColor="textSecondary">
-					{label.toUpperCase()}
+		<View style={[styles.roster, { borderColor: sessionTheme.border }]}>
+			<View
+				style={[
+					styles.rosterHeader,
+					{ borderBottomColor: sessionTheme.border, backgroundColor: sessionTheme.mutedBg },
+				]}
+			>
+				<ThemedText themeColor="textSecondary" style={styles.rosterLabel}>
+					{label}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
-					{players.length}
+				<ThemedText themeColor="textSecondary" style={styles.rosterCount}>
+					{players.length}p
 				</ThemedText>
 			</View>
 			<View style={styles.rosterBody}>
 				{players.length === 0 ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.rosterEmpty}>
-						No players
-					</ThemedText>
+					<View style={styles.rosterEmpty}>
+						<ThemedText type="small" themeColor="textSecondary">
+							No players
+						</ThemedText>
+					</View>
 				) : (
 					players.map((p) => (
 						<View key={p.id} style={styles.rosterRow}>
-							<Avatar name={p.name} image={p.image} size={22} />
-							<ThemedText type="small" style={styles.rosterName} numberOfLines={1}>
-								{p.name}
-							</ThemedText>
+							<Avatar name={p.name} image={p.image} size={24} />
+							<View style={styles.rosterInfo}>
+								<ThemedText style={styles.rosterName} numberOfLines={1}>
+									{p.name}
+								</ThemedText>
+								<ThemedText themeColor="textSecondary" style={styles.rosterScore}>
+									{p.score}
+								</ThemedText>
+							</View>
 						</View>
 					))
 				)}
@@ -600,63 +627,89 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingBottom: Spacing.four,
 	},
-	stepperRow: {
+	scoreBoard: {
 		flexDirection: "row",
-		borderRadius: 10,
-		paddingVertical: Spacing.two,
+		alignItems: "stretch",
+	},
+	scoreDivider: {
+		width: StyleSheet.hairlineWidth,
 	},
 	stepper: {
 		flex: 1,
 		alignItems: "center",
-		gap: Spacing.one,
+		gap: 4,
+		padding: 16,
+	},
+	stepperLabel: {
+		fontSize: 11,
+		lineHeight: 14,
+		textTransform: "uppercase",
+		letterSpacing: 0.6,
 	},
 	stepperControls: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: Spacing.two,
+		gap: 12,
 	},
 	stepperValue: {
-		fontSize: 32,
-		lineHeight: 40,
+		fontSize: 48,
+		lineHeight: 48,
 		fontWeight: "700",
-		minWidth: 44,
+		width: 64,
 		textAlign: "center",
+		letterSpacing: -1.5,
 		fontVariant: ["tabular-nums"],
+		fontFamily: Fonts.sans,
 	},
 	rosters: {
 		flexDirection: "row",
-		gap: Spacing.two,
+		gap: Spacing.three,
 	},
 	roster: {
 		flex: 1,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderRadius: 8,
-		overflow: "hidden",
 	},
 	rosterHeader: {
 		flexDirection: "row",
+		alignItems: "center",
 		justifyContent: "space-between",
-		paddingHorizontal: Spacing.two,
-		paddingVertical: Spacing.one,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
+	rosterLabel: {
+		fontSize: 12,
+		lineHeight: 16,
+		fontWeight: "500",
+		textTransform: "uppercase",
+		letterSpacing: 0.6,
+	},
+	rosterCount: { fontSize: 12, lineHeight: 16 },
 	rosterBody: {
 		minHeight: 96,
-		padding: Spacing.two,
-		gap: Spacing.two,
+		padding: 8,
+		gap: 4,
 	},
 	rosterEmpty: {
-		textAlign: "center",
-		marginTop: Spacing.three,
+		flex: 1,
+		minHeight: 80,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	rosterRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: Spacing.two,
+		gap: 8,
+		paddingHorizontal: 4,
+		paddingVertical: 2,
 	},
+	rosterInfo: { flex: 1, gap: 1 },
 	rosterName: {
-		flex: 1,
+		fontSize: 12,
+		lineHeight: 16,
+		fontWeight: "500",
 	},
+	rosterScore: { fontSize: 11, lineHeight: 14 },
 	messages: {
 		gap: Spacing.one,
 		minHeight: 20,
@@ -670,10 +723,8 @@ const styles = StyleSheet.create({
 		flex: 1,
 		color: "#d97706",
 	},
-	actions: {
-		gap: Spacing.three,
-		paddingTop: Spacing.three,
-		borderTopWidth: StyleSheet.hairlineWidth,
+	stack: {
+		gap: Spacing.two,
 	},
 	checks: {
 		flexDirection: "row",
@@ -687,17 +738,10 @@ const styles = StyleSheet.create({
 	checkbox: {
 		width: 20,
 		height: 20,
-		borderRadius: 4,
+		borderRadius: 0,
 		borderWidth: 1,
 		alignItems: "center",
 		justifyContent: "center",
-	},
-	actionRow: {
-		flexDirection: "row",
-		gap: Spacing.two,
-	},
-	submit: {
-		flex: 1,
 	},
 	columns: {
 		flex: 1,
