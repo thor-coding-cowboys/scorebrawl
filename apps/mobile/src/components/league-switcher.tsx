@@ -11,9 +11,10 @@ import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
+import { DEFAULT_LEAGUE_LOGO } from "@/lib/league";
 
 function LeagueAvatar({ name, logo }: { name: string; logo?: string | null }) {
-	const { uri, headers } = useUserAvatar(logo);
+	const { uri, headers } = useUserAvatar(logo || DEFAULT_LEAGUE_LOGO);
 	return <Avatar name={name} image={uri} headers={headers} size={28} />;
 }
 
@@ -25,7 +26,7 @@ export function LeagueSwitcher() {
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [switchingId, setSwitchingId] = useState<string | null>(null);
 	const createOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const { uri, headers } = useUserAvatar(activeLeague?.logo);
+	const { uri, headers } = useUserAvatar(activeLeague?.logo || DEFAULT_LEAGUE_LOGO);
 
 	useEffect(() => {
 		return () => {

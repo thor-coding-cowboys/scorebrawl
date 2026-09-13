@@ -5,10 +5,11 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
+import { DEFAULT_LEAGUE_LOGO } from "@/lib/league";
 
 export function ActiveLeagueTitle() {
 	const { activeLeague } = useActiveLeague();
-	const { uri, headers } = useUserAvatar(activeLeague?.logo);
+	const { uri, headers } = useUserAvatar(activeLeague?.logo || DEFAULT_LEAGUE_LOGO);
 
 	return (
 		<View style={styles.container}>
