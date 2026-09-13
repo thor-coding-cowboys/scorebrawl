@@ -77,9 +77,18 @@ function ActiveSessionCard({
 	);
 }
 
-function SessionRow({ session }: { session: EndedSession }) {
+function SessionRow({ session, seasonSlug }: { session: EndedSession; seasonSlug: string }) {
 	return (
-		<View style={styles.row}>
+		<Pressable
+			accessibilityRole="button"
+			onPress={() =>
+				router.push({
+					pathname: "/seasons/[seasonSlug]/session/[sessionId]/summary",
+					params: { seasonSlug, sessionId: session.id },
+				})
+			}
+			style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+		>
 			<View style={styles.rowInfo}>
 				<ThemedText style={styles.rowDate}>{formatDate(session.createdAt)}</ThemedText>
 				<ThemedText type="small" themeColor="textSecondary">
@@ -90,7 +99,7 @@ function SessionRow({ session }: { session: EndedSession }) {
 			<ThemedText type="small" themeColor="textSecondary">
 				{rotationLabel(session.rotationMode)}
 			</ThemedText>
-		</View>
+		</Pressable>
 	);
 }
 
@@ -109,7 +118,7 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 			style={styles.flatList}
 			data={sessions}
 			keyExtractor={(item) => item.id}
-			renderItem={({ item }) => <SessionRow session={item} />}
+			renderItem={({ item }) => <SessionRow session={item} seasonSlug={seasonSlug} />}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
 			ListHeaderComponent={

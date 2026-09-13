@@ -48,8 +48,8 @@ export function SessionView({
 							queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
 						});
 						router.replace({
-							pathname: "/seasons/[seasonSlug]",
-							params: { seasonSlug, view: "session" },
+							pathname: "/seasons/[seasonSlug]/session/[sessionId]/summary",
+							params: { seasonSlug, sessionId },
 						});
 					},
 				},
