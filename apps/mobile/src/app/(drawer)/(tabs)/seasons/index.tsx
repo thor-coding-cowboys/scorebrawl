@@ -21,6 +21,7 @@ import {
 	SCORE_TYPE_CONFIG as SCORE_TYPE_CARD_CONFIG,
 	type ScoreType,
 } from "@/components/score-type-card";
+import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -461,9 +462,7 @@ export default function SeasonsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<ThemedText type="title" style={styles.title}>
-					Seasons
-				</ThemedText>
+				<MobileHeader title="Seasons" />
 				<FlatList
 					data={seasons}
 					keyExtractor={(item) => item.id}

@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LatestMatches } from "@/components/latest-matches";
+import { MobileHeader } from "@/components/mobile-header";
 import { SeasonStandings } from "@/components/season-standings";
 import { ActiveSessionBanner } from "@/components/session/active-session-banner";
 import { SeasonTeamStandings } from "@/components/season-team-standings";
@@ -145,14 +146,7 @@ export default function HomeScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				{activeSeason && (
-					<View style={styles.header}>
-						<ThemedText type="small" themeColor="textSecondary">
-							{activeLeague.name}
-						</ThemedText>
-						<ThemedText type="title">{activeSeason.name}</ThemedText>
-					</View>
-				)}
+				{activeSeason && <MobileHeader eyebrow={activeLeague.name} title={activeSeason.name} />}
 				{activeSeason ? <ActiveSessionBanner seasonSlug={activeSeason.slug} /> : null}
 				{activeSeason &&
 					(view === "matches" ? (

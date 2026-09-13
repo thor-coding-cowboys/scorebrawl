@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { LatestMatches } from "@/components/latest-matches";
+import { MobileHeader } from "@/components/mobile-header";
 import { SeasonStandings } from "@/components/season-standings";
 import { ActiveSessionBanner } from "@/components/session/active-session-banner";
 import { SeasonTeamStandings } from "@/components/season-team-standings";
@@ -47,16 +48,7 @@ export default function SeasonOverviewScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<View style={styles.header}>
-					<Pressable onPress={() => router.back()}>
-						<ThemedText type="small" themeColor="primary">
-							← Back
-						</ThemedText>
-					</Pressable>
-					<ThemedText type="title" style={styles.title}>
-						{season?.name ?? "Season"}
-					</ThemedText>
-				</View>
+				<MobileHeader onBack={() => router.back()} title={season?.name ?? "Season"} />
 
 				<ActiveSessionBanner seasonSlug={seasonSlug} />
 

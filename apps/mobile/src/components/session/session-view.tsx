@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { MobileHeader } from "@/components/mobile-header";
 import { NextMatchTab } from "@/components/session/next-match-tab";
 import { SessionPlayerStandings, SessionTeamStandings } from "@/components/session/standings-tab";
 import type { GameSession } from "@/components/session/types";
@@ -59,23 +60,20 @@ export function SessionView({
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<View style={styles.header}>
-					<View style={styles.headerText}>
-						<ThemedText type="small" themeColor="textSecondary">
-							Session
-						</ThemedText>
-						<ThemedText type="small" themeColor="textSecondary">
-							{session ? rotationLabel(session.rotationMode) : ""}
-						</ThemedText>
-					</View>
-					{session ? (
-						<Pressable onPress={endSession} hitSlop={8}>
-							<ThemedText type="smallBold" style={{ color: theme.destructive }}>
-								End Session
-							</ThemedText>
-						</Pressable>
-					) : null}
-				</View>
+				<MobileHeader
+					onBack={() => router.back()}
+					title="Session"
+					eyebrow={session ? rotationLabel(session.rotationMode) : undefined}
+					right={
+						session ? (
+							<Pressable onPress={endSession} hitSlop={8}>
+								<ThemedText type="smallBold" style={{ color: theme.destructive }}>
+									End Session
+								</ThemedText>
+							</Pressable>
+						) : undefined
+					}
+				/>
 
 				{sessionQuery.isPending ? (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
