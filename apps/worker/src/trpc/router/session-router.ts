@@ -24,6 +24,16 @@ async function getSeasonBySlug(db: SessionDb, seasonSlug: string, organizationId
 	}
 }
 
+async function assertSessionsAllowed(db: SessionDb, seasonId: string) {
+	const season = await seasonRepository.getById({ db, seasonId });
+	if (season.scoreType === "1-v-n-elo") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Sessions are not available for 1-v-n seasons",
+		});
+	}
+}
+
 async function getSessionForOrg(db: SessionDb, sessionId: string, organizationId: string) {
 	const info = await sessionRepository.getSessionWithSeason({ db, sessionId });
 	if (!info) {
@@ -53,6 +63,13 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
+
+			if (s.scoreType === "1-v-n-elo") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Sessions are not available for 1-v-n seasons",
+				});
+			}
 
 			const active = await sessionRepository.getActiveSession({
 				db: ctx.db,
@@ -245,6 +262,7 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			await assertSessionsAllowed(ctx.db, sessionInfo.sessionSeasonId);
 
 			const sessionMatch = await sessionRepository.startNextMatch({
 				db: ctx.db,
@@ -275,6 +293,7 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			await assertSessionsAllowed(ctx.db, sessionInfo.sessionSeasonId);
 
 			const result = await sessionService.recordResult(ctx.db, {
 				sessionId: input.sessionId,
