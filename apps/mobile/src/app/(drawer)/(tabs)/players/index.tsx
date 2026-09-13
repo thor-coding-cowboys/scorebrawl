@@ -7,6 +7,7 @@ import {
 	KeyboardAvoidingView,
 	Modal,
 	Platform,
+	Pressable,
 	ScrollView,
 	StyleSheet,
 	View,
@@ -287,7 +288,12 @@ export default function PlayersScreen() {
 					data={visiblePlayers}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
-						<View style={styles.row}>
+						<Pressable
+							style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+							onPress={() =>
+								router.push({ pathname: "/players/[playerId]", params: { playerId: item.id } })
+							}
+						>
 							<Avatar
 								name={item.name}
 								image={getAvatarUri(item.image)}
@@ -315,7 +321,7 @@ export default function PlayersScreen() {
 									{item.disabled ? "Enable" : "Disable"}
 								</Button>
 							) : null}
-						</View>
+						</Pressable>
 					)}
 					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={

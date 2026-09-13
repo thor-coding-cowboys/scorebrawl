@@ -146,12 +146,13 @@ export default function AppTabs() {
 	const isSeasonsList = pathname === "/seasons";
 	const isActiveSeason = pathname === "/";
 	const isSeasonView = !isSessionView && (isActiveSeason || isSeasonDetail);
+	const isPlayerDetail = pathname.startsWith("/players/");
 	const isLeaguePage =
 		pathname === "/teams" ||
 		pathname === "/players" ||
 		pathname === "/members" ||
 		pathname === "/invitations";
-	const hasPlus = !(pathname === "/teams" || pathname === "/members");
+	const hasPlus = !(pathname === "/teams" || pathname === "/members" || isPlayerDetail);
 	const activeView = params.view ?? (isSessionView ? "next" : "players");
 	const seasonSlug = params.seasonSlug;
 	const sessionId = params.sessionId;
@@ -205,6 +206,9 @@ export default function AppTabs() {
 		}));
 		leftTabs = [homeTab];
 		rightTabs = playerTabs;
+	} else if (isPlayerDetail) {
+		leftTabs = [homeTab];
+		rightTabs = [];
 	} else if (pathname === "/teams") {
 		const teamTabs: TabProps[] = TEAM_SUB_VIEWS.map(({ key, label, icon }) => ({
 			label,

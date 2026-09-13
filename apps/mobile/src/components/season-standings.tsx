@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
@@ -38,7 +39,20 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 			style={styles.flatList}
 			data={standings}
 			keyExtractor={(item) => item.id}
-			renderItem={({ item }) => <StandingRow item={item} headers={avatarHeaders} />}
+			renderItem={({ item }) => {
+				const playerId = item.playerId;
+				return (
+					<StandingRow
+						item={item}
+						headers={avatarHeaders}
+						onPress={
+							playerId
+								? () => router.push({ pathname: "/players/[playerId]", params: { playerId } })
+								: undefined
+						}
+					/>
+				);
+			}}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
 			ListEmptyComponent={

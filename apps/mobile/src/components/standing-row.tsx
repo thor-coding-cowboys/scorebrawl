@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
@@ -6,6 +6,7 @@ import { Spacing } from "@/constants/theme";
 
 export type StandingItem = {
 	id: string;
+	playerId?: string;
 	name: string;
 	image?: string | null;
 	score: number;
@@ -92,15 +93,17 @@ export function StandingRow({
 	item,
 	headers,
 	dimmed,
+	onPress,
 }: {
 	item: StandingItem;
 	headers?: Record<string, string>;
 	dimmed?: boolean;
+	onPress?: () => void;
 }) {
 	const streak = calculateStreak(item.form);
 
-	return (
-		<View style={[styles.row, dimmed && styles.dimmed]}>
+	const content = (
+		<>
 			<StreakAvatar name={item.name} image={item.image} headers={headers} streak={streak} />
 			<View style={styles.info}>
 				<ThemedText numberOfLines={1} style={styles.name}>
@@ -121,8 +124,22 @@ export function StandingRow({
 			<ThemedText style={[styles.score, item.matchCount === 0 && styles.scoreZero]}>
 				{item.score}
 			</ThemedText>
-		</View>
+		</>
 	);
+
+	if (onPress) {
+		return (
+			<Pressable
+				accessibilityRole="button"
+				onPress={onPress}
+				style={({ pressed }) => [styles.row, dimmed && styles.dimmed, pressed && { opacity: 0.7 }]}
+			>
+				{content}
+			</Pressable>
+		);
+	}
+
+	return <View style={[styles.row, dimmed && styles.dimmed]}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
