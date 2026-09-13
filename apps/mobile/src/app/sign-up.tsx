@@ -93,7 +93,7 @@ export default function SignUpScreen() {
 					<CardTitle>Sign Up</CardTitle>
 					<CardDescription>Create your account to get started</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent style={styles.content}>
 					{isEmailPasswordEnabled && (
 						<>
 							<Input
@@ -186,6 +186,9 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
+	content: {
+		gap: Spacing.three,
+	},
 	card: {
 		maxWidth: 448,
 	},

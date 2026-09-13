@@ -81,7 +81,7 @@ export default function SignInScreen() {
 							: "Sign in to your account"}
 					</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent style={styles.content}>
 					{isEmailPasswordEnabled && (
 						<>
 							<Input
@@ -163,6 +163,9 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
+	content: {
+		gap: Spacing.three,
+	},
 	card: {
 		maxWidth: 448,
 	},
