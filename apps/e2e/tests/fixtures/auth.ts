@@ -2,7 +2,7 @@ import { test as base, expect, type Page } from "@playwright/test";
 
 // Seed user credentials
 export const SEED_USER = {
-	email: "seed@scorebrawl.com",
+	email: "seed@example.com",
 	password: "Test.1234",
 };
 

@@ -30,7 +30,7 @@ import { calculateEloMatch, determineMatchResult } from "@coding-cowboys/scorebr
 // Seed configuration
 const SEED_USER = {
 	id: "seed-user-id",
-	email: "seed@scorebrawl.com",
+	email: "seed@example.com",
 	password: "Test.1234",
 	name: randFullName(),
 };
