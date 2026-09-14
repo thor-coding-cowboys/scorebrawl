@@ -103,7 +103,7 @@ function TeammateRow({
 	);
 }
 
-export function PlayerDetail({ playerId }: { playerId: string }) {
+export function PlayerDetail({ playerId, view = "overview" }: { playerId: string; view?: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
 
@@ -154,147 +154,167 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 					</View>
 				) : (
 					<ScrollView contentContainerStyle={styles.scroll}>
-						<View style={styles.hero}>
-							<Avatar
-								name={player?.name ?? "?"}
-								image={getAvatarUri(player?.image)}
-								size={96}
-								borderRadius={8}
-							/>
-							<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
-								{player?.name}
-							</ThemedText>
-							<ThemedText type="small" themeColor="textSecondary">
-								{winRate}% win rate · {allTime?.total ?? 0} matches
-							</ThemedText>
-							<Button
-								variant="outline"
-								size="sm"
-								icon={{
-									ios: "arrow.left.arrow.right",
-									android: "compare_arrows",
-									web: "compare_arrows",
-								}}
-								onPress={() =>
-									router.push({ pathname: "/players/compare", params: { p1: playerId } })
-								}
-							>
-								Compare
-							</Button>
-						</View>
-
-						<Section title="Overview">
-							<View style={styles.grid}>
-								<Stat label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
-								<Stat
-									label="Win rate"
-									value={`${winRate}%`}
-									sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L`}
-								/>
-								<Stat
-									label="Total matches"
-									value={String(allTime?.total ?? 0)}
-									sub={`${allTime?.seasonCount ?? 0} season(s)`}
-								/>
-								<Stat
-									label="Best season"
-									value={bestSeason?.season ?? "—"}
-									sub={bestSeason ? `Peak ${bestSeason.elo}` : undefined}
-								/>
-							</View>
-						</Section>
-
-						<Section title="Teammates">
-							<TeammateRow label="Best teammate" tone="best" teammate={bestTeammateQuery.data} />
-							<TeammateRow label="Worst teammate" tone="worst" teammate={worstTeammateQuery.data} />
-						</Section>
-
-						<Section title="Achievements">
-							{achievements.length === 0 ? (
-								<ThemedText type="small" themeColor="textSecondary">
-									No achievements yet
-								</ThemedText>
-							) : (
-								<View style={styles.achievements}>
-									{achievements.map((a) => (
-										<View key={a.type} style={styles.achievementItem}>
-											<View
-												style={[
-													styles.achievementBadge,
-													{
-														backgroundColor: `${theme.primary}1a`,
-														borderColor: `${theme.primary}33`,
-													},
-												]}
-											>
-												<SymbolView
-													name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
-													size={28}
-													tintColor={theme.primary}
-												/>
-											</View>
-											<ThemedText type="small" style={styles.achievementName}>
-												{formatAchievementName(a.type)}
-											</ThemedText>
-										</View>
-									))}
+						{view === "overview" ? (
+							<>
+								<View style={styles.hero}>
+									<Avatar
+										name={player?.name ?? "?"}
+										image={getAvatarUri(player?.image)}
+										size={96}
+										borderRadius={8}
+									/>
+									<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
+										{player?.name}
+									</ThemedText>
+									<ThemedText type="small" themeColor="textSecondary">
+										{winRate}% win rate · {allTime?.total ?? 0} matches
+									</ThemedText>
+									<Button
+										variant="outline"
+										size="sm"
+										icon={{
+											ios: "arrow.left.arrow.right",
+											android: "compare_arrows",
+											web: "compare_arrows",
+										}}
+										onPress={() =>
+											router.push({ pathname: "/players/compare", params: { p1: playerId } })
+										}
+									>
+										Compare
+									</Button>
 								</View>
-							)}
-						</Section>
-
-						{history.length > 1 ? (
-							<Section title="Season history">
-								{history.map((h) => (
-									<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
-										<View style={styles.rowInfo}>
-											<ThemedText style={styles.rowValue} numberOfLines={1}>
-												{h.season}
-											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
-												{h.wins}W · {h.losses}L · {h.winRate}% W
-											</ThemedText>
-										</View>
-										<ThemedText style={styles.subValue}>{h.score}</ThemedText>
+								<Section title="Overview">
+									<View style={styles.grid}>
+										<Stat label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
+										<Stat
+											label="Win rate"
+											value={`${winRate}%`}
+											sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L`}
+										/>
+										<Stat
+											label="Total matches"
+											value={String(allTime?.total ?? 0)}
+											sub={`${allTime?.seasonCount ?? 0} season(s)`}
+										/>
+										<Stat
+											label="Best season"
+											value={bestSeason?.season ?? "—"}
+											sub={bestSeason ? `Peak ${bestSeason.elo}` : undefined}
+										/>
 									</View>
-								))}
+								</Section>
+								<Section title="Teammates">
+									<TeammateRow
+										label="Best teammate"
+										tone="best"
+										teammate={bestTeammateQuery.data}
+									/>
+									<TeammateRow
+										label="Worst teammate"
+										tone="worst"
+										teammate={worstTeammateQuery.data}
+									/>
+								</Section>
+							</>
+						) : null}
+
+						{view === "achievements" ? (
+							<Section title="Achievements">
+								{achievements.length === 0 ? (
+									<ThemedText type="small" themeColor="textSecondary">
+										No achievements yet
+									</ThemedText>
+								) : (
+									<View style={styles.achievements}>
+										{achievements.map((a) => (
+											<View key={a.type} style={styles.achievementItem}>
+												<View
+													style={[
+														styles.achievementBadge,
+														{
+															backgroundColor: `${theme.primary}1a`,
+															borderColor: `${theme.primary}33`,
+														},
+													]}
+												>
+													<SymbolView
+														name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
+														size={28}
+														tintColor={theme.primary}
+													/>
+												</View>
+												<ThemedText type="small" style={styles.achievementName}>
+													{formatAchievementName(a.type)}
+												</ThemedText>
+											</View>
+										))}
+									</View>
+								)}
 							</Section>
 						) : null}
 
-						<Section title="Recent matches">
-							{recent.length === 0 ? (
-								<ThemedText type="small" themeColor="textSecondary">
-									No recent matches
-								</ThemedText>
-							) : (
-								recent.slice(0, 10).map((m) => {
-									const delta = m.scoreAfter - m.scoreBefore;
-									const resultColor =
-										m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
-									return (
-										<View key={m.id} style={[styles.row, { borderBottomColor: theme.border }]}>
-											<View style={[styles.resultBadge, { borderColor: resultColor }]}>
-												<ThemedText type="smallBold" style={{ color: resultColor }}>
-													{m.result}
-												</ThemedText>
-											</View>
+						{view === "seasons" ? (
+							<Section title="Season history">
+								{history.length === 0 ? (
+									<ThemedText type="small" themeColor="textSecondary">
+										No season history
+									</ThemedText>
+								) : (
+									history.map((h) => (
+										<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
 											<View style={styles.rowInfo}>
-												<ThemedText type="small" numberOfLines={1}>
-													{m.homeTeamName} vs {m.awayTeamName}
+												<ThemedText style={styles.rowValue} numberOfLines={1}>
+													{h.season}
 												</ThemedText>
 												<ThemedText type="small" themeColor="textSecondary">
-													{m.homeScore} – {m.awayScore}
+													{h.wins}W · {h.losses}L · {h.winRate}% W
 												</ThemedText>
 											</View>
-											<ThemedText
-												style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
-											>
-												{delta >= 0 ? `+${delta}` : delta}
-											</ThemedText>
+											<ThemedText style={styles.subValue}>{h.score}</ThemedText>
 										</View>
-									);
-								})
-							)}
-						</Section>
+									))
+								)}
+							</Section>
+						) : null}
+
+						{view === "matches" ? (
+							<Section title="Recent matches">
+								{recent.length === 0 ? (
+									<ThemedText type="small" themeColor="textSecondary">
+										No recent matches
+									</ThemedText>
+								) : (
+									recent.slice(0, 10).map((m) => {
+										const delta = m.scoreAfter - m.scoreBefore;
+										const resultColor =
+											m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
+										return (
+											<View key={m.id} style={[styles.row, { borderBottomColor: theme.border }]}>
+												<View style={[styles.resultBadge, { borderColor: resultColor }]}>
+													<ThemedText type="smallBold" style={{ color: resultColor }}>
+														{m.result}
+													</ThemedText>
+												</View>
+												<View style={styles.rowInfo}>
+													<ThemedText type="small" numberOfLines={1}>
+														{m.homeTeamName} vs {m.awayTeamName}
+													</ThemedText>
+													<ThemedText type="small" themeColor="textSecondary">
+														{m.homeScore} – {m.awayScore}
+													</ThemedText>
+												</View>
+												<ThemedText
+													style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
+												>
+													{delta >= 0 ? `+${delta}` : delta}
+												</ThemedText>
+											</View>
+										);
+									})
+								)}
+							</Section>
+						) : null}
 					</ScrollView>
 				)}
 			</SafeAreaView>

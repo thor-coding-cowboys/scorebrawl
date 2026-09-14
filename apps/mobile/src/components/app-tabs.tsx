@@ -46,6 +46,35 @@ const SEASON_SUB_VIEWS: {
 	{ key: "session", label: "Session", icon: { ios: "clock", android: "history", web: "history" } },
 ];
 
+type PlayerTab = "overview" | "achievements" | "seasons" | "matches";
+
+const PLAYER_DETAIL_VIEWS: {
+	key: PlayerTab;
+	label: string;
+	icon: Parameters<typeof SymbolView>[0]["name"];
+}[] = [
+	{
+		key: "overview",
+		label: "Overview",
+		icon: { ios: "square.grid.2x2", android: "dashboard", web: "dashboard" },
+	},
+	{
+		key: "achievements",
+		label: "Achievements",
+		icon: { ios: "medal", android: "military_tech", web: "military_tech" },
+	},
+	{
+		key: "seasons",
+		label: "Seasons",
+		icon: { ios: "calendar", android: "calendar_month", web: "calendar_month" },
+	},
+	{
+		key: "matches",
+		label: "Matches",
+		icon: { ios: "sportscourt", android: "sports_soccer", web: "sports_soccer" },
+	},
+];
+
 type SessionTab = "next" | "standings" | "teams";
 
 const SESSION_SUB_VIEWS: {
@@ -153,12 +182,14 @@ export default function AppTabs() {
 		pathname === "/members" ||
 		pathname === "/invitations";
 	const hasPlus = !(pathname === "/teams" || pathname === "/members" || isPlayerDetail);
-	const activeView = params.view ?? (isSessionView ? "next" : "players");
+	const activeView =
+		params.view ??
+		(isSessionView ? "next" : pathname.startsWith("/players/") ? "overview" : "players");
 	const seasonSlug = params.seasonSlug;
 	const sessionId = params.sessionId;
 
-	const goToView = (view: SubView | SessionTab) => {
-		if (isSessionView) {
+	const goToView = (view: SubView | SessionTab | PlayerTab) => {
+		if (isSessionView || isPlayerDetail) {
 			router.setParams({ view });
 		} else if (isSeasonDetail && seasonSlug) {
 			router.setParams({ seasonSlug, view });
@@ -207,8 +238,14 @@ export default function AppTabs() {
 		leftTabs = [homeTab];
 		rightTabs = playerTabs;
 	} else if (isPlayerDetail) {
-		leftTabs = [homeTab];
-		rightTabs = [];
+		const subTabs: TabProps[] = PLAYER_DETAIL_VIEWS.map(({ key, label, icon }) => ({
+			label,
+			icon,
+			active: activeView === key,
+			onPress: () => goToView(key),
+		}));
+		leftTabs = subTabs.slice(0, 2);
+		rightTabs = subTabs.slice(2);
 	} else if (pathname === "/teams") {
 		const teamTabs: TabProps[] = TEAM_SUB_VIEWS.map(({ key, label, icon }) => ({
 			label,
