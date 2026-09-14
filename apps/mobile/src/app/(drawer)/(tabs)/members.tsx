@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.one,
 	},
 	memberName: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	roleList: {
 		gap: Spacing.two,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.one,
 	},
 	rowName: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	rowEmail: {
 		flexShrink: 1,

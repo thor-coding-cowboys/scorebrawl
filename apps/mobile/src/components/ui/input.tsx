@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontFamily: Fonts.sans,
-		fontWeight: "600",
+		fontWeight: "400",
 		fontSize: 14,
 		lineHeight: 20,
 	},

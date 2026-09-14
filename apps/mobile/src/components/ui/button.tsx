@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontFamily: Fonts.sans,
-		fontWeight: "500",
+		fontWeight: "400",
 		fontSize: 12,
 		lineHeight: 16,
 	},

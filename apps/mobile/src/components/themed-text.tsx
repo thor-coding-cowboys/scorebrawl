@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
 	small: {
 		fontSize: 14,
 		lineHeight: 20,
-		fontWeight: "500",
+		fontWeight: "400",
 	},
 	smallBold: {
 		fontSize: 14,
@@ -44,17 +44,17 @@ const styles = StyleSheet.create({
 	default: {
 		fontSize: 16,
 		lineHeight: 24,
-		fontWeight: "500",
+		fontWeight: "400",
 	},
 	title: {
 		fontSize: 48,
 		lineHeight: 52,
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	subtitle: {
 		fontSize: 32,
 		lineHeight: 44,
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	link: {
 		lineHeight: 30,
@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
 	},
 	code: {
 		fontSize: 12,
-		fontWeight: "500",
+		fontWeight: "400",
 	},
 });

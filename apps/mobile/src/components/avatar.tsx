@@ -101,7 +101,7 @@ export function Avatar({
 			}}
 		>
 			<ThemedText
-				style={{ color: color.text, fontSize, lineHeight: fontSize * 1.2, fontWeight: "500" }}
+				style={{ color: color.text, fontSize, lineHeight: fontSize * 1.2, fontWeight: "400" }}
 			>
 				{initials}
 			</ThemedText>

@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 13,
 		lineHeight: 18,
-		fontWeight: "600",
+		fontWeight: "400",
 		textTransform: "uppercase",
 		letterSpacing: 1,
 		marginBottom: Spacing.one,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	rowInfo: { flex: 1, gap: 2 },
-	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "400" },
 	subValue: { fontSize: 16, fontWeight: "700" },
 	eloValue: { fontSize: 16, fontWeight: "700" },
 	achievements: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },

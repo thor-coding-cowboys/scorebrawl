@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
 		gap: 3,
 	},
 	name: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	meta: {
 		flexDirection: "row",

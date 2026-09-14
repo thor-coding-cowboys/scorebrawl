@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 13,
 		lineHeight: 18,
-		fontWeight: "600",
+		fontWeight: "400",
 		textTransform: "uppercase",
 		letterSpacing: 1,
 		marginBottom: Spacing.one,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
 	},
 	rank: { width: 18 },
 	rowInfo: { flex: 1, gap: 2 },
-	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "400" },
 	subValue: { fontSize: 16, fontWeight: "700" },
 	matchNum: { width: 30 },
 	matchLines: { flex: 1, gap: Spacing.one },

@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	rowName: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	empty: {
 		textAlign: "center",

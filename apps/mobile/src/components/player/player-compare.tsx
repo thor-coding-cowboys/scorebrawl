@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		gap: Spacing.two,
 	},
-	compareValue: { width: 72, fontSize: 15, fontWeight: "600" },
+	compareValue: { width: 72, fontSize: 15, fontWeight: "400" },
 	compareValueRight: { textAlign: "right" },
 	compareLabel: { flex: 1, textAlign: "center" },
 	h2hSummary: {

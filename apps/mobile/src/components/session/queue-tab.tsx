@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 11,
 		lineHeight: 14,
-		fontWeight: "500",
+		fontWeight: "400",
 		textTransform: "uppercase",
 		letterSpacing: 0.6,
 	},
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
 	},
 	rank: { width: 16, textAlign: "right", fontSize: 12, lineHeight: 16 },
 	playerInfo: { flex: 1 },
-	playerName: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
+	playerName: { fontSize: 14, lineHeight: 20, fontWeight: "400" },
 	playerMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
 	dots: { flexDirection: "row", alignItems: "center", gap: 2 },
 	dot: { width: 6, height: 6, borderRadius: 3 },
 	games: { fontSize: 12, lineHeight: 16 },
-	score: { fontSize: 14, lineHeight: 20, fontWeight: "600", fontVariant: ["tabular-nums"] },
+	score: { fontSize: 14, lineHeight: 20, fontWeight: "400", fontVariant: ["tabular-nums"] },
 	iconButton: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
 	empty: { textAlign: "center", marginTop: Spacing.four },
 });

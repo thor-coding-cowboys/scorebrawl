@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 	},
 	rowName: {
-		fontWeight: "600",
+		fontWeight: "400",
 		flexShrink: 1,
 	},
 	badge: {

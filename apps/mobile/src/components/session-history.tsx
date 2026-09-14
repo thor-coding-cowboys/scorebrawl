@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	rowDate: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	separator: {
 		height: StyleSheet.hairlineWidth,

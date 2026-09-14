@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
 	rosterLabel: {
 		fontSize: 12,
 		lineHeight: 16,
-		fontWeight: "500",
+		fontWeight: "400",
 		textTransform: "uppercase",
 		letterSpacing: 0.6,
 	},
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
 	rosterName: {
 		fontSize: 12,
 		lineHeight: 16,
-		fontWeight: "500",
+		fontWeight: "400",
 	},
 	rosterScore: { fontSize: 11, lineHeight: 14 },
 	messages: {

@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontFamily: Fonts.sans,
-		fontWeight: "600",
+		fontWeight: "400",
 		fontSize: 12,
 		textTransform: "uppercase",
 		lineHeight: 16,

@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.one,
 	},
 	rowName: {
-		fontWeight: "600",
+		fontWeight: "400",
 	},
 	rowRail: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
