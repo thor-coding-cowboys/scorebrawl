@@ -66,6 +66,10 @@ export default function HomeScreen() {
 		}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons, paramSeasonSlug])
 	);
 
+	useEffect(() => {
+		setResolvedSeasonSlug(null);
+	}, [activeLeague?.id]);
+
 	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
 
 	useEffect(() => {

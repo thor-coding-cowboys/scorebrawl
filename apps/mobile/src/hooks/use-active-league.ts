@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -55,6 +56,9 @@ export function useActiveLeague() {
 			// Mirrors the web app's full invalidateQueries() after organization.setActive;
 			// org-scoped queries have no shared key prefix yet.
 			await queryClient.invalidateQueries();
+			// Reset navigation so the active season is re-resolved for the new league
+			// instead of showing the previously selected league's season.
+			router.replace("/");
 			return true;
 		},
 		[queryClient]
