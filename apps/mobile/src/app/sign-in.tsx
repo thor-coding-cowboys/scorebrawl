@@ -115,7 +115,7 @@ export default function SignInScreen() {
 									{apiError}
 								</ThemedText>
 							) : null}
-							<Button fullWidth loading={isSubmitting} onPress={onSubmit}>
+							<Button variant="glow" fullWidth loading={isSubmitting} onPress={onSubmit}>
 								{isSubmitting ? "Signing in..." : "Sign In"}
 							</Button>
 						</>

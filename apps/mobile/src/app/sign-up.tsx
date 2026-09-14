@@ -138,7 +138,7 @@ export default function SignUpScreen() {
 									{apiError}
 								</ThemedText>
 							) : null}
-							<Button fullWidth loading={isSubmitting} onPress={onSubmit}>
+							<Button variant="glow" fullWidth loading={isSubmitting} onPress={onSubmit}>
 								{isSubmitting ? "Signing up..." : "Sign Up"}
 							</Button>
 						</>

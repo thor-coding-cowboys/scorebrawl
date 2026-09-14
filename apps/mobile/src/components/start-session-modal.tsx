@@ -419,7 +419,7 @@ export function StartSessionModal({
 								<Button variant="outline" onPress={onClose} disabled={isSubmitting}>
 									Cancel
 								</Button>
-								<Button style={styles.submit} onPress={() => setStep(1)}>
+								<Button variant="glow" style={styles.submit} onPress={() => setStep(1)}>
 									Next
 								</Button>
 							</>
@@ -429,6 +429,7 @@ export function StartSessionModal({
 									Back
 								</Button>
 								<Button
+									variant="glow"
 									style={styles.submit}
 									onPress={submit}
 									loading={isSubmitting}

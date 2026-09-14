@@ -343,6 +343,7 @@ export function NextMatchTab({
 						)}
 						{coinTossActive && !currentMatch ? (
 							<Button
+								variant="glow"
 								size="sm"
 								icon={{ ios: "dollarsign.circle", android: "toll", web: "toll" }}
 								onPress={() => setShowCoinToss(true)}

@@ -34,7 +34,7 @@ export default function SandboxScreen() {
 					{PRESETS.map((p) => (
 						<Button
 							key={p.label}
-							variant={streak === p.value ? "primary" : "outline"}
+							variant={streak === p.value ? "glow" : "outline"}
 							size="sm"
 							onPress={() => setStreak(p.value)}
 						>

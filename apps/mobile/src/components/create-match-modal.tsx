@@ -519,7 +519,7 @@ function PlayerSelectionModal({
 						<Button variant="outline" size="sm" onPress={onEven} disabled={!canReorder}>
 							Even
 						</Button>
-						<Button variant="primary" size="sm" onPress={onClose}>
+						<Button variant="glow" size="sm" onPress={onClose}>
 							Done
 						</Button>
 					</View>
