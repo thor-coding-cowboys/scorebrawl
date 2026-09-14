@@ -175,13 +175,19 @@ export default function AppTabs() {
 	const isSeasonsList = pathname === "/seasons";
 	const isActiveSeason = pathname === "/";
 	const isSeasonView = !isSessionView && (isActiveSeason || isSeasonDetail);
-	const isPlayerDetail = pathname.startsWith("/players/");
+	const isComparePage = pathname === "/players/compare";
+	const isPlayerDetail = pathname.startsWith("/players/") && !isComparePage;
 	const isLeaguePage =
 		pathname === "/teams" ||
 		pathname === "/players" ||
 		pathname === "/members" ||
 		pathname === "/invitations";
-	const hasPlus = !(pathname === "/teams" || pathname === "/members" || isPlayerDetail);
+	const hasPlus = !(
+		pathname === "/teams" ||
+		pathname === "/members" ||
+		isPlayerDetail ||
+		isComparePage
+	);
 	const activeView =
 		params.view ??
 		(isSessionView ? "next" : pathname.startsWith("/players/") ? "overview" : "players");
@@ -237,6 +243,9 @@ export default function AppTabs() {
 		}));
 		leftTabs = [homeTab];
 		rightTabs = playerTabs;
+	} else if (isComparePage) {
+		leftTabs = [homeTab];
+		rightTabs = [];
 	} else if (isPlayerDetail) {
 		const subTabs: TabProps[] = PLAYER_DETAIL_VIEWS.map(({ key, label, icon }) => ({
 			label,
