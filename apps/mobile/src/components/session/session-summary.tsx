@@ -52,7 +52,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 					<ScrollView contentContainerStyle={styles.scroll}>
 						<View style={styles.grid}>
 							<Card style={styles.statCard}>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="small" themeColor="textSecondary">
 										Session
 									</ThemedText>
@@ -66,7 +66,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 								</CardContent>
 							</Card>
 							<Card style={styles.statCard}>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="small" themeColor="textSecondary">
 										Matches
 									</ThemedText>
@@ -79,7 +79,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 								</CardContent>
 							</Card>
 							<Card style={styles.statCard}>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="small" themeColor="textSecondary">
 										MVP
 									</ThemedText>
@@ -107,7 +107,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 								</CardContent>
 							</Card>
 							<Card style={styles.statCard}>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="small" themeColor="textSecondary">
 										Teams
 									</ThemedText>
@@ -136,7 +136,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 						</View>
 
 						<Card>
-							<CardContent>
+							<CardContent style={styles.cardContent}>
 								<ThemedText type="smallBold" style={styles.sectionTitle}>
 									Player Standings
 								</ThemedText>
@@ -182,7 +182,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 
 						{summary.matchFeed.length > 0 ? (
 							<Card>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="smallBold" style={styles.sectionTitle}>
 										Match-by-Match
 									</ThemedText>
@@ -236,10 +236,11 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 const styles = StyleSheet.create({
 	container: { flex: 1, flexDirection: "row", justifyContent: "center" },
 	safeArea: { flex: 1, maxWidth: MaxContentWidth, paddingHorizontal: Spacing.three },
-	scroll: { gap: Spacing.three, paddingBottom: Spacing.four },
-	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
-	statCard: { width: "48%", flexGrow: 1 },
-	statValue: { fontSize: 20, lineHeight: 26 },
+	scroll: { gap: Spacing.four, paddingBottom: Spacing.five },
+	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },
+	statCard: { width: "47%", flexGrow: 1 },
+	cardContent: { gap: Spacing.two },
+	statValue: { fontSize: 22, lineHeight: 28 },
 	mvpRow: { flexDirection: "row", alignItems: "center", gap: Spacing.one, marginTop: Spacing.one },
 	mvpName: { flex: 1 },
 	sectionTitle: { marginBottom: Spacing.two },
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
-		paddingVertical: Spacing.two,
+		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	rank: { width: 22 },

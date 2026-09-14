@@ -7,6 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -20,7 +21,7 @@ function formatAchievementName(type: string) {
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
 	return (
 		<Card style={styles.statCard}>
-			<CardContent>
+			<CardContent style={styles.cardContent}>
 				<ThemedText type="small" themeColor="textSecondary">
 					{label}
 				</ThemedText>
@@ -61,7 +62,7 @@ function TeammateCard({
 	const color = tone === "best" ? "#22c55e" : "#ef4444";
 	return (
 		<Card style={styles.statCard}>
-			<CardContent>
+			<CardContent style={styles.cardContent}>
 				<ThemedText type="small" themeColor="textSecondary">
 					{title}
 				</ThemedText>
@@ -157,6 +158,20 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 							<ThemedText type="small" themeColor="textSecondary">
 								{winRate}% Win Rate
 							</ThemedText>
+							<Button
+								variant="outline"
+								size="sm"
+								icon={{
+									ios: "arrow.left.arrow.right",
+									android: "compare_arrows",
+									web: "compare_arrows",
+								}}
+								onPress={() =>
+									router.push({ pathname: "/players/compare", params: { p1: playerId } })
+								}
+							>
+								Compare
+							</Button>
 						</View>
 
 						<View style={styles.grid}>
@@ -194,7 +209,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 						</View>
 
 						<Card>
-							<CardContent>
+							<CardContent style={styles.cardContent}>
 								<ThemedText type="smallBold" style={styles.sectionTitle}>
 									Achievements
 								</ThemedText>
@@ -219,7 +234,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 
 						{history.length > 1 ? (
 							<Card>
-								<CardContent>
+								<CardContent style={styles.cardContent}>
 									<ThemedText type="smallBold" style={styles.sectionTitle}>
 										Season History
 									</ThemedText>
@@ -239,7 +254,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 						) : null}
 
 						<Card>
-							<CardContent>
+							<CardContent style={styles.cardContent}>
 								<ThemedText type="smallBold" style={styles.sectionTitle}>
 									Recent Matches
 								</ThemedText>
@@ -285,11 +300,12 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 const styles = StyleSheet.create({
 	container: { flex: 1, flexDirection: "row", justifyContent: "center" },
 	safeArea: { flex: 1, maxWidth: MaxContentWidth, paddingHorizontal: Spacing.three },
-	scroll: { gap: Spacing.three, paddingBottom: Spacing.four },
+	scroll: { gap: Spacing.four, paddingBottom: Spacing.five },
 	hero: { alignItems: "center", gap: Spacing.two, paddingVertical: Spacing.three },
-	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
-	statCard: { width: "48%", flexGrow: 1 },
-	statValue: { fontSize: 20, lineHeight: 26 },
+	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },
+	statCard: { width: "47%", flexGrow: 1 },
+	cardContent: { gap: Spacing.two },
+	statValue: { fontSize: 22, lineHeight: 28 },
 	teammateRow: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -304,7 +320,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
-		paddingVertical: Spacing.two,
+		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	result: { width: 16, fontWeight: "700" },
