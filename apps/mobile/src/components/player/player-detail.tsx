@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -262,7 +262,21 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 									</ThemedText>
 								) : (
 									history.map((h) => (
-										<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
+										<Pressable
+											key={h.slug}
+											accessibilityRole="button"
+											onPress={() =>
+												router.push({
+													pathname: "/seasons/[seasonSlug]",
+													params: { seasonSlug: h.slug },
+												})
+											}
+											style={({ pressed }) => [
+												styles.row,
+												{ borderBottomColor: theme.border },
+												pressed && { opacity: 0.7 },
+											]}
+										>
 											<View style={styles.rowInfo}>
 												<ThemedText style={styles.rowValue} numberOfLines={1}>
 													{h.season}
@@ -272,7 +286,16 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 												</ThemedText>
 											</View>
 											<ThemedText style={styles.subValue}>{h.score}</ThemedText>
-										</View>
+											<SymbolView
+												name={{
+													ios: "chevron.right",
+													android: "chevron_right",
+													web: "chevron_right",
+												}}
+												size={14}
+												tintColor={theme.textSecondary}
+											/>
+										</Pressable>
 									))
 								)}
 							</Section>
@@ -285,27 +308,71 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 										No recent matches
 									</ThemedText>
 								) : (
-									recent.slice(0, 10).map((m) => {
+									recent.slice(0, 15).map((m) => {
+										const homeWon = m.homeScore > m.awayScore;
+										const awayWon = m.awayScore > m.homeScore;
 										const delta = m.scoreAfter - m.scoreBefore;
-										const resultColor =
-											m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
+										const date = new Date(m.createdAt).toLocaleDateString("en-US", {
+											month: "short",
+											day: "numeric",
+										});
 										return (
-											<View key={m.id} style={[styles.row, { borderBottomColor: theme.border }]}>
-												<View style={[styles.resultBadge, { borderColor: resultColor }]}>
-													<ThemedText type="smallBold" style={{ color: resultColor }}>
-														{m.result}
+											<View
+												key={m.id}
+												style={[styles.matchRow, { borderBottomColor: theme.border }]}
+											>
+												<View style={styles.dateCol}>
+													<ThemedText type="small" themeColor="textSecondary">
+														{date}
 													</ThemedText>
 												</View>
-												<View style={styles.rowInfo}>
-													<ThemedText type="small" numberOfLines={1}>
-														{m.homeTeamName} vs {m.awayTeamName}
-													</ThemedText>
-													<ThemedText type="small" themeColor="textSecondary">
-														{m.homeScore} – {m.awayScore}
-													</ThemedText>
+												<View style={styles.matchLines}>
+													<View style={styles.matchLine}>
+														<ThemedText
+															type="small"
+															numberOfLines={1}
+															themeColor={homeWon ? "text" : "textSecondary"}
+															style={[styles.matchTeam, homeWon && styles.matchWinner]}
+														>
+															{m.homeTeamName}
+														</ThemedText>
+														<View
+															style={[
+																styles.scoreBadge,
+																{
+																	backgroundColor: `${theme.primary}1a`,
+																	borderColor: theme.border,
+																},
+															]}
+														>
+															<ThemedText type="small">{m.homeScore}</ThemedText>
+														</View>
+													</View>
+													<View style={styles.matchLine}>
+														<ThemedText
+															type="small"
+															numberOfLines={1}
+															themeColor={awayWon ? "text" : "textSecondary"}
+															style={[styles.matchTeam, awayWon && styles.matchWinner]}
+														>
+															{m.awayTeamName}
+														</ThemedText>
+														<View
+															style={[
+																styles.scoreBadge,
+																{
+																	backgroundColor: `${theme.primary}1a`,
+																	borderColor: theme.border,
+																},
+															]}
+														>
+															<ThemedText type="small">{m.awayScore}</ThemedText>
+														</View>
+													</View>
 												</View>
 												<ThemedText
-													style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
+													type="small"
+													style={{ color: delta >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700" }}
 												>
 													{delta >= 0 ? `+${delta}` : delta}
 												</ThemedText>
@@ -371,12 +438,25 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	achievementName: { textAlign: "center" },
-	resultBadge: {
-		width: 28,
+	matchRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+	},
+	dateCol: { width: 46 },
+	matchLines: { flex: 1, gap: Spacing.two },
+	matchLine: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
+	matchTeam: { flex: 1, fontSize: 14, lineHeight: 20 },
+	matchWinner: { fontWeight: "700" },
+	scoreBadge: {
+		minWidth: 28,
 		height: 28,
 		borderWidth: StyleSheet.hairlineWidth,
 		alignItems: "center",
 		justifyContent: "center",
+		paddingHorizontal: Spacing.one,
 	},
 	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },

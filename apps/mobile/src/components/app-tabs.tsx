@@ -60,7 +60,7 @@ const PLAYER_DETAIL_VIEWS: {
 	},
 	{
 		key: "achievements",
-		label: "Achievements",
+		label: "Awards",
 		icon: { ios: "medal", android: "military_tech", web: "military_tech" },
 	},
 	{
@@ -482,7 +482,11 @@ function TabButton({
 			style={({ pressed }) => [styles.tab, pressed && { opacity: 0.7 }]}
 		>
 			<SymbolView name={icon} size={22} tintColor={active ? activeTint : tint} />
-			<ThemedText type="small" style={{ color: active ? activeTint : tint, fontSize: 11 }}>
+			<ThemedText
+				type="small"
+				numberOfLines={1}
+				style={{ color: active ? activeTint : tint, fontSize: 11 }}
+			>
 				{label}
 			</ThemedText>
 		</Pressable>
