@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,7 +10,6 @@ import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -19,21 +19,32 @@ function formatAchievementName(type: string) {
 	return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function InfoRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.row, { borderBottomColor: theme.border }]}>
-			<ThemedText type="small" themeColor="textSecondary">
+		<View style={[styles.section, { borderTopColor: theme.border }]}>
+			<ThemedText themeColor="textSecondary" style={styles.sectionTitle}>
+				{title}
+			</ThemedText>
+			{children}
+		</View>
+	);
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+	return (
+		<View style={styles.stat}>
+			<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 				{label}
 			</ThemedText>
-			<View style={styles.rowRight}>
-				<ThemedText style={styles.rowValue}>{value}</ThemedText>
-				{sub ? (
-					<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-						{sub}
-					</ThemedText>
-				) : null}
-			</View>
+			<ThemedText style={styles.statValue} numberOfLines={1}>
+				{value}
+			</ThemedText>
+			{sub ? (
+				<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+					{sub}
+				</ThemedText>
+			) : null}
 		</View>
 	);
 }
@@ -74,21 +85,18 @@ function TeammateRow({
 		);
 	}
 	return (
-		<View style={[styles.teammateRow, { borderBottomColor: theme.border }]}>
+		<View style={[styles.row, { borderBottomColor: theme.border }]}>
 			<Avatar name={teammate.name} image={getAvatarUri(teammate.avatar)} size={40} />
-			<View style={styles.teammateInfo}>
-				<ThemedText style={styles.teammateLabel} themeColor="textSecondary">
-					{label}
-				</ThemedText>
-				<ThemedText style={styles.teammateName} numberOfLines={1}>
+			<View style={styles.rowInfo}>
+				<ThemedText style={styles.rowValue} numberOfLines={1}>
 					{teammate.name}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 					{teammate.matchesTogether} together · {teammate.winRate}% W · {teammate.wins}W-
 					{teammate.losses}L
 				</ThemedText>
 			</View>
-			<ThemedText style={[styles.teammateElo, { color }]}>
+			<ThemedText style={[styles.eloValue, { color }]}>
 				{tone === "best" ? `+${teammate.eloGained}` : `-${teammate.eloLost}`}
 			</ThemedText>
 		</View>
@@ -175,152 +183,118 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 							</Button>
 						</View>
 
-						<Card>
-							<CardContent style={styles.cardContent}>
-								<ThemedText type="smallBold" style={styles.sectionTitle}>
-									Overview
-								</ThemedText>
-								<InfoRow label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
-								<InfoRow
+						<Section title="Overview">
+							<View style={styles.grid}>
+								<Stat label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
+								<Stat
 									label="Win rate"
 									value={`${winRate}%`}
-									sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L · ${allTime?.draws ?? 0}D`}
+									sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L`}
 								/>
-								<InfoRow
+								<Stat
 									label="Total matches"
 									value={String(allTime?.total ?? 0)}
-									sub={`Across ${allTime?.seasonCount ?? 0} season(s)`}
+									sub={`${allTime?.seasonCount ?? 0} season(s)`}
 								/>
-								<InfoRow
+								<Stat
 									label="Best season"
 									value={bestSeason?.season ?? "—"}
-									sub={
-										bestSeason
-											? `Peak ${bestSeason.elo} · ${bestSeason.matches} matches`
-											: undefined
-									}
+									sub={bestSeason ? `Peak ${bestSeason.elo}` : undefined}
 								/>
-							</CardContent>
-						</Card>
+							</View>
+						</Section>
 
-						<Card>
-							<CardContent style={styles.cardContent}>
-								<ThemedText type="smallBold" style={styles.sectionTitle}>
-									Teammates
+						<Section title="Teammates">
+							<TeammateRow label="Best teammate" tone="best" teammate={bestTeammateQuery.data} />
+							<TeammateRow label="Worst teammate" tone="worst" teammate={worstTeammateQuery.data} />
+						</Section>
+
+						<Section title="Achievements">
+							{achievements.length === 0 ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									No achievements yet
 								</ThemedText>
-								<TeammateRow label="Best teammate" tone="best" teammate={bestTeammateQuery.data} />
-								<TeammateRow
-									label="Worst teammate"
-									tone="worst"
-									teammate={worstTeammateQuery.data}
-								/>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardContent style={styles.cardContent}>
-								<ThemedText type="smallBold" style={styles.sectionTitle}>
-									Achievements
-								</ThemedText>
-								{achievements.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
-										No achievements yet
-									</ThemedText>
-								) : (
-									<View style={styles.achievements}>
-										{achievements.map((a) => (
-											<View key={a.type} style={styles.achievementItem}>
-												<View
-													style={[
-														styles.achievementBadge,
-														{
-															backgroundColor: `${theme.primary}1a`,
-															borderColor: `${theme.primary}33`,
-														},
-													]}
-												>
-													<SymbolView
-														name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
-														size={28}
-														tintColor={theme.primary}
-													/>
-												</View>
-												<ThemedText type="small" style={styles.achievementName}>
-													{formatAchievementName(a.type)}
-												</ThemedText>
+							) : (
+								<View style={styles.achievements}>
+									{achievements.map((a) => (
+										<View key={a.type} style={styles.achievementItem}>
+											<View
+												style={[
+													styles.achievementBadge,
+													{
+														backgroundColor: `${theme.primary}1a`,
+														borderColor: `${theme.primary}33`,
+													},
+												]}
+											>
+												<SymbolView
+													name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
+													size={28}
+													tintColor={theme.primary}
+												/>
 											</View>
-										))}
-									</View>
-								)}
-							</CardContent>
-						</Card>
-
-						{history.length > 1 ? (
-							<Card>
-								<CardContent style={styles.cardContent}>
-									<ThemedText type="smallBold" style={styles.sectionTitle}>
-										Season history
-									</ThemedText>
-									{history.map((h) => (
-										<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
-											<View style={styles.historyLeft}>
-												<ThemedText style={styles.rowValue} numberOfLines={1}>
-													{h.season}
-												</ThemedText>
-												<ThemedText type="small" themeColor="textSecondary">
-													{h.wins}W · {h.losses}L · {h.winRate}% W
-												</ThemedText>
-											</View>
-											<ThemedText style={styles.rowValue}>{h.score}</ThemedText>
+											<ThemedText type="small" style={styles.achievementName}>
+												{formatAchievementName(a.type)}
+											</ThemedText>
 										</View>
 									))}
-								</CardContent>
-							</Card>
+								</View>
+							)}
+						</Section>
+
+						{history.length > 1 ? (
+							<Section title="Season history">
+								{history.map((h) => (
+									<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
+										<View style={styles.rowInfo}>
+											<ThemedText style={styles.rowValue} numberOfLines={1}>
+												{h.season}
+											</ThemedText>
+											<ThemedText type="small" themeColor="textSecondary">
+												{h.wins}W · {h.losses}L · {h.winRate}% W
+											</ThemedText>
+										</View>
+										<ThemedText style={styles.subValue}>{h.score}</ThemedText>
+									</View>
+								))}
+							</Section>
 						) : null}
 
-						<Card>
-							<CardContent style={styles.cardContent}>
-								<ThemedText type="smallBold" style={styles.sectionTitle}>
-									Recent matches
+						<Section title="Recent matches">
+							{recent.length === 0 ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									No recent matches
 								</ThemedText>
-								{recent.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
-										No recent matches
-									</ThemedText>
-								) : (
-									recent.slice(0, 10).map((m) => {
-										const delta = m.scoreAfter - m.scoreBefore;
-										const resultColor =
-											m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
-										return (
-											<View
-												key={m.id}
-												style={[styles.matchRow, { borderBottomColor: theme.border }]}
-											>
-												<View style={[styles.resultBadge, { borderColor: resultColor }]}>
-													<ThemedText type="smallBold" style={{ color: resultColor }}>
-														{m.result}
-													</ThemedText>
-												</View>
-												<View style={styles.matchInfo}>
-													<ThemedText type="small" numberOfLines={1}>
-														{m.homeTeamName} vs {m.awayTeamName}
-													</ThemedText>
-													<ThemedText type="small" themeColor="textSecondary">
-														{m.homeScore} – {m.awayScore}
-													</ThemedText>
-												</View>
-												<ThemedText
-													style={[styles.rowValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
-												>
-													{delta >= 0 ? `+${delta}` : delta}
+							) : (
+								recent.slice(0, 10).map((m) => {
+									const delta = m.scoreAfter - m.scoreBefore;
+									const resultColor =
+										m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
+									return (
+										<View key={m.id} style={[styles.row, { borderBottomColor: theme.border }]}>
+											<View style={[styles.resultBadge, { borderColor: resultColor }]}>
+												<ThemedText type="smallBold" style={{ color: resultColor }}>
+													{m.result}
 												</ThemedText>
 											</View>
-										);
-									})
-								)}
-							</CardContent>
-						</Card>
+											<View style={styles.rowInfo}>
+												<ThemedText type="small" numberOfLines={1}>
+													{m.homeTeamName} vs {m.awayTeamName}
+												</ThemedText>
+												<ThemedText type="small" themeColor="textSecondary">
+													{m.homeScore} – {m.awayScore}
+												</ThemedText>
+											</View>
+											<ThemedText
+												style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
+											>
+												{delta >= 0 ? `+${delta}` : delta}
+											</ThemedText>
+										</View>
+									);
+								})
+							)}
+						</Section>
 					</ScrollView>
 				)}
 			</SafeAreaView>
@@ -334,36 +308,39 @@ const styles = StyleSheet.create({
 	scroll: { gap: Spacing.four, paddingBottom: Spacing.six },
 	hero: { alignItems: "center", gap: Spacing.two, paddingVertical: Spacing.four },
 	heroName: { textAlign: "center" },
-	cardContent: { gap: 0 },
-	sectionTitle: { marginBottom: Spacing.three },
+	section: {
+		gap: Spacing.two,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		paddingTop: Spacing.four,
+	},
+	sectionTitle: {
+		fontSize: 13,
+		lineHeight: 18,
+		fontWeight: "600",
+		textTransform: "uppercase",
+		letterSpacing: 1,
+		marginBottom: Spacing.one,
+	},
+	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },
+	stat: {
+		width: "47%",
+		flexGrow: 1,
+		gap: 2,
+		paddingVertical: Spacing.two,
+	},
+	statValue: { fontSize: 22, lineHeight: 28, fontWeight: "700" },
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-between",
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
-	rowRight: { alignItems: "flex-end", gap: 2, flexShrink: 1 },
+	rowInfo: { flex: 1, gap: 2 },
 	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
-	historyLeft: { flex: 1, gap: 2 },
-	teammateRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-	},
-	teammateInfo: { flex: 1, gap: 2 },
-	teammateLabel: { fontSize: 12, lineHeight: 16 },
-	teammateName: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
-	teammateElo: { fontSize: 16, fontWeight: "700" },
-	achievements: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: Spacing.three,
-		paddingTop: Spacing.one,
-	},
+	subValue: { fontSize: 16, fontWeight: "700" },
+	eloValue: { fontSize: 16, fontWeight: "700" },
+	achievements: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },
 	achievementItem: { width: "30%", alignItems: "center", gap: Spacing.two },
 	achievementBadge: {
 		width: 64,
@@ -374,13 +351,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	achievementName: { textAlign: "center" },
-	matchRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-	},
 	resultBadge: {
 		width: 28,
 		height: 28,
@@ -388,7 +358,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	matchInfo: { flex: 1, gap: 2 },
 	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 });
