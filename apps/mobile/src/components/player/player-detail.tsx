@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -228,12 +229,25 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 								) : (
 									<View style={styles.achievements}>
 										{achievements.map((a) => (
-											<View
-												key={a.type}
-												style={[styles.achievementChip, { borderColor: theme.border }]}
-											>
-												<ThemedText type="small">🏅</ThemedText>
-												<ThemedText type="small">{formatAchievementName(a.type)}</ThemedText>
+											<View key={a.type} style={styles.achievementItem}>
+												<View
+													style={[
+														styles.achievementBadge,
+														{
+															backgroundColor: `${theme.primary}1a`,
+															borderColor: `${theme.primary}33`,
+														},
+													]}
+												>
+													<SymbolView
+														name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
+														size={28}
+														tintColor={theme.primary}
+													/>
+												</View>
+												<ThemedText type="small" style={styles.achievementName}>
+													{formatAchievementName(a.type)}
+												</ThemedText>
 											</View>
 										))}
 									</View>
@@ -344,15 +358,22 @@ const styles = StyleSheet.create({
 	teammateLabel: { fontSize: 12, lineHeight: 16 },
 	teammateName: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
 	teammateElo: { fontSize: 16, fontWeight: "700" },
-	achievements: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
-	achievementChip: {
+	achievements: {
 		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
-		paddingVertical: Spacing.two,
-		paddingHorizontal: Spacing.three,
-		borderWidth: StyleSheet.hairlineWidth,
+		flexWrap: "wrap",
+		gap: Spacing.three,
+		paddingTop: Spacing.one,
 	},
+	achievementItem: { width: "30%", alignItems: "center", gap: Spacing.two },
+	achievementBadge: {
+		width: 64,
+		height: 64,
+		borderRadius: 32,
+		borderWidth: 2,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	achievementName: { textAlign: "center" },
 	matchRow: {
 		flexDirection: "row",
 		alignItems: "center",
