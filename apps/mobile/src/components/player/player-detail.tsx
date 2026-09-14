@@ -18,32 +18,31 @@ function formatAchievementName(type: string) {
 	return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function InfoRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
+	const theme = useTheme();
 	return (
-		<Card style={styles.statCard}>
-			<CardContent style={styles.cardContent}>
-				<ThemedText type="small" themeColor="textSecondary">
-					{label}
-				</ThemedText>
-				<ThemedText type="smallBold" style={styles.statValue}>
-					{value}
-				</ThemedText>
+		<View style={[styles.row, { borderBottomColor: theme.border }]}>
+			<ThemedText type="small" themeColor="textSecondary">
+				{label}
+			</ThemedText>
+			<View style={styles.rowRight}>
+				<ThemedText style={styles.rowValue}>{value}</ThemedText>
 				{sub ? (
 					<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
 						{sub}
 					</ThemedText>
 				) : null}
-			</CardContent>
-		</Card>
+			</View>
+		</View>
 	);
 }
 
-function TeammateCard({
-	title,
+function TeammateRow({
+	label,
 	tone,
 	teammate,
 }: {
-	title: string;
+	label: string;
 	tone: "best" | "worst";
 	teammate:
 		| {
@@ -59,38 +58,39 @@ function TeammateCard({
 		| null
 		| undefined;
 }) {
+	const theme = useTheme();
 	const color = tone === "best" ? "#22c55e" : "#ef4444";
-	return (
-		<Card style={styles.statCard}>
-			<CardContent style={styles.cardContent}>
+	if (!teammate) {
+		return (
+			<View style={[styles.row, { borderBottomColor: theme.border }]}>
 				<ThemedText type="small" themeColor="textSecondary">
-					{title}
+					{label}
 				</ThemedText>
-				{teammate ? (
-					<>
-						<View style={styles.teammateRow}>
-							<Avatar name={teammate.name} image={getAvatarUri(teammate.avatar)} size={24} />
-							<ThemedText type="smallBold" numberOfLines={1} style={styles.flex}>
-								{teammate.name}
-							</ThemedText>
-						</View>
-						<ThemedText type="small" themeColor="textSecondary">
-							{teammate.matchesTogether} together · {teammate.winRate}% W
-						</ThemedText>
-						<ThemedText type="small" themeColor="textSecondary">
-							{teammate.wins}W-{teammate.losses}L
-						</ThemedText>
-						<ThemedText type="small" style={{ color }}>
-							ELO {tone === "best" ? `+${teammate.eloGained}` : `-${teammate.eloLost}`}
-						</ThemedText>
-					</>
-				) : (
-					<ThemedText type="small" themeColor="textSecondary">
-						No teammate data available
-					</ThemedText>
-				)}
-			</CardContent>
-		</Card>
+				<ThemedText type="small" themeColor="textSecondary">
+					No data
+				</ThemedText>
+			</View>
+		);
+	}
+	return (
+		<View style={[styles.teammateRow, { borderBottomColor: theme.border }]}>
+			<Avatar name={teammate.name} image={getAvatarUri(teammate.avatar)} size={40} />
+			<View style={styles.teammateInfo}>
+				<ThemedText style={styles.teammateLabel} themeColor="textSecondary">
+					{label}
+				</ThemedText>
+				<ThemedText style={styles.teammateName} numberOfLines={1}>
+					{teammate.name}
+				</ThemedText>
+				<ThemedText type="small" themeColor="textSecondary">
+					{teammate.matchesTogether} together · {teammate.winRate}% W · {teammate.wins}W-
+					{teammate.losses}L
+				</ThemedText>
+			</View>
+			<ThemedText style={[styles.teammateElo, { color }]}>
+				{tone === "best" ? `+${teammate.eloGained}` : `-${teammate.eloLost}`}
+			</ThemedText>
+		</View>
 	);
 }
 
@@ -149,14 +149,14 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 							<Avatar
 								name={player?.name ?? "?"}
 								image={getAvatarUri(player?.image)}
-								size={80}
+								size={96}
 								borderRadius={8}
 							/>
-							<ThemedText type="subtitle" numberOfLines={1}>
+							<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
 								{player?.name}
 							</ThemedText>
 							<ThemedText type="small" themeColor="textSecondary">
-								{winRate}% Win Rate
+								{winRate}% win rate · {allTime?.total ?? 0} matches
 							</ThemedText>
 							<Button
 								variant="outline"
@@ -174,39 +174,47 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 							</Button>
 						</View>
 
-						<View style={styles.grid}>
-							<StatCard
-								label="Current Score"
-								value={bestSeason ? String(bestSeason.elo) : "N/A"}
-								sub="Current season"
-							/>
-							<StatCard
-								label="Win Rate"
-								value={`${winRate}%`}
-								sub={`${allTime?.wins ?? 0}W / ${allTime?.losses ?? 0}L`}
-							/>
-							<StatCard
-								label="Total Matches"
-								value={String(allTime?.total ?? 0)}
-								sub={`Across ${allTime?.seasonCount ?? 0} season(s)`}
-							/>
-							<StatCard
-								label="Best Season"
-								value={bestSeason?.season ?? "N/A"}
-								sub={
-									bestSeason ? `Peak: ${bestSeason.elo} (${bestSeason.matches} matches)` : undefined
-								}
-							/>
-						</View>
+						<Card>
+							<CardContent style={styles.cardContent}>
+								<ThemedText type="smallBold" style={styles.sectionTitle}>
+									Overview
+								</ThemedText>
+								<InfoRow label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
+								<InfoRow
+									label="Win rate"
+									value={`${winRate}%`}
+									sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L · ${allTime?.draws ?? 0}D`}
+								/>
+								<InfoRow
+									label="Total matches"
+									value={String(allTime?.total ?? 0)}
+									sub={`Across ${allTime?.seasonCount ?? 0} season(s)`}
+								/>
+								<InfoRow
+									label="Best season"
+									value={bestSeason?.season ?? "—"}
+									sub={
+										bestSeason
+											? `Peak ${bestSeason.elo} · ${bestSeason.matches} matches`
+											: undefined
+									}
+								/>
+							</CardContent>
+						</Card>
 
-						<View style={styles.grid}>
-							<TeammateCard title="Best Teammate" tone="best" teammate={bestTeammateQuery.data} />
-							<TeammateCard
-								title="Worst Teammate"
-								tone="worst"
-								teammate={worstTeammateQuery.data}
-							/>
-						</View>
+						<Card>
+							<CardContent style={styles.cardContent}>
+								<ThemedText type="smallBold" style={styles.sectionTitle}>
+									Teammates
+								</ThemedText>
+								<TeammateRow label="Best teammate" tone="best" teammate={bestTeammateQuery.data} />
+								<TeammateRow
+									label="Worst teammate"
+									tone="worst"
+									teammate={worstTeammateQuery.data}
+								/>
+							</CardContent>
+						</Card>
 
 						<Card>
 							<CardContent style={styles.cardContent}>
@@ -220,11 +228,12 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 								) : (
 									<View style={styles.achievements}>
 										{achievements.map((a) => (
-											<View key={a.type} style={styles.achievement}>
+											<View
+												key={a.type}
+												style={[styles.achievementChip, { borderColor: theme.border }]}
+											>
 												<ThemedText type="small">🏅</ThemedText>
-												<ThemedText type="small" numberOfLines={1}>
-													{formatAchievementName(a.type)}
-												</ThemedText>
+												<ThemedText type="small">{formatAchievementName(a.type)}</ThemedText>
 											</View>
 										))}
 									</View>
@@ -236,17 +245,19 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 							<Card>
 								<CardContent style={styles.cardContent}>
 									<ThemedText type="smallBold" style={styles.sectionTitle}>
-										Season History
+										Season history
 									</ThemedText>
 									{history.map((h) => (
 										<View key={h.slug} style={[styles.row, { borderBottomColor: theme.border }]}>
-											<ThemedText style={styles.flex} numberOfLines={1}>
-												{h.season}
-											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
-												{h.wins}W-{h.losses}L
-											</ThemedText>
-											<ThemedText type="smallBold">{h.score}</ThemedText>
+											<View style={styles.historyLeft}>
+												<ThemedText style={styles.rowValue} numberOfLines={1}>
+													{h.season}
+												</ThemedText>
+												<ThemedText type="small" themeColor="textSecondary">
+													{h.wins}W · {h.losses}L · {h.winRate}% W
+												</ThemedText>
+											</View>
+											<ThemedText style={styles.rowValue}>{h.score}</ThemedText>
 										</View>
 									))}
 								</CardContent>
@@ -256,7 +267,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 						<Card>
 							<CardContent style={styles.cardContent}>
 								<ThemedText type="smallBold" style={styles.sectionTitle}>
-									Recent Matches
+									Recent matches
 								</ThemedText>
 								{recent.length === 0 ? (
 									<ThemedText type="small" themeColor="textSecondary">
@@ -265,22 +276,28 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 								) : (
 									recent.slice(0, 10).map((m) => {
 										const delta = m.scoreAfter - m.scoreBefore;
+										const resultColor =
+											m.result === "W" ? "#22c55e" : m.result === "L" ? "#ef4444" : "#eab308";
 										return (
-											<View key={m.id} style={[styles.row, { borderBottomColor: theme.border }]}>
-												<ThemedText type="small" style={styles.result}>
-													{m.result}
-												</ThemedText>
-												<View style={styles.flex}>
+											<View
+												key={m.id}
+												style={[styles.matchRow, { borderBottomColor: theme.border }]}
+											>
+												<View style={[styles.resultBadge, { borderColor: resultColor }]}>
+													<ThemedText type="smallBold" style={{ color: resultColor }}>
+														{m.result}
+													</ThemedText>
+												</View>
+												<View style={styles.matchInfo}>
 													<ThemedText type="small" numberOfLines={1}>
 														{m.homeTeamName} vs {m.awayTeamName}
 													</ThemedText>
 													<ThemedText type="small" themeColor="textSecondary">
-														{m.homeScore} - {m.awayScore}
+														{m.homeScore} – {m.awayScore}
 													</ThemedText>
 												</View>
 												<ThemedText
-													type="small"
-													style={{ color: delta >= 0 ? "#22c55e" : "#ef4444" }}
+													style={[styles.rowValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
 												>
 													{delta >= 0 ? `+${delta}` : delta}
 												</ThemedText>
@@ -300,30 +317,57 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 const styles = StyleSheet.create({
 	container: { flex: 1, flexDirection: "row", justifyContent: "center" },
 	safeArea: { flex: 1, maxWidth: MaxContentWidth, paddingHorizontal: Spacing.three },
-	scroll: { gap: Spacing.four, paddingBottom: Spacing.five },
-	hero: { alignItems: "center", gap: Spacing.two, paddingVertical: Spacing.three },
-	grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.three },
-	statCard: { width: "47%", flexGrow: 1 },
-	cardContent: { gap: Spacing.two },
-	statValue: { fontSize: 22, lineHeight: 28 },
-	teammateRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.one,
-		marginTop: Spacing.one,
-	},
-	flex: { flex: 1 },
-	sectionTitle: { marginBottom: Spacing.two },
-	achievements: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
-	achievement: { flexDirection: "row", alignItems: "center", gap: Spacing.one },
+	scroll: { gap: Spacing.four, paddingBottom: Spacing.six },
+	hero: { alignItems: "center", gap: Spacing.two, paddingVertical: Spacing.four },
+	heroName: { textAlign: "center" },
+	cardContent: { gap: 0 },
+	sectionTitle: { marginBottom: Spacing.three },
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: Spacing.two,
+		justifyContent: "space-between",
+		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
-	result: { width: 16, fontWeight: "700" },
+	rowRight: { alignItems: "flex-end", gap: 2, flexShrink: 1 },
+	rowValue: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+	historyLeft: { flex: 1, gap: 2 },
+	teammateRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+	},
+	teammateInfo: { flex: 1, gap: 2 },
+	teammateLabel: { fontSize: 12, lineHeight: 16 },
+	teammateName: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+	teammateElo: { fontSize: 16, fontWeight: "700" },
+	achievements: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
+	achievementChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
+		paddingVertical: Spacing.two,
+		paddingHorizontal: Spacing.three,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	matchRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+		paddingVertical: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+	},
+	resultBadge: {
+		width: 28,
+		height: 28,
+		borderWidth: StyleSheet.hairlineWidth,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	matchInfo: { flex: 1, gap: 2 },
 	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 });
