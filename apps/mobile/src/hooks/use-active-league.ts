@@ -20,7 +20,7 @@ export function useActiveLeague() {
 	// leagues but none is set on the session, promote the first (mirrors web).
 	const ensuringActiveRef = useRef(false);
 	useEffect(() => {
-		if (isSessionPending || isPending || orgs.length === 0) return;
+		if (!session || isSessionPending || isPending || orgs.length === 0) return;
 		if (activeOrgId && orgs.some((org) => org.id === activeOrgId)) return;
 		if (ensuringActiveRef.current) return;
 		ensuringActiveRef.current = true;
@@ -37,7 +37,7 @@ export function useActiveLeague() {
 			.finally(() => {
 				ensuringActiveRef.current = false;
 			});
-	}, [isSessionPending, isPending, orgs, activeOrgId, queryClient]);
+	}, [session, isSessionPending, isPending, orgs, activeOrgId, queryClient]);
 
 	const switchLeague = useCallback(
 		async (organizationId: string) => {
