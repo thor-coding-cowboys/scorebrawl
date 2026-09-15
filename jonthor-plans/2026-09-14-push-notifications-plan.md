@@ -13,6 +13,7 @@
 ## Task 1: DB Schema — push_token table + preference columns
 
 **Files:**
+
 - Modify: `apps/worker/src/db/schema/user-preferences-schema.ts`
 - Modify: `apps/worker/src/db/schema/index.ts` (re-export if new file)
 
@@ -32,10 +33,18 @@ export const userPreference = sqliteTable("user_preference", {
 	defaultOrganizationId: text("default_organization_id"),
 	lastActiveOrganizationId: text("last_active_organization_id"),
 	pushEnabled: integer("push_enabled", { mode: "boolean" }).notNull().default(true),
-	notifySessionStarted: integer("notify_session_started", { mode: "boolean" }).notNull().default(true),
-	notifyMatchRecorded: integer("notify_match_recorded", { mode: "boolean" }).notNull().default(true),
-	notifyAchievementUnlocked: integer("notify_achievement_unlocked", { mode: "boolean" }).notNull().default(true),
-	notifyStreakReached: integer("notify_streak_reached", { mode: "boolean" }).notNull().default(true),
+	notifySessionStarted: integer("notify_session_started", { mode: "boolean" })
+		.notNull()
+		.default(true),
+	notifyMatchRecorded: integer("notify_match_recorded", { mode: "boolean" })
+		.notNull()
+		.default(true),
+	notifyAchievementUnlocked: integer("notify_achievement_unlocked", { mode: "boolean" })
+		.notNull()
+		.default(true),
+	notifyStreakReached: integer("notify_streak_reached", { mode: "boolean" })
+		.notNull()
+		.default(true),
 	...timestampAuditFields,
 });
 
@@ -79,6 +88,7 @@ git commit -m "feat(worker): add push_token table and notification preference co
 ## Task 2: Worker — notification router (register/unregister/settings)
 
 **Files:**
+
 - Create: `apps/worker/src/trpc/router/notification-router.ts`
 - Modify: `apps/worker/src/trpc/trpc-router.ts` (register router)
 
@@ -136,10 +146,7 @@ export const notificationRouter = createTRPCRouter({
 			await ctx.db
 				.delete(pushToken)
 				.where(
-					and(
-						eq(pushToken.token, input.token),
-						eq(pushToken.userId, ctx.authentication.user.id)
-					)
+					and(eq(pushToken.token, input.token), eq(pushToken.userId, ctx.authentication.user.id))
 				);
 
 			return { success: true };
@@ -234,6 +241,7 @@ git commit -m "feat(worker): add notification router (register/unregister/settin
 ## Task 3: Worker — push send service
 
 **Files:**
+
 - Create: `apps/worker/src/services/push-notification.ts`
 
 - [ ] **Step 1: Create push-notification.ts**
@@ -380,9 +388,7 @@ export async function sendLeaguePush({
 					}
 				}
 				if (tokensToDelete.length > 0) {
-					await db
-						.delete(pushToken)
-						.where(inArray(pushToken.token, tokensToDelete));
+					await db.delete(pushToken).where(inArray(pushToken.token, tokensToDelete));
 				}
 			}
 		} catch (err) {
@@ -409,6 +415,7 @@ git commit -m "feat(worker): add push notification send service"
 ## Task 4: Worker — hook push into event call sites
 
 **Files:**
+
 - Modify: `apps/worker/src/trpc/router/session-router.ts` (session started, streak)
 - Modify: `apps/worker/src/trpc/router/match-router.ts` (match recorded, streak)
 - Modify: `apps/worker/src/index.ts` (achievement unlock)
@@ -416,11 +423,13 @@ git commit -m "feat(worker): add push notification send service"
 - [ ] **Step 1: Add push to session-router.ts (session started + streak)**
 
 Add import at top:
+
 ```typescript
 import { sendLeaguePush } from "../../services/push-notification";
 ```
 
 After the existing `ctx.waitUntil(broadcastSeasonEvent(...))` for `session:start` (around line 101), add:
+
 ```typescript
 ctx.waitUntil(
 	sendLeaguePush({
@@ -445,6 +454,7 @@ ctx.waitUntil(
 ```
 
 After streak broadcasts (around lines 350/361), add push for each streak event. The streak events already broadcast with `user: { id, name }`. Add:
+
 ```typescript
 ctx.waitUntil(
 	sendLeaguePush({
@@ -470,11 +480,13 @@ ctx.waitUntil(
 - [ ] **Step 2: Add push to match-router.ts (match recorded + streak)**
 
 Add import at top:
+
 ```typescript
 import { sendLeaguePush } from "../../services/push-notification";
 ```
 
 After the existing `ctx.waitUntil(broadcastSeasonEvent(...))` for `match:insert` (around line 142), add:
+
 ```typescript
 ctx.waitUntil(
 	sendLeaguePush({
@@ -503,11 +515,13 @@ After streak broadcasts (around lines 48/62), add push for each streak event.
 - [ ] **Step 3: Add push to index.ts queue consumer (achievement unlock)**
 
 Add import at top:
+
 ```typescript
 import { sendLeaguePush } from "./services/push-notification";
 ```
 
 In the queue handler, after `broadcastSeasonEvent` calls inside the achievement branch, add:
+
 ```typescript
 // Resolve leagueId from leagueSlug for push
 const [org] = await db
@@ -556,6 +570,7 @@ git commit -m "feat(worker): hook push notifications into session/match/achievem
 ## Task 5: Worker — tests
 
 **Files:**
+
 - Create: `apps/worker/src/test/trpc/notification-router.spec.ts`
 
 - [ ] **Step 1: Create notification-router.spec.ts**
@@ -654,6 +669,7 @@ git commit -m "test(worker): add notification router tests"
 ## Task 6: Mobile — install expo-notifications + setup
 
 **Files:**
+
 - Modify: `apps/mobile/package.json` (install)
 - Modify: `apps/mobile/app.json` (add plugin)
 - Create: `apps/mobile/src/lib/notifications.ts`
@@ -666,6 +682,7 @@ Expected: Packages added to package.json.
 - [ ] **Step 2: Add plugin to app.json**
 
 Add to `expo.plugins` array in `apps/mobile/app.json`:
+
 ```json
 "expo-notifications"
 ```
@@ -753,11 +770,13 @@ git commit -m "feat(mobile): add push notification registration and handler"
 ## Task 7: Mobile — notification lifecycle in root layout
 
 **Files:**
+
 - Modify: `apps/mobile/src/app/_layout.tsx`
 
-- [ ] **Step 1: Add notification init to _layout.tsx**
+- [ ] **Step 1: Add notification init to \_layout.tsx**
 
 Add import:
+
 ```typescript
 import { useEffect } from "react";
 import {
@@ -768,6 +787,7 @@ import {
 ```
 
 Add hooks inside `RootLayout` component, after `useProtectedRoute`:
+
 ```typescript
 useEffect(() => {
 	if (session) {
@@ -800,6 +820,7 @@ git commit -m "feat(mobile): register push token on sign-in, unregister on sign-
 ## Task 8: Mobile — notification settings screen
 
 **Files:**
+
 - Create: `apps/mobile/src/app/settings/notifications.tsx`
 - Modify: `apps/mobile/src/app/profile.tsx` (add settings row)
 
@@ -904,17 +925,14 @@ export default function NotificationSettingsScreen() {
 - [ ] **Step 2: Add Notifications row to profile.tsx**
 
 Add a new Card section between the Sessions card and the Sign Out button:
+
 ```tsx
 <Card>
 	<CardHeader>
 		<CardTitle>Notifications</CardTitle>
 	</CardHeader>
 	<CardContent>
-		<Button
-			variant="outline"
-			fullWidth
-			onPress={() => router.push("/settings/notifications")}
-		>
+		<Button variant="outline" fullWidth onPress={() => router.push("/settings/notifications")}>
 			Configure Notifications
 		</Button>
 	</CardContent>
@@ -938,11 +956,13 @@ git commit -m "feat(mobile): add notification settings screen accessible from pr
 ## Task 9: Mobile — deep link routing from notifications
 
 **Files:**
+
 - Modify: `apps/mobile/src/lib/notifications.ts` (add routing)
 
 - [ ] **Step 1: Add deep link routing to notifications.ts**
 
 Replace the `useNotificationObserver` hook and add a `handleNotificationResponse` function:
+
 ```typescript
 import { useRouter } from "expo-router";
 
@@ -950,19 +970,14 @@ export function handleNotificationResponse(
 	response: Notifications.NotificationResponse,
 	router: ReturnType<typeof useRouter>
 ) {
-	const data = response.notification.request.content.data as Record<
-		string,
-		string
-	>;
+	const data = response.notification.request.content.data as Record<string, string>;
 
 	if (!data?.type) return;
 
 	switch (data.type) {
 		case "session:start":
 			if (data.leagueSlug && data.seasonSlug && data.sessionId) {
-				router.push(
-					`/seasons/${data.seasonSlug}/session/${data.sessionId}`
-				);
+				router.push(`/seasons/${data.seasonSlug}/session/${data.sessionId}`);
 			}
 			break;
 		case "match:recorded":
@@ -993,9 +1008,10 @@ export function useNotificationObserver(
 }
 ```
 
-- [ ] **Step 2: Update _layout.tsx to use router**
+- [ ] **Step 2: Update \_layout.tsx to use router**
 
 Update the notification observer in `_layout.tsx`:
+
 ```typescript
 const router = useRouter();
 
@@ -1044,6 +1060,7 @@ Expected: All pass.
 - [ ] **Step 3: Test notification payload via simulator**
 
 Create a test .apns file and push to simulator:
+
 ```bash
 xcrun simctl push C2AEE1C2-9703-436A-8329-1BA8A2A6D08D com.scorebrawl test-notification.apns
 ```
@@ -1061,15 +1078,15 @@ git commit -m "fix: address verification findings"
 
 ## Summary
 
-| Task | What | Files |
-|------|------|-------|
-| 1 | DB schema | `user-preferences-schema.ts` |
-| 2 | Notification router | `notification-router.ts`, `trpc-router.ts` |
-| 3 | Push send service | `push-notification.ts` |
-| 4 | Event hooks | `session-router.ts`, `match-router.ts`, `index.ts` |
-| 5 | Worker tests | `notification-router.spec.ts` |
-| 6 | Mobile setup | `package.json`, `app.json`, `notifications.ts` |
-| 7 | Lifecycle | `_layout.tsx` |
-| 8 | Settings screen | `settings/notifications.tsx`, `profile.tsx` |
-| 9 | Deep linking | `notifications.ts`, `_layout.tsx` |
-| 10 | Verification | All |
+| Task | What                | Files                                              |
+| ---- | ------------------- | -------------------------------------------------- |
+| 1    | DB schema           | `user-preferences-schema.ts`                       |
+| 2    | Notification router | `notification-router.ts`, `trpc-router.ts`         |
+| 3    | Push send service   | `push-notification.ts`                             |
+| 4    | Event hooks         | `session-router.ts`, `match-router.ts`, `index.ts` |
+| 5    | Worker tests        | `notification-router.spec.ts`                      |
+| 6    | Mobile setup        | `package.json`, `app.json`, `notifications.ts`     |
+| 7    | Lifecycle           | `_layout.tsx`                                      |
+| 8    | Settings screen     | `settings/notifications.tsx`, `profile.tsx`        |
+| 9    | Deep linking        | `notifications.ts`, `_layout.tsx`                  |
+| 10   | Verification        | All                                                |

@@ -14,37 +14,37 @@ Push notifications for session started, match recorded, achievement unlocked, an
 
 ### New table: `push_token` (apps/worker/src/db/schema/)
 
-| Column | Type | Notes |
-|---|---|---|
-| id | text PK (uuid) | |
-| userId | text FK user | ON DELETE cascade |
-| token | text UNIQUE | Expo push token |
-| platform | text | "ios" only for now |
-| deviceName | text? | Optional label |
-| createdAt | integer | Audit |
-| updatedAt | integer | Audit |
-| lastSeenAt | integer | Bumped on each register call |
+| Column     | Type           | Notes                        |
+| ---------- | -------------- | ---------------------------- |
+| id         | text PK (uuid) |                              |
+| userId     | text FK user   | ON DELETE cascade            |
+| token      | text UNIQUE    | Expo push token              |
+| platform   | text           | "ios" only for now           |
+| deviceName | text?          | Optional label               |
+| createdAt  | integer        | Audit                        |
+| updatedAt  | integer        | Audit                        |
+| lastSeenAt | integer        | Bumped on each register call |
 
 ### Extend existing: `user_preference` (apps/worker/src/db/schema/)
 
-| Column | Type | Default |
-|---|---|---|
-| pushEnabled | integer (boolean) | true |
-| notifySessionStarted | integer (boolean) | true |
-| notifyMatchRecorded | integer (boolean) | true |
-| notifyAchievementUnlocked | integer (boolean) | true |
-| notifyStreakReached | integer (boolean) | true |
+| Column                    | Type              | Default |
+| ------------------------- | ----------------- | ------- |
+| pushEnabled               | integer (boolean) | true    |
+| notifySessionStarted      | integer (boolean) | true    |
+| notifyMatchRecorded       | integer (boolean) | true    |
+| notifyAchievementUnlocked | integer (boolean) | true    |
+| notifyStreakReached       | integer (boolean) | true    |
 
 ## Worker API
 
 New tRPC router `notification-router.ts`. All endpoints are `protectedProcedure` (user-scoped, not org-scoped).
 
-| Procedure | Input | Notes |
-|---|---|---|
-| `registerToken` | `{ token: string, platform: "ios", deviceName?: string }` | Upsert by token; bind to user; bump lastSeenAt |
-| `unregisterToken` | `{ token: string }` | Delete. Called on sign-out. |
-| `getSettings` | none | Returns the 5 boolean preferences |
-| `updateSettings` | `{ pushEnabled?, sessionStarted?, matchRecorded?, achievementUnlocked?, streakReached? }` | Partial update |
+| Procedure         | Input                                                                                     | Notes                                          |
+| ----------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `registerToken`   | `{ token: string, platform: "ios", deviceName?: string }`                                 | Upsert by token; bind to user; bump lastSeenAt |
+| `unregisterToken` | `{ token: string }`                                                                       | Delete. Called on sign-out.                    |
+| `getSettings`     | none                                                                                      | Returns the 5 boolean preferences              |
+| `updateSettings`  | `{ pushEnabled?, sessionStarted?, matchRecorded?, achievementUnlocked?, streakReached? }` | Partial update                                 |
 
 ## Send Service
 
@@ -60,24 +60,24 @@ New tRPC router `notification-router.ts`. All endpoints are `protectedProcedure`
 
 ### Event Payloads
 
-| Event | Title | Body | Deep link data |
-|---|---|---|---|
-| Session started | "Session started" | "{actor} started a session in {league}" | `{type: "session:start", leagueSlug, seasonSlug, sessionId}` |
-| Match recorded | "Match recorded" | "{winner} beat {loser} {score}" | `{type: "match:recorded", leagueSlug, seasonSlug, matchId}` |
-| Achievement unlock | "Achievement unlocked" | "{player} earned {achievement}" | `{type: "achievement:unlock", playerId}` |
-| Streak reached | "Streak reached" | "{player} is on a {n}-win streak" | `{type: "streak", playerId}` |
+| Event              | Title                  | Body                                    | Deep link data                                               |
+| ------------------ | ---------------------- | --------------------------------------- | ------------------------------------------------------------ |
+| Session started    | "Session started"      | "{actor} started a session in {league}" | `{type: "session:start", leagueSlug, seasonSlug, sessionId}` |
+| Match recorded     | "Match recorded"       | "{winner} beat {loser} {score}"         | `{type: "match:recorded", leagueSlug, seasonSlug, matchId}`  |
+| Achievement unlock | "Achievement unlocked" | "{player} earned {achievement}"         | `{type: "achievement:unlock", playerId}`                     |
+| Streak reached     | "Streak reached"       | "{player} is on a {n}-win streak"       | `{type: "streak", playerId}`                                 |
 
 ## Event Hooks
 
 All wrapped in `ctx.waitUntil(...)`:
 
-| Location | Event type | Actor excluded |
-|---|---|---|
-| `session-router.ts` (create, line ~101) | `session:start` | yes |
-| `match-router.ts` (recordResult, line ~142) | `match:insert` | yes |
-| `index.ts` queue consumer (buildAchievementUnlockEvents) | `achievement:unlock` | no |
-| `match-router.ts` (lines 48/62) | `streak` | no |
-| `session-router.ts` (lines 350/361) | `streak` | no |
+| Location                                                 | Event type           | Actor excluded |
+| -------------------------------------------------------- | -------------------- | -------------- |
+| `session-router.ts` (create, line ~101)                  | `session:start`      | yes            |
+| `match-router.ts` (recordResult, line ~142)              | `match:insert`       | yes            |
+| `index.ts` queue consumer (buildAchievementUnlockEvents) | `achievement:unlock` | no             |
+| `match-router.ts` (lines 48/62)                          | `streak`             | no             |
+| `session-router.ts` (lines 350/361)                      | `streak`             | no             |
 
 ## Mobile
 
@@ -97,6 +97,7 @@ All wrapped in `ctx.waitUntil(...)`:
 ### Deep Linking
 
 `expo-notifications` response listener routes based on `data` fields:
+
 - `session:start` → `/seasons/[seasonSlug]/session/[sessionId]`
 - `match:recorded` → `/seasons/[seasonSlug]`
 - `achievement:unlock` or `streak` → `/players/[playerId]`
