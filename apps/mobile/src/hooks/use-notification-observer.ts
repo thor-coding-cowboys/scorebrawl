@@ -14,11 +14,15 @@ export function useNotificationObserver() {
 			void handleNotificationResponse(response, router, queryClient);
 		});
 
-		void Notifications.getLastNotificationResponseAsync().then(async (response) => {
-			if (!response) return;
-			await Notifications.clearLastNotificationResponseAsync().catch(() => {});
-			await handleNotificationResponse(response, router, queryClient);
-		});
+		void Notifications.getLastNotificationResponseAsync()
+			.then(async (response) => {
+				if (!response) return;
+				await Notifications.clearLastNotificationResponseAsync().catch(() => {});
+				await handleNotificationResponse(response, router, queryClient);
+			})
+			.catch((error) => {
+				console.warn("[Push] Unable to read last notification response", error);
+			});
 
 		return () => subscription.remove();
 	}, [router, queryClient]);

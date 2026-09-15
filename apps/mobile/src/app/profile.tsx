@@ -14,6 +14,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { unregisterPushNotifications } from "@/lib/notifications";
 import { signOut as performSignOut } from "@/lib/sign-out";
 import { useTRPC } from "@/lib/trpc";
 
@@ -97,8 +98,11 @@ export default function ProfileScreen() {
 				text: "Revoke All",
 				style: "destructive",
 				onPress: async () => {
+					await unregisterPushNotifications();
 					await authClient.revokeSessions();
-					await signOut();
+					await authClient.signOut();
+					queryClient.clear();
+					router.replace("/sign-in");
 				},
 			},
 		]);
