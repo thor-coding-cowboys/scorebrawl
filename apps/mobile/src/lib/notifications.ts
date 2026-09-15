@@ -2,11 +2,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import * as Device from "expo-device";
 import type { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
+import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { authClient } from "./auth-client";
 import { trpcClient } from "./trpc";
 
 const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+const TOKEN_STORAGE_KEY = "scorebrawl.pushToken";
 
 let currentToken: string | null = null;
 let registration: Promise<string | null> | null = null;
@@ -41,6 +43,7 @@ async function doRegister(): Promise<string | null> {
 			deviceName: Device.modelName ?? undefined,
 		});
 		currentToken = token;
+		await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
 		return token;
 	} catch (error) {
 		console.warn("[Push] Unable to register push token", error);
@@ -59,12 +62,15 @@ export function registerForPushNotifications(): Promise<string | null> {
 
 export async function unregisterPushNotifications(): Promise<void> {
 	if (Platform.OS !== "ios") return;
-	if (!currentToken && !projectId) return;
+
+	const storedToken = currentToken ?? (await SecureStore.getItemAsync(TOKEN_STORAGE_KEY));
+	if (!storedToken && !projectId) return;
 
 	try {
-		const token = currentToken ?? (await getToken());
+		const token = storedToken ?? (await getToken());
 		await trpcClient.notification.unregisterToken.mutate({ token });
 		currentToken = null;
+		await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 	} catch (error) {
 		console.warn("[Push] Unable to unregister push token", error);
 	}
@@ -82,11 +88,10 @@ export async function handleNotificationResponse(
 		if (data.leagueSlug) {
 			const { data: organizations } = await authClient.organization.list();
 			const organization = organizations?.find((candidate) => candidate.slug === data.leagueSlug);
-			if (organization) {
-				await authClient.organization.setActive({ organizationId: organization.id });
-				await authClient.getSession();
-				await queryClient.invalidateQueries();
-			}
+			if (!organization) return;
+			await authClient.organization.setActive({ organizationId: organization.id });
+			await authClient.getSession();
+			await queryClient.invalidateQueries();
 		}
 
 		switch (data.type) {

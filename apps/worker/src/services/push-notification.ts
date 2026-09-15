@@ -171,8 +171,10 @@ async function sendBatch(db: DrizzleDB, batch: ExpoPushMessage[]): Promise<void>
 
 	const staleTokens: string[] = [];
 	result.data.forEach((ticket, index) => {
+		const message = batch[index];
+		if (!message) return;
 		if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
-			staleTokens.push(batch[index].to);
+			staleTokens.push(message.to);
 		}
 	});
 

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
@@ -32,9 +33,11 @@ export function UserCard() {
 	const user = data?.user;
 	const { uri, headers } = useUserAvatar(user?.image);
 	const [expanded, setExpanded] = useState(false);
+	const queryClient = useQueryClient();
 
 	const handleSignOut = async () => {
 		await performSignOut();
+		queryClient.clear();
 		router.replace("/sign-in");
 	};
 
