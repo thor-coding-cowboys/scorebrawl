@@ -14,6 +14,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { signOut as performSignOut } from "@/lib/sign-out";
 import { useTRPC } from "@/lib/trpc";
 
 function formatSessionDate(value: Date | string) {
@@ -70,7 +71,7 @@ export default function ProfileScreen() {
 	});
 
 	const signOut = useCallback(async () => {
-		await authClient.signOut();
+		await performSignOut();
 		queryClient.clear();
 		router.replace("/sign-in");
 	}, [queryClient]);

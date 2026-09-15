@@ -10,6 +10,7 @@ import { useThemeMode } from "@/hooks/use-theme-mode";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { signOut as performSignOut } from "@/lib/sign-out";
 
 function themeIconName(mode: "light" | "dark" | "system") {
 	if (mode === "light")
@@ -33,7 +34,7 @@ export function UserCard() {
 	const [expanded, setExpanded] = useState(false);
 
 	const handleSignOut = async () => {
-		await authClient.signOut();
+		await performSignOut();
 		router.replace("/sign-in");
 	};
 

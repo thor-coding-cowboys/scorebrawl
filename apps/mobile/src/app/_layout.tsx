@@ -2,18 +2,15 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "expo-router";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useNotificationObserver } from "@/hooks/use-notification-observer";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { authClient } from "@/lib/auth-client";
-import {
-	registerForPushNotifications,
-	unregisterPushNotifications,
-	useNotificationObserver,
-} from "@/lib/notifications";
+import { registerForPushNotifications } from "@/lib/notifications";
 import { queryClient } from "@/lib/query-client";
 import { TRPCProvider, trpcClient } from "@/lib/trpc";
 
@@ -49,26 +46,24 @@ function ThemedNavigationProvider({ children }: { children: ReactNode }) {
 	);
 }
 
+function PushNotifications() {
+	useNotificationObserver();
+	return null;
+}
+
 export default function RootLayout() {
 	const { data, isPending } = authClient.useSession();
 	const session = data?.session ?? null;
 
 	useProtectedRoute(session, isPending);
 
-	const router = useRouter();
 	const userId = session?.userId ?? null;
-	const previousUserId = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (userId) {
 			void registerForPushNotifications();
-		} else if (previousUserId.current) {
-			void unregisterPushNotifications();
 		}
-		previousUserId.current = userId;
 	}, [userId]);
-
-	useNotificationObserver(router);
 
 	return (
 		<ThemeProvider>
@@ -76,6 +71,7 @@ export default function RootLayout() {
 				<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
 					<QueryClientProvider client={queryClient}>
 						<AnimatedSplashOverlay />
+						<PushNotifications />
 						<Stack screenOptions={{ headerShown: false }}>
 							<Stack.Screen name="(drawer)" />
 							<Stack.Screen name="sign-in" />

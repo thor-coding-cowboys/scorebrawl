@@ -1,7 +1,7 @@
+import type { QueryClient } from "@tanstack/react-query";
 import * as Device from "expo-device";
 import type { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
-import { useEffect } from "react";
 import { Platform } from "react-native";
 import { authClient } from "./auth-client";
 import { trpcClient } from "./trpc";
@@ -72,58 +72,48 @@ export async function unregisterPushNotifications(): Promise<void> {
 
 export async function handleNotificationResponse(
 	response: Notifications.NotificationResponse,
-	router: ReturnType<typeof useRouter>
-) {
+	router: ReturnType<typeof useRouter>,
+	queryClient: QueryClient
+): Promise<void> {
 	const data = response.notification.request.content.data as Record<string, string> | undefined;
 	if (!data?.type) return;
 
-	if (data.leagueSlug) {
-		const { data: organizations } = await authClient.organization.list();
-		const organization = organizations?.find((candidate) => candidate.slug === data.leagueSlug);
-		if (organization) {
-			await authClient.organization.setActive({ organizationId: organization.id });
-			await authClient.getSession();
+	try {
+		if (data.leagueSlug) {
+			const { data: organizations } = await authClient.organization.list();
+			const organization = organizations?.find((candidate) => candidate.slug === data.leagueSlug);
+			if (organization) {
+				await authClient.organization.setActive({ organizationId: organization.id });
+				await authClient.getSession();
+				await queryClient.invalidateQueries();
+			}
 		}
+
+		switch (data.type) {
+			case "session:start":
+				if (data.seasonSlug && data.sessionId) {
+					router.push({
+						pathname: "/seasons/[seasonSlug]/session/[sessionId]",
+						params: { seasonSlug: data.seasonSlug, sessionId: data.sessionId },
+					});
+				}
+				break;
+			case "match:recorded":
+				if (data.seasonSlug) {
+					router.push({
+						pathname: "/seasons/[seasonSlug]",
+						params: { seasonSlug: data.seasonSlug },
+					});
+				}
+				break;
+			case "achievement:unlock":
+			case "streak":
+				if (data.playerId) {
+					router.push({ pathname: "/players/[playerId]", params: { playerId: data.playerId } });
+				}
+				break;
+		}
+	} catch (error) {
+		console.warn("[Push] Unable to handle notification response", error);
 	}
-
-	switch (data.type) {
-		case "session:start":
-			if (data.seasonSlug && data.sessionId) {
-				router.push({
-					pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-					params: { seasonSlug: data.seasonSlug, sessionId: data.sessionId },
-				});
-			}
-			break;
-		case "match:recorded":
-			if (data.seasonSlug) {
-				router.push({
-					pathname: "/seasons/[seasonSlug]",
-					params: { seasonSlug: data.seasonSlug },
-				});
-			}
-			break;
-		case "achievement:unlock":
-		case "streak":
-			if (data.playerId) {
-				router.push({ pathname: "/players/[playerId]", params: { playerId: data.playerId } });
-			}
-			break;
-	}
-}
-
-export function useNotificationObserver(router: ReturnType<typeof useRouter>) {
-	useEffect(() => {
-		const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-			void handleNotificationResponse(response, router);
-		});
-
-		void Notifications.getLastNotificationResponseAsync().then(async (response) => {
-			if (!response) return;
-			await handleNotificationResponse(response, router);
-			await Notifications.clearLastNotificationResponseAsync();
-		});
-
-		return () => subscription.remove();
-	}, [router]);
 }
