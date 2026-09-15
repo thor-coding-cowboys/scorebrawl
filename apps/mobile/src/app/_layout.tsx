@@ -77,6 +77,10 @@ export default function RootLayout() {
 							<Stack.Screen name="sign-in" />
 							<Stack.Screen name="sign-up" />
 							<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
+							<Stack.Screen
+								name="settings/notifications"
+								options={{ headerShown: true, title: "Notifications" }}
+							/>
 						</Stack>
 					</QueryClientProvider>
 				</TRPCProvider>

@@ -208,6 +208,21 @@ export default function ProfileScreen() {
 						</CardContent>
 					</Card>
 
+					<Card>
+						<CardHeader>
+							<CardTitle>Notifications</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<Button
+								variant="outline"
+								fullWidth
+								onPress={() => router.push("/settings/notifications")}
+							>
+								Configure push notifications
+							</Button>
+						</CardContent>
+					</Card>
+
 					<Button variant="outline" fullWidth onPress={signOut}>
 						Sign Out
 					</Button>
