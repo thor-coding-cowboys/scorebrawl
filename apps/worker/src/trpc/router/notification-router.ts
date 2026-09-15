@@ -1,7 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { pushToken, userPreference } from "../../db/schema";
+import { pushToken, userPreference } from "../../db/schema/user-preferences-schema";
 import { protectedProcedure } from "../trpc";
 
 const DEFAULT_SETTINGS = {
@@ -10,15 +10,15 @@ const DEFAULT_SETTINGS = {
 	notifyMatchRecorded: true,
 	notifyAchievementUnlocked: true,
 	notifyStreakReached: true,
-} as const;
+};
 
 export const notificationRouter = {
 	registerToken: protectedProcedure
 		.input(
 			z.object({
-				token: z.string(),
+				token: z.string().min(1).max(255),
 				platform: z.enum(["ios", "android"]),
-				deviceName: z.string().optional(),
+				deviceName: z.string().max(255).optional(),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -52,7 +52,7 @@ export const notificationRouter = {
 		}),
 
 	unregisterToken: protectedProcedure
-		.input(z.object({ token: z.string() }))
+		.input(z.object({ token: z.string().min(1).max(255) }))
 		.mutation(async ({ ctx, input }) => {
 			await ctx.db
 				.delete(pushToken)
