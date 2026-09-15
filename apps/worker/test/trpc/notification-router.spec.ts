@@ -51,6 +51,29 @@ describe("notification router", () => {
 			expect(rows).toHaveLength(1);
 			expect(rows[0].deviceName).toBe("iPhone");
 		});
+
+		it("reassigns a token to the newest user on conflict", async () => {
+			const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+			await client.notification.registerToken.mutate({
+				token: "ExponentPushToken[move]",
+				platform: "ios",
+			});
+
+			const other = await createUser();
+			const otherClient = createTRPCTestClient({ sessionToken: other.sessionToken });
+			await otherClient.notification.registerToken.mutate({
+				token: "ExponentPushToken[move]",
+				platform: "ios",
+			});
+
+			const db = getDb(env.DB);
+			const rows = await db
+				.select()
+				.from(pushToken)
+				.where(eq(pushToken.token, "ExponentPushToken[move]"));
+			expect(rows).toHaveLength(1);
+			expect(rows[0].userId).toBe(other.user.id);
+		});
 	});
 
 	describe("unregisterToken", () => {

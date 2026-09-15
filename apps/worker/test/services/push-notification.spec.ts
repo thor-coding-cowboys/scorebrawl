@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { defaultNotificationPreferences } from "../../src/db/schema/user-preferences-schema";
 import {
 	buildStreakPushEvents,
 	type PushEvent,
 	selectEligibleEventsByUser,
 } from "../../src/services/push-notification";
 
-const enabledPrefs = {
-	pushEnabled: true,
-	notifySessionStarted: true,
-	notifyMatchRecorded: true,
-	notifyAchievementUnlocked: true,
-	notifyStreakReached: true,
-};
+const enabledPrefs = defaultNotificationPreferences;
 
 function sessionEvent(overrides: Partial<PushEvent> = {}): PushEvent {
 	return {
@@ -86,23 +81,31 @@ describe("selectEligibleEventsByUser", () => {
 
 describe("buildStreakPushEvents", () => {
 	it("builds one deep-linkable event per player", () => {
-		const events = buildStreakPushEvents([{ playerId: "p1", playerName: "Ada", streak: 5 }], {
-			leagueSlug: "league",
-			seasonSlug: "season",
-		});
-		expect(events).toEqual([
-			{
+		const events = buildStreakPushEvents(
+			[
+				{ playerId: "p1", playerName: "Ada", streak: 5 },
+				{ playerId: "p2", playerName: "Bob", streak: 3 },
+			],
+			{ leagueSlug: "league", seasonSlug: "season" }
+		);
+		expect(events).toHaveLength(2);
+		expect(events[0]).toEqual({
+			type: "streak",
+			title: "Streak reached",
+			body: "Ada is on a 5-win streak",
+			data: {
 				type: "streak",
-				title: "Streak reached",
-				body: "Ada is on a 5-win streak",
-				data: {
-					type: "streak",
-					leagueSlug: "league",
-					seasonSlug: "season",
-					playerId: "p1",
-				},
+				leagueSlug: "league",
+				seasonSlug: "season",
+				playerId: "p1",
 			},
-		]);
+		});
+		expect(events[1]).toEqual({
+			type: "streak",
+			title: "Streak reached",
+			body: "Bob is on a 3-win streak",
+			data: { type: "streak", leagueSlug: "league", seasonSlug: "season", playerId: "p2" },
+		});
 	});
 
 	it("returns an empty array with no players", () => {

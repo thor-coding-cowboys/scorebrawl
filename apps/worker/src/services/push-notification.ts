@@ -21,7 +21,7 @@ export type NotificationPrefs = typeof defaultNotificationPreferences;
 
 export function selectEligibleEventsByUser(
 	recipientIds: string[],
-	prefs: Array<{ userId: string } & NotificationPrefs>,
+	prefs: Array<NotificationPrefs & { userId: string }>,
 	events: PushEvent[]
 ): Map<string, PushEvent[]> {
 	const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
