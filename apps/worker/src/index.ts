@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { eq } from "drizzle-orm";
 
 export { contextStorage } from "hono/context-storage";
 export { SeasonSSE } from "./durable-objects/season-sse";
 
 import { contextStorage } from "hono/context-storage";
 import { getDb } from "./db";
+import { league } from "./db/schema/auth-schema";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
@@ -19,6 +21,7 @@ import {
 	buildAchievementUnlockEvents,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
+import { sendLeaguePush } from "./services/push-notification";
 import { seedLeague, type SeedInput } from "./services/seed";
 import { trpcServer } from "./trpc/server";
 
@@ -63,6 +66,32 @@ export default {
 					const newAchievements = await calculateAchievements(db, body.seasonPlayerIds);
 					for (const event of buildAchievementUnlockEvents(newAchievements)) {
 						await broadcastSeasonEvent(env, body.leagueSlug, body.seasonSlug, event);
+					}
+
+					if (newAchievements.length > 0) {
+						const [leagueRow] = await db
+							.select({ id: league.id })
+							.from(league)
+							.where(eq(league.slug, body.leagueSlug))
+							.limit(1);
+
+						if (leagueRow) {
+							await sendLeaguePush({
+								db,
+								organizationId: leagueRow.id,
+								events: newAchievements.map((achievement) => ({
+									type: "achievement:unlock" as const,
+									title: "Achievement unlocked",
+									body: `${achievement.name} earned ${achievement.type.replaceAll("_", " ")}`,
+									data: {
+										type: "achievement:unlock",
+										leagueSlug: body.leagueSlug,
+										seasonSlug: body.seasonSlug,
+										playerId: achievement.playerId,
+									},
+								})),
+							});
+						}
 					}
 				} else if ("leagueSlug" in body) {
 					if (!env.SEED_ALLOWED) {
