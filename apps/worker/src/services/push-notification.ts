@@ -14,6 +14,7 @@ export type PushEvent = {
 	title: string;
 	body: string;
 	data: Record<string, string>;
+	excludeUserId?: string;
 };
 
 type NotificationPrefs = typeof defaultNotificationPreferences;
@@ -36,15 +37,30 @@ type ExpoPushMessage = {
 	sound: "default";
 };
 
+export function buildStreakPushEvents(
+	players: Array<{ playerId: string; playerName: string; streak: number }>,
+	context: { leagueSlug: string; seasonSlug: string }
+): PushEvent[] {
+	return players.map((player) => ({
+		type: "streak",
+		title: "Streak reached",
+		body: `${player.playerName} is on a ${player.streak}-win streak`,
+		data: {
+			type: "streak",
+			leagueSlug: context.leagueSlug,
+			seasonSlug: context.seasonSlug,
+			playerId: player.playerId,
+		},
+	}));
+}
+
 export async function sendLeaguePush({
 	db,
 	organizationId,
-	excludeUserId,
 	events,
 }: {
 	db: DrizzleDB;
 	organizationId: string;
-	excludeUserId?: string;
 	events: PushEvent[];
 }): Promise<void> {
 	if (events.length === 0) return;
@@ -55,7 +71,7 @@ export async function sendLeaguePush({
 			.from(member)
 			.where(eq(member.organizationId, organizationId));
 
-		const recipientIds = members.map((m) => m.userId).filter((userId) => userId !== excludeUserId);
+		const recipientIds = members.map((m) => m.userId);
 
 		if (recipientIds.length === 0) return;
 
@@ -77,7 +93,9 @@ export async function sendLeaguePush({
 		for (const userId of recipientIds) {
 			const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
 			if (!pref.pushEnabled) continue;
-			const eligible = events.filter((event) => pref[EVENT_PREFERENCE[event.type]]);
+			const eligible = events.filter(
+				(event) => userId !== event.excludeUserId && pref[EVENT_PREFERENCE[event.type]]
+			);
 			if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
 		}
 

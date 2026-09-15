@@ -10,7 +10,7 @@ import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import * as sessionService from "../../services/session";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
-import { sendLeaguePush } from "../../services/push-notification";
+import { buildStreakPushEvents, sendLeaguePush } from "../../services/push-notification";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
@@ -108,7 +108,6 @@ export const sessionRouter = {
 				sendLeaguePush({
 					db: ctx.db,
 					organizationId: ctx.organization.id,
-					excludeUserId: ctx.authentication.user.id,
 					events: [
 						{
 							type: "session:start",
@@ -120,6 +119,7 @@ export const sessionRouter = {
 								seasonSlug: input.seasonSlug,
 								sessionId: session.id,
 							},
+							excludeUserId: ctx.authentication.user.id,
 						},
 					],
 				})
@@ -400,17 +400,10 @@ export const sessionRouter = {
 					await sendLeaguePush({
 						db: ctx.db,
 						organizationId: ctx.organization.id,
-						events: streakPlayers.map((player) => ({
-							type: "streak" as const,
-							title: "Streak reached",
-							body: `${player.playerName} is on a ${player.streak}-win streak`,
-							data: {
-								type: "streak",
-								leagueSlug: ctx.organization.slug,
-								seasonSlug: sessionInfo.seasonSlug,
-								playerId: player.playerId,
-							},
-						})),
+						events: buildStreakPushEvents(streakPlayers, {
+							leagueSlug: ctx.organization.slug,
+							seasonSlug: sessionInfo.seasonSlug,
+						}),
 					});
 				}
 			})();
