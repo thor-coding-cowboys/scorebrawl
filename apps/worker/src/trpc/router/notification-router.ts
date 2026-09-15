@@ -1,16 +1,12 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { pushToken, userPreference } from "../../db/schema/user-preferences-schema";
+import {
+	defaultNotificationPreferences,
+	pushToken,
+	userPreference,
+} from "../../db/schema/user-preferences-schema";
 import { protectedProcedure } from "../trpc";
-
-const DEFAULT_SETTINGS = {
-	pushEnabled: true,
-	notifySessionStarted: true,
-	notifyMatchRecorded: true,
-	notifyAchievementUnlocked: true,
-	notifyStreakReached: true,
-};
 
 export const notificationRouter = {
 	registerToken: protectedProcedure
@@ -76,7 +72,7 @@ export const notificationRouter = {
 			.where(eq(userPreference.userId, ctx.authentication.user.id))
 			.limit(1);
 
-		return prefs ?? DEFAULT_SETTINGS;
+		return prefs ?? defaultNotificationPreferences;
 	}),
 
 	updateSettings: protectedProcedure

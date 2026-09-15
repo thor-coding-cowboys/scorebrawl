@@ -1,7 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { member } from "../db/schema/auth-schema";
-import { pushToken, userPreference } from "../db/schema/user-preferences-schema";
+import {
+	defaultNotificationPreferences,
+	pushToken,
+	userPreference,
+} from "../db/schema/user-preferences-schema";
 
 export type PushEventType = "session:start" | "match:recorded" | "achievement:unlock" | "streak";
 
@@ -12,21 +16,7 @@ export type PushEvent = {
 	data: Record<string, string>;
 };
 
-type NotificationPrefs = {
-	pushEnabled: boolean;
-	notifySessionStarted: boolean;
-	notifyMatchRecorded: boolean;
-	notifyAchievementUnlocked: boolean;
-	notifyStreakReached: boolean;
-};
-
-const DEFAULT_PREFS: NotificationPrefs = {
-	pushEnabled: true,
-	notifySessionStarted: true,
-	notifyMatchRecorded: true,
-	notifyAchievementUnlocked: true,
-	notifyStreakReached: true,
-};
+type NotificationPrefs = typeof defaultNotificationPreferences;
 
 const EVENT_PREFERENCE: Record<PushEventType, keyof NotificationPrefs> = {
 	"session:start": "notifySessionStarted",
@@ -85,7 +75,7 @@ export async function sendLeaguePush({
 
 		const eligibleEventsByUser = new Map<string, PushEvent[]>();
 		for (const userId of recipientIds) {
-			const pref = prefsMap.get(userId) ?? DEFAULT_PREFS;
+			const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
 			if (!pref.pushEnabled) continue;
 			const eligible = events.filter((event) => pref[EVENT_PREFERENCE[event.type]]);
 			if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
@@ -117,7 +107,12 @@ export async function sendLeaguePush({
 		for (let i = 0; i < messages.length; i += BATCH_SIZE) {
 			batches.push(messages.slice(i, i + BATCH_SIZE));
 		}
-		await Promise.allSettled(batches.map((batch) => sendBatch(db, batch)));
+		const results = await Promise.allSettled(batches.map((batch) => sendBatch(db, batch)));
+		for (const result of results) {
+			if (result.status === "rejected") {
+				console.error("[Push] batch failed", result.reason);
+			}
+		}
 	} catch (error) {
 		console.error("[Push] sendLeaguePush failed", error);
 	}

@@ -2,6 +2,14 @@ import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqli
 import { user } from "./auth-schema";
 import { timestampAuditFields } from "./common";
 
+export const defaultNotificationPreferences = {
+	pushEnabled: true,
+	notifySessionStarted: true,
+	notifyMatchRecorded: true,
+	notifyAchievementUnlocked: true,
+	notifyStreakReached: true,
+};
+
 export const userPreference = sqliteTable("user_preference", {
 	userId: text("user_id")
 		.primaryKey()
