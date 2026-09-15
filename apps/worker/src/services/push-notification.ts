@@ -17,7 +17,27 @@ export type PushEvent = {
 	excludeUserId?: string;
 };
 
-type NotificationPrefs = typeof defaultNotificationPreferences;
+export type NotificationPrefs = typeof defaultNotificationPreferences;
+
+export function selectEligibleEventsByUser(
+	recipientIds: string[],
+	prefs: Array<{ userId: string } & NotificationPrefs>,
+	events: PushEvent[]
+): Map<string, PushEvent[]> {
+	const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
+
+	const eligibleEventsByUser = new Map<string, PushEvent[]>();
+	for (const userId of recipientIds) {
+		const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
+		if (!pref.pushEnabled) continue;
+		const eligible = events.filter(
+			(event) => userId !== event.excludeUserId && pref[EVENT_PREFERENCE[event.type]]
+		);
+		if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
+	}
+
+	return eligibleEventsByUser;
+}
 
 const EVENT_PREFERENCE: Record<PushEventType, keyof NotificationPrefs> = {
 	"session:start": "notifySessionStarted",
@@ -87,17 +107,7 @@ export async function sendLeaguePush({
 			.from(userPreference)
 			.where(inArray(userPreference.userId, recipientIds));
 
-		const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
-
-		const eligibleEventsByUser = new Map<string, PushEvent[]>();
-		for (const userId of recipientIds) {
-			const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
-			if (!pref.pushEnabled) continue;
-			const eligible = events.filter(
-				(event) => userId !== event.excludeUserId && pref[EVENT_PREFERENCE[event.type]]
-			);
-			if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
-		}
+		const eligibleEventsByUser = selectEligibleEventsByUser(recipientIds, prefs, events);
 
 		if (eligibleEventsByUser.size === 0) return;
 
