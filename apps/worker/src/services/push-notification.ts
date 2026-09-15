@@ -20,6 +20,14 @@ type NotificationPrefs = {
 	notifyStreakReached: boolean;
 };
 
+const DEFAULT_PREFS: NotificationPrefs = {
+	pushEnabled: true,
+	notifySessionStarted: true,
+	notifyMatchRecorded: true,
+	notifyAchievementUnlocked: true,
+	notifyStreakReached: true,
+};
+
 const EVENT_PREFERENCE: Record<PushEventType, keyof NotificationPrefs> = {
 	"session:start": "notifySessionStarted",
 	"match:recorded": "notifyMatchRecorded",
@@ -73,11 +81,14 @@ export async function sendLeaguePush({
 			.from(userPreference)
 			.where(inArray(userPreference.userId, recipientIds));
 
+		const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
+
 		const eligibleEventsByUser = new Map<string, PushEvent[]>();
-		for (const pref of prefs) {
+		for (const userId of recipientIds) {
+			const pref = prefsMap.get(userId) ?? DEFAULT_PREFS;
 			if (!pref.pushEnabled) continue;
 			const eligible = events.filter((event) => pref[EVENT_PREFERENCE[event.type]]);
-			if (eligible.length > 0) eligibleEventsByUser.set(pref.userId, eligible);
+			if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
 		}
 
 		if (eligibleEventsByUser.size === 0) return;
@@ -102,9 +113,11 @@ export async function sendLeaguePush({
 			}
 		}
 
+		const batches: ExpoPushMessage[][] = [];
 		for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-			await sendBatch(db, messages.slice(i, i + BATCH_SIZE));
+			batches.push(messages.slice(i, i + BATCH_SIZE));
 		}
+		await Promise.allSettled(batches.map((batch) => sendBatch(db, batch)));
 	} catch (error) {
 		console.error("[Push] sendLeaguePush failed", error);
 	}
@@ -119,6 +132,7 @@ async function sendBatch(db: DrizzleDB, batch: ExpoPushMessage[]): Promise<void>
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify(batch),
+		signal: AbortSignal.timeout(10_000),
 	});
 
 	if (!response.ok) {
