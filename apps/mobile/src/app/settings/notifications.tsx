@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ScrollView, StyleSheet, Switch, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -45,11 +45,29 @@ export default function NotificationSettingsScreen() {
 	const queryClient = useQueryClient();
 	const theme = useTheme();
 
-	const settingsQuery = useQuery(trpc.notification.getSettings.queryOptions());
+	const settingsQueryOptions = trpc.notification.getSettings.queryOptions();
+	const settingsQuery = useQuery(settingsQueryOptions);
 	const updateSettings = useMutation(
 		trpc.notification.updateSettings.mutationOptions({
-			onSuccess: () => {
-				void queryClient.invalidateQueries(trpc.notification.getSettings.queryOptions());
+			onMutate: async (patch) => {
+				await queryClient.cancelQueries(settingsQueryOptions);
+				const previous = queryClient.getQueryData(settingsQueryOptions.queryKey);
+				queryClient.setQueryData(settingsQueryOptions.queryKey, (old) =>
+					old ? { ...old, ...patch } : old
+				);
+				return { previous };
+			},
+			onError: (error, _patch, context) => {
+				if (context?.previous) {
+					queryClient.setQueryData(settingsQueryOptions.queryKey, context.previous);
+				}
+				Alert.alert(
+					"Error",
+					error instanceof Error ? error.message : "Failed to update notification settings."
+				);
+			},
+			onSettled: () => {
+				void queryClient.invalidateQueries(settingsQueryOptions);
 			},
 		})
 	);
@@ -62,37 +80,53 @@ export default function NotificationSettingsScreen() {
 				<ScrollView contentContainerStyle={styles.scroll}>
 					<Card>
 						<CardContent style={styles.list}>
-							<View style={[styles.row, { borderBottomColor: theme.border }]}>
-								<View style={styles.rowInfo}>
-									<ThemedText type="smallBold">Push notifications</ThemedText>
-									<ThemedText type="small" themeColor="textSecondary">
-										Master switch for all push notifications
-									</ThemedText>
-								</View>
-								<Switch
-									value={settings?.pushEnabled ?? false}
-									disabled={!settings}
-									onValueChange={(value) => updateSettings.mutate({ pushEnabled: value })}
-								/>
-							</View>
-
-							{TOGGLES.map(({ key, label, description }) => (
-								<View key={key} style={[styles.row, { borderBottomColor: theme.border }]}>
-									<View style={styles.rowInfo}>
-										<ThemedText type="smallBold">{label}</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary">
-											{description}
-										</ThemedText>
+							{settingsQuery.isPending ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									Loading settings…
+								</ThemedText>
+							) : settingsQuery.isError ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									Unable to load notification settings.
+								</ThemedText>
+							) : (
+								<>
+									<View style={[styles.row, { borderBottomColor: theme.border }]}>
+										<View style={styles.rowInfo}>
+											<ThemedText type="smallBold">Push notifications</ThemedText>
+											<ThemedText type="small" themeColor="textSecondary">
+												Master switch for all push notifications
+											</ThemedText>
+										</View>
+										<Switch
+											value={settings?.pushEnabled ?? false}
+											disabled={!settings}
+											accessibilityLabel="Push notifications"
+											onValueChange={(value) => updateSettings.mutate({ pushEnabled: value })}
+										/>
 									</View>
-									<Switch
-										value={settings?.[key] ?? false}
-										disabled={!settings?.pushEnabled}
-										onValueChange={(value) =>
-											updateSettings.mutate({ [key]: value } as NotificationSettingsPatch)
-										}
-									/>
-								</View>
-							))}
+
+									{TOGGLES.map(({ key, label, description }) => (
+										<View key={key} style={[styles.row, { borderBottomColor: theme.border }]}>
+											<View style={styles.rowInfo}>
+												<ThemedText type="smallBold">{label}</ThemedText>
+												<ThemedText type="small" themeColor="textSecondary">
+													{description}
+												</ThemedText>
+											</View>
+											<Switch
+												value={settings?.[key] ?? false}
+												disabled={!settings?.pushEnabled}
+												accessibilityLabel={label}
+												onValueChange={(value) =>
+													updateSettings.mutate({
+														[key]: value,
+													} as NotificationSettingsPatch)
+												}
+											/>
+										</View>
+									))}
+								</>
+							)}
 						</CardContent>
 					</Card>
 				</ScrollView>
