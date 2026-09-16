@@ -6,8 +6,9 @@ import {
 	pushToken,
 	userPreference,
 } from "../db/schema/user-preferences-schema";
+import { type ExpoPushMessage, sendExpoPushMessages } from "./expo-push";
 import type { PushEvent } from "./notification-events";
-import type { NotificationEventType, NotificationPayload } from "./notification-payload";
+import type { NotificationEventType } from "./notification-payload";
 
 export type NotificationPrefs = typeof defaultNotificationPreferences;
 
@@ -16,17 +17,6 @@ const EVENT_PREFERENCE: Record<NotificationEventType, keyof NotificationPrefs> =
 	"match:recorded": "notifyMatchRecorded",
 	"achievement:unlock": "notifyAchievementUnlocked",
 	streak: "notifyStreakReached",
-};
-
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
-const BATCH_SIZE = 100;
-
-type ExpoPushMessage = {
-	to: string;
-	title: string;
-	body: string;
-	data: NotificationPayload;
-	sound: "default";
 };
 
 export function selectEligibleEventsByUser(
@@ -93,67 +83,18 @@ export async function sendLeaguePush({
 
 		if (tokens.length === 0) return;
 
-		const messages: ExpoPushMessage[] = [];
-		for (const { token, userId } of tokens) {
-			for (const event of eligibleEventsByUser.get(userId) ?? []) {
-				messages.push({
-					to: token,
-					title: event.title,
-					body: event.body,
-					data: event.payload,
-					sound: "default",
-				});
-			}
-		}
+		const messages: ExpoPushMessage[] = tokens.flatMap(({ token, userId }) =>
+			(eligibleEventsByUser.get(userId) ?? []).map((event) => ({
+				to: token,
+				title: event.title,
+				body: event.body,
+				data: event.payload,
+				sound: "default" as const,
+			}))
+		);
 
-		const batches: ExpoPushMessage[][] = [];
-		for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-			batches.push(messages.slice(i, i + BATCH_SIZE));
-		}
-		const results = await Promise.allSettled(batches.map((batch) => sendBatch(db, batch)));
-		for (const result of results) {
-			if (result.status === "rejected") {
-				console.error("[Push] batch failed", result.reason);
-			}
-		}
+		await sendExpoPushMessages(db, messages);
 	} catch (error) {
 		console.error("[Push] sendLeaguePush failed", error);
-	}
-}
-
-async function sendBatch(db: DrizzleDB, batch: ExpoPushMessage[]): Promise<void> {
-	const response = await fetch(EXPO_PUSH_URL, {
-		method: "POST",
-		headers: {
-			Accept: "application/json",
-			"Accept-Encoding": "gzip, deflate",
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(batch),
-		signal: AbortSignal.timeout(10_000),
-	});
-
-	if (!response.ok) {
-		console.error("[Push] Expo push API error", response.status, await response.text());
-		return;
-	}
-
-	const result = (await response.json()) as {
-		data?: Array<{ status: string; details?: { error?: string } }>;
-	};
-
-	if (!result.data) return;
-
-	const staleTokens: string[] = [];
-	result.data.forEach((ticket, index) => {
-		const message = batch[index];
-		if (!message) return;
-		if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
-			staleTokens.push(message.to);
-		}
-	});
-
-	if (staleTokens.length > 0) {
-		await db.delete(pushToken).where(inArray(pushToken.token, staleTokens));
 	}
 }
