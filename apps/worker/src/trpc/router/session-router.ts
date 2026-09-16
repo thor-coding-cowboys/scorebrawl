@@ -10,7 +10,8 @@ import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import * as sessionService from "../../services/session";
 import type { AchievementQueueMessage } from "../../services/achievement-calculation";
-import { buildStreakPushEvents, sendLeaguePush } from "../../services/push-notification";
+import { buildStreakPushEvents, sessionStarted } from "../../services/notification-events";
+import { sendLeaguePush } from "../../services/push-notification";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
@@ -109,18 +110,19 @@ export const sessionRouter = {
 					db: ctx.db,
 					organizationId: ctx.organization.id,
 					events: [
-						{
-							type: "session:start",
-							title: "Session started",
-							body: `${ctx.authentication.user.name} started a session in ${ctx.organization.name}`,
-							data: {
+						sessionStarted(
+							{
 								type: "session:start",
 								leagueSlug: ctx.organization.slug,
 								seasonSlug: input.seasonSlug,
 								sessionId: session.id,
 							},
-							excludeUserId: ctx.authentication.user.id,
-						},
+							{
+								actorId: ctx.authentication.user.id,
+								actorName: ctx.authentication.user.name,
+								leagueName: ctx.organization.name,
+							}
+						),
 					],
 				})
 			);

@@ -23,6 +23,7 @@ import {
 } from "./services/achievement-calculation";
 import { sendLeaguePush } from "./services/push-notification";
 import { seedLeague, type SeedInput } from "./services/seed";
+import { achievementUnlocked } from "./services/notification-events";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
@@ -79,17 +80,17 @@ export default {
 							await sendLeaguePush({
 								db,
 								organizationId: leagueRow.id,
-								events: newAchievements.map((achievement) => ({
-									type: "achievement:unlock" as const,
-									title: "Achievement unlocked",
-									body: `${achievement.name} earned ${achievement.type.replaceAll("_", " ")}`,
-									data: {
-										type: "achievement:unlock",
-										leagueSlug: body.leagueSlug,
-										seasonSlug: body.seasonSlug,
-										playerId: achievement.playerId,
-									},
-								})),
+								events: newAchievements.map((achievement) =>
+									achievementUnlocked(
+										{
+											type: "achievement:unlock",
+											leagueSlug: body.leagueSlug,
+											seasonSlug: body.seasonSlug,
+											playerId: achievement.playerId,
+										},
+										{ playerName: achievement.name, achievementType: achievement.type }
+									)
+								),
 							});
 						}
 					}

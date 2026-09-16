@@ -66,10 +66,14 @@ describe("sendLeaguePush", () => {
 			organizationId: ctx.league.id,
 			events: [
 				{
-					type: "match:recorded",
 					title: "Match recorded",
 					body: "Ada 1-0 Bob",
-					data: { type: "match:recorded" },
+					payload: {
+						type: "match:recorded",
+						leagueSlug: "league",
+						seasonSlug: "season",
+						matchId: "match",
+					},
 					excludeUserId: ctx.user.id,
 				},
 			],
@@ -95,10 +99,14 @@ describe("sendLeaguePush", () => {
 			organizationId: ctx.league.id,
 			events: [
 				{
-					type: "match:recorded",
 					title: "Match recorded",
 					body: "Ada 1-0 Bob",
-					data: { type: "match:recorded" },
+					payload: {
+						type: "match:recorded",
+						leagueSlug: "league",
+						seasonSlug: "season",
+						matchId: "match",
+					},
 				},
 			],
 		});
@@ -122,10 +130,14 @@ describe("sendLeaguePush", () => {
 			organizationId: ctx.league.id,
 			events: [
 				{
-					type: "match:recorded",
 					title: "Match recorded",
 					body: "Ada 1-0 Bob",
-					data: { type: "match:recorded" },
+					payload: {
+						type: "match:recorded",
+						leagueSlug: "league",
+						seasonSlug: "season",
+						matchId: "match",
+					},
 				},
 			],
 		});
@@ -143,17 +155,25 @@ describe("sendLeaguePush", () => {
 			organizationId: ctx.league.id,
 			events: [
 				{
-					type: "match:recorded",
 					title: "Match recorded",
 					body: "Ada 1-0 Bob",
-					data: { type: "match:recorded" },
+					payload: {
+						type: "match:recorded",
+						leagueSlug: "league",
+						seasonSlug: "season",
+						matchId: "match",
+					},
 					excludeUserId: ctx.user.id,
 				},
 				{
-					type: "session:start",
 					title: "Session started",
 					body: "Ada started a session",
-					data: { type: "session:start" },
+					payload: {
+						type: "session:start",
+						leagueSlug: "league",
+						seasonSlug: "season",
+						sessionId: "session",
+					},
 				},
 			],
 		});

@@ -6,40 +6,12 @@ import {
 	pushToken,
 	userPreference,
 } from "../db/schema/user-preferences-schema";
-
-export type PushEventType = "session:start" | "match:recorded" | "achievement:unlock" | "streak";
-
-export type PushEvent = {
-	type: PushEventType;
-	title: string;
-	body: string;
-	data: Record<string, string>;
-	excludeUserId?: string;
-};
+import type { PushEvent } from "./notification-events";
+import type { NotificationEventType, NotificationPayload } from "./notification-payload";
 
 export type NotificationPrefs = typeof defaultNotificationPreferences;
 
-export function selectEligibleEventsByUser(
-	recipientIds: string[],
-	prefs: Array<NotificationPrefs & { userId: string }>,
-	events: PushEvent[]
-): Map<string, PushEvent[]> {
-	const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
-
-	const eligibleEventsByUser = new Map<string, PushEvent[]>();
-	for (const userId of recipientIds) {
-		const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
-		if (!pref.pushEnabled) continue;
-		const eligible = events.filter(
-			(event) => userId !== event.excludeUserId && pref[EVENT_PREFERENCE[event.type]]
-		);
-		if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
-	}
-
-	return eligibleEventsByUser;
-}
-
-const EVENT_PREFERENCE: Record<PushEventType, keyof NotificationPrefs> = {
+const EVENT_PREFERENCE: Record<NotificationEventType, keyof NotificationPrefs> = {
 	"session:start": "notifySessionStarted",
 	"match:recorded": "notifyMatchRecorded",
 	"achievement:unlock": "notifyAchievementUnlocked",
@@ -53,25 +25,28 @@ type ExpoPushMessage = {
 	to: string;
 	title: string;
 	body: string;
-	data: Record<string, string>;
+	data: NotificationPayload;
 	sound: "default";
 };
 
-export function buildStreakPushEvents(
-	players: Array<{ playerId: string; playerName: string; streak: number }>,
-	context: { leagueSlug: string; seasonSlug: string }
-): PushEvent[] {
-	return players.map((player) => ({
-		type: "streak",
-		title: "Streak reached",
-		body: `${player.playerName} is on a ${player.streak}-win streak`,
-		data: {
-			type: "streak",
-			leagueSlug: context.leagueSlug,
-			seasonSlug: context.seasonSlug,
-			playerId: player.playerId,
-		},
-	}));
+export function selectEligibleEventsByUser(
+	recipientIds: string[],
+	prefs: Array<NotificationPrefs & { userId: string }>,
+	events: PushEvent[]
+): Map<string, PushEvent[]> {
+	const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
+
+	const eligibleEventsByUser = new Map<string, PushEvent[]>();
+	for (const userId of recipientIds) {
+		const pref = prefsMap.get(userId) ?? defaultNotificationPreferences;
+		if (!pref.pushEnabled) continue;
+		const eligible = events.filter(
+			(event) => userId !== event.excludeUserId && pref[EVENT_PREFERENCE[event.payload.type]]
+		);
+		if (eligible.length > 0) eligibleEventsByUser.set(userId, eligible);
+	}
+
+	return eligibleEventsByUser;
 }
 
 export async function sendLeaguePush({
@@ -125,7 +100,7 @@ export async function sendLeaguePush({
 					to: token,
 					title: event.title,
 					body: event.body,
-					data: event.data,
+					data: event.payload,
 					sound: "default",
 				});
 			}
