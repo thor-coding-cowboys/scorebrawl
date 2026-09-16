@@ -14,3 +14,5 @@ export const NOTIFICATION_PREFERENCE_COLUMNS = {
 export type NotificationPreferenceKey = keyof typeof NOTIFICATION_PREFERENCE_COLUMNS;
 
 export type NotificationPrefs = typeof defaultNotificationPreferences;
+
+export type NotificationPreferenceRow = NotificationPrefs & { userId: string };

@@ -11,7 +11,7 @@ import type { PushEvent } from "./notification-events";
 import type { NotificationEventType } from "./notification-payload";
 import {
 	NOTIFICATION_PREFERENCE_COLUMNS,
-	type NotificationPrefs,
+	type NotificationPreferenceRow,
 	type NotificationPreferenceKey,
 } from "./notification-preferences";
 
@@ -24,7 +24,7 @@ const EVENT_PREFERENCE: Record<NotificationEventType, NotificationPreferenceKey>
 
 export function selectEligibleEventsByUser(
 	recipientIds: string[],
-	prefs: Array<NotificationPrefs & { userId: string }>,
+	prefs: NotificationPreferenceRow[],
 	events: PushEvent[]
 ): Map<string, PushEvent[]> {
 	const prefsMap = new Map(prefs.map((pref) => [pref.userId, pref]));
