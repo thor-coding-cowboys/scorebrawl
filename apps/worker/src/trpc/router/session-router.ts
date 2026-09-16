@@ -333,6 +333,7 @@ export const sessionRouter = {
 					...result.streakData.homeSeasonPlayerIds,
 					...result.streakData.awaySeasonPlayerIds,
 				],
+				organizationId: ctx.organization.id,
 				leagueSlug: ctx.organization.slug,
 				seasonSlug: sessionInfo.seasonSlug,
 			} satisfies AchievementQueueMessage);

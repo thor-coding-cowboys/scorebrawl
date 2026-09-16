@@ -1,13 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { eq } from "drizzle-orm";
 
 export { contextStorage } from "hono/context-storage";
 export { SeasonSSE } from "./durable-objects/season-sse";
 
 import { contextStorage } from "hono/context-storage";
 import { getDb } from "./db";
-import { league } from "./db/schema/auth-schema";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
@@ -21,9 +19,9 @@ import {
 	buildAchievementUnlockEvents,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
+import { achievementUnlocked } from "./services/notification-events";
 import { sendLeaguePush } from "./services/push-notification";
 import { seedLeague, type SeedInput } from "./services/seed";
-import { achievementUnlocked } from "./services/notification-events";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
@@ -70,29 +68,21 @@ export default {
 					}
 
 					if (newAchievements.length > 0) {
-						const [leagueRow] = await db
-							.select({ id: league.id })
-							.from(league)
-							.where(eq(league.slug, body.leagueSlug))
-							.limit(1);
-
-						if (leagueRow) {
-							await sendLeaguePush({
-								db,
-								organizationId: leagueRow.id,
-								events: newAchievements.map((achievement) =>
-									achievementUnlocked(
-										{
-											type: "achievement:unlock",
-											leagueSlug: body.leagueSlug,
-											seasonSlug: body.seasonSlug,
-											playerId: achievement.playerId,
-										},
-										{ playerName: achievement.name, achievementType: achievement.type }
-									)
-								),
-							});
-						}
+						await sendLeaguePush({
+							db,
+							organizationId: body.organizationId,
+							events: newAchievements.map((achievement) =>
+								achievementUnlocked(
+									{
+										type: "achievement:unlock",
+										leagueSlug: body.leagueSlug,
+										seasonSlug: body.seasonSlug,
+										playerId: achievement.playerId,
+									},
+									{ playerName: achievement.name, achievementType: achievement.type }
+								)
+							),
+						});
 					}
 				} else if ("leagueSlug" in body) {
 					if (!env.SEED_ALLOWED) {
