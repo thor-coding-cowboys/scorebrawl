@@ -7,10 +7,9 @@ import { useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemeProvider } from "@/components/theme-provider";
-import { useNotificationObserver } from "@/hooks/use-notification-observer";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { authClient } from "@/lib/auth-client";
-import { registerForPushNotifications } from "@/lib/notifications";
 import { queryClient } from "@/lib/query-client";
 import { TRPCProvider, trpcClient } from "@/lib/trpc";
 
@@ -47,7 +46,7 @@ function ThemedNavigationProvider({ children }: { children: ReactNode }) {
 }
 
 function PushNotifications() {
-	useNotificationObserver();
+	usePushNotifications();
 	return null;
 }
 
@@ -56,14 +55,6 @@ export default function RootLayout() {
 	const session = data?.session ?? null;
 
 	useProtectedRoute(session, isPending);
-
-	const userId = session?.userId ?? null;
-
-	useEffect(() => {
-		if (userId) {
-			void registerForPushNotifications();
-		}
-	}, [userId]);
 
 	return (
 		<ThemeProvider>
