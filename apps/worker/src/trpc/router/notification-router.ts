@@ -6,6 +6,7 @@ import {
 	pushToken,
 	userPreference,
 } from "../../db/schema/user-preferences-schema";
+import { NOTIFICATION_PREFERENCE_COLUMNS } from "../../services/notification-preferences";
 import { protectedProcedure } from "../trpc";
 
 export const notificationRouter = {
@@ -61,13 +62,7 @@ export const notificationRouter = {
 
 	getSettings: protectedProcedure.query(async ({ ctx }) => {
 		const [prefs] = await ctx.db
-			.select({
-				pushEnabled: userPreference.pushEnabled,
-				notifySessionStarted: userPreference.notifySessionStarted,
-				notifyMatchRecorded: userPreference.notifyMatchRecorded,
-				notifyAchievementUnlocked: userPreference.notifyAchievementUnlocked,
-				notifyStreakReached: userPreference.notifyStreakReached,
-			})
+			.select(NOTIFICATION_PREFERENCE_COLUMNS)
 			.from(userPreference)
 			.where(eq(userPreference.userId, ctx.authentication.user.id))
 			.limit(1);

@@ -7,15 +7,12 @@ import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { useTRPC } from "@/lib/trpc";
+import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
-type ToggleKey =
-	| "notifySessionStarted"
-	| "notifyMatchRecorded"
-	| "notifyAchievementUnlocked"
-	| "notifyStreakReached";
+type NotificationSettings = RouterOutput["notification"]["getSettings"];
+type ToggleKey = Exclude<keyof NotificationSettings, "pushEnabled">;
 
-type NotificationSettingsPatch = Partial<Record<"pushEnabled" | ToggleKey, boolean>>;
+type NotificationSettingsPatch = Partial<Record<keyof NotificationSettings, boolean>>;
 
 const TOGGLES: Array<{ key: ToggleKey; label: string; description: string }> = [
 	{

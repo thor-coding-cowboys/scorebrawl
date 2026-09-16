@@ -9,10 +9,13 @@ import {
 import { type ExpoPushMessage, sendExpoPushMessages } from "./expo-push";
 import type { PushEvent } from "./notification-events";
 import type { NotificationEventType } from "./notification-payload";
+import {
+	NOTIFICATION_PREFERENCE_COLUMNS,
+	type NotificationPrefs,
+	type NotificationPreferenceKey,
+} from "./notification-preferences";
 
-export type NotificationPrefs = typeof defaultNotificationPreferences;
-
-const EVENT_PREFERENCE: Record<NotificationEventType, keyof NotificationPrefs> = {
+const EVENT_PREFERENCE: Record<NotificationEventType, NotificationPreferenceKey> = {
 	"session:start": "notifySessionStarted",
 	"match:recorded": "notifyMatchRecorded",
 	"achievement:unlock": "notifyAchievementUnlocked",
@@ -61,14 +64,7 @@ export async function sendLeaguePush({
 		if (recipientIds.length === 0) return;
 
 		const prefs = await db
-			.select({
-				userId: userPreference.userId,
-				pushEnabled: userPreference.pushEnabled,
-				notifySessionStarted: userPreference.notifySessionStarted,
-				notifyMatchRecorded: userPreference.notifyMatchRecorded,
-				notifyAchievementUnlocked: userPreference.notifyAchievementUnlocked,
-				notifyStreakReached: userPreference.notifyStreakReached,
-			})
+			.select({ userId: userPreference.userId, ...NOTIFICATION_PREFERENCE_COLUMNS })
 			.from(userPreference)
 			.where(inArray(userPreference.userId, recipientIds));
 
