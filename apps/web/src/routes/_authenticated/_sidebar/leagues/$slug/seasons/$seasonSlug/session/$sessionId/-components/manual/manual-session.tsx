@@ -35,6 +35,8 @@ import { ScoreStepper, TeamRosterCard } from "../score-stepper";
 import { SessionStandings } from "../session-standings";
 import type { GameSession, PlayerWithTeam, SessionPlayer, TeamAssignment } from "../session-types";
 import { TeamPicker } from "./team-picker";
+import { SessionSettingsDialog } from "../session-settings-dialog";
+import { Settings02Icon } from "@hugeicons/core-free-icons";
 
 interface ManualSessionProps {
 	sessionId: string;
@@ -89,6 +91,7 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
+	const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
 	const allMatches = session?.matches ?? [];
 	const currentMatch = allMatches.find((m) => m.result === null) ?? null;
@@ -134,11 +137,8 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		});
 	}, [session]);
 
-	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch } = useSessionMutations(
-		sessionId,
-		seasonSlug,
-		{ slug, seasonSlug }
-	);
+	const { startNextMatch, recordResult, cancelMatch, deleteLastMatch, updateSettings } =
+		useSessionMutations(sessionId, seasonSlug, { slug, seasonSlug });
 
 	const homePlayers = teamAssignment.filter((p) => p.team === "home");
 	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
@@ -184,6 +184,18 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	return (
 		<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 			<SessionDashboardCards session={session} />
+			<div className="flex justify-end">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setShowSettingsDialog(true)}
+					className="gap-1.5"
+					disabled={updateSettings.isPending}
+				>
+					<HugeiconsIcon icon={Settings02Icon} className="size-4" />
+					{updateSettings.isPending ? "Updating..." : "Settings"}
+				</Button>
+			</div>
 
 			<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 				<div className="flex flex-col gap-4">
@@ -335,6 +347,13 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 					/>
 				</div>
 			</div>
+
+			<SessionSettingsDialog
+				isOpen={showSettingsDialog}
+				onClose={() => setShowSettingsDialog(false)}
+				session={session}
+				sessionId={sessionId}
+			/>
 		</div>
 	);
 }

@@ -46,6 +46,8 @@ import type {
 import { QueuePanel } from "./queue-panel";
 import { CoinTossDialog } from "./coin-toss-dialog";
 import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-drawer";
+import { SessionSettingsDialog } from "../session-settings-dialog";
+import { Settings02Icon } from "@hugeicons/core-free-icons";
 
 interface WinnerStaysSessionProps {
 	sessionId: string;
@@ -106,6 +108,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	const [showCoinToss, setShowCoinToss] = useState(false);
 	const [showPlayerDrawer, setShowPlayerDrawer] = useState(false);
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
+	const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
 	const [teamAssignment, setTeamAssignment] = useState<PlayerWithTeam[]>([]);
 	const [isShuffling, setIsShuffling] = useState(false);
@@ -232,6 +235,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		updateTeamSelection,
 		updateProposedLineup,
 		resolveCoinToss,
+		updateSettings,
 	} = useSessionMutations(sessionId, seasonSlug, { slug, seasonSlug });
 
 	const saveTeamSelection = () => {
@@ -423,6 +427,18 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	return (
 		<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 			<SessionDashboardCards session={session} />
+			<div className="flex justify-end">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setShowSettingsDialog(true)}
+					className="gap-1.5"
+					disabled={updateSettings.isPending}
+				>
+					<HugeiconsIcon icon={Settings02Icon} className="size-4" />
+					{updateSettings.isPending ? "Updating..." : "Settings"}
+				</Button>
+			</div>
 
 			<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
 				<div className="flex flex-col gap-4">
@@ -495,6 +511,13 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 				candidates={coinTossCandidates}
 				session={session}
 				onResolve={handleCoinResolve}
+			/>
+
+			<SessionSettingsDialog
+				isOpen={showSettingsDialog}
+				onClose={() => setShowSettingsDialog(false)}
+				session={session}
+				sessionId={sessionId}
 			/>
 		</div>
 	);
