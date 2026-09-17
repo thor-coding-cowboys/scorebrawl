@@ -95,7 +95,12 @@ export function SessionView({
 				) : view === "teams" ? (
 					<SessionTeamStandings seasonSlug={seasonSlug} sessionPlayers={session.players} />
 				) : (
-					<NextMatchTab session={session} sessionId={sessionId} seasonSlug={seasonSlug} />
+					<NextMatchTab
+						session={session}
+						sessionId={sessionId}
+						seasonSlug={seasonSlug}
+						refresh={() => sessionQuery.refetch()}
+					/>
 				)}
 			</SafeAreaView>
 		</ThemedView>

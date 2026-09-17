@@ -6,6 +6,7 @@ import { StandingRow, type StandingItem } from "@/components/standing-row";
 import type { SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
@@ -41,6 +42,7 @@ export function SessionPlayerStandings({
 	);
 
 	const query = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
+	const { refreshing, onRefresh } = usePullToRefresh(() => query.refetch());
 	const standings: (StandingItem & { dimmed: boolean })[] = [...(query.data ?? [])]
 		.sort((a, b) => {
 			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
@@ -67,6 +69,8 @@ export function SessionPlayerStandings({
 			renderItem={({ item }) => <StandingRow item={item} headers={headers} dimmed={item.dimmed} />}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
+			refreshing={refreshing}
+			onRefresh={onRefresh}
 			ListEmptyComponent={
 				<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 					{query.isPending ? "Loading standings…" : "No standings"}
@@ -88,6 +92,9 @@ export function SessionTeamStandings({
 
 	const playersQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
 	const teamsQuery = useQuery(trpc.seasonTeam.getStanding.queryOptions({ seasonSlug }));
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([playersQuery.refetch(), teamsQuery.refetch()])
+	);
 
 	const highlightLeaguePlayerIds = useMemo(() => {
 		const sessionSeasonPlayerIds = new Set(sessionPlayers.map((p) => p.seasonPlayerId));
@@ -124,6 +131,8 @@ export function SessionTeamStandings({
 			renderItem={({ item }) => <StandingRow item={item} headers={headers} dimmed={item.dimmed} />}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
+			refreshing={refreshing}
+			onRefresh={onRefresh}
 			ListEmptyComponent={
 				<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 					{teamsQuery.isPending ? "Loading standings…" : "No team standings"}

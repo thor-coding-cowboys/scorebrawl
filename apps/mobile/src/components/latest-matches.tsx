@@ -7,6 +7,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -217,6 +218,7 @@ export function LatestMatches({
 	const matchesQuery = useQuery(
 		trpc.match.getAll.queryOptions({ seasonSlug, limit: 30, offset: 0 })
 	);
+	const { refreshing, onRefresh } = usePullToRefresh(() => matchesQuery.refetch());
 	const matches = matchesQuery.data?.matches ?? [];
 	const latestMatch = matches[0];
 
@@ -282,6 +284,8 @@ export function LatestMatches({
 				renderItem={({ item }) => <MatchRow match={item} headers={avatarHeaders} />}
 				ItemSeparatorComponent={Separator}
 				contentContainerStyle={styles.list}
+				refreshing={refreshing}
+				onRefresh={onRefresh}
 				ListEmptyComponent={
 					matchesQuery.isPending ? (
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

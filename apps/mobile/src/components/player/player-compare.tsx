@@ -1,7 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import {
+	Modal,
+	Pressable,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	TextInput,
+	View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -13,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC } from "@/lib/trpc";
 
@@ -134,6 +143,9 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 		...trpc.player.comparePlayers.queryOptions({ player1Id, player2Id }),
 		enabled: !!player1Id && !!player2Id && player1Id !== player2Id,
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([playersQuery.refetch(), compareQuery.refetch()])
+	);
 	const data = compareQuery.data;
 	const p1Stats = data?.player1 ?? null;
 	const p2Stats = data?.player2 ?? null;
@@ -150,7 +162,10 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<MobileHeader onBack={() => router.back()} title="Compare Players" />
-				<ScrollView contentContainerStyle={styles.scroll}>
+				<ScrollView
+					contentContainerStyle={styles.scroll}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+				>
 					<View style={styles.slots}>
 						<PlayerSlot player={p1} label="Player A" onPress={() => setPick("p1")} />
 						<PlayerSlot player={p2} label="Player B" onPress={() => setPick("p2")} />

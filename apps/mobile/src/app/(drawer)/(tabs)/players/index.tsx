@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
@@ -241,6 +242,7 @@ export default function PlayersScreen() {
 		queryKey: ["player", "getAll"],
 		queryFn: () => trpcClient.player.getAll.query(),
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() => refetch());
 
 	const visiblePlayers = players.filter((p) =>
 		playerView === "disabled" ? p.disabled : !p.disabled
@@ -287,6 +289,8 @@ export default function PlayersScreen() {
 					style={styles.list}
 					data={visiblePlayers}
 					keyExtractor={(item) => item.id}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 					renderItem={({ item }) => (
 						<Pressable
 							style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}

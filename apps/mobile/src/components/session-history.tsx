@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import type { RouterOutput } from "@/lib/trpc";
 import { useTRPC } from "@/lib/trpc";
@@ -109,6 +110,9 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const activeQuery = useQuery(trpc.session.getActive.queryOptions({ seasonSlug }));
 	const endedQuery = useQuery(trpc.session.listEnded.queryOptions({ seasonSlug, limit: 10 }));
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([activeQuery.refetch(), endedQuery.refetch()])
+	);
 
 	const active = activeQuery.data ?? null;
 	const sessions = endedQuery.data ?? [];
@@ -121,6 +125,8 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 			renderItem={({ item }) => <SessionRow session={item} seasonSlug={seasonSlug} />}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
+			refreshing={refreshing}
+			onRefresh={onRefresh}
 			ListHeaderComponent={
 				active ? (
 					<View style={styles.header}>

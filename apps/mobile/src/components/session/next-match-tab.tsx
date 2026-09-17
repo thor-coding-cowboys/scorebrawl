@@ -1,6 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+	Alert,
+	Modal,
+	Pressable,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -19,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Fonts, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
@@ -28,11 +37,14 @@ export function NextMatchTab({
 	session,
 	sessionId,
 	seasonSlug,
+	refresh,
 }: {
 	session: GameSession;
 	sessionId: string;
 	seasonSlug: string;
+	refresh: () => Promise<unknown>;
 }) {
+	const { refreshing, onRefresh } = usePullToRefresh(refresh);
 	const sessionTheme = useSessionTheme();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -318,7 +330,11 @@ export function NextMatchTab({
 		: [];
 
 	return (
-		<ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+		<ScrollView
+			style={styles.scroll}
+			contentContainerStyle={styles.content}
+			refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+		>
 			<Card
 				style={[
 					styles.card,

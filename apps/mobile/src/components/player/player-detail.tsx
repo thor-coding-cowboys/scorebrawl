@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -12,6 +12,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC } from "@/lib/trpc";
 
@@ -128,6 +129,20 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 		enabled: !!seasonSlug,
 	});
 
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([
+			activeSeasonQuery.refetch(),
+			playerQuery.refetch(),
+			allTimeQuery.refetch(),
+			bestSeasonQuery.refetch(),
+			bestTeammateQuery.refetch(),
+			worstTeammateQuery.refetch(),
+			historyQuery.refetch(),
+			achievementsQuery.refetch(),
+			recentQuery.refetch(),
+		])
+	);
+
 	const player = playerQuery.data;
 	const allTime = allTimeQuery.data;
 	const bestSeason = bestSeasonQuery.data;
@@ -153,7 +168,10 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 						</ThemedText>
 					</View>
 				) : (
-					<ScrollView contentContainerStyle={styles.scroll}>
+					<ScrollView
+						contentContainerStyle={styles.scroll}
+						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+					>
 						{view === "overview" ? (
 							<>
 								<View style={styles.hero}>

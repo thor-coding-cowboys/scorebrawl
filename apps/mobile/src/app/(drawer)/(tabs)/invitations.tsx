@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 
@@ -280,6 +281,7 @@ export default function InvitationsScreen() {
 		},
 		enabled: canAccess,
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() => refetch());
 
 	const resendMutation = useMutation({
 		mutationFn: async (invitation: Invitation) => {
@@ -349,6 +351,8 @@ export default function InvitationsScreen() {
 					style={styles.list}
 					data={invitations}
 					keyExtractor={(item) => item.id}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 					renderItem={({ item }) => {
 						const expired = new Date(item.expiresAt) < new Date();
 						const actionable = item.status === "pending" || expired;

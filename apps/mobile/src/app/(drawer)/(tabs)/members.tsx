@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
 
@@ -225,6 +226,7 @@ export default function MembersScreen() {
 		},
 		enabled: canAccess,
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() => refetch());
 
 	const members = Array.isArray(membersData) ? membersData : (membersData?.members ?? []);
 
@@ -236,6 +238,8 @@ export default function MembersScreen() {
 					style={styles.list}
 					data={members}
 					keyExtractor={(item) => item.id}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 					renderItem={({ item }) => {
 						const name = item.user?.name || item.name || "Unknown";
 						const email = item.user?.email || item.email || "";

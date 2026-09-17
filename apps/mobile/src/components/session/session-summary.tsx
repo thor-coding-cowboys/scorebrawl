@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -11,6 +11,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC } from "@/lib/trpc";
@@ -53,6 +54,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.session.getSummary.queryOptions({ sessionId }));
+	const { refreshing, onRefresh } = usePullToRefresh(() => query.refetch());
 	const summary = query.data;
 
 	const players = [...(summary?.playerStats ?? [])].sort((a, b) => b.wins - a.wins);
@@ -81,7 +83,10 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 						</Button>
 					</View>
 				) : (
-					<ScrollView contentContainerStyle={styles.scroll}>
+					<ScrollView
+						contentContainerStyle={styles.scroll}
+						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+					>
 						<Section title="Session">
 							<View style={styles.grid}>
 								<Stat

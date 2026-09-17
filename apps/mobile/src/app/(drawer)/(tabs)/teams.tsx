@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
@@ -161,7 +162,7 @@ export default function TeamsScreen() {
 	}, []);
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
-	const { data: myPlayer } = useQuery({
+	const { data: myPlayer, refetch: refetchMyPlayer } = useQuery({
 		queryKey: ["player", "getMyPlayer"],
 		queryFn: () => trpcClient.player.getMyPlayer.query(),
 	});
@@ -178,6 +179,9 @@ export default function TeamsScreen() {
 		enabled: !showMyTeams || !!myPlayer,
 	});
 	const teams = data?.teams ?? [];
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([refetch(), refetchMyPlayer()])
+	);
 
 	return (
 		<ThemedView style={styles.container}>
@@ -187,6 +191,8 @@ export default function TeamsScreen() {
 					style={styles.list}
 					data={teams}
 					keyExtractor={(item) => item.id}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 					renderItem={({ item }) => (
 						<View style={styles.row}>
 							<Avatar

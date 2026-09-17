@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { Alert, RefreshControl, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
@@ -44,6 +45,7 @@ export default function NotificationSettingsScreen() {
 
 	const settingsQueryOptions = trpc.notification.getSettings.queryOptions();
 	const settingsQuery = useQuery(settingsQueryOptions);
+	const { refreshing, onRefresh } = usePullToRefresh(() => settingsQuery.refetch());
 	const updateSettings = useMutation(
 		trpc.notification.updateSettings.mutationOptions({
 			onMutate: async (patch) => {
@@ -74,7 +76,10 @@ export default function NotificationSettingsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<ScrollView contentContainerStyle={styles.scroll}>
+				<ScrollView
+					contentContainerStyle={styles.scroll}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+				>
 					<Card>
 						<CardContent style={styles.list}>
 							{settingsQuery.isPending ? (

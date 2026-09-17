@@ -7,6 +7,7 @@ import { StandingRow } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
@@ -28,6 +29,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
 	const standingsQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
+	const { refreshing, onRefresh } = usePullToRefresh(() => standingsQuery.refetch());
 	const standings = [...(standingsQuery.data ?? [])].sort((a, b) => {
 		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
 		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
@@ -55,6 +57,8 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 			}}
 			ItemSeparatorComponent={Separator}
 			contentContainerStyle={styles.list}
+			refreshing={refreshing}
+			onRefresh={onRefresh}
 			ListEmptyComponent={
 				standingsQuery.isPending ? (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

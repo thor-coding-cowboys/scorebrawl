@@ -29,6 +29,7 @@ import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 import { formatDate, getSeasonStatus } from "@/lib/collections/season";
@@ -421,6 +422,7 @@ export default function SeasonsScreen() {
 		queryKey: ["season", "getAll"],
 		queryFn: () => trpcClient.season.getAll.query(),
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() => refetch());
 
 	const handlePress = (slug: string) => {
 		if (!slug) {
@@ -466,6 +468,8 @@ export default function SeasonsScreen() {
 				<FlatList
 					data={seasons}
 					keyExtractor={(item) => item.id}
+					refreshing={refreshing}
+					onRefresh={onRefresh}
 					renderItem={({ item }) => {
 						const status = getSeasonStatus(item);
 						const scoreConfig = SCORE_TYPE_CONFIG[item.scoreType] ?? SCORE_TYPE_CONFIG.elo;

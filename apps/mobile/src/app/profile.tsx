@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 import { unregisterPushNotifications } from "@/lib/notifications";
@@ -70,6 +71,9 @@ export default function ProfileScreen() {
 			return res.data ?? [];
 		},
 	});
+	const { refreshing, onRefresh } = usePullToRefresh(() =>
+		Promise.all([leaguesQuery.refetch(), matchesQuery.refetch(), sessionsQuery.refetch()])
+	);
 
 	const signOut = useCallback(async () => {
 		await performSignOut();
@@ -115,7 +119,10 @@ export default function ProfileScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<ScrollView contentContainerStyle={styles.scroll}>
+				<ScrollView
+					contentContainerStyle={styles.scroll}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+				>
 					<View style={styles.hero}>
 						<Avatar
 							name={user?.name ?? "?"}
