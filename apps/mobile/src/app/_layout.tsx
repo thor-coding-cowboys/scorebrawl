@@ -63,7 +63,12 @@ export default function RootLayout() {
 					<QueryClientProvider client={queryClient}>
 						<AnimatedSplashOverlay />
 						<PushNotifications />
-						<Stack screenOptions={{ headerShown: false }}>
+						<Stack
+							screenOptions={{
+								headerShown: false,
+								headerBackButtonDisplayMode: "minimal",
+							}}
+						>
 							<Stack.Screen name="(drawer)" />
 							<Stack.Screen name="sign-in" />
 							<Stack.Screen name="sign-up" />
