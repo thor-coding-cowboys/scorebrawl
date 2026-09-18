@@ -9,6 +9,7 @@ import { LatestMatches } from "@/components/latest-matches";
 import { MobileHeader } from "@/components/mobile-header";
 import { SeasonStandings } from "@/components/season-standings";
 import { ActiveSessionBanner } from "@/components/session/active-session-banner";
+import { SCORE_TYPE_CONFIG, type ScoreType } from "@/components/score-type-card";
 import { SeasonTeamStandings } from "@/components/season-team-standings";
 import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
@@ -16,6 +17,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
+import { formatDate } from "@/lib/collections/season";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
 import { trpcClient } from "@/lib/trpc";
 
@@ -71,6 +73,12 @@ export default function HomeScreen() {
 	}, [activeLeague?.id]);
 
 	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
+	const seasonScoreConfig = activeSeason
+		? (SCORE_TYPE_CONFIG[activeSeason.scoreType as ScoreType] ?? SCORE_TYPE_CONFIG.elo)
+		: null;
+	const seasonDateRange = activeSeason
+		? `${formatDate(activeSeason.startDate)}${activeSeason.endDate ? ` — ${formatDate(activeSeason.endDate)}` : ""}`
+		: null;
 
 	useEffect(() => {
 		if (
@@ -150,7 +158,12 @@ export default function HomeScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				{activeSeason && <MobileHeader eyebrow={activeLeague.name} title={activeSeason.name} />}
+				{activeSeason && seasonScoreConfig && (
+					<MobileHeader
+						eyebrow={`${seasonScoreConfig.label} · ${seasonDateRange}`}
+						title={activeSeason.name}
+					/>
+				)}
 				{activeSeason ? <ActiveSessionBanner seasonSlug={activeSeason.slug} /> : null}
 				{activeSeason &&
 					(view === "matches" ? (
