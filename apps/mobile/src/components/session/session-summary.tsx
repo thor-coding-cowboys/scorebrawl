@@ -68,7 +68,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader onBack={() => router.back()} title="Session Summary" showLeagueIcon={false} />
+				<MobileHeader onBack={() => router.back()} title="Session Summary" />
 				{query.isPending ? (
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 						Loading summary…
