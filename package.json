@@ -121,5 +121,8 @@
 		"categories": [],
 		"preview_image_url": "https://scorebrawl.com/scorebrawl-monochrome.png",
 		"publish": true
-	}
+	},
+	"trustedDependencies": [
+		"@shopify/react-native-skia"
+	]
 }
