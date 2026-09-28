@@ -10,6 +10,7 @@
 		},
 		"production": {
 			"channel": "production",
+			"autoIncrement": true,
 			"env": {
 				"EXPO_PUBLIC_API_URL": "https://scorebrawl.com",
 				"EXPO_PUBLIC_DISABLE_EMAIL_PASSWORD": "true",
