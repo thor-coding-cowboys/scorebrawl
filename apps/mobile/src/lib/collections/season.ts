@@ -2,8 +2,10 @@ import type { RouterOutput } from "@/lib/trpc";
 
 type Season = RouterOutput["season"]["getAll"][number];
 
+type SeasonStatusInput = Pick<Season, "archived" | "closed" | "startDate" | "endDate">;
+
 export function getSeasonStatus(
-	season: Season
+	season: SeasonStatusInput
 ): "active" | "upcoming" | "ended" | "locked" | "archived" {
 	if (season.archived) return "archived";
 	if (season.closed) return "locked";

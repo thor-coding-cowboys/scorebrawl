@@ -19,14 +19,14 @@ function buildMatchCtx(ctx: {
 	db: MatchCreationContext["db"];
 	env: MatchCreationContext["env"];
 	waitUntil: MatchCreationContext["waitUntil"];
-	organization: { slug: string };
+	organization: { id: string; slug: string };
 	authentication: { user: { id: string; name: string } };
 }): MatchCreationContext {
 	return {
 		db: ctx.db,
 		env: ctx.env,
 		waitUntil: ctx.waitUntil,
-		organization: { slug: ctx.organization.slug },
+		organization: { id: ctx.organization.id, slug: ctx.organization.slug },
 		user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
 	};
 }

@@ -1,3 +1,4 @@
+import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -9,23 +10,36 @@ import {
 	type ViewStyle,
 } from "react-native";
 
-import { Spacing } from "@/constants/theme";
+import { Fonts } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-type ButtonVariant = "primary" | "outline";
+type ButtonVariant = "primary" | "outline" | "glow" | "ghost";
+type ButtonSize = "default" | "sm" | "lg" | "icon" | "iconSm";
+
+const ICON_SIZE: Record<ButtonSize, number> = {
+	default: 16,
+	sm: 14,
+	lg: 16,
+	icon: 16,
+	iconSm: 14,
+};
 
 interface ButtonProps extends PressableProps {
 	variant?: ButtonVariant;
+	size?: ButtonSize;
 	loading?: boolean;
 	fullWidth?: boolean;
+	icon?: Parameters<typeof SymbolView>[0]["name"];
 	style?: StyleProp<ViewStyle>;
-	children: React.ReactNode;
+	children?: React.ReactNode;
 }
 
 export function Button({
 	variant = "primary",
+	size = "default",
 	loading = false,
 	fullWidth = false,
+	icon,
 	disabled,
 	style,
 	children,
@@ -35,13 +49,28 @@ export function Button({
 	const [pressed, setPressed] = useState(false);
 
 	const isPrimary = variant === "primary";
+	const isGlow = variant === "glow";
+	const isGhost = variant === "ghost";
 	const backgroundColor = isPrimary
-		? theme.primary
-		: pressed
-			? theme.backgroundSelected
-			: "transparent";
-	const borderStyle: ViewStyle = isPrimary ? {} : { borderWidth: 1, borderColor: theme.border };
-	const textColor = isPrimary ? theme.primaryForeground : theme.text;
+		? theme.buttonPrimary
+		: isGlow
+			? theme.glowBlueBg
+			: pressed
+				? theme.backgroundSelected
+				: "transparent";
+	const borderStyle: ViewStyle =
+		isPrimary || isGhost
+			? {}
+			: isGlow
+				? { borderWidth: 1, borderColor: theme.glowBlueBorder }
+				: { borderWidth: 1, borderColor: theme.border };
+	const textColor = isPrimary
+		? theme.primaryForeground
+		: isGlow
+			? theme.glowBlueText
+			: isGhost
+				? theme.textSecondary
+				: theme.text;
 
 	return (
 		<Pressable
@@ -50,17 +79,26 @@ export function Button({
 			onPressOut={() => setPressed(false)}
 			style={[
 				styles.button,
+				size === "sm" && styles.buttonSm,
+				size === "lg" && styles.buttonLg,
+				size === "icon" && styles.buttonIcon,
+				size === "iconSm" && styles.buttonIconSm,
 				borderStyle,
-				{ backgroundColor, opacity: disabled || loading ? 0.6 : 1 },
+				{ backgroundColor, opacity: disabled || loading ? 0.5 : 1 },
 				fullWidth && styles.fullWidth,
 				style,
 			]}
 			{...props}
 		>
 			{loading ? (
-				<ActivityIndicator color={textColor} />
+				<ActivityIndicator color={textColor} size="small" />
 			) : (
-				<Text style={[styles.label, { color: textColor }]}>{children}</Text>
+				<>
+					{icon ? <SymbolView name={icon} size={ICON_SIZE[size]} tintColor={textColor} /> : null}
+					{children !== undefined && children !== null ? (
+						<Text style={[styles.label, { color: textColor }]}>{children}</Text>
+					) : null}
+				</>
 			)}
 		</Pressable>
 	);
@@ -68,20 +106,38 @@ export function Button({
 
 const styles = StyleSheet.create({
 	button: {
-		height: 44,
-		borderRadius: 10,
-		paddingHorizontal: Spacing.four,
+		height: 32,
+		borderRadius: 0,
+		paddingHorizontal: 10,
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: Spacing.two,
+		gap: 6,
+	},
+	buttonSm: {
+		height: 28,
+		gap: 4,
+	},
+	buttonLg: {
+		height: 36,
+	},
+	buttonIcon: {
+		width: 32,
+		height: 32,
+		paddingHorizontal: 0,
+	},
+	buttonIconSm: {
+		width: 28,
+		height: 28,
+		paddingHorizontal: 0,
 	},
 	fullWidth: {
 		width: "100%",
 	},
 	label: {
-		fontSize: 15,
-		fontWeight: "600",
-		lineHeight: 20,
+		fontFamily: Fonts.sans,
+		fontWeight: "400",
+		fontSize: 12,
+		lineHeight: 16,
 	},
 });

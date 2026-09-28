@@ -100,6 +100,7 @@ function SeasonDashboardPage() {
 					<div className="flex items-center gap-2">
 						{canCreateMatches &&
 							!isSeasonLocked &&
+							season?.scoreType !== "1-v-n-elo" &&
 							(activeSession ? (
 								<Button
 									size="sm"
@@ -205,14 +206,17 @@ function SeasonDashboardPage() {
 					seasonSlug={seasonSlug}
 				/>
 			)}
-			{canCreateMatches && !isSeasonLocked && !activeSession && (
-				<StartSessionDialog
-					isOpen={isStartSessionOpen}
-					onClose={() => setIsStartSessionOpen(false)}
-					seasonSlug={seasonSlug}
-					leagueSlug={slug}
-				/>
-			)}
+			{canCreateMatches &&
+				!isSeasonLocked &&
+				season?.scoreType !== "1-v-n-elo" &&
+				!activeSession && (
+					<StartSessionDialog
+						isOpen={isStartSessionOpen}
+						onClose={() => setIsStartSessionOpen(false)}
+						seasonSlug={seasonSlug}
+						leagueSlug={slug}
+					/>
+				)}
 		</>
 	);
 }

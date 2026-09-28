@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
+import { Checkbox } from "@/components/ui/checkbox";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert01Icon } from "@hugeicons/core-free-icons";
 
@@ -55,6 +57,8 @@ export function CreateOneVnGameDialog({
 
 	const playerIds = watch("playerIds");
 	const winnerId = watch("winnerId");
+	const [keepOpen, setKeepOpen] = useState(false);
+	const [keepPlayers, setKeepPlayers] = useState(false);
 
 	const createMutation = useMutation(
 		trpc.match.createOneVn.mutationOptions({
@@ -65,8 +69,13 @@ export function CreateOneVnGameDialog({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});
 				queryClient.invalidateQueries({ queryKey: trpc.match.getLatest.queryKey({ seasonSlug }) });
-				reset();
-				onClose();
+				if (keepOpen) {
+					setValue("winnerId", "");
+					if (!keepPlayers) setValue("playerIds", []);
+				} else {
+					reset();
+					onClose();
+				}
 			},
 			onError: (err) => {
 				toast.error(err instanceof Error ? err.message : "Failed to record game");
@@ -182,19 +191,69 @@ export function CreateOneVnGameDialog({
 							)}
 						</div>
 
-						<div className="flex gap-4 pt-4 border-t border-border">
-							<Button type="button" variant="outline" className="font-mono" onClick={onClose}>
-								Cancel
-							</Button>
-							<GlowButton
-								type="submit"
-								glowColor={glowColors.blue}
-								className="flex-1 font-mono"
-								disabled={createMutation.isPending || selectedPlayers.length < 2 || !winnerId}
-								data-testid="one-vn-submit-button"
-							>
-								{createMutation.isPending ? "Recording..." : "Record Game"}
-							</GlowButton>
+						<div className="flex flex-col gap-4 pt-4 border-t border-border">
+							<div className="flex items-center gap-4">
+								<button
+									type="button"
+									className="flex items-center gap-2.5 cursor-pointer group"
+									onClick={() => setKeepOpen(!keepOpen)}
+								>
+									<Checkbox
+										checked={keepOpen}
+										data-testid="one-vn-keep-open-checkbox"
+										className={cn(
+											"size-5 rounded-sm transition-all",
+											keepOpen &&
+												"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+										)}
+									/>
+									<span
+										className={cn(
+											"text-sm transition-colors",
+											keepOpen ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+										)}
+									>
+										Keep open
+									</span>
+								</button>
+								<button
+									type="button"
+									className="flex items-center gap-2.5 cursor-pointer group"
+									onClick={() => setKeepPlayers(!keepPlayers)}
+								>
+									<Checkbox
+										checked={keepPlayers}
+										data-testid="one-vn-keep-players-checkbox"
+										className={cn(
+											"size-5 rounded-sm transition-all",
+											keepPlayers &&
+												"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+										)}
+									/>
+									<span
+										className={cn(
+											"text-sm transition-colors",
+											keepPlayers ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground"
+										)}
+									>
+										Keep players
+									</span>
+								</button>
+							</div>
+							<div className="flex gap-4">
+								<Button type="button" variant="outline" className="font-mono" onClick={onClose}>
+									Cancel
+								</Button>
+								<GlowButton
+									type="submit"
+									glowColor={glowColors.blue}
+									className="flex-1 font-mono"
+									disabled={createMutation.isPending || selectedPlayers.length < 2 || !winnerId}
+									data-testid="one-vn-submit-button"
+								>
+									{createMutation.isPending ? "Recording..." : "Record Game"}
+								</GlowButton>
+							</div>
 						</div>
 					</form>
 				</div>

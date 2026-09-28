@@ -15,7 +15,11 @@ export const Colors = {
 		backgroundSelected: "#E0E1E6",
 		textSecondary: "#60646C",
 		primary: "#7c3aed",
+		buttonPrimary: "#3704fd",
 		primaryForeground: "#ffffff",
+		glowBlueBg: "rgba(59, 130, 246, 0.10)",
+		glowBlueText: "#2563eb",
+		glowBlueBorder: "rgba(59, 130, 246, 0.20)",
 		border: "#E4E4E7",
 		destructive: "#dc2626",
 		card: "#ffffff",
@@ -28,7 +32,11 @@ export const Colors = {
 		backgroundSelected: "#2E3135",
 		textSecondary: "#B0B4BA",
 		primary: "#8b5cf6",
+		buttonPrimary: "#4515ff",
 		primaryForeground: "#ffffff",
+		glowBlueBg: "rgba(37, 99, 235, 0.20)",
+		glowBlueText: "#93c5fd",
+		glowBlueBorder: "rgba(37, 99, 235, 0.30)",
 		border: "rgba(255, 255, 255, 0.1)",
 		destructive: "#f87171",
 		card: "#202023",
@@ -38,30 +46,25 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Fonts = Platform.select({
-	ios: {
-		/** iOS `UIFontDescriptorSystemDesignDefault` */
-		sans: "system-ui",
-		/** iOS `UIFontDescriptorSystemDesignSerif` */
-		serif: "ui-serif",
-		/** iOS `UIFontDescriptorSystemDesignRounded` */
-		rounded: "ui-rounded",
-		/** iOS `UIFontDescriptorSystemDesignMonospaced` */
-		mono: "ui-monospace",
-	},
-	default: {
-		sans: "normal",
-		serif: "serif",
-		rounded: "normal",
-		mono: "monospace",
-	},
-	web: {
-		sans: "var(--font-display)",
-		serif: "var(--font-serif)",
-		rounded: "var(--font-rounded)",
-		mono: "var(--font-mono)",
-	},
-});
+const MONO_STACK =
+	"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+
+export const Fonts = {
+	sans:
+		Platform.select({
+			ios: "Menlo",
+			android: "monospace",
+			web: MONO_STACK,
+			default: "monospace",
+		}) ?? "monospace",
+	mono:
+		Platform.select({
+			ios: "Menlo",
+			android: "monospace",
+			web: MONO_STACK,
+			default: "monospace",
+		}) ?? "monospace",
+};
 
 export const Spacing = {
 	half: 2,

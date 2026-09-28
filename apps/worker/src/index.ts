@@ -19,6 +19,8 @@ import {
 	buildAchievementUnlockEvents,
 	type AchievementQueueMessage,
 } from "./services/achievement-calculation";
+import { achievementUnlocked } from "./services/notification-events";
+import { sendLeaguePush } from "./services/push-notification";
 import { seedLeague, type SeedInput } from "./services/seed";
 import { trpcServer } from "./trpc/server";
 
@@ -63,6 +65,24 @@ export default {
 					const newAchievements = await calculateAchievements(db, body.seasonPlayerIds);
 					for (const event of buildAchievementUnlockEvents(newAchievements)) {
 						await broadcastSeasonEvent(env, body.leagueSlug, body.seasonSlug, event);
+					}
+
+					if (newAchievements.length > 0) {
+						await sendLeaguePush({
+							db,
+							organizationId: body.organizationId,
+							events: newAchievements.map((achievement) =>
+								achievementUnlocked(
+									{
+										type: "achievement:unlock",
+										leagueSlug: body.leagueSlug,
+										seasonSlug: body.seasonSlug,
+										playerId: achievement.playerId,
+									},
+									{ playerName: achievement.name, achievementType: achievement.type }
+								)
+							),
+						});
 					}
 				} else if ("leagueSlug" in body) {
 					if (!env.SEED_ALLOWED) {

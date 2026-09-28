@@ -136,7 +136,7 @@ matchesV1Router.post(
 					db,
 					env: c.env,
 					waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
-					organization: { slug: target.org.slug },
+					organization: { id: leagueId, slug: target.org.slug },
 					user: { id: target.userId, name: "OAuth API" },
 				} satisfies MatchCreationContext,
 				seasonSlug: season.slug,

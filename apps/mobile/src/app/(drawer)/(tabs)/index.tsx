@@ -1,57 +1,95 @@
-import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { StandingRow } from "@/components/standing-row";
+import { LatestMatches } from "@/components/latest-matches";
+import { MobileHeader } from "@/components/mobile-header";
+import { SeasonStandings } from "@/components/season-standings";
+import { ActiveSessionBanner } from "@/components/session/active-session-banner";
+import { SCORE_TYPE_CONFIG, type ScoreType } from "@/components/score-type-card";
+import { SeasonTeamStandings } from "@/components/season-team-standings";
+import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { getAuthCookie } from "@/lib/auth-client";
-import { useTRPC } from "@/lib/trpc";
+import { formatDate } from "@/lib/collections/season";
+import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
+import { trpcClient } from "@/lib/trpc";
 
 export default function HomeScreen() {
-	const trpc = useTRPC();
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
 
-	const [cookie, setCookie] = useState<string | undefined>();
-
-	useEffect(() => {
-		let active = true;
-		getAuthCookie().then((c) => {
-			if (active) setCookie(c);
-		});
-		return () => {
-			active = false;
-		};
-	}, []);
-	const avatarHeaders = cookie ? { cookie } : undefined;
-
-	const activeSeasonQuery = useQuery(
-		trpc.season.findActive.queryOptions(undefined, { enabled: Boolean(activeLeague) })
-	);
-	const activeSeason = activeSeasonQuery.data;
-	const standingsQuery = useQuery(
-		trpc.seasonPlayer.getStanding.queryOptions(
-			{ seasonSlug: activeSeason?.slug ?? "" },
-			{ enabled: Boolean(activeSeason) }
-		)
-	);
-	const sortedStandings = [...(standingsQuery.data ?? [])].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
+	const { view = "players", seasonSlug: paramSeasonSlug } = useLocalSearchParams<{
+		view?: string;
+		seasonSlug?: string;
+	}>();
+	const activeSeasonsQuery = useQuery({
+		queryKey: ["season", "findAllActive", activeLeague?.id],
+		queryFn: () => trpcClient.season.findAllActive.query(),
+		enabled: Boolean(activeLeague),
 	});
+	const activeSeasons = useMemo(() => activeSeasonsQuery.data ?? [], [activeSeasonsQuery.data]);
+	const [resolvedSeasonSlug, setResolvedSeasonSlug] = useState<string | null>(null);
+	const [resolvingSeason, setResolvingSeason] = useState(true);
+
+	useFocusEffect(
+		useCallback(() => {
+			if (!activeLeague || activeSeasonsQuery.isPending) return;
+			let cancelled = false;
+			setResolvedSeasonSlug(null);
+			setResolvingSeason(true);
+			(async () => {
+				const active = activeSeasons ?? [];
+				if (active.length === 0) {
+					if (!cancelled) setResolvedSeasonSlug(null);
+					if (!cancelled) setResolvingSeason(false);
+					return;
+				}
+				const stored = await getLastViewedSeason(activeLeague.id);
+				const storedStillActive = stored ? active.some((s) => s.slug === stored) : false;
+				const chosen = storedStillActive ? stored : active[0].slug;
+				if (!cancelled) setResolvedSeasonSlug(chosen);
+				if (chosen && chosen !== paramSeasonSlug) {
+					router.setParams({ seasonSlug: chosen });
+				}
+				if (chosen && !storedStillActive) {
+					void setLastViewedSeason(activeLeague.id, chosen);
+				}
+				if (!cancelled) setResolvingSeason(false);
+			})();
+			return () => {
+				cancelled = true;
+			};
+		}, [activeLeague, activeSeasonsQuery.isPending, activeSeasons, paramSeasonSlug])
+	);
 
 	useEffect(() => {
-		if (!isLoading && activeLeague && activeSeasonQuery.data === null) {
+		setResolvedSeasonSlug(null);
+	}, [activeLeague?.id]);
+
+	const activeSeason = activeSeasons?.find((s) => s.slug === resolvedSeasonSlug) ?? null;
+	const seasonScoreConfig = activeSeason
+		? (SCORE_TYPE_CONFIG[activeSeason.scoreType as ScoreType] ?? SCORE_TYPE_CONFIG.elo)
+		: null;
+	const seasonDateRange = activeSeason
+		? `${formatDate(activeSeason.startDate)}${activeSeason.endDate ? ` — ${formatDate(activeSeason.endDate)}` : ""}`
+		: null;
+
+	useEffect(() => {
+		if (
+			!isLoading &&
+			activeLeague &&
+			activeSeasonsQuery.data !== undefined &&
+			activeSeasons.length === 0
+		) {
 			router.replace("/seasons");
 		}
-	}, [isLoading, activeLeague, activeSeasonQuery.data]);
+	}, [isLoading, activeLeague, activeSeasonsQuery.data, activeSeasons.length]);
 
 	if (isLoading) {
 		return (
@@ -82,14 +120,14 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonQuery.isError) {
+	if (activeSeasonsQuery.isError) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary" style={styles.centerText}>
 					Couldn't load the active season
 				</ThemedText>
 				<View style={styles.centerButton}>
-					<Button variant="outline" onPress={() => activeSeasonQuery.refetch()}>
+					<Button variant="outline" onPress={() => activeSeasonsQuery.refetch()}>
 						Retry
 					</Button>
 				</View>
@@ -97,7 +135,17 @@ export default function HomeScreen() {
 		);
 	}
 
-	if (activeSeasonQuery.data === null) {
+	if (activeSeasonsQuery.isPending || resolvingSeason) {
+		return (
+			<ThemedView style={styles.center}>
+				<ThemedText type="small" themeColor="textSecondary">
+					Loading active season…
+				</ThemedText>
+			</ThemedView>
+		);
+	}
+
+	if (resolvedSeasonSlug === null) {
 		return (
 			<ThemedView style={styles.center}>
 				<ThemedText type="small" themeColor="textSecondary">
@@ -109,43 +157,24 @@ export default function HomeScreen() {
 
 	return (
 		<ThemedView style={styles.container}>
-			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
-				{activeSeason && (
-					<View style={styles.header}>
-						<ThemedText type="small" themeColor="textSecondary">
-							{activeLeague.name}
-						</ThemedText>
-						<ThemedText type="title">{activeSeason.name}</ThemedText>
-					</View>
+			<SafeAreaView edges={[]} style={styles.safeArea}>
+				{activeSeason && seasonScoreConfig && (
+					<MobileHeader
+						eyebrow={`${seasonScoreConfig.label} · ${seasonDateRange}`}
+						title={activeSeason.name}
+					/>
 				)}
-				<FlatList
-					data={sortedStandings}
-					keyExtractor={(item) => item.id}
-					renderItem={({ item, index }) => (
-						<StandingRow item={item} rank={index + 1} headers={avatarHeaders} />
-					)}
-					contentContainerStyle={styles.list}
-					ListEmptyComponent={
-						standingsQuery.isPending ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-								Loading standings…
-							</ThemedText>
-						) : standingsQuery.isError ? (
-							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-									Couldn't load standings
-								</ThemedText>
-								<Button variant="outline" onPress={() => standingsQuery.refetch()}>
-									Retry
-								</Button>
-							</View>
-						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-								No matches registered
-							</ThemedText>
-						)
-					}
-				/>
+				{activeSeason ? <ActiveSessionBanner seasonSlug={activeSeason.slug} /> : null}
+				{activeSeason &&
+					(view === "matches" ? (
+						<LatestMatches seasonSlug={activeSeason.slug} season={activeSeason} />
+					) : view === "session" ? (
+						<SessionHistory seasonSlug={activeSeason.slug} />
+					) : view === "teams" ? (
+						<SeasonTeamStandings seasonSlug={activeSeason.slug} />
+					) : (
+						<SeasonStandings seasonSlug={activeSeason.slug} />
+					))}
 			</SafeAreaView>
 		</ThemedView>
 	);
@@ -160,8 +189,8 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		maxWidth: MaxContentWidth,
-		paddingHorizontal: Spacing.four,
-		paddingBottom: BottomTabInset + Spacing.three,
+		paddingHorizontal: Spacing.three,
+		paddingBottom: Spacing.three,
 	},
 	center: {
 		flex: 1,
@@ -182,16 +211,5 @@ const styles = StyleSheet.create({
 		gap: Spacing.one,
 		marginTop: Spacing.four,
 		marginBottom: Spacing.three,
-	},
-	list: {
-		paddingBottom: Spacing.four,
-	},
-	emptyText: {
-		textAlign: "center",
-		marginTop: Spacing.four,
-	},
-	emptyBox: {
-		alignItems: "center",
-		gap: Spacing.three,
 	},
 });

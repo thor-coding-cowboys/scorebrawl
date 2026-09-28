@@ -1,7 +1,7 @@
 {
 	"expo": {
 		"name": "Scorebrawl",
-		"slug": "mobile",
+		"slug": "scorebrawl",
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/icon.png",
@@ -9,7 +9,7 @@
 		"userInterfaceStyle": "automatic",
 		"ios": {
 			"icon": "./assets/expo.icon",
-			"bundleIdentifier": "com.anonymous.mobile"
+			"bundleIdentifier": "com.scorebrawl"
 		},
 		"android": {
 			"adaptiveIcon": {
@@ -19,7 +19,7 @@
 				"monochromeImage": "./assets/images/android-icon-monochrome.png"
 			},
 			"predictiveBackGestureEnabled": false,
-			"package": "com.anonymous.mobile"
+			"package": "com.scorebrawl"
 		},
 		"web": {
 			"output": "static",
@@ -35,11 +35,20 @@
 					"imageWidth": 76
 				}
 			],
-			"expo-secure-store"
+			"expo-secure-store",
+			"expo-font",
+			"expo-image",
+			"expo-notifications"
 		],
 		"experiments": {
 			"typedRoutes": true,
 			"reactCompiler": true
-		}
+		},
+		"extra": {
+			"eas": {
+				"projectId": "e95f7664-3921-458f-b87b-03fba4b31293"
+			}
+		},
+		"owner": "scorebrawl"
 	}
 }

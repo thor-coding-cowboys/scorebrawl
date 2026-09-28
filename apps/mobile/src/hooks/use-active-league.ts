@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -19,23 +20,24 @@ export function useActiveLeague() {
 	// leagues but none is set on the session, promote the first (mirrors web).
 	const ensuringActiveRef = useRef(false);
 	useEffect(() => {
-		if (isSessionPending || isPending || orgs.length === 0) return;
+		if (!session || isSessionPending || isPending || orgs.length === 0) return;
 		if (activeOrgId && orgs.some((org) => org.id === activeOrgId)) return;
 		if (ensuringActiveRef.current) return;
 		ensuringActiveRef.current = true;
 		void authClient.organization
 			.setActive({ organizationId: orgs[0].id })
-			.then(({ error }) => {
+			.then(async ({ error }) => {
 				if (error) {
 					console.error("Failed to set active league:", error);
 				} else {
+					await authClient.getSession();
 					void queryClient.invalidateQueries();
 				}
 			})
 			.finally(() => {
 				ensuringActiveRef.current = false;
 			});
-	}, [isSessionPending, isPending, orgs, activeOrgId, queryClient]);
+	}, [session, isSessionPending, isPending, orgs, activeOrgId, queryClient]);
 
 	const switchLeague = useCallback(
 		async (organizationId: string) => {
@@ -49,9 +51,14 @@ export function useActiveLeague() {
 				console.error("Failed to set active league:", err);
 				return false;
 			}
+			// Refresh the auth session so useSession() picks up the new activeOrganizationId
+			await authClient.getSession();
 			// Mirrors the web app's full invalidateQueries() after organization.setActive;
 			// org-scoped queries have no shared key prefix yet.
 			await queryClient.invalidateQueries();
+			// Reset navigation so the active season is re-resolved for the new league
+			// instead of showing the previously selected league's season.
+			router.replace("/");
 			return true;
 		},
 		[queryClient]

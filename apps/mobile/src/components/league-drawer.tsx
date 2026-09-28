@@ -1,103 +1,91 @@
 import type { DrawerContentComponentProps } from "expo-router/drawer";
-import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { router, usePathname } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Avatar } from "@/components/avatar";
+import { LeagueSwitcher } from "@/components/league-switcher";
+import { UserCard } from "@/components/user-card";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
-import { useActiveLeague } from "@/hooks/use-active-league";
-import { useUserAvatar } from "@/hooks/use-user-avatar";
+import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+
+const NAV_ITEMS = [
+	{
+		label: "Seasons",
+		path: "/seasons",
+		icon: { ios: "trophy", android: "emoji_events", web: "emoji_events" },
+	},
+	{ label: "Teams", path: "/teams", icon: { ios: "person.3", android: "groups", web: "groups" } },
+	{ label: "Players", path: "/players", icon: { ios: "person", android: "person", web: "person" } },
+	{
+		label: "Members",
+		path: "/members",
+		icon: { ios: "shield", android: "verified_user", web: "verified_user" },
+		requireEditor: true,
+	},
+	{
+		label: "Invitations",
+		path: "/invitations",
+		icon: { ios: "envelope", android: "mail", web: "mail" },
+		requireEditor: true,
+	},
+] as const;
+
+type NavItem = (typeof NAV_ITEMS)[number];
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
 	const insets = useSafeAreaInsets();
-	const { activeLeague, organizations, switchLeague } = useActiveLeague();
-	const { data } = authClient.useSession();
-	const user = data?.user;
-	const { uri, headers } = useUserAvatar(user?.image);
-	const [switchingId, setSwitchingId] = useState<string | null>(null);
+	const theme = useTheme();
+	const pathname = usePathname();
+	const { data: activeMember } = authClient.useActiveMember();
+	const role = activeMember?.role;
+	const canManage = role === "owner" || role === "editor";
 
-	const handleLeaguePress = async (organizationId: string) => {
-		if (organizationId === activeLeague?.id) {
-			navigation.closeDrawer();
-			return;
-		}
-		if (switchingId) return;
-		setSwitchingId(organizationId);
-		const ok = await switchLeague(organizationId);
-		setSwitchingId(null);
-		if (ok) {
-			navigation.closeDrawer();
-		}
+	const handleNavPress = (path: NavItem["path"]) => {
+		navigation.closeDrawer();
+		router.push(path);
 	};
 
-	const handleSignOut = async () => {
-		await authClient.signOut();
-		router.replace("/sign-in");
-	};
+	const visibleItems = NAV_ITEMS.filter(
+		(item) => !("requireEditor" in item && item.requireEditor) || canManage
+	);
 
 	return (
 		<ThemedView
-			style={[
-				styles.container,
-				{ paddingTop: insets.top + Spacing.five, paddingBottom: insets.bottom + Spacing.four },
-			]}
+			style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
 		>
-			<View style={styles.userHeader}>
-				<Avatar name={user?.name ?? ""} image={uri} headers={headers} size={40} />
-				<View style={styles.userInfo}>
-					<ThemedText type="subtitle">{user?.name}</ThemedText>
-					<ThemedText type="small" themeColor="textSecondary">
-						{user?.email}
-					</ThemedText>
-				</View>
-			</View>
+			<LeagueSwitcher />
 
-			<Pressable
-				accessibilityRole="button"
-				onPress={() => {
-					navigation.closeDrawer();
-					router.push("/profile");
-				}}
-				style={styles.menuItem}
-			>
-				<ThemedText>Profile settings</ThemedText>
-			</Pressable>
-
-			<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionLabel}>
-				Leagues
-			</ThemedText>
-
-			<ScrollView style={styles.leagueList}>
-				{(organizations ?? []).map((org) => {
-					const isActive = org.id === activeLeague?.id;
+			<View style={styles.nav}>
+				<ThemedText type="smallBold" themeColor="textSecondary" style={styles.navLabel}>
+					League
+				</ThemedText>
+				{visibleItems.map((item) => {
+					const isActive = pathname.startsWith(item.path);
 					return (
 						<Pressable
-							key={org.id}
+							key={item.path}
 							accessibilityRole="button"
 							accessibilityState={{ selected: isActive }}
-							onPress={() => handleLeaguePress(org.id)}
-							disabled={switchingId !== null}
-							style={[styles.leagueItem, isActive && styles.leagueItemActive]}
+							onPress={() => handleNavPress(item.path)}
+							style={({ pressed }) => [
+								styles.navItem,
+								isActive && { backgroundColor: theme.backgroundElement },
+								pressed && { opacity: 0.7 },
+							]}
 						>
-							<Avatar name={org.name} size={28} />
-							<ThemedText style={styles.leagueName} numberOfLines={1}>
-								{org.name}
-							</ThemedText>
-							{isActive && <ThemedText themeColor="primary">✓</ThemedText>}
+							<SymbolView name={item.icon} size={18} tintColor={theme.text} />
+							<ThemedText type="small">{item.label}</ThemedText>
 						</Pressable>
 					);
 				})}
-			</ScrollView>
+			</View>
 
-			<View style={styles.signOutContainer}>
-				<Button variant="outline" fullWidth onPress={handleSignOut}>
-					Sign out
-				</Button>
+			<View style={styles.footer}>
+				<UserCard />
 			</View>
 		</ThemedView>
 	);
@@ -108,42 +96,23 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingHorizontal: Spacing.three,
 	},
-	userHeader: {
+	nav: {
+		flex: 1,
+		marginTop: Spacing.four,
+	},
+	navLabel: {
+		marginBottom: Spacing.two,
+		paddingHorizontal: Spacing.two,
+	},
+	navItem: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
-		marginBottom: Spacing.four,
-	},
-	userInfo: {
-		flex: 1,
-	},
-	menuItem: {
-		paddingVertical: Spacing.three,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.3)",
-	},
-	sectionLabel: {
-		marginTop: Spacing.four,
-		marginBottom: Spacing.two,
-	},
-	leagueList: {
-		flex: 1,
-	},
-	leagueItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
 		paddingVertical: Spacing.two,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 10,
+		borderRadius: 0,
 	},
-	leagueItemActive: {
-		backgroundColor: "rgba(128,128,128,0.12)",
-	},
-	leagueName: {
-		flex: 1,
-	},
-	signOutContainer: {
+	footer: {
 		marginTop: Spacing.three,
 	},
 });

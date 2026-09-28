@@ -14,6 +14,7 @@ type AchievementType = (typeof achievementType)[number];
 
 export type AchievementQueueMessage = {
 	seasonPlayerIds: string[];
+	organizationId: string;
 	leagueSlug: string;
 	seasonSlug: string;
 };

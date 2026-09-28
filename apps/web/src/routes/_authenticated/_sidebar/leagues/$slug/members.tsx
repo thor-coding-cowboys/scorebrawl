@@ -199,7 +199,9 @@ function MembersPage() {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{ROLE_OPTIONS.map((roleOption) => (
+									{ROLE_OPTIONS.filter(
+										(roleOption) => role === "owner" || roleOption !== "owner"
+									).map((roleOption) => (
 										<SelectItem key={roleOption} value={roleOption} className="capitalize">
 											{roleOption}
 										</SelectItem>
@@ -301,7 +303,8 @@ function MembersPage() {
 									const email = member.user?.email || member.email || "";
 									const imageKey = member.user?.image || member.image;
 									const currentRole = member.role || "member";
-									const canEditThisRole = canManageRole && currentRole !== "owner";
+									const canEditThisRole =
+										canManageRole && (currentRole !== "owner" || role === "owner");
 
 									return (
 										<RowCard
