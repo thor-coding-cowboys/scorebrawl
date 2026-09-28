@@ -24,7 +24,7 @@ async function getToken(): Promise<string> {
 }
 
 async function doRegister(): Promise<string | null> {
-	if (Platform.OS !== "ios" || !Device.isDevice) return null;
+	if (Platform.OS !== "ios") return null;
 
 	try {
 		let status = (await Notifications.getPermissionsAsync()).status;
@@ -32,6 +32,8 @@ async function doRegister(): Promise<string | null> {
 			status = (await Notifications.requestPermissionsAsync()).status;
 		}
 		if (status !== "granted") return null;
+
+		if (!Device.isDevice) return null;
 
 		const token = await getToken();
 		await trpcClient.notification.registerToken.mutate({
