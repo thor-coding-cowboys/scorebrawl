@@ -232,3 +232,8 @@ apps/garmin/developer_key.der
 
 .superpowers
 .worktrees
+# Local overrides. Declared explicitly so case-insensitive matching agrees
+# with tooling that matches .gitignore case-sensitively (e.g. EAS Build).
+*.local
+*.local.*
+.opencode/
