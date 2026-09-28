@@ -1,7 +1,7 @@
 {
 	"expo": {
 		"name": "Scorebrawl",
-		"slug": "mobile",
+		"slug": "scorebrawl",
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/icon.png",
@@ -43,6 +43,12 @@
 		"experiments": {
 			"typedRoutes": true,
 			"reactCompiler": true
-		}
+		},
+		"extra": {
+			"eas": {
+				"projectId": "e95f7664-3921-458f-b87b-03fba4b31293"
+			}
+		},
+		"owner": "scorebrawl"
 	}
 }
