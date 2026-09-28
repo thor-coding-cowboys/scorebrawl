@@ -6,12 +6,14 @@ import * as seasonPlayerRepository from "../repositories/season-player-repositor
 import { broadcastSeasonEvent } from "../routes/sse-router";
 import type { AchievementQueueMessage } from "../services/achievement-calculation";
 import { buildMatchInsertData, type SeasonScoreType } from "../services/match-events";
+import { buildStreakPushEvents, formatMatchSummary, matchRecorded } from "./notification-events";
+import { sendLeaguePush } from "./push-notification";
 
 export interface MatchCreationContext {
 	db: DrizzleDB;
 	env: Pick<Env, "SEASON_SSE" | "ACHIEVEMENT_QUEUE">;
 	waitUntil: (promise: Promise<unknown>) => void;
-	organization: { slug: string };
+	organization: { id: string; slug: string };
 	user: { id: string; name: string };
 }
 
@@ -170,8 +172,39 @@ export async function finalizeMatchCreation({
 		}
 	);
 
+	ctx.waitUntil(
+		sendLeaguePush({
+			db: ctx.db,
+			organizationId: ctx.organization.id,
+			events: [
+				matchRecorded(
+					{
+						type: "match:recorded",
+						leagueSlug: ctx.organization.slug,
+						seasonSlug,
+						matchId: createdMatch.id,
+					},
+					{
+						actorId: ctx.user.id,
+						actorName: ctx.user.name,
+						summary: formatMatchSummary(
+							data.players,
+							createdMatch.homeScore,
+							createdMatch.awayScore
+						),
+					}
+				),
+				...buildStreakPushEvents(streakPlayers, {
+					leagueSlug: ctx.organization.slug,
+					seasonSlug,
+				}),
+			],
+		})
+	);
+
 	await ctx.env.ACHIEVEMENT_QUEUE.send({
 		seasonPlayerIds,
+		organizationId: ctx.organization.id,
 		leagueSlug: ctx.organization.slug,
 		seasonSlug,
 	} satisfies AchievementQueueMessage);

@@ -39,7 +39,7 @@ export function achievementUnlocked(
 ): PushEvent {
 	return {
 		title: "Achievement unlocked",
-		body: `${context.playerName} earned ${context.achievementType.replaceAll("_", " ")}`,
+		body: `${context.playerName} earned ${context.achievementType.replace(/_/g, " ")}`,
 		payload,
 	};
 }

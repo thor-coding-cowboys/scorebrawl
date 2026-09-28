@@ -160,8 +160,7 @@ export function StartSessionModal({
 				winnersTakePriority,
 				seasonPlayerIds: selectedPlayerIds,
 				alwaysSplitConstraints: alwaysSplitPairs,
-				autoRandomize: randomizerType !== "off",
-				...(randomizerType !== "off" ? { randomizerType } : {}),
+				randomizerType,
 				autoCoinToss,
 			});
 			queryClient.invalidateQueries({ queryKey: trpc.session.getActive.queryKey({ seasonSlug }) });
