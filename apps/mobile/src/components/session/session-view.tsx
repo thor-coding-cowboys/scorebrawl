@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useCallback } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,6 +12,8 @@ import { rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { useActiveLeague } from "@/hooks/use-active-league";
+import { useSessionRealtime } from "@/hooks/use-session-realtime";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
@@ -26,9 +29,27 @@ export function SessionView({
 	const theme = useTheme();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { activeLeague } = useActiveLeague();
 
 	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
 	const session = sessionQuery.data as GameSession | undefined;
+
+	const handleRemoteEnd = useCallback(() => {
+		queryClient.invalidateQueries({
+			queryKey: trpc.session.getActive.queryKey({ seasonSlug }),
+		});
+		queryClient.invalidateQueries({
+			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
+		});
+		router.replace({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug } });
+	}, [queryClient, seasonSlug, trpc]);
+
+	useSessionRealtime({
+		leagueSlug: activeLeague?.slug,
+		seasonSlug,
+		sessionId,
+		onSessionEnd: handleRemoteEnd,
+	});
 
 	const endSession = () => {
 		Alert.alert(
