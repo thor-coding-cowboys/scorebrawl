@@ -6,7 +6,7 @@ import { drizzle as drizzleProxy } from "drizzle-orm/sqlite-proxy";
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import * as readline from "node:readline";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { randEmail, randFullName, randNumber } from "@ngneat/falso";
 import {
 	account,
@@ -691,8 +691,13 @@ async function seedDatabase(
 		let createdCount = 0;
 		let effectiveMemberCount = memberCount;
 
-		// Check if main seed data already exists
-		const [existingUser] = await db.select().from(user).where(eq(user.email, SEED_USER.email));
+		// Check if main seed data already exists. Match by id or email: older seed
+		// rows share the stable id but may carry a previous email, which would
+		// otherwise collide on the primary key when re-seeding.
+		const [existingUser] = await db
+			.select()
+			.from(user)
+			.where(or(eq(user.id, SEED_USER.id), eq(user.email, SEED_USER.email)));
 		const [existingLeague] = await db
 			.select()
 			.from(league)
@@ -725,7 +730,13 @@ async function seedDatabase(
 		}
 
 		if (existingUser) {
-			if (!mainSeedExists || !isInteractive) {
+			if (existingUser.email !== SEED_USER.email) {
+				await db
+					.update(user)
+					.set({ email: SEED_USER.email, updatedAt: now })
+					.where(eq(user.id, existingUser.id));
+				console.log(green(`  ✓ User email updated to ${SEED_USER.email}`));
+			} else if (!mainSeedExists || !isInteractive) {
 				console.log(dim(`  ○ User already exists: ${SEED_USER.email}`));
 			}
 		} else {
