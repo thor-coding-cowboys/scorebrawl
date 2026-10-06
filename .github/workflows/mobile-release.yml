@@ -65,6 +65,12 @@ jobs:
         if: steps.changes.outputs.mobile == 'true'
         working-directory: apps/mobile
         run: |
+          superseded=$(eas workflow:runs --workflow submit-ios.yaml --status IN_PROGRESS --json | jq -r '.[].id')
+          if [ -n "$superseded" ]; then
+            echo "Cancelling superseded submissions:"
+            echo "$superseded"
+            eas workflow:cancel $superseded --non-interactive || true
+          fi
           for attempt in 1 2 3; do
             if eas submit --platform ios --profile production --latest --non-interactive --no-wait; then
               exit 0
