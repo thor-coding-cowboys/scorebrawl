@@ -56,7 +56,20 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📱 Build & submit to TestFlight
+      - name: 📱 Build iOS
         if: steps.changes.outputs.mobile == 'true'
         working-directory: apps/mobile
-        run: eas build --platform ios --profile production --auto-submit --non-interactive
+        run: eas build --platform ios --profile production --non-interactive
+
+      - name: 🚀 Submit to TestFlight
+        if: steps.changes.outputs.mobile == 'true'
+        working-directory: apps/mobile
+        run: |
+          for attempt in 1 2 3; do
+            if eas submit --platform ios --profile production --latest --non-interactive --no-wait; then
+              exit 0
+            fi
+            echo "Submit attempt ${attempt} failed; retrying in 30s"
+            sleep 30
+          done
+          exit 1
