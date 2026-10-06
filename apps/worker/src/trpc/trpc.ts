@@ -180,15 +180,21 @@ export const leagueMemberProcedure = t.procedure
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
 
-// Admin check middleware
-const adminCheckMiddleware = t.middleware(async ({ ctx, next }) => {
+// Admin check middleware - mirrors better-auth's admin plugin config
+// (adminUserIds plus users with the "admin" role).
+const adminCheckMiddleware = t.middleware(({ ctx, next }) => {
 	if (!ctx.authentication) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
-	try {
-		await ctx.betterAuth.api.listUserAccounts({ headers: ctx.headers });
-	} catch (err) {
-		console.log("Admin check failed", err);
+
+	const adminUserIds = (ctx.env.ADMIN_USER_IDS ?? "")
+		.split(",")
+		.map((id) => id.trim())
+		.filter(Boolean);
+	const { id, role } = ctx.authentication.user;
+	const hasAdminRole = role?.split(",").some((r) => r.trim() === "admin") ?? false;
+
+	if (!adminUserIds.includes(id) && !hasAdminRole) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
 	}
 

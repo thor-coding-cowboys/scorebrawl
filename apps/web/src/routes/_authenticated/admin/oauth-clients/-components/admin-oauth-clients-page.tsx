@@ -31,22 +31,30 @@ function formatDate(date: Date | null): string {
 	});
 }
 
-function formatRedirectUris(redirectUris: unknown): string {
-	if (Array.isArray(redirectUris)) return (redirectUris as string[]).join(", ");
-	if (typeof redirectUris === "string") {
+function toStringArray(value: unknown): string[] {
+	if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+	if (typeof value === "string") {
 		try {
-			const parsed = JSON.parse(redirectUris);
-			if (Array.isArray(parsed)) return parsed.join(", ");
+			const parsed = JSON.parse(value);
+			if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string");
 		} catch {
-			return redirectUris;
+			return value ? [value] : [];
 		}
 	}
-	return "—";
+	return [];
 }
+
+function formatRedirectUris(redirectUris: unknown): string {
+	const uris = toStringArray(redirectUris);
+	return uris.length > 0 ? uris.join(", ") : "—";
+}
+
+type OAuthClient = Awaited<ReturnType<typeof trpcClient.admin.oauthClients.list.query>>[number];
 
 export function AdminOAuthClientsPage() {
 	const queryClient = useQueryClient();
-	const [dialogOpen, setDialogOpen] = useState(false);
+	const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
+	const [editingClientId, setEditingClientId] = useState<string | null>(null);
 	const [createdSecret, setCreatedSecret] = useState<{
 		clientId: string;
 		clientSecret: string | null;
@@ -55,9 +63,13 @@ export function AdminOAuthClientsPage() {
 	const [name, setName] = useState("");
 	const [redirectUris, setRedirectUris] = useState("");
 	const [scopes, setScopes] = useState<Set<string>>(new Set(DEFAULT_SCOPES));
+	const [scopeOptions, setScopeOptions] = useState<string[]>(DEFAULT_SCOPES);
 	const [publicClient, setPublicClient] = useState(true);
 	const [requirePkce, setRequirePkce] = useState(true);
 	const [skipConsent, setSkipConsent] = useState(false);
+	const [disabled, setDisabled] = useState(false);
+
+	const isEditing = dialogMode === "edit";
 
 	const toggleScope = (scope: string) => {
 		setScopes((prev) => {
@@ -71,6 +83,48 @@ export function AdminOAuthClientsPage() {
 		});
 	};
 
+	const resetForm = () => {
+		setEditingClientId(null);
+		setName("");
+		setRedirectUris("");
+		setScopes(new Set(DEFAULT_SCOPES));
+		setScopeOptions(DEFAULT_SCOPES);
+		setPublicClient(true);
+		setRequirePkce(true);
+		setSkipConsent(false);
+		setDisabled(false);
+	};
+
+	const openCreateDialog = () => {
+		resetForm();
+		setDialogMode("create");
+	};
+
+	const openEditDialog = (client: OAuthClient) => {
+		const clientScopes = toStringArray(client.scopes);
+		setEditingClientId(client.clientId);
+		setName(client.name ?? "");
+		setRedirectUris(toStringArray(client.redirectUris).join("\n"));
+		setScopes(new Set(clientScopes));
+		setScopeOptions(Array.from(new Set([...DEFAULT_SCOPES, ...clientScopes])));
+		setPublicClient(client.tokenEndpointAuthMethod === "none");
+		setRequirePkce(client.requirePKCE ?? false);
+		setSkipConsent(client.skipConsent ?? false);
+		setDisabled(client.disabled ?? false);
+		setDialogMode("edit");
+	};
+
+	const closeDialog = () => {
+		setDialogMode(null);
+		resetForm();
+	};
+
+	const parseRedirectUris = () =>
+		redirectUris
+			.split("\n")
+			.map((u) => u.trim())
+			.filter(Boolean);
+
 	const { data: clients, isPending } = useQuery({
 		queryKey: ["admin", "oauthClients"],
 		queryFn: async () => {
@@ -82,10 +136,7 @@ export function AdminOAuthClientsPage() {
 		mutationFn: async () => {
 			return await trpcClient.admin.oauthClients.create.mutate({
 				name,
-				redirectUris: redirectUris
-					.split("\n")
-					.map((u) => u.trim())
-					.filter(Boolean),
+				redirectUris: parseRedirectUris(),
 				scopes: [...scopes],
 				publicClient,
 				requirePkce,
@@ -99,10 +150,29 @@ export function AdminOAuthClientsPage() {
 			});
 			toast.success("OAuth client created");
 			queryClient.invalidateQueries({ queryKey: ["admin", "oauthClients"] });
-			setName("");
-			setRedirectUris("");
-			setScopes(new Set(DEFAULT_SCOPES));
-			setDialogOpen(false);
+			closeDialog();
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
+
+	const updateMutation = useMutation({
+		mutationFn: async () => {
+			if (!editingClientId) throw new Error("No client selected");
+			return await trpcClient.admin.oauthClients.update.mutate({
+				clientId: editingClientId,
+				name,
+				redirectUris: parseRedirectUris(),
+				scopes: [...scopes],
+				skipConsent,
+				disabled,
+			});
+		},
+		onSuccess: () => {
+			toast.success("OAuth client updated");
+			queryClient.invalidateQueries({ queryKey: ["admin", "oauthClients"] });
+			closeDialog();
 		},
 		onError: (error) => {
 			toast.error(error.message);
@@ -131,7 +201,7 @@ export function AdminOAuthClientsPage() {
 						OAuth clients can push results to the public API on behalf of linked users.
 					</p>
 				</div>
-				<Button type="button" onClick={() => setDialogOpen(true)}>
+				<Button type="button" onClick={openCreateDialog}>
 					New client
 				</Button>
 			</div>
@@ -172,7 +242,7 @@ export function AdminOAuthClientsPage() {
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="border-b border-border">
-								{["Name", "Client ID", "Redirect URIs", "Auth", "Created"].map((h) => (
+								{["Name", "Client ID", "Redirect URIs", "Auth", "Created", ""].map((h) => (
 									<th
 										key={h}
 										className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
@@ -186,11 +256,11 @@ export function AdminOAuthClientsPage() {
 							{isPending
 								? Array.from({ length: 3 }).map((_row, i) => (
 										<tr key={`skeleton-${i}`} className="border-b border-border">
-											{Array.from({ length: 5 }).map((_col, j) => (
+											{Array.from({ length: 6 }).map((_col, j) => (
 												<td key={`cell-${i}-${j}`} className="px-5 py-3.5">
 													<Skeleton
 														className="h-4"
-														style={{ width: `${[140, 200, 120, 80, 100][j]}px` }}
+														style={{ width: `${[140, 200, 120, 80, 100, 60][j]}px` }}
 													/>
 												</td>
 											))}
@@ -220,16 +290,26 @@ export function AdminOAuthClientsPage() {
 											<td className="px-5 py-3.5 text-xs text-muted-foreground">
 												{formatDate(client.createdAt)}
 											</td>
-											<td className="px-5 py-3.5 text-right">
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													className="text-rose-500 hover:text-rose-400"
-													onClick={() => deleteMutation.mutate(client.clientId)}
-												>
-													Delete
-												</Button>
+											<td className="px-5 py-3.5">
+												<div className="flex items-center justify-end gap-1">
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														onClick={() => openEditDialog(client)}
+													>
+														Edit
+													</Button>
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														className="text-rose-500 hover:text-rose-400"
+														onClick={() => deleteMutation.mutate(client.clientId)}
+													>
+														Delete
+													</Button>
+												</div>
 											</td>
 										</tr>
 									))}
@@ -238,10 +318,15 @@ export function AdminOAuthClientsPage() {
 				</div>
 			</div>
 
-			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+			<Dialog
+				open={dialogMode !== null}
+				onOpenChange={(open) => {
+					if (!open) closeDialog();
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Create OAuth client</DialogTitle>
+						<DialogTitle>{isEditing ? "Edit OAuth client" : "Create OAuth client"}</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-4">
 						<FieldGroup>
@@ -267,7 +352,7 @@ export function AdminOAuthClientsPage() {
 							<Field>
 								<FieldLabel>Scopes</FieldLabel>
 								<div className="grid grid-cols-1 gap-2">
-									{DEFAULT_SCOPES.map((scope) => (
+									{scopeOptions.map((scope) => (
 										<label key={scope} className="flex cursor-pointer items-center gap-2 text-sm">
 											<Checkbox
 												checked={scopes.has(scope)}
@@ -278,29 +363,44 @@ export function AdminOAuthClientsPage() {
 									))}
 								</div>
 							</Field>
-							<Field>
-								<FieldLabel>Public client (PKCE)</FieldLabel>
-								<Switch checked={publicClient} onCheckedChange={setPublicClient} />
-							</Field>
-							<Field>
-								<FieldLabel>Require PKCE</FieldLabel>
-								<Switch checked={requirePkce} onCheckedChange={setRequirePkce} />
-							</Field>
+							{!isEditing && (
+								<>
+									<Field>
+										<FieldLabel>Public client (PKCE)</FieldLabel>
+										<Switch checked={publicClient} onCheckedChange={setPublicClient} />
+									</Field>
+									<Field>
+										<FieldLabel>Require PKCE</FieldLabel>
+										<Switch checked={requirePkce} onCheckedChange={setRequirePkce} />
+									</Field>
+								</>
+							)}
 							<Field>
 								<FieldLabel>Skip consent screen</FieldLabel>
 								<Switch checked={skipConsent} onCheckedChange={setSkipConsent} />
 							</Field>
+							{isEditing && (
+								<Field>
+									<FieldLabel>Disabled</FieldLabel>
+									<Switch checked={disabled} onCheckedChange={setDisabled} />
+								</Field>
+							)}
 						</FieldGroup>
 						<div className="flex justify-end gap-2">
-							<Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+							<Button type="button" variant="outline" onClick={closeDialog}>
 								Cancel
 							</Button>
 							<Button
 								type="button"
-								disabled={createMutation.isPending || !name.trim() || !redirectUris.trim()}
-								onClick={() => createMutation.mutate()}
+								disabled={
+									(isEditing ? updateMutation.isPending : createMutation.isPending) ||
+									!name.trim() ||
+									!redirectUris.trim() ||
+									scopes.size === 0
+								}
+								onClick={() => (isEditing ? updateMutation.mutate() : createMutation.mutate())}
 							>
-								Create
+								{isEditing ? "Save" : "Create"}
 							</Button>
 						</div>
 					</div>
