@@ -288,6 +288,33 @@ export const adminRouter = createTRPCRouter({
 				return res;
 			}),
 
+		update: adminProcedure
+			.input(
+				z.object({
+					clientId: z.string().min(1),
+					name: z.string().min(1).max(100),
+					redirectUris: z.array(z.string().url()).min(1),
+					scopes: z.array(z.string()).min(1),
+					skipConsent: z.boolean(),
+					disabled: z.boolean(),
+				})
+			)
+			.mutation(async ({ ctx, input }) => {
+				const updated = await ctx.db
+					.update(oauthClient)
+					.set({
+						name: input.name,
+						redirectUris: input.redirectUris,
+						scopes: input.scopes,
+						skipConsent: input.skipConsent,
+						disabled: input.disabled,
+						updatedAt: new Date(),
+					})
+					.where(eq(oauthClient.clientId, input.clientId))
+					.returning({ clientId: oauthClient.clientId });
+				return { updated: updated.length > 0 };
+			}),
+
 		delete: adminProcedure
 			.input(z.object({ clientId: z.string().min(1) }))
 			.mutation(async ({ ctx, input }) => {
