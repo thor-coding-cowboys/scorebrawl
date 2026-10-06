@@ -409,6 +409,11 @@ export async function recomputeLineupAfterPlayerRemoval(
 	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
 	if (!fullSession || fullSession.status !== "active") return;
 
+	if (fullSession.rotationMode !== "winner-stays") {
+		await recomputeProposedLineup(db, sessionId);
+		return;
+	}
+
 	const currentLineup = fullSession.proposedLineup;
 	if (!currentLineup) return;
 
@@ -420,8 +425,14 @@ export async function recomputeLineupAfterPlayerRemoval(
 		.filter((p) => p.status === "waiting")
 		.sort((a, b) => a.queuePosition - b.queuePosition);
 
-	const substitute = waitingPlayers[0];
-	if (!substitute) return;
+	const substitute = waitingPlayers.find(
+		(p) =>
+			!currentLineup.homePlayerIds.includes(p.id) && !currentLineup.awayPlayerIds.includes(p.id)
+	);
+	if (!substitute) {
+		await recomputeProposedLineup(db, sessionId);
+		return;
+	}
 
 	const newHomeIds = inHome
 		? currentLineup.homePlayerIds.map((id) => (id === removedSessionPlayerId ? substitute.id : id))

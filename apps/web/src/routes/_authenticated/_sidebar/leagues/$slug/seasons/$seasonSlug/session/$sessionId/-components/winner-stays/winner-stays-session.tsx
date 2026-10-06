@@ -196,7 +196,8 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 
 			const merged = session.players.map((p) => {
 				const existing = prev.find((e) => e.id === p.id);
-				return existing ? { ...existing, ...p } : { ...p, team: undefined as TeamAssignment };
+				const team = p.status === "out" ? undefined : existing?.team;
+				return existing ? { ...existing, ...p, team } : { ...p, team };
 			});
 
 			if (
@@ -208,7 +209,8 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 			}
 			return prev.map((p) => {
 				const updated = session.players.find((sp) => sp.id === p.id);
-				return updated ? { ...p, ...updated, team: p.team } : p;
+				if (!updated) return p;
+				return { ...p, ...updated, team: updated.status === "out" ? undefined : p.team };
 			});
 		});
 	}, [session]);
@@ -218,8 +220,8 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	const coinTossCandidates =
 		pendingCoinToss?.candidates ?? proposedLineup?.coinTossNeeded?.candidates ?? [];
 
-	const homePlayers = teamAssignment.filter((p) => p.team === "home");
-	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
+	const homePlayers = teamAssignment.filter((p) => p.team === "home" && p.status !== "out");
+	const awayPlayers = teamAssignment.filter((p) => p.team === "away" && p.status !== "out");
 	const teamsBalanced = homePlayers.length === awayPlayers.length && homePlayers.length > 0;
 
 	const {

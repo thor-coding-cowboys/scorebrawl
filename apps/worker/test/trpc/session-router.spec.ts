@@ -1325,4 +1325,62 @@ describe("session router", () => {
 			expect(after.alwaysSplitConstraints).toEqual([[seasonPlayers[0].id, seasonPlayers[1].id]]);
 		});
 	});
+
+	describe("removePlayer lineup integrity", () => {
+		it("does not put the same player on both teams when there is no substitute", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(2);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+			const removed = before.players[0];
+
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: removed.id,
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			const lineup = [
+				...(after.proposedLineup?.homePlayerIds ?? []),
+				...(after.proposedLineup?.awayPlayerIds ?? []),
+			];
+			expect(new Set(lineup).size).toBe(lineup.length);
+			expect(lineup).not.toContain(removed.id);
+		});
+
+		it("rebuilds the manual lineup without the removed player", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "manual",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+			const removed = before.players[0];
+
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: removed.id,
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			const lineup = [
+				...(after.proposedLineup?.homePlayerIds ?? []),
+				...(after.proposedLineup?.awayPlayerIds ?? []),
+			];
+			expect(new Set(lineup).size).toBe(lineup.length);
+			expect(lineup).not.toContain(removed.id);
+		});
+	});
 });
