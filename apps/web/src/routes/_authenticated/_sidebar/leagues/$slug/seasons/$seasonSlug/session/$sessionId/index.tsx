@@ -15,13 +15,19 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+	Add01Icon,
+	Cancel01Icon,
+	Settings02Icon,
+	UserMultiple02Icon,
+} from "@hugeicons/core-free-icons";
 import { truncateSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";
 import type { GameSession } from "./-components/session-types";
 import { AddPlayerDialog } from "./-components/add-player-dialog";
+import { SessionConfigDialog } from "../../../-components/session/session-config-dialog";
 import { useState } from "react";
 
 export const Route = createFileRoute(
@@ -37,6 +43,7 @@ function SessionLivePage() {
 	const client = trpcClient as AnyTRPC;
 
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
 
 	const { data: session, isLoading } = useQuery({
 		queryKey: ["session", sessionId],
@@ -108,6 +115,15 @@ function SessionLivePage() {
 							<HugeiconsIcon icon={Add01Icon} className="size-4" />
 							<span className="hidden sm:inline">Player</span>
 						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setShowSettings(true)}
+							className="gap-1.5"
+						>
+							<HugeiconsIcon icon={Settings02Icon} className="size-4" />
+							<span className="hidden sm:inline">Settings</span>
+						</Button>
 						<AlertDialog>
 							<AlertDialogTrigger
 								render={
@@ -139,7 +155,19 @@ function SessionLivePage() {
 				}
 			/>
 
-			{session.rotationMode === "manual" ? (
+			{session.players.length === 0 ? (
+				<div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-sm text-muted-foreground">
+					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm">
+						<HugeiconsIcon icon={UserMultiple02Icon} className="size-5" />
+					</div>
+					<p>No players in this session</p>
+					<p className="text-xs">Add players to start playing matches.</p>
+					<Button variant="outline" className="gap-1.5" onClick={() => setShowAddPlayer(true)}>
+						<HugeiconsIcon icon={Add01Icon} className="size-4" />
+						Add Player
+					</Button>
+				</div>
+			) : session.rotationMode === "manual" ? (
 				<ManualSession sessionId={sessionId} slug={slug} seasonSlug={seasonSlug} />
 			) : (
 				<WinnerStaysSession sessionId={sessionId} slug={slug} seasonSlug={seasonSlug} />
@@ -152,6 +180,15 @@ function SessionLivePage() {
 				seasonSlug={seasonSlug}
 				onAdd={(seasonPlayerId) => addPlayer.mutate({ sessionId, seasonPlayerId })}
 				isAdding={addPlayer.isPending}
+			/>
+
+			<SessionConfigDialog
+				mode="edit"
+				isOpen={showSettings}
+				onClose={() => setShowSettings(false)}
+				seasonSlug={seasonSlug}
+				leagueSlug={slug}
+				session={session}
 			/>
 		</>
 	);

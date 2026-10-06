@@ -1,7 +1,7 @@
 import type { DrizzleDB } from "../../db";
 import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
-import { computeWinnerStaysLineup } from "./strategies/winner-stays";
+import { computeWinnerStaysLineup, enforceAlwaysSplit } from "./strategies/winner-stays";
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
 import type { RandomizerType, WinnerStaysSettings } from "./strategies/types";
@@ -44,7 +44,7 @@ function logLineupComputed({
 	proposedLineup,
 }: {
 	sessionId: string;
-	source: "recordResult" | "coinToss" | "playerRemoval";
+	source: "recordResult" | "coinToss" | "playerRemoval" | "settingsUpdate";
 	randomizerType: RandomizerType;
 	teamSize: number;
 	proposedLineup: ReturnType<typeof computeWinnerStaysLineup>;
@@ -324,12 +324,95 @@ export async function resolveCoinToss(
 	return { resolved, proposedLineup };
 }
 
+export async function recomputeProposedLineup(db: DrizzleDB, sessionId: string) {
+	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
+	if (!fullSession || fullSession.status !== "active") return;
+
+	const hasActiveMatch = fullSession.matches.some((m) => m.result === null);
+	if (hasActiveMatch) return;
+
+	if (fullSession.rotationMode === "winner-stays") {
+		const lastMatch = fullSession.matches[fullSession.matches.length - 1];
+		const toSessionPlayerIds = (seasonPlayerIds: string[]) =>
+			fullSession.players
+				.filter((p) => seasonPlayerIds.includes(p.seasonPlayerId))
+				.map((p) => p.id);
+
+		const settings = buildWinnerStaysSettings(fullSession);
+		const proposedLineup = computeWinnerStaysLineup({
+			settings,
+			players: fullSession.players.map((p) => ({
+				id: p.id,
+				seasonPlayerId: p.seasonPlayerId,
+				status: p.status,
+				queuePosition: p.queuePosition,
+				consecutiveGames: p.consecutiveGames,
+			})),
+			teamSize: fullSession.teamSize,
+			lastMatchResult: lastMatch?.result ?? null,
+			lastMatchHome: lastMatch ? toSessionPlayerIds(lastMatch.homePlayerIds) : [],
+			lastMatchAway: lastMatch ? toSessionPlayerIds(lastMatch.awayPlayerIds) : [],
+			matchHistory: toSessionIdMatchHistory(fullSession.matches, fullSession.players),
+			resolvedCoinTossWinnerIds: null,
+		});
+
+		logLineupComputed({
+			sessionId,
+			source: "settingsUpdate",
+			randomizerType: settings.randomizerType,
+			teamSize: fullSession.teamSize,
+			proposedLineup,
+		});
+
+		await sessionRepository.updateProposedLineup({
+			db,
+			sessionId,
+			proposedLineup: {
+				...proposedLineup,
+				selectedHomePlayerIds: proposedLineup.homePlayerIds,
+				selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
+			},
+		});
+	} else {
+		const playerStates = fullSession.players
+			.filter((p) => p.status !== "out")
+			.sort((a, b) => a.queuePosition - b.queuePosition);
+		const homePlayerIds = playerStates.slice(0, fullSession.teamSize).map((p) => p.id);
+		const awayPlayerIds = playerStates
+			.slice(fullSession.teamSize, fullSession.teamSize * 2)
+			.map((p) => p.id);
+		const constrained = enforceAlwaysSplit(
+			homePlayerIds,
+			awayPlayerIds,
+			fullSession.alwaysSplitConstraints,
+			playerStates
+		);
+		await sessionRepository.updateProposedLineup({
+			db,
+			sessionId,
+			proposedLineup: {
+				homePlayerIds: constrained.homeIds,
+				awayPlayerIds: constrained.awayIds,
+				rotatedOut: [],
+				coinTossNeeded: null,
+				selectedHomePlayerIds: constrained.homeIds,
+				selectedAwayPlayerIds: constrained.awayIds,
+			},
+		});
+	}
+}
+
 export async function recomputeLineupAfterPlayerRemoval(
 	db: DrizzleDB,
 	{ sessionId, removedSessionPlayerId }: { sessionId: string; removedSessionPlayerId: string }
 ) {
 	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
 	if (!fullSession || fullSession.status !== "active") return;
+
+	if (fullSession.rotationMode !== "winner-stays") {
+		await recomputeProposedLineup(db, sessionId);
+		return;
+	}
 
 	const currentLineup = fullSession.proposedLineup;
 	if (!currentLineup) return;
@@ -342,8 +425,14 @@ export async function recomputeLineupAfterPlayerRemoval(
 		.filter((p) => p.status === "waiting")
 		.sort((a, b) => a.queuePosition - b.queuePosition);
 
-	const substitute = waitingPlayers[0];
-	if (!substitute) return;
+	const substitute = waitingPlayers.find(
+		(p) =>
+			!currentLineup.homePlayerIds.includes(p.id) && !currentLineup.awayPlayerIds.includes(p.id)
+	);
+	if (!substitute) {
+		await recomputeProposedLineup(db, sessionId);
+		return;
+	}
 
 	const newHomeIds = inHome
 		? currentLineup.homePlayerIds.map((id) => (id === removedSessionPlayerId ? substitute.id : id))

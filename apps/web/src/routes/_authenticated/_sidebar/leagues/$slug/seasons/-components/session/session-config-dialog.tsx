@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTRPC, trpcClient, type AnyTRPC } from "@/lib/trpc";
@@ -17,6 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { SettingsRow } from "@/routes/-components/ui/settings-row";
+import type { GameSession } from "@/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/-components/session-types";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	ArrowLeft01Icon,
@@ -29,14 +30,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface StartSessionDialogProps {
-	isOpen: boolean;
-	onClose: () => void;
-	seasonSlug: string;
-	leagueSlug: string;
-}
-
 type RotationMode = "winner-stays" | "manual";
+type Randomizer = "off" | "fisher-yates" | "diversity";
 
 interface DialogState {
 	rotationMode: RotationMode;
@@ -44,7 +39,7 @@ interface DialogState {
 	maxConsecutiveEnabled: boolean;
 	maxConsecutiveGames: number;
 	winnersTakePriority: boolean;
-	randomizerType: "off" | "fisher-yates" | "diversity";
+	randomizerType: Randomizer;
 	autoCoinToss: boolean;
 	selectedPlayerIds: string[];
 	alwaysSplitPairs: [string, string][];
@@ -70,21 +65,44 @@ const initialState: DialogState = {
 	mobileStep: 0,
 };
 
+function stateFromSession(session: GameSession): DialogState {
+	const selectedPlayerIds = session.players
+		.filter((p) => p.status !== "out")
+		.map((p) => p.seasonPlayerId);
+	return {
+		rotationMode: session.rotationMode,
+		teamSize: session.teamSize,
+		maxConsecutiveEnabled: session.maxConsecutiveEnabled,
+		maxConsecutiveGames: session.maxConsecutiveGames ?? 3,
+		winnersTakePriority: session.winnersTakePriority,
+		randomizerType: session.randomizerType,
+		autoCoinToss: session.autoCoinToss,
+		selectedPlayerIds,
+		alwaysSplitPairs: session.alwaysSplitConstraints.filter(
+			([a, b]) => selectedPlayerIds.includes(a) && selectedPlayerIds.includes(b)
+		),
+		splitPickA: "",
+		splitPickB: "",
+		playerSearch: "",
+		mobileStep: 0,
+	};
+}
+
 type Action =
 	| { type: "SET_ROTATION_MODE"; value: RotationMode }
 	| { type: "SET_TEAM_SIZE"; value: number }
 	| { type: "SET_MAX_CONSECUTIVE_ENABLED"; value: boolean }
 	| { type: "SET_MAX_CONSECUTIVE_GAMES"; value: number }
 	| { type: "SET_WINNERS_TAKE_PRIORITY"; value: boolean }
-	| { type: "SET_RANDOMIZER_TYPE"; value: "off" | "fisher-yates" | "diversity" }
+	| { type: "SET_RANDOMIZER_TYPE"; value: Randomizer }
 	| { type: "SET_AUTO_COIN_TOSS"; value: boolean }
 	| { type: "TOGGLE_PLAYER"; id: string }
-	| { type: "ADD_SPLIT_PAIR" }
 	| { type: "REMOVE_SPLIT_PAIR"; a: string; b: string }
 	| { type: "SET_SPLIT_PICK_A"; value: string }
 	| { type: "SET_SPLIT_PICK_B"; value: string }
 	| { type: "SET_PLAYER_SEARCH"; value: string }
 	| { type: "SET_MOBILE_STEP"; value: number }
+	| { type: "INIT_FROM_SESSION"; session: GameSession }
 	| { type: "RESET" };
 
 function reducer(state: DialogState, action: Action): DialogState {
@@ -113,20 +131,6 @@ function reducer(state: DialogState, action: Action): DialogState {
 				};
 			}
 			return { ...state, selectedPlayerIds: [...state.selectedPlayerIds, action.id] };
-		}
-		case "ADD_SPLIT_PAIR": {
-			const { splitPickA: a, splitPickB: b } = state;
-			if (!a || !b || a === b) return state;
-			const already = state.alwaysSplitPairs.some(
-				(p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)
-			);
-			if (already) return state;
-			return {
-				...state,
-				alwaysSplitPairs: [...state.alwaysSplitPairs, [a, b]],
-				splitPickA: "",
-				splitPickB: "",
-			};
 		}
 		case "REMOVE_SPLIT_PAIR":
 			return {
@@ -169,23 +173,72 @@ function reducer(state: DialogState, action: Action): DialogState {
 			return { ...state, playerSearch: action.value };
 		case "SET_MOBILE_STEP":
 			return { ...state, mobileStep: action.value };
+		case "INIT_FROM_SESSION":
+			return stateFromSession(action.session);
 		case "RESET":
 			return initialState;
 	}
 }
 
-export function StartSessionDialog({
-	isOpen,
-	onClose,
-	seasonSlug,
-	leagueSlug,
-}: StartSessionDialogProps) {
+function SubmitButton({
+	mode,
+	isPending,
+	onClick,
+	className,
+}: {
+	mode: "create" | "edit";
+	isPending: boolean;
+	onClick: () => void;
+	className?: string;
+}) {
+	return (
+		<GlowButton
+			glowColor={glowColors.emerald}
+			onClick={onClick}
+			disabled={isPending}
+			className={className}
+		>
+			<HugeiconsIcon icon={PlayIcon} className="size-4" />
+			{isPending
+				? mode === "edit"
+					? "Saving..."
+					: "Starting..."
+				: mode === "edit"
+					? "Save Changes"
+					: "Start Session"}
+		</GlowButton>
+	);
+}
+
+interface BaseProps {
+	isOpen: boolean;
+	onClose: () => void;
+	seasonSlug: string;
+	leagueSlug: string;
+}
+
+export type SessionConfigDialogProps = BaseProps &
+	({ mode: "create"; session?: undefined } | { mode: "edit"; session: GameSession });
+
+export function SessionConfigDialog(props: SessionConfigDialogProps) {
+	const { isOpen, onClose, seasonSlug, leagueSlug } = props;
+	const mode = props.mode;
+	const session = props.mode === "edit" ? props.session : undefined;
 	const navigate = useNavigate();
 	const trpcTyped = useTRPC();
 	const queryClient = useQueryClient();
 	const client = trpcClient as AnyTRPC;
 
 	const [state, dispatch] = useReducer(reducer, initialState);
+	const wasOpenRef = useRef(false);
+
+	useEffect(() => {
+		const justOpened = isOpen && !wasOpenRef.current;
+		wasOpenRef.current = isOpen;
+		if (justOpened && session) {
+			dispatch({ type: "INIT_FROM_SESSION", session });
+		}
+	}, [isOpen, session]);
 
 	const { data: seasonPlayers } = useQuery(
 		trpcTyped.seasonPlayer.getStanding.queryOptions({ seasonSlug })
@@ -201,16 +254,16 @@ export function StartSessionDialog({
 			winnersTakePriority: boolean;
 			seasonPlayerIds: string[];
 			alwaysSplitConstraints: [string, string][];
-			randomizerType: "off" | "fisher-yates" | "diversity";
+			randomizerType: Randomizer;
 			autoCoinToss: boolean;
 		}) => client.session.create.mutate(input) as Promise<{ id: string }>,
-		onSuccess: (session) => {
+		onSuccess: (created) => {
 			void queryClient.invalidateQueries({ queryKey: ["session.active", seasonSlug] });
 			onClose();
 			dispatch({ type: "RESET" });
 			navigate({
 				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
-				params: { slug: leagueSlug, seasonSlug, sessionId: session.id },
+				params: { slug: leagueSlug, seasonSlug, sessionId: created.id },
 			});
 		},
 		onError: () => {
@@ -218,12 +271,53 @@ export function StartSessionDialog({
 		},
 	});
 
+	const saveChanges = useMutation({
+		mutationFn: async () => {
+			if (!session) return;
+			const activeMembers = session.players.filter((p) => p.status !== "out");
+			const initialIds = new Set(activeMembers.map((p) => p.seasonPlayerId));
+			const currentIds = new Set(state.selectedPlayerIds);
+			const toAdd = state.selectedPlayerIds.filter((id) => !initialIds.has(id));
+			const toRemove = activeMembers.filter((p) => !currentIds.has(p.seasonPlayerId));
+
+			await Promise.all([
+				...toAdd.map((seasonPlayerId) =>
+					client.session.addPlayer.mutate({ sessionId: session.id, seasonPlayerId })
+				),
+				...toRemove.map((p) =>
+					client.session.removePlayer.mutate({ sessionId: session.id, sessionPlayerId: p.id })
+				),
+			]);
+
+			await client.session.updateSettings.mutate({
+				sessionId: session.id,
+				teamSize: state.teamSize,
+				maxConsecutiveEnabled: state.maxConsecutiveEnabled,
+				maxConsecutiveGames: state.maxConsecutiveEnabled ? state.maxConsecutiveGames : null,
+				winnersTakePriority: state.winnersTakePriority,
+				randomizerType: state.randomizerType,
+				autoCoinToss: state.autoCoinToss,
+				alwaysSplitConstraints: state.alwaysSplitPairs,
+			});
+		},
+		onSuccess: () => {
+			if (session) {
+				void queryClient.invalidateQueries({ queryKey: ["session", session.id] });
+			}
+			toast.success("Session updated");
+			onClose();
+		},
+		onError: () => {
+			toast.error("Failed to save session settings");
+		},
+	});
+
 	const handleSubmit = () => {
-		if (state.selectedPlayerIds.length < state.teamSize * 2) {
-			toast.error(`Select at least ${state.teamSize * 2} players`);
+		if (mode === "edit") {
+			saveChanges.mutate();
 			return;
 		}
-		const mutationInput = {
+		createSession.mutate({
 			seasonSlug,
 			rotationMode: state.rotationMode,
 			teamSize: state.teamSize,
@@ -234,14 +328,20 @@ export function StartSessionDialog({
 			alwaysSplitConstraints: state.alwaysSplitPairs,
 			randomizerType: state.randomizerType,
 			autoCoinToss: state.autoCoinToss,
-		};
-		createSession.mutate(mutationInput);
+		});
 	};
 
 	const handleClose = () => {
 		onClose();
-		setTimeout(() => dispatch({ type: "RESET" }), 200);
+		if (mode === "create") {
+			setTimeout(() => dispatch({ type: "RESET" }), 200);
+		}
 	};
+
+	const isPending = createSession.isPending || saveChanges.isPending;
+	const playingSeasonPlayerIds = new Set(
+		(session?.players ?? []).filter((p) => p.status === "playing").map((p) => p.seasonPlayerId)
+	);
 
 	const settingsPanel = (
 		<div className="flex flex-col gap-4">
@@ -249,6 +349,7 @@ export function StartSessionDialog({
 				<Label>Rotation Mode</Label>
 				<Select
 					value={state.rotationMode}
+					disabled={mode === "edit"}
 					onValueChange={(v) => dispatch({ type: "SET_ROTATION_MODE", value: v as RotationMode })}
 				>
 					<SelectTrigger>
@@ -331,7 +432,7 @@ export function StartSessionDialog({
 						onValueChange={(v) =>
 							dispatch({
 								type: "SET_RANDOMIZER_TYPE",
-								value: v as "off" | "fisher-yates" | "diversity",
+								value: v as Randomizer,
 							})
 						}
 					>
@@ -398,15 +499,18 @@ export function StartSessionDialog({
 							)
 							.map((player) => {
 								const selected = state.selectedPlayerIds.includes(player.id);
+								const inMatch = playingSeasonPlayerIds.has(player.id);
 								return (
 									<button
 										key={player.id}
 										type="button"
+										disabled={inMatch}
 										onClick={() => dispatch({ type: "TOGGLE_PLAYER", id: player.id })}
 										className={cn(
 											"flex items-center gap-2 px-3 py-2 text-left transition-colors border-b border-border/50 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
 											selected && "bg-primary/10 border-l-2 border-l-primary",
-											!selected && "hover:bg-muted/50"
+											!selected && "hover:bg-muted/50",
+											inMatch && "opacity-50 cursor-not-allowed"
 										)}
 									>
 										<AvatarWithFallback src={player.image} name={player.name} size="sm" />
@@ -416,7 +520,12 @@ export function StartSessionDialog({
 												{player.score} · {player.matchCount} matches
 											</p>
 										</div>
-										{selected && (
+										{inMatch && (
+											<span className="text-[0.65rem] text-muted-foreground shrink-0">
+												in match
+											</span>
+										)}
+										{selected && !inMatch && (
 											<HugeiconsIcon icon={Tick01Icon} className="size-3.5 text-primary shrink-0" />
 										)}
 									</button>
@@ -520,18 +629,6 @@ export function StartSessionDialog({
 		</div>
 	);
 
-	const StartSessionButton = ({ className }: { className?: string }) => (
-		<GlowButton
-			glowColor={glowColors.emerald}
-			onClick={handleSubmit}
-			disabled={createSession.isPending || state.selectedPlayerIds.length < state.teamSize * 2}
-			className={className}
-		>
-			<HugeiconsIcon icon={PlayIcon} className="size-4" />
-			{createSession.isPending ? "Starting..." : "Start Session"}
-		</GlowButton>
-	);
-
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent className="sm:max-w-3xl h-[min(95vh,760px)] overflow-hidden p-0 flex flex-col">
@@ -550,11 +647,13 @@ export function StartSessionDialog({
 					<div className="flex items-center gap-3">
 						<div className="w-2 h-5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/25" />
 						<DialogTitle className="text-base font-bold font-mono tracking-tight">
-							Start Session
+							{mode === "edit" ? "Session Settings" : "Start Session"}
 						</DialogTitle>
 					</div>
 					<p className="text-xs text-muted-foreground mt-1">
-						Configure rotation rules and select players.
+						{mode === "edit"
+							? "Update rotation rules and players. Changes apply to the next match."
+							: "Configure rotation rules and select players."}
 					</p>
 				</DialogHeader>
 
@@ -633,16 +732,26 @@ export function StartSessionDialog({
 									<HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
 									Settings
 								</Button>
-								<StartSessionButton className="flex-1 gap-2" />
+								<SubmitButton
+									mode={mode}
+									isPending={isPending}
+									onClick={handleSubmit}
+									className="flex-1 gap-2"
+								/>
 							</>
 						)}
 					</div>
-					{/* Desktop: cancel + start */}
+					{/* Desktop: cancel + submit */}
 					<div className="hidden sm:flex gap-3 flex-1">
 						<Button type="button" variant="outline" onClick={handleClose}>
 							Cancel
 						</Button>
-						<StartSessionButton className="flex-1 gap-2" />
+						<SubmitButton
+							mode={mode}
+							isPending={isPending}
+							onClick={handleSubmit}
+							className="flex-1 gap-2"
+						/>
 					</div>
 				</div>
 			</DialogContent>

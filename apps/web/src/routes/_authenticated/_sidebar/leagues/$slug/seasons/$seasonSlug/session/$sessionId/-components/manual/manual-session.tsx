@@ -129,7 +129,8 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 			}
 			return session.players.map((p) => {
 				const existing = prev.find((e) => e.id === p.id);
-				return existing ? { ...existing, ...p, team: existing.team } : { ...p, team: undefined };
+				const team = p.status === "out" ? undefined : existing?.team;
+				return existing ? { ...existing, ...p, team } : { ...p, team };
 			});
 		});
 	}, [session]);
@@ -140,8 +141,8 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		{ slug, seasonSlug }
 	);
 
-	const homePlayers = teamAssignment.filter((p) => p.team === "home");
-	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
+	const homePlayers = teamAssignment.filter((p) => p.team === "home" && p.status !== "out");
+	const awayPlayers = teamAssignment.filter((p) => p.team === "away" && p.status !== "out");
 	const teamsBalanced =
 		homePlayers.length === awayPlayers.length && homePlayers.length > 0 && session
 			? homePlayers.length === session.teamSize
@@ -281,6 +282,12 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 											<HugeiconsIcon icon={PlayIcon} className="size-4" />
 											{startNextMatch.isPending ? "Starting..." : "Start Match"}
 										</GlowButton>
+										{session.players.filter((p) => p.status !== "out").length <
+											session.teamSize * 2 && (
+											<p className="text-xs text-muted-foreground text-center">
+												Need at least {session.teamSize * 2} players in the session to start a match
+											</p>
+										)}
 										{allMatches.some((m) => m.result !== null) && (
 											<AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
 												<AlertDialogTrigger

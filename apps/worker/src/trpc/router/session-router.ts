@@ -55,7 +55,7 @@ export const sessionRouter = {
 				rotationMode: z.enum(["winner-stays", "manual"]),
 				teamSize: z.number().int().min(1).max(6),
 				maxConsecutiveGames: z.number().int().min(1).nullable(),
-				seasonPlayerIds: z.array(z.string()).min(2),
+				seasonPlayerIds: z.array(z.string()).default([]),
 				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).default([]),
 				autoCoinToss: z.boolean().default(false),
 				winnersTakePriority: z.boolean().default(false),
@@ -209,6 +209,8 @@ export const sessionRouter = {
 				seasonPlayerId: seasonPlayerRecord.id,
 			});
 
+			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
+
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
 					type: "session:update",
@@ -230,6 +232,8 @@ export const sessionRouter = {
 				sessionId: input.sessionId,
 				seasonPlayerId: input.seasonPlayerId,
 			});
+
+			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
@@ -651,5 +655,57 @@ export const sessionRouter = {
 			});
 
 			return updated;
+		}),
+
+	updateSettings: leagueMemberProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				teamSize: z.number().int().min(1).max(6).optional(),
+				maxConsecutiveGames: z.number().int().min(1).nullable().optional(),
+				maxConsecutiveEnabled: z.boolean().optional(),
+				winnersTakePriority: z.boolean().optional(),
+				autoCoinToss: z.boolean().optional(),
+				randomizerType: z.enum(["off", "fisher-yates", "diversity"]).optional(),
+				alwaysSplitConstraints: z.array(z.tuple([z.string(), z.string()])).optional(),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+
+			const updatedSession = await sessionRepository.updateSessionSettings({
+				db: ctx.db,
+				sessionId: input.sessionId,
+				settings: {
+					teamSize: input.teamSize,
+					maxConsecutiveGames: input.maxConsecutiveGames,
+					maxConsecutiveEnabled: input.maxConsecutiveEnabled,
+					winnersTakePriority: input.winnersTakePriority,
+					autoCoinToss: input.autoCoinToss,
+					randomizerType: input.randomizerType,
+					alwaysSplitConstraints: input.alwaysSplitConstraints,
+				},
+			});
+
+			const shouldRecalcQueue =
+				input.winnersTakePriority !== undefined ||
+				input.maxConsecutiveEnabled !== undefined ||
+				input.maxConsecutiveGames !== undefined;
+
+			if (shouldRecalcQueue) {
+				await sessionRepository.recalcQueuePositions(ctx.db, input.sessionId);
+			}
+
+			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
+
+			ctx.waitUntil(
+				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
+					type: "session:update",
+					data: { sessionId: input.sessionId, settings: updatedSession },
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+				})
+			);
+
+			return updatedSession;
 		}),
 } satisfies TRPCRouterRecord;

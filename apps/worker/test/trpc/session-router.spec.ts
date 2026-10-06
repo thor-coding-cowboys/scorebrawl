@@ -1096,4 +1096,291 @@ describe("session router", () => {
 			});
 		});
 	});
+
+	describe("create without players", () => {
+		it("creates a session with no players", async () => {
+			const { client, season } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: [],
+			});
+
+			expect(session.id).toBeDefined();
+			expect(session.status).toBe("active");
+
+			const fetched = await client.session.getById.query({ sessionId: session.id });
+			expect(fetched.players).toHaveLength(0);
+			expect(fetched.proposedLineup).toBeNull();
+		});
+
+		it("computes the proposed lineup once enough players are added", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+			});
+
+			const empty = await client.session.getById.query({ sessionId: session.id });
+			expect(empty.proposedLineup).toBeNull();
+
+			await client.session.addPlayer.mutate({
+				sessionId: session.id,
+				seasonPlayerId: seasonPlayers[0].id,
+			});
+			await client.session.addPlayer.mutate({
+				sessionId: session.id,
+				seasonPlayerId: seasonPlayers[1].id,
+			});
+
+			const filled = await client.session.getById.query({ sessionId: session.id });
+			expect(filled.proposedLineup?.homePlayerIds).toHaveLength(1);
+			expect(filled.proposedLineup?.awayPlayerIds).toHaveLength(1);
+		});
+
+		it("supports full flow: create empty, add players, start match", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+			});
+
+			await Promise.all(
+				seasonPlayers
+					.slice(0, 2)
+					.map((p) =>
+						client.session.addPlayer.mutate({ sessionId: session.id, seasonPlayerId: p.id })
+					)
+			);
+
+			await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id],
+				awaySeasonPlayerIds: [seasonPlayers[1].id],
+			});
+
+			const updated = await client.session.getById.query({ sessionId: session.id });
+			expect(updated.matches).toHaveLength(1);
+		});
+	});
+
+	describe("startNextMatch validation", () => {
+		it("rejects when team sizes do not match session teamSize", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			await expect(
+				client.session.startNextMatch.mutate({
+					sessionId: session.id,
+					homeSeasonPlayerIds: [seasonPlayers[0].id],
+					awaySeasonPlayerIds: [seasonPlayers[1].id],
+				})
+			).rejects.toThrow("exactly 2 players");
+		});
+
+		it("rejects overlapping players on both teams", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(3);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			await expect(
+				client.session.startNextMatch.mutate({
+					sessionId: session.id,
+					homeSeasonPlayerIds: [seasonPlayers[0].id],
+					awaySeasonPlayerIds: [seasonPlayers[0].id],
+				})
+			).rejects.toThrow("both teams");
+		});
+
+		it("rejects players who are not session members", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.slice(0, 2).map((p) => p.id),
+			});
+
+			await expect(
+				client.session.startNextMatch.mutate({
+					sessionId: session.id,
+					homeSeasonPlayerIds: [seasonPlayers[0].id],
+					awaySeasonPlayerIds: [seasonPlayers[3].id],
+				})
+			).rejects.toThrow("members of the session");
+		});
+	});
+
+	describe("updateSettings", () => {
+		it("updates settings on an active session", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			await client.session.updateSettings.mutate({
+				sessionId: session.id,
+				teamSize: 1,
+				randomizerType: "off",
+				autoCoinToss: false,
+				winnersTakePriority: true,
+			});
+
+			const updated = await client.session.getById.query({ sessionId: session.id });
+			expect(updated.teamSize).toBe(1);
+			expect(updated.randomizerType).toBe("off");
+			expect(updated.autoCoinToss).toBe(false);
+			expect(updated.winnersTakePriority).toBe(true);
+			expect(updated.modeSettings).toBeNull();
+		});
+
+		it("recomputes proposed lineup honoring new always-split pairs when no match is active", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				randomizerType: "off",
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+			expect(before.proposedLineup).not.toBeNull();
+
+			const toSeasonIds = (ids: string[]) =>
+				before.players.filter((p) => ids.includes(p.id)).map((p) => p.seasonPlayerId);
+
+			const homeSeasonIds = toSeasonIds(before.proposedLineup!.homePlayerIds);
+			expect(homeSeasonIds.length).toBe(2);
+
+			await client.session.updateSettings.mutate({
+				sessionId: session.id,
+				alwaysSplitConstraints: [[homeSeasonIds[0], homeSeasonIds[1]]],
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			const home = new Set(after.proposedLineup!.homePlayerIds);
+			const away = new Set(after.proposedLineup!.awayPlayerIds);
+			const [a, b] = before.proposedLineup!.homePlayerIds;
+			expect((home.has(a) && home.has(b)) || (away.has(a) && away.has(b))).toBe(false);
+		});
+
+		it("does not recompute lineup while a match is active", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			await client.session.startNextMatch.mutate({
+				sessionId: session.id,
+				homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+				awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+
+			await client.session.updateSettings.mutate({
+				sessionId: session.id,
+				alwaysSplitConstraints: [[seasonPlayers[0].id, seasonPlayers[1].id]],
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			expect(after.proposedLineup).toEqual(before.proposedLineup);
+			expect(after.alwaysSplitConstraints).toEqual([[seasonPlayers[0].id, seasonPlayers[1].id]]);
+		});
+	});
+
+	describe("removePlayer lineup integrity", () => {
+		it("does not put the same player on both teams when there is no substitute", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(2);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "winner-stays",
+				teamSize: 1,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+			const removed = before.players[0];
+
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: removed.id,
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			const lineup = [
+				...(after.proposedLineup?.homePlayerIds ?? []),
+				...(after.proposedLineup?.awayPlayerIds ?? []),
+			];
+			expect(new Set(lineup).size).toBe(lineup.length);
+			expect(lineup).not.toContain(removed.id);
+		});
+
+		it("rebuilds the manual lineup without the removed player", async () => {
+			const { client, season, seasonPlayers } = await setupSeasonWithPlayers(4);
+
+			const session = await client.session.create.mutate({
+				seasonSlug: season.slug,
+				rotationMode: "manual",
+				teamSize: 2,
+				maxConsecutiveGames: null,
+				seasonPlayerIds: seasonPlayers.map((p) => p.id),
+			});
+
+			const before = await client.session.getById.query({ sessionId: session.id });
+			const removed = before.players[0];
+
+			await client.session.removePlayer.mutate({
+				sessionId: session.id,
+				sessionPlayerId: removed.id,
+			});
+
+			const after = await client.session.getById.query({ sessionId: session.id });
+			const lineup = [
+				...(after.proposedLineup?.homePlayerIds ?? []),
+				...(after.proposedLineup?.awayPlayerIds ?? []),
+			];
+			expect(new Set(lineup).size).toBe(lineup.length);
+			expect(lineup).not.toContain(removed.id);
+		});
+	});
 });

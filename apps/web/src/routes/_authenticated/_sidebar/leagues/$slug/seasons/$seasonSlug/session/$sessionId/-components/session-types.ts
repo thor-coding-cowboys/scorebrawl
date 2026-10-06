@@ -65,6 +65,12 @@ export type GameSession = {
 	rotationMode: "winner-stays" | "manual";
 	modeSettings: ModeSettings | null;
 	teamSize: number;
+	maxConsecutiveGames: number | null;
+	maxConsecutiveEnabled: boolean;
+	winnersTakePriority: boolean;
+	autoCoinToss: boolean;
+	randomizerType: "off" | "fisher-yates" | "diversity";
+	alwaysSplitConstraints: [string, string][];
 	proposedLineup: ProposedLineup;
 	players: SessionPlayer[];
 	matches: SessionMatch[];
