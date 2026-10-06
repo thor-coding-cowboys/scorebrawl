@@ -562,7 +562,7 @@ function MatchCard({
 						</Badge>
 					)}
 					{!currentMatch && (
-						<span className="text-xs text-muted-foreground">
+						<span className="text-xs text-muted-foreground" data-testid="session-matches-played">
 							{allMatches.filter((m) => m.result !== null).length} played
 						</span>
 					)}
@@ -581,6 +581,7 @@ function MatchCard({
 						<ScoreStepper
 							label="Home"
 							score={homeScore}
+							testId="session-home"
 							onIncrement={() => updateHomeScore((s) => s + 1)}
 							onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
 							disabled={!currentMatch}
@@ -588,6 +589,7 @@ function MatchCard({
 						<ScoreStepper
 							label="Away"
 							score={awayScore}
+							testId="session-away"
 							onIncrement={() => updateAwayScore((s) => s + 1)}
 							onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
 							disabled={!currentMatch}
@@ -617,6 +619,7 @@ function MatchCard({
 								onClick={handleRecordResult}
 								disabled={recordResult.isPending || isShuffling}
 								className="w-full gap-2"
+								data-testid="session-record-result"
 							>
 								<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
 								{recordResult.isPending
@@ -673,6 +676,7 @@ function MatchCard({
 									startNextMatch.isPending
 								}
 								className="w-full gap-2"
+								data-testid="session-start-match"
 							>
 								<HugeiconsIcon icon={PlayIcon} className="size-4" />
 								{startNextMatch.isPending ? "Starting..." : "Start Match"}

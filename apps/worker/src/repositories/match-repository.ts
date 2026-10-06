@@ -1,4 +1,5 @@
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import { calculateElo, calculate1vN } from "@coding-cowboys/scorebrawl-util/elo-util";
 import type { DrizzleDB } from "../db";
@@ -189,12 +190,13 @@ const getOrInsertTeam = async ({
 };
 
 export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateInput }) => {
-	return withTransaction(db, async (tx) => {
-		const now = new Date();
-		const matchId = input.id ?? newId("match");
+	const now = new Date();
+	const matchId = input.id ?? newId("match");
+	const allPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
 
-		// Get season data for ELO calculation
-		const [seasonData] = await tx
+	// Get season data and current player scores in a single round trip.
+	const [seasonRows, seasonPlayerData] = await db.batch([
+		db
 			.select({
 				id: season.id,
 				scoreType: season.scoreType,
@@ -203,15 +205,8 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 				leagueId: season.leagueId,
 			})
 			.from(season)
-			.where(eq(season.id, input.seasonId));
-
-		if (!seasonData) {
-			throw new Error("Season not found");
-		}
-
-		// Get current scores for all players with their names
-		const allPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
-		const seasonPlayerData = await tx
+			.where(eq(season.id, input.seasonId)),
+		db
 			.select({
 				id: seasonPlayer.id,
 				score: seasonPlayer.score,
@@ -224,36 +219,106 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			.leftJoin(guest, eq(player.guestId, guest.id))
 			.where(
 				and(eq(seasonPlayer.seasonId, input.seasonId), sql`${seasonPlayer.id} IN ${allPlayerIds}`)
-			);
+			),
+	]);
 
-		const playerDataMap = new Map(seasonPlayerData.map((p) => [p.id, p]));
+	const [seasonData] = seasonRows;
+	if (!seasonData) {
+		throw new Error("Season not found");
+	}
 
-		// Prepare players data for ELO calculation
-		const homePlayers = input.homeTeamPlayerIds.map((id) => ({
-			id,
-			score: playerDataMap.get(id)?.score || seasonData.initialScore,
-			playerId: playerDataMap.get(id)?.playerId || "",
-			name: playerDataMap.get(id)?.name || "",
-		}));
+	const playerDataMap = new Map(seasonPlayerData.map((p) => [p.id, p]));
 
-		const awayPlayers = input.awayTeamPlayerIds.map((id) => ({
-			id,
-			score: playerDataMap.get(id)?.score || seasonData.initialScore,
-			playerId: playerDataMap.get(id)?.playerId || "",
-			name: playerDataMap.get(id)?.name || "",
-		}));
+	// Prepare players data for ELO calculation
+	const homePlayers = input.homeTeamPlayerIds.map((id) => ({
+		id,
+		score: playerDataMap.get(id)?.score || seasonData.initialScore,
+		playerId: playerDataMap.get(id)?.playerId || "",
+		name: playerDataMap.get(id)?.name || "",
+	}));
 
-		// Calculate ELO scores
-		const eloResult = calculateMatchResult({
-			seasonData,
-			homeScore: input.homeScore,
-			awayScore: input.awayScore,
-			homePlayers,
-			awayPlayers,
-		});
+	const awayPlayers = input.awayTeamPlayerIds.map((id) => ({
+		id,
+		score: playerDataMap.get(id)?.score || seasonData.initialScore,
+		playerId: playerDataMap.get(id)?.playerId || "",
+		name: playerDataMap.get(id)?.name || "",
+	}));
 
-		// Create match
-		await tx.insert(match).values({
+	// Calculate ELO scores
+	const eloResult = calculateMatchResult({
+		seasonData,
+		homeScore: input.homeScore,
+		awayScore: input.awayScore,
+		homePlayers,
+		awayPlayers,
+	});
+
+	// Determine match result
+	let homeMatchResult: (typeof matchResult)[number];
+	let awayMatchResult: (typeof matchResult)[number];
+
+	if (seasonData.scoreType === "1-v-n-elo") {
+		homeMatchResult = "W";
+		awayMatchResult = "L";
+	} else if (input.homeScore > input.awayScore) {
+		homeMatchResult = "W";
+		awayMatchResult = "L";
+	} else if (input.homeScore < input.awayScore) {
+		homeMatchResult = "L";
+		awayMatchResult = "W";
+	} else {
+		homeMatchResult = "D";
+		awayMatchResult = "D";
+	}
+
+	// Create match players with calculated ELO scores
+	const matchPlayerValues = [
+		...input.homeTeamPlayerIds.map((id, index) => {
+			const playerResult = eloResult.homeTeam.players.find((p) => p.id === id);
+			return {
+				id: newId("matchPlayer"),
+				matchId,
+				seasonPlayerId: id,
+				homeTeam: true,
+				result: homeMatchResult,
+				scoreBefore: homePlayers[index]?.score || seasonData.initialScore,
+				scoreAfter: playerResult?.scoreAfter || seasonData.initialScore,
+				createdAt: now,
+				updatedAt: now,
+			};
+		}),
+		...input.awayTeamPlayerIds.map((id, index) => {
+			const playerResult = eloResult.awayTeam.players.find((p) => p.id === id);
+			return {
+				id: newId("matchPlayer"),
+				matchId,
+				seasonPlayerId: id,
+				homeTeam: false,
+				result: awayMatchResult,
+				scoreBefore: awayPlayers[index]?.score || seasonData.initialScore,
+				scoreAfter: playerResult?.scoreAfter || seasonData.initialScore,
+				createdAt: now,
+				updatedAt: now,
+			};
+		}),
+	];
+
+	// Update season player scores with new ELO ratings (single CASE-based UPDATE)
+	const allPlayerResults = [...eloResult.homeTeam.players, ...eloResult.awayTeam.players];
+	const playerCaseParts = allPlayerResults
+		.map((p) => sql`WHEN ${seasonPlayer.id} = ${p.id} THEN ${p.scoreAfter}`)
+		.reduce((acc, part) => sql`${acc} ${part}`);
+
+	const matchPlayerInserts: BatchItem<"sqlite">[] = [];
+	for (let i = 0; i < matchPlayerValues.length; i += D1_BATCH_SIZE) {
+		matchPlayerInserts.push(
+			db.insert(matchPlayer).values(matchPlayerValues.slice(i, i + D1_BATCH_SIZE))
+		);
+	}
+
+	// Persist the match, its players and the updated ELO scores in one round trip.
+	const writeQueries: BatchItem<"sqlite">[] = [
+		db.insert(match).values({
 			id: matchId,
 			seasonId: input.seasonId,
 			homeScore: input.homeScore,
@@ -264,68 +329,9 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 			updatedBy: input.userId,
 			createdAt: now,
 			updatedAt: now,
-		});
-
-		// Determine match result
-		let homeMatchResult: (typeof matchResult)[number];
-		let awayMatchResult: (typeof matchResult)[number];
-
-		if (seasonData.scoreType === "1-v-n-elo") {
-			homeMatchResult = "W";
-			awayMatchResult = "L";
-		} else if (input.homeScore > input.awayScore) {
-			homeMatchResult = "W";
-			awayMatchResult = "L";
-		} else if (input.homeScore < input.awayScore) {
-			homeMatchResult = "L";
-			awayMatchResult = "W";
-		} else {
-			homeMatchResult = "D";
-			awayMatchResult = "D";
-		}
-
-		// Create match players with calculated ELO scores
-		const matchPlayerValues = [
-			...input.homeTeamPlayerIds.map((id, index) => {
-				const playerResult = eloResult.homeTeam.players.find((p) => p.id === id);
-				return {
-					id: newId("matchPlayer"),
-					matchId,
-					seasonPlayerId: id,
-					homeTeam: true,
-					result: homeMatchResult,
-					scoreBefore: homePlayers[index]?.score || seasonData.initialScore,
-					scoreAfter: playerResult?.scoreAfter || seasonData.initialScore,
-					createdAt: now,
-					updatedAt: now,
-				};
-			}),
-			...input.awayTeamPlayerIds.map((id, index) => {
-				const playerResult = eloResult.awayTeam.players.find((p) => p.id === id);
-				return {
-					id: newId("matchPlayer"),
-					matchId,
-					seasonPlayerId: id,
-					homeTeam: false,
-					result: awayMatchResult,
-					scoreBefore: awayPlayers[index]?.score || seasonData.initialScore,
-					scoreAfter: playerResult?.scoreAfter || seasonData.initialScore,
-					createdAt: now,
-					updatedAt: now,
-				};
-			}),
-		];
-
-		for (let i = 0; i < matchPlayerValues.length; i += D1_BATCH_SIZE) {
-			await tx.insert(matchPlayer).values(matchPlayerValues.slice(i, i + D1_BATCH_SIZE));
-		}
-
-		// Update season player scores with new ELO ratings (single CASE-based UPDATE)
-		const allPlayerResults = [...eloResult.homeTeam.players, ...eloResult.awayTeam.players];
-		const playerCaseParts = allPlayerResults
-			.map((p) => sql`WHEN ${seasonPlayer.id} = ${p.id} THEN ${p.scoreAfter}`)
-			.reduce((acc, part) => sql`${acc} ${part}`);
-		await tx
+		}),
+		...matchPlayerInserts,
+		db
 			.update(seasonPlayer)
 			.set({ score: sql`CASE ${playerCaseParts} END` })
 			.where(
@@ -333,39 +339,50 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 					seasonPlayer.id,
 					allPlayerResults.map((p) => p.id)
 				)
-			);
+			),
+	];
+	await db.batch(writeQueries as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
-		// Handle team creation and scoring for 2+ player matches
-		if (homePlayers.length > 1 && awayPlayers.length > 1) {
-			const [homeTeamResult, awayTeamResult] = await Promise.all([
-				getOrInsertTeam({
-					db: tx,
-					seasonData,
-					players: homePlayers,
-					now,
-				}),
-				getOrInsertTeam({
-					db: tx,
-					seasonData,
-					players: awayPlayers,
-					now,
-				}),
-			]);
-
-			const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = homeTeamResult;
-			const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = awayTeamResult;
-
-			// Calculate team scores
-			const teamMatchResult = calculateMatchResult({
+	// Handle team creation and scoring for 2+ player matches
+	if (homePlayers.length > 1 && awayPlayers.length > 1) {
+		const [homeTeamResult, awayTeamResult] = await Promise.all([
+			getOrInsertTeam({
+				db,
 				seasonData,
-				homeScore: input.homeScore,
-				awayScore: input.awayScore,
-				homePlayers: [{ id: homeSeasonTeamId, score: homeSeasonTeamScore }],
-				awayPlayers: [{ id: awaySeasonTeamId, score: awaySeasonTeamScore }],
-			});
+				players: homePlayers,
+				now,
+			}),
+			getOrInsertTeam({
+				db,
+				seasonData,
+				players: awayPlayers,
+				now,
+			}),
+		]);
 
-			// Create match team records
-			await tx.insert(matchTeam).values([
+		const { seasonTeamId: homeSeasonTeamId, score: homeSeasonTeamScore } = homeTeamResult;
+		const { seasonTeamId: awaySeasonTeamId, score: awaySeasonTeamScore } = awayTeamResult;
+
+		// Calculate team scores
+		const teamMatchResult = calculateMatchResult({
+			seasonData,
+			homeScore: input.homeScore,
+			awayScore: input.awayScore,
+			homePlayers: [{ id: homeSeasonTeamId, score: homeSeasonTeamScore }],
+			awayPlayers: [{ id: awaySeasonTeamId, score: awaySeasonTeamScore }],
+		});
+
+		const allTeamResults = [
+			...teamMatchResult.homeTeam.players,
+			...teamMatchResult.awayTeam.players,
+		];
+		const teamCaseParts = allTeamResults
+			.map((t) => sql`WHEN ${seasonTeam.id} = ${t.id} THEN ${t.scoreAfter}`)
+			.reduce((acc, part) => sql`${acc} ${part}`);
+
+		// Create match team records and update season team scores in one round trip.
+		await db.batch([
+			db.insert(matchTeam).values([
 				{
 					id: newId("team"),
 					matchId,
@@ -390,17 +407,8 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 					createdAt: now,
 					updatedAt: now,
 				},
-			]);
-
-			// Update season team scores (single CASE-based UPDATE)
-			const allTeamResults = [
-				...teamMatchResult.homeTeam.players,
-				...teamMatchResult.awayTeam.players,
-			];
-			const teamCaseParts = allTeamResults
-				.map((t) => sql`WHEN ${seasonTeam.id} = ${t.id} THEN ${t.scoreAfter}`)
-				.reduce((acc, part) => sql`${acc} ${part}`);
-			await tx
+			]),
+			db
 				.update(seasonTeam)
 				.set({ score: sql`CASE ${teamCaseParts} END` })
 				.where(
@@ -408,17 +416,17 @@ export const create = async ({ db, input }: { db: DrizzleDB; input: MatchCreateI
 						seasonTeam.id,
 						allTeamResults.map((t) => t.id)
 					)
-				);
-		}
+				),
+		]);
+	}
 
-		return {
-			id: matchId,
-			seasonId: input.seasonId,
-			homeScore: input.homeScore,
-			awayScore: input.awayScore,
-			createdAt: now,
-		};
-	});
+	return {
+		id: matchId,
+		seasonId: input.seasonId,
+		homeScore: input.homeScore,
+		awayScore: input.awayScore,
+		createdAt: now,
+	};
 };
 
 export const checkStreakThresholds = async ({

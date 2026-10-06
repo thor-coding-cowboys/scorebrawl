@@ -11,6 +11,7 @@ import {
 } from "../../db/schema/league-schema";
 import { parseStringArray } from "./session-repository";
 import { recalcConsecutiveGames, recalcQueuePositions } from "./session-queue-repository";
+import { logDbTiming } from "../../lib/timing";
 
 export const startNextMatch = async ({
 	db,
@@ -23,38 +24,16 @@ export const startNextMatch = async ({
 	homeSeasonPlayerIds: string[];
 	awaySeasonPlayerIds: string[];
 }) => {
-	return withTransaction(db, async (tx) => {
-		const [session] = await tx
+	const allSeasonPlayerIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
+
+	const readStart = performance.now();
+	const [sessionRows, sessionPlayers, countRows] = await db.batch([
+		db
 			.select({ teamSize: gameSession.teamSize, status: gameSession.status })
 			.from(gameSession)
 			.where(eq(gameSession.id, sessionId))
-			.limit(1);
-
-		if (!session) {
-			throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-		}
-		if (session.status !== "active") {
-			throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
-		}
-		if (
-			homeSeasonPlayerIds.length !== session.teamSize ||
-			awaySeasonPlayerIds.length !== session.teamSize
-		) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Each team must have exactly ${session.teamSize} player${session.teamSize === 1 ? "" : "s"}`,
-			});
-		}
-
-		const allSeasonPlayerIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
-		if (new Set(allSeasonPlayerIds).size !== allSeasonPlayerIds.length) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "A player cannot be on both teams",
-			});
-		}
-
-		const sessionPlayers = await tx
+			.limit(1),
+		db
 			.select()
 			.from(sessionPlayer)
 			.where(
@@ -63,24 +42,50 @@ export const startNextMatch = async ({
 					eq(sessionPlayer.status, "waiting"),
 					inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)
 				)
-			);
-
-		if (sessionPlayers.length !== allSeasonPlayerIds.length) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "All players must be available members of the session",
-			});
-		}
-
-		const [countResult] = await tx
+			),
+		db
 			.select({ count: sql<number>`COUNT(*)` })
 			.from(sessionMatch)
-			.where(eq(sessionMatch.sessionId, sessionId));
+			.where(eq(sessionMatch.sessionId, sessionId)),
+	]);
+	logDbTiming("startNextMatch.read", readStart);
 
-		const matchNumber = (countResult?.count ?? 0) + 1;
-		const now = new Date();
+	const [session] = sessionRows;
+	if (!session) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+	}
+	if (session.status !== "active") {
+		throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
+	}
+	if (
+		homeSeasonPlayerIds.length !== session.teamSize ||
+		awaySeasonPlayerIds.length !== session.teamSize
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Each team must have exactly ${session.teamSize} player${session.teamSize === 1 ? "" : "s"}`,
+		});
+	}
+	if (new Set(allSeasonPlayerIds).size !== allSeasonPlayerIds.length) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "A player cannot be on both teams",
+		});
+	}
+	if (sessionPlayers.length !== allSeasonPlayerIds.length) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "All players must be available members of the session",
+		});
+	}
 
-		const [newMatch] = await tx
+	const matchNumber = (countRows[0]?.count ?? 0) + 1;
+	const now = new Date();
+	const sessionPlayerIds = sessionPlayers.map((p) => p.id);
+
+	const writeStart = performance.now();
+	const [newMatchRows] = await db.batch([
+		db
 			.insert(sessionMatch)
 			.values({
 				id: newId("sessionMatch"),
@@ -93,18 +98,12 @@ export const startNextMatch = async ({
 				createdAt: now,
 				updatedAt: now,
 			})
-			.returning();
-
-		const sessionPlayerIds = sessionPlayers.map((p) => p.id);
-
-		if (sessionPlayerIds.length > 0) {
-			await tx
-				.update(sessionPlayer)
-				.set({ status: "playing", updatedAt: now })
-				.where(inArray(sessionPlayer.id, sessionPlayerIds));
-		}
-
-		await tx
+			.returning(),
+		db
+			.update(sessionPlayer)
+			.set({ status: "playing", updatedAt: now })
+			.where(inArray(sessionPlayer.id, sessionPlayerIds)),
+		db
 			.update(sessionPlayer)
 			.set({ consecutiveGames: 0, updatedAt: now })
 			.where(
@@ -113,12 +112,12 @@ export const startNextMatch = async ({
 					not(inArray(sessionPlayer.seasonPlayerId, allSeasonPlayerIds)),
 					gt(sessionPlayer.consecutiveGames, 0)
 				)
-			);
+			),
+		db.update(gameSession).set({ proposedLineup: null }).where(eq(gameSession.id, sessionId)),
+	]);
+	logDbTiming("startNextMatch.write", writeStart);
 
-		await tx.update(gameSession).set({ proposedLineup: null }).where(eq(gameSession.id, sessionId));
-
-		return newMatch;
-	});
+	return newMatchRows[0];
 };
 
 export const recordMatchResult = async ({
@@ -127,6 +126,8 @@ export const recordMatchResult = async ({
 	sessionMatchId,
 	result,
 	matchId,
+	homeSeasonPlayerIds,
+	awaySeasonPlayerIds,
 	winnersTakePriority = false,
 	maxConsecutiveEnabled,
 	maxConsecutiveGames,
@@ -136,33 +137,23 @@ export const recordMatchResult = async ({
 	sessionMatchId: string;
 	result: "home" | "away" | "draw";
 	matchId: string;
+	homeSeasonPlayerIds: string[];
+	awaySeasonPlayerIds: string[];
 	winnersTakePriority?: boolean;
 	maxConsecutiveEnabled?: boolean;
 	maxConsecutiveGames?: number | null;
 }) => {
-	return withTransaction(db, async (tx) => {
-		const now = new Date();
+	const now = new Date();
+	const allPlayingIds = [...homeSeasonPlayerIds, ...awaySeasonPlayerIds];
 
-		await tx
+	const readStart = performance.now();
+	const [updatedMatchRows, playingSessionPlayers, waitingRows] = await db.batch([
+		db
 			.update(sessionMatch)
 			.set({ result, matchId, updatedAt: now })
-			.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)));
-
-		const [updatedMatch] = await tx
-			.select()
-			.from(sessionMatch)
-			.where(eq(sessionMatch.id, sessionMatchId))
-			.limit(1);
-
-		if (!updatedMatch)
-			throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
-
-		const homePlayerIds = parseStringArray(updatedMatch.homePlayerIds);
-		const awayPlayerIds = parseStringArray(updatedMatch.awayPlayerIds);
-
-		const allPlayingIds = [...homePlayerIds, ...awayPlayerIds];
-
-		const playingSessionPlayers = await tx
+			.where(and(eq(sessionMatch.id, sessionMatchId), eq(sessionMatch.sessionId, sessionId)))
+			.returning(),
+		db
 			.select()
 			.from(sessionPlayer)
 			.where(
@@ -170,114 +161,120 @@ export const recordMatchResult = async ({
 					eq(sessionPlayer.sessionId, sessionId),
 					inArray(sessionPlayer.seasonPlayerId, allPlayingIds)
 				)
-			);
-
-		const [maxWaitingPos] = await tx
-			.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
+			),
+		db
+			.select({
+				max: sql<number>`MAX(${sessionPlayer.queuePosition})`,
+				count: sql<number>`COUNT(*)`,
+			})
 			.from(sessionPlayer)
-			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting"))),
+	]);
+	logDbTiming("recordMatchResult.read", readStart);
 
-		const [waitingCountResult] = await tx
-			.select({ count: sql<number>`COUNT(*)` })
-			.from(sessionPlayer)
-			.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+	const [updatedMatch] = updatedMatchRows;
+	if (!updatedMatch) throw new TRPCError({ code: "NOT_FOUND", message: "Session match not found" });
 
-		const playingSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
+	const maxWaitingPos = waitingRows[0];
+	const playingSessionPlayerIds = playingSessionPlayers.map((p) => p.id);
+	const allPlayersQuery = db
+		.select()
+		.from(sessionPlayer)
+		.where(eq(sessionPlayer.sessionId, sessionId))
+		.orderBy(asc(sessionPlayer.queuePosition));
+	let allPlayers: Awaited<typeof allPlayersQuery> = [];
 
-		if (playingSessionPlayerIds.length > 0) {
-			const winnerSeasonPlayerIds =
-				result === "draw" ? [] : result === "home" ? homePlayerIds : awayPlayerIds;
-			const loserSeasonPlayerIds =
-				result === "draw" ? allPlayingIds : result === "home" ? awayPlayerIds : homePlayerIds;
+	if (playingSessionPlayerIds.length > 0) {
+		const winnerSeasonPlayerIds =
+			result === "draw" ? [] : result === "home" ? homeSeasonPlayerIds : awaySeasonPlayerIds;
+		const loserSeasonPlayerIds =
+			result === "draw"
+				? allPlayingIds
+				: result === "home"
+					? awaySeasonPlayerIds
+					: homeSeasonPlayerIds;
 
-			const winnerSessionPlayers = playingSessionPlayers.filter((p) =>
-				winnerSeasonPlayerIds.includes(p.seasonPlayerId)
+		const winnerSessionPlayers = playingSessionPlayers.filter((p) =>
+			winnerSeasonPlayerIds.includes(p.seasonPlayerId)
+		);
+		const loserSessionPlayers = playingSessionPlayers.filter((p) =>
+			loserSeasonPlayerIds.includes(p.seasonPlayerId)
+		);
+
+		const isOverride = (p: (typeof playingSessionPlayers)[number]) => {
+			const cgAfterThisGame = p.consecutiveGames + 1;
+			return (
+				maxConsecutiveEnabled &&
+				maxConsecutiveGames != null &&
+				cgAfterThisGame >= maxConsecutiveGames
 			);
-			const loserSessionPlayers = playingSessionPlayers.filter((p) =>
-				loserSeasonPlayerIds.includes(p.seasonPlayerId)
-			);
+		};
 
-			const isOverride = (p: (typeof playingSessionPlayers)[number]) => {
-				const cgAfterThisGame = p.consecutiveGames + 1;
-				return (
-					maxConsecutiveEnabled &&
-					maxConsecutiveGames != null &&
-					cgAfterThisGame >= maxConsecutiveGames
-				);
-			};
+		const overridePlayers = playingSessionPlayers.filter(isOverride);
+		const overrideIds = new Set(overridePlayers.map((p) => p.id));
 
-			const overridePlayers = playingSessionPlayers.filter(isOverride);
-			const overrideIds = new Set(overridePlayers.map((p) => p.id));
+		const sortByConsecutiveThenQueue = (
+			a: (typeof playingSessionPlayers)[number],
+			b: (typeof playingSessionPlayers)[number]
+		) =>
+			a.consecutiveGames !== b.consecutiveGames
+				? a.consecutiveGames - b.consecutiveGames
+				: a.queuePosition - b.queuePosition;
 
-			const sortByConsecutiveThenQueue = (
-				a: (typeof playingSessionPlayers)[number],
-				b: (typeof playingSessionPlayers)[number]
-			) =>
-				a.consecutiveGames !== b.consecutiveGames
-					? a.consecutiveGames - b.consecutiveGames
-					: a.queuePosition - b.queuePosition;
+		const orderedWinners = winnerSessionPlayers
+			.filter((p) => !overrideIds.has(p.id))
+			.sort(sortByConsecutiveThenQueue);
+		const orderedLosers = loserSessionPlayers
+			.filter((p) => !overrideIds.has(p.id))
+			.sort(sortByConsecutiveThenQueue);
+		const orderedOverrides = overridePlayers.sort((a, b) =>
+			a.consecutiveGames !== b.consecutiveGames
+				? a.consecutiveGames - b.consecutiveGames
+				: a.queuePosition - b.queuePosition
+		);
 
-			const orderedWinners = winnerSessionPlayers
-				.filter((p) => !overrideIds.has(p.id))
-				.sort(sortByConsecutiveThenQueue);
-			const orderedLosers = loserSessionPlayers
-				.filter((p) => !overrideIds.has(p.id))
-				.sort(sortByConsecutiveThenQueue);
-			const orderedOverrides = overridePlayers.sort((a, b) =>
-				a.consecutiveGames !== b.consecutiveGames
-					? a.consecutiveGames - b.consecutiveGames
-					: a.queuePosition - b.queuePosition
-			);
+		const maxWaiting = maxWaitingPos?.max ?? -1;
+		let winnerCountForShift = 0;
+		let queueAssignments: Array<{ id: string; pos: number }>;
 
-			const maxWaiting = maxWaitingPos?.max ?? -1;
-			let queueAssignments: Array<{ id: string; pos: number }>;
+		if (winnersTakePriority) {
+			const winnerCount = orderedWinners.length;
+			const waitingPlayerCount = maxWaitingPos?.count ?? 0;
+			winnerCountForShift = winnerCount > 0 && waitingPlayerCount > 0 ? winnerCount : 0;
 
-			if (winnersTakePriority) {
-				const winnerCount = orderedWinners.length;
-				const waitingPlayerCount = waitingCountResult?.count ?? 0;
+			const baseForLosers = maxWaiting + winnerCountForShift + 1;
+			const baseForOverrides = baseForLosers + orderedLosers.length;
+			queueAssignments = [
+				...orderedWinners.map((p, i) => ({ id: p.id, pos: i })),
+				...orderedLosers.map((p, i) => ({ id: p.id, pos: baseForLosers + i })),
+				...orderedOverrides.map((p, i) => ({ id: p.id, pos: baseForOverrides + i })),
+			];
+		} else {
+			const base = maxWaiting + 1;
+			queueAssignments = [...orderedWinners, ...orderedLosers, ...orderedOverrides].map((p, i) => ({
+				id: p.id,
+				pos: base + i,
+			}));
+		}
 
-				if (winnerCount > 0 && waitingPlayerCount > 0) {
-					await tx
-						.update(sessionPlayer)
-						.set({
-							queuePosition: sql`${sessionPlayer.queuePosition} + ${winnerCount}`,
-							updatedAt: now,
-						})
-						.where(
-							and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting"))
-						);
-				}
+		const consecutiveCaseParts = playingSessionPlayerIds
+			.map((id) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`)
+			.reduce((acc, part) => sql`${acc} ${part}`);
 
-				const [newMaxWaitingPos] = await tx
-					.select({ max: sql<number>`MAX(${sessionPlayer.queuePosition})` })
-					.from(sessionPlayer)
-					.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting")));
+		const queuePosCaseParts = queueAssignments
+			.map(({ id, pos }) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${pos}`)
+			.reduce((acc, part) => sql`${acc} ${part}`);
 
-				const baseForLosers = (newMaxWaitingPos?.max ?? -1) + 1;
-				const baseForOverrides = baseForLosers + orderedLosers.length;
-				queueAssignments = [
-					...orderedWinners.map((p, i) => ({ id: p.id, pos: i })),
-					...orderedLosers.map((p, i) => ({ id: p.id, pos: baseForLosers + i })),
-					...orderedOverrides.map((p, i) => ({ id: p.id, pos: baseForOverrides + i })),
-				];
-			} else {
-				const base = maxWaiting + 1;
-				queueAssignments = [...orderedWinners, ...orderedLosers, ...orderedOverrides].map(
-					(p, i) => ({ id: p.id, pos: base + i })
-				);
-			}
-
-			const consecutiveCaseParts = playingSessionPlayerIds
-				.map(
-					(id) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${sessionPlayer.consecutiveGames} + 1`
-				)
-				.reduce((acc, part) => sql`${acc} ${part}`);
-
-			const queuePosCaseParts = queueAssignments
-				.map(({ id, pos }) => sql`WHEN ${sessionPlayer.id} = ${id} THEN ${pos}`)
-				.reduce((acc, part) => sql`${acc} ${part}`);
-
-			await tx
+		const writeStart = performance.now();
+		const writeResults = await db.batch([
+			db
+				.update(sessionPlayer)
+				.set({
+					queuePosition: sql`${sessionPlayer.queuePosition} + ${winnerCountForShift}`,
+					updatedAt: now,
+				})
+				.where(and(eq(sessionPlayer.sessionId, sessionId), eq(sessionPlayer.status, "waiting"))),
+			db
 				.update(sessionPlayer)
 				.set({
 					gamesPlayedThisSession: sql`${sessionPlayer.gamesPlayedThisSession} + 1`,
@@ -286,17 +283,16 @@ export const recordMatchResult = async ({
 					status: "waiting",
 					updatedAt: now,
 				})
-				.where(inArray(sessionPlayer.id, playingSessionPlayerIds));
-		}
+				.where(inArray(sessionPlayer.id, playingSessionPlayerIds)),
+			allPlayersQuery,
+		]);
+		logDbTiming("recordMatchResult.write", writeStart);
+		allPlayers = writeResults[2];
+	} else {
+		allPlayers = await allPlayersQuery;
+	}
 
-		const allPlayers = await tx
-			.select()
-			.from(sessionPlayer)
-			.where(eq(sessionPlayer.sessionId, sessionId))
-			.orderBy(asc(sessionPlayer.queuePosition));
-
-		return { match: updatedMatch, players: allPlayers };
-	});
+	return { match: updatedMatch, players: allPlayers };
 };
 
 export const cancelCurrentMatch = async ({

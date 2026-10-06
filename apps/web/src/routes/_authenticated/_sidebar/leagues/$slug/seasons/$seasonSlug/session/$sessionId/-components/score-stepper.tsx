@@ -12,12 +12,14 @@ export function ScoreStepper({
 	onIncrement,
 	onDecrement,
 	disabled = false,
+	testId,
 }: {
 	label: string;
 	score: number;
 	onIncrement: () => void;
 	onDecrement: () => void;
 	disabled?: boolean;
+	testId?: string;
 }) {
 	return (
 		<div className={cn("flex flex-col items-center gap-1 p-4", disabled && "opacity-50")}>
@@ -34,7 +36,10 @@ export function ScoreStepper({
 				>
 					<HugeiconsIcon icon={Remove01Icon} className="size-4" />
 				</Button>
-				<span className="text-5xl font-bold tabular-nums tracking-tighter w-16 text-center font-mono">
+				<span
+					className="text-5xl font-bold tabular-nums tracking-tighter w-16 text-center font-mono"
+					data-testid={testId ? `${testId}-score` : undefined}
+				>
 					{score}
 				</span>
 				<Button
@@ -43,6 +48,7 @@ export function ScoreStepper({
 					size="icon-sm"
 					onClick={onIncrement}
 					disabled={disabled}
+					data-testid={testId ? `${testId}-increment` : undefined}
 				>
 					<HugeiconsIcon icon={Add01Icon} className="size-4" />
 				</Button>
