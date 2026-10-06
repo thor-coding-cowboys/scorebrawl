@@ -100,7 +100,7 @@ describe("buildStreakPushEvents", () => {
 		expect(events).toHaveLength(2);
 		expect(events[0]).toEqual({
 			title: "Streak reached",
-			body: "Ada is on a 5-win streak",
+			body: "Ada is on a 5-game win streak",
 			payload: {
 				type: "streak",
 				leagueSlug: "league",
@@ -110,7 +110,7 @@ describe("buildStreakPushEvents", () => {
 		});
 		expect(events[1]).toEqual({
 			title: "Streak reached",
-			body: "Bob is on a 3-win streak",
+			body: "Bob is on a 3-game win streak",
 			payload: {
 				type: "streak",
 				leagueSlug: "league",
@@ -118,6 +118,34 @@ describe("buildStreakPushEvents", () => {
 				playerId: "p2",
 			},
 		});
+	});
+
+	it("labels losing streaks with a positive count", () => {
+		const events = buildStreakPushEvents([{ playerId: "p1", playerName: "Ada", streak: -5 }], {
+			leagueSlug: "league",
+			seasonSlug: "season",
+		});
+		expect(events[0]?.body).toBe("Ada is on a 5-game losing streak");
+	});
+
+	it.each([5, 10, 15])("renders a %i-game win streak", (threshold) => {
+		const events = buildStreakPushEvents(
+			[{ playerId: "p1", playerName: "Ada", streak: threshold }],
+			{ leagueSlug: "league", seasonSlug: "season" }
+		);
+		expect(events[0]?.body).toBe(`Ada is on a ${threshold}-game win streak`);
+	});
+
+	it.each([
+		[-5, 5],
+		[-10, 10],
+		[-15, 15],
+	])("renders a %i losing streak as a positive count", (streak, count) => {
+		const events = buildStreakPushEvents([{ playerId: "p1", playerName: "Ada", streak }], {
+			leagueSlug: "league",
+			seasonSlug: "season",
+		});
+		expect(events[0]?.body).toBe(`Ada is on a ${count}-game losing streak`);
 	});
 
 	it("returns an empty array with no players", () => {

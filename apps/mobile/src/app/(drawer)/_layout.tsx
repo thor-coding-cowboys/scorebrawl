@@ -17,6 +17,7 @@ export default function DrawerLayout() {
 				headerTintColor: colors.text,
 				drawerStyle: { backgroundColor: colors.background },
 				headerShadowVisible: false,
+				swipeEnabled: false,
 			}}
 			drawerContent={(props) => <LeagueDrawerContent {...props} />}
 		>

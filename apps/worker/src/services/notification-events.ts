@@ -48,16 +48,20 @@ export function buildStreakPushEvents(
 	players: Array<{ playerId: string; playerName: string; streak: number }>,
 	context: { leagueSlug: string; seasonSlug: string }
 ): PushEvent[] {
-	return players.map((player) => ({
-		title: "Streak reached",
-		body: `${player.playerName} is on a ${player.streak}-win streak`,
-		payload: {
-			type: "streak",
-			leagueSlug: context.leagueSlug,
-			seasonSlug: context.seasonSlug,
-			playerId: player.playerId,
-		},
-	}));
+	return players.map((player) => {
+		const count = Math.abs(player.streak);
+		const label = player.streak > 0 ? "win" : "losing";
+		return {
+			title: "Streak reached",
+			body: `${player.playerName} is on a ${count}-game ${label} streak`,
+			payload: {
+				type: "streak",
+				leagueSlug: context.leagueSlug,
+				seasonSlug: context.seasonSlug,
+				playerId: player.playerId,
+			},
+		};
+	});
 }
 
 export function formatMatchSummary(

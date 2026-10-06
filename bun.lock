@@ -190,6 +190,9 @@
       },
     },
   },
+  "trustedDependencies": [
+    "@shopify/react-native-skia",
+  ],
   "catalog": {
     "@base-ui/react": "^1.0.0",
     "@better-auth/expo": "1.7.3",
