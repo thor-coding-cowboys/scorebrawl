@@ -5,6 +5,7 @@ import { computeWinnerStaysLineup, enforceAlwaysSplit } from "./strategies/winne
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
 import type { RandomizerType, WinnerStaysSettings } from "./strategies/types";
+import { logDbTiming } from "../../lib/timing";
 
 type FullSession = NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>;
 
@@ -79,7 +80,9 @@ export async function recordResult(
 		userId: string;
 	}
 ) {
+	let dbStart = performance.now();
 	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
+	logDbTiming("recordResult.getSession", dbStart);
 	if (!fullSession) throw new Error("Session not found");
 
 	const sessionMatch = fullSession.matches.find((m) => m.id === sessionMatchId);
@@ -91,6 +94,7 @@ export async function recordResult(
 	const result: "home" | "away" | "draw" =
 		homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : "draw";
 
+	dbStart = performance.now();
 	const createdMatch = await matchRepository.create({
 		db,
 		input: {
@@ -102,7 +106,9 @@ export async function recordResult(
 			userId,
 		},
 	});
+	logDbTiming("recordResult.createMatch", dbStart);
 
+	dbStart = performance.now();
 	const { match: updatedMatch, players: updatedPlayers } =
 		await sessionRepository.recordMatchResult({
 			db,
@@ -110,10 +116,13 @@ export async function recordResult(
 			sessionMatchId,
 			result,
 			matchId: createdMatch.id,
+			homeSeasonPlayerIds,
+			awaySeasonPlayerIds,
 			winnersTakePriority: fullSession.winnersTakePriority,
 			maxConsecutiveEnabled: fullSession.maxConsecutiveEnabled,
 			maxConsecutiveGames: fullSession.maxConsecutiveGames,
 		});
+	logDbTiming("recordResult.recordMatchResult", dbStart);
 
 	const homeSessionPlayerIds = updatedPlayers
 		.filter((p) => homeSeasonPlayerIds.includes(p.seasonPlayerId))
@@ -169,6 +178,7 @@ export async function recordResult(
 						resolvedWinnerIds = shuffled.slice(0, Math.ceil(candidates.length / 2));
 					}
 
+					dbStart = performance.now();
 					const coinToss = await sessionRepository.createCoinToss({
 						db,
 						sessionId,
@@ -181,6 +191,7 @@ export async function recordResult(
 						coinTossId: coinToss.id,
 						resolvedWinnerIds,
 					});
+					logDbTiming("recordResult.coinTossAuto", dbStart);
 
 					proposedLineup = computeWinnerStaysLineup({
 						settings,
@@ -198,6 +209,7 @@ export async function recordResult(
 						.filter(Boolean) as string[];
 					autoResolvedCoinToss = { winnerNames, conflictType };
 				} else {
+					dbStart = performance.now();
 					const coinToss = await sessionRepository.createCoinToss({
 						db,
 						sessionId,
@@ -205,6 +217,7 @@ export async function recordResult(
 						conflictType,
 						candidates,
 					});
+					logDbTiming("recordResult.coinToss", dbStart);
 					coinTossId = coinToss.id;
 				}
 			}
@@ -228,6 +241,7 @@ export async function recordResult(
 		});
 	}
 
+	dbStart = performance.now();
 	await sessionRepository.updateProposedLineup({
 		db,
 		sessionId,
@@ -239,6 +253,7 @@ export async function recordResult(
 				}
 			: null,
 	});
+	logDbTiming("recordResult.updateLineup", dbStart);
 
 	return {
 		match: updatedMatch,

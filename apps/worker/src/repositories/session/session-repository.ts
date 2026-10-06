@@ -89,7 +89,7 @@ export function parseAlwaysSplit(json: string | null | undefined): [string, stri
 	}
 }
 
-async function getSessionPlayersWithDetails(db: DrizzleDB, sessionId: string) {
+function sessionPlayersWithDetails(db: DrizzleDB, sessionId: string) {
 	return db
 		.select({
 			id: sessionPlayer.id,
@@ -264,7 +264,7 @@ export const getActiveSessionFull = async ({
 	const sessionId = session.id;
 
 	const [players, matches, coinTosses] = await Promise.all([
-		getSessionPlayersWithDetails(db, sessionId),
+		sessionPlayersWithDetails(db, sessionId),
 		db
 			.select()
 			.from(sessionMatch)
@@ -300,16 +300,9 @@ export const getActiveSessionFull = async ({
 };
 
 export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; sessionId: string }) => {
-	const [session] = await db
-		.select()
-		.from(gameSession)
-		.where(eq(gameSession.id, sessionId))
-		.limit(1);
-
-	if (!session) return null;
-
-	const [players, matches, coinTosses] = await Promise.all([
-		getSessionPlayersWithDetails(db, sessionId),
+	const [sessionRows, players, matches, coinTosses] = await db.batch([
+		db.select().from(gameSession).where(eq(gameSession.id, sessionId)).limit(1),
+		sessionPlayersWithDetails(db, sessionId),
 		db
 			.select()
 			.from(sessionMatch)
@@ -320,6 +313,9 @@ export const getSessionById = async ({ db, sessionId }: { db: DrizzleDB; session
 			.from(sessionCoinToss)
 			.where(and(eq(sessionCoinToss.sessionId, sessionId), eq(sessionCoinToss.resolved, false))),
 	]);
+
+	const [session] = sessionRows;
+	if (!session) return null;
 
 	return {
 		...session,

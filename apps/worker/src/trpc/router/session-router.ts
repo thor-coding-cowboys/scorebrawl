@@ -332,15 +332,17 @@ export const sessionRouter = {
 				userId: ctx.authentication.user.id,
 			});
 
-			await ctx.env.ACHIEVEMENT_QUEUE.send({
-				seasonPlayerIds: [
-					...result.streakData.homeSeasonPlayerIds,
-					...result.streakData.awaySeasonPlayerIds,
-				],
-				organizationId: ctx.organization.id,
-				leagueSlug: ctx.organization.slug,
-				seasonSlug: sessionInfo.seasonSlug,
-			} satisfies AchievementQueueMessage);
+			ctx.waitUntil(
+				ctx.env.ACHIEVEMENT_QUEUE.send({
+					seasonPlayerIds: [
+						...result.streakData.homeSeasonPlayerIds,
+						...result.streakData.awaySeasonPlayerIds,
+					],
+					organizationId: ctx.organization.id,
+					leagueSlug: ctx.organization.slug,
+					seasonSlug: sessionInfo.seasonSlug,
+				} satisfies AchievementQueueMessage)
+			);
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {

@@ -197,6 +197,7 @@ function SubmitButton({
 			onClick={onClick}
 			disabled={isPending}
 			className={className}
+			data-testid="session-config-submit"
 		>
 			<HugeiconsIcon icon={PlayIcon} className="size-4" />
 			{isPending
@@ -505,6 +506,7 @@ export function SessionConfigDialog(props: SessionConfigDialogProps) {
 										key={player.id}
 										type="button"
 										disabled={inMatch}
+										data-testid="session-player-option"
 										onClick={() => dispatch({ type: "TOGGLE_PLAYER", id: player.id })}
 										className={cn(
 											"flex items-center gap-2 px-3 py-2 text-left transition-colors border-b border-border/50 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",

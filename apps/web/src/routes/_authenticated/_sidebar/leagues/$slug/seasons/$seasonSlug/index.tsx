@@ -121,6 +121,7 @@ function SeasonDashboardPage() {
 									size="sm"
 									variant="outline"
 									className="gap-1.5"
+									data-testid="start-session-button"
 									onClick={() => setIsStartSessionOpen(true)}
 								>
 									<HugeiconsIcon icon={PlayIcon} className="size-3.5" />
