@@ -9,7 +9,10 @@
 		"userInterfaceStyle": "automatic",
 		"ios": {
 			"icon": "./assets/images/icon.png",
-			"bundleIdentifier": "com.scorebrawl"
+			"bundleIdentifier": "com.scorebrawl",
+			"config": {
+				"usesNonExemptEncryption": false
+			}
 		},
 		"android": {
 			"adaptiveIcon": {
