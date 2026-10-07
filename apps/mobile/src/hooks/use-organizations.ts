@@ -9,7 +9,8 @@ export function useOrganizations() {
 	return useQuery({
 		queryKey: ["auth", "organizations", userId],
 		queryFn: async () => {
-			const { data } = await authClient.organization.list();
+			const { data, error } = await authClient.organization.list();
+			if (error) throw new Error(error.message ?? "Failed to load organizations");
 			return data ?? [];
 		},
 		enabled: Boolean(userId),

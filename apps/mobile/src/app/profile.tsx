@@ -15,7 +15,6 @@ import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
-import { unregisterPushNotifications } from "@/lib/notifications";
 import { signOut as performSignOut } from "@/lib/sign-out";
 import { useTRPC } from "@/lib/trpc";
 
@@ -126,10 +125,8 @@ export default function ProfileScreen() {
 				text: "Revoke All",
 				style: "destructive",
 				onPress: async () => {
-					await unregisterPushNotifications();
 					await authClient.revokeSessions();
-					await authClient.signOut();
-					queryClient.clear();
+					await performSignOut();
 					router.replace("/sign-in");
 				},
 			},

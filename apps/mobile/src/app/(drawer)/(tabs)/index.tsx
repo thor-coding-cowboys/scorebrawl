@@ -37,29 +37,41 @@ export default function HomeScreen() {
 
 	const activeLeagueId = activeLeague?.id;
 	const [storedSeasonSlug, setStoredSeasonSlug] = useState<string | null>(null);
+	const [storedSeasonResolved, setStoredSeasonResolved] = useState(false);
 
 	useEffect(() => {
 		if (!activeLeagueId) return;
 		let cancelled = false;
+		setStoredSeasonSlug(null);
+		setStoredSeasonResolved(false);
 		void getLastViewedSeason(activeLeagueId).then((slug) => {
-			if (!cancelled) setStoredSeasonSlug(slug);
+			if (cancelled) return;
+			setStoredSeasonSlug(slug);
+			setStoredSeasonResolved(true);
 		});
 		return () => {
 			cancelled = true;
 		};
 	}, [activeLeagueId]);
 
+	// Only trust the stored slug once its read has settled. Before that we fall
+	// back to the first active season for instant paint, but must not write it
+	// back or we'd clobber a valid last-viewed season before the read resolves.
 	const chosenSlug =
-		(storedSeasonSlug && activeSeasons.some((s) => s.slug === storedSeasonSlug)
+		storedSeasonResolved &&
+		storedSeasonSlug &&
+		activeSeasons.some((s) => s.slug === storedSeasonSlug)
 			? storedSeasonSlug
-			: activeSeasons[0]?.slug) ?? null;
+			: (activeSeasons[0]?.slug ?? null);
 	const activeSeason = activeSeasons.find((s) => s.slug === chosenSlug) ?? null;
 
 	useEffect(() => {
 		if (!chosenSlug || !activeLeagueId) return;
 		if (chosenSlug !== paramSeasonSlug) router.setParams({ seasonSlug: chosenSlug });
-		if (chosenSlug !== storedSeasonSlug) void setLastViewedSeason(activeLeagueId, chosenSlug);
-	}, [chosenSlug, paramSeasonSlug, activeLeagueId, storedSeasonSlug]);
+		if (storedSeasonResolved && chosenSlug !== storedSeasonSlug) {
+			void setLastViewedSeason(activeLeagueId, chosenSlug);
+		}
+	}, [chosenSlug, paramSeasonSlug, activeLeagueId, storedSeasonSlug, storedSeasonResolved]);
 
 	const seasonScoreConfig = activeSeason
 		? (SCORE_TYPE_CONFIG[activeSeason.scoreType as ScoreType] ?? SCORE_TYPE_CONFIG.elo)

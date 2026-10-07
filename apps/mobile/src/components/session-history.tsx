@@ -144,7 +144,7 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 						Loading sessions…
 					</ThemedText>
-				) : endedQuery.isError ? (
+				) : endedQuery.isError && endedQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 							Couldn't load sessions
