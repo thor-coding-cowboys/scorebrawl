@@ -4,11 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 
 import { authClient } from "@/lib/auth-client";
+import { useOrganizations } from "@/hooks/use-organizations";
 
 export function useActiveLeague() {
 	const queryClient = useQueryClient();
 	const { data: session, isPending: isSessionPending } = authClient.useSession();
-	const { data: organizations, isPending } = authClient.useListOrganizations();
+	const { data: organizations, isPending } = useOrganizations();
 	const orgs = useMemo(() => organizations ?? [], [organizations]);
 
 	const activeOrgId = session?.session?.activeOrganizationId;
