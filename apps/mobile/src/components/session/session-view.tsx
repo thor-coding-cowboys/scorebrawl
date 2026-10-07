@@ -1,11 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useCallback } from "react";
+import { SymbolView } from "expo-symbols";
+import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { MobileHeader } from "@/components/mobile-header";
+import { AddPlayerModal } from "@/components/session/add-player-modal";
 import { NextMatchTab } from "@/components/session/next-match-tab";
+import { SessionConfigModal } from "@/components/session/session-config-modal";
 import { SessionPlayerStandings, SessionTeamStandings } from "@/components/session/standings-tab";
 import type { GameSession } from "@/components/session/types";
 import { rotationLabel } from "@/components/session/utils";
@@ -33,6 +36,9 @@ export function SessionView({
 
 	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
 	const session = sessionQuery.data as GameSession | undefined;
+
+	const [showSettings, setShowSettings] = useState(false);
+	const [showAddPlayer, setShowAddPlayer] = useState(false);
 
 	const handleRemoteEnd = useCallback(() => {
 		queryClient.invalidateQueries({
@@ -87,11 +93,25 @@ export function SessionView({
 					eyebrow={session ? rotationLabel(session.rotationMode) : undefined}
 					right={
 						session ? (
-							<Pressable onPress={endSession} hitSlop={8}>
-								<ThemedText type="smallBold" style={{ color: theme.destructive }}>
-									End Session
-								</ThemedText>
-							</Pressable>
+							<View style={styles.headerActions}>
+								<Pressable
+									onPress={() => setShowSettings(true)}
+									hitSlop={8}
+									accessibilityRole="button"
+									accessibilityLabel="Session settings"
+								>
+									<SymbolView
+										name={{ ios: "gearshape", android: "settings", web: "settings" }}
+										size={18}
+										tintColor={theme.text}
+									/>
+								</Pressable>
+								<Pressable onPress={endSession} hitSlop={8}>
+									<ThemedText type="smallBold" style={{ color: theme.destructive }}>
+										End Session
+									</ThemedText>
+								</Pressable>
+							</View>
 						) : undefined
 					}
 				/>
@@ -111,6 +131,22 @@ export function SessionView({
 							</ThemedText>
 						</Pressable>
 					</View>
+				) : session.players.length === 0 ? (
+					<View style={styles.emptyBox}>
+						<ThemedText type="smallBold">No players in this session</ThemedText>
+						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							Add players to start playing matches.
+						</ThemedText>
+						<Pressable
+							onPress={() => setShowAddPlayer(true)}
+							hitSlop={8}
+							accessibilityRole="button"
+						>
+							<ThemedText type="small" themeColor="primary">
+								Add Player
+							</ThemedText>
+						</Pressable>
+					</View>
 				) : view === "standings" ? (
 					<SessionPlayerStandings seasonSlug={seasonSlug} sessionPlayers={session.players} />
 				) : view === "teams" ? (
@@ -123,6 +159,22 @@ export function SessionView({
 						refresh={() => sessionQuery.refetch()}
 					/>
 				)}
+
+				{session ? (
+					<SessionConfigModal
+						mode="edit"
+						isOpen={showSettings}
+						onClose={() => setShowSettings(false)}
+						seasonSlug={seasonSlug}
+						session={session}
+					/>
+				) : null}
+				<AddPlayerModal
+					isOpen={showAddPlayer}
+					onClose={() => setShowAddPlayer(false)}
+					sessionId={sessionId}
+					seasonSlug={seasonSlug}
+				/>
 			</SafeAreaView>
 		</ThemedView>
 	);
@@ -144,6 +196,7 @@ const styles = StyleSheet.create({
 		marginBottom: Spacing.three,
 	},
 	headerText: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-	empty: { textAlign: "center", marginTop: Spacing.five },
-	emptyBox: { alignItems: "center", gap: Spacing.three },
+	headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
+	empty: { textAlign: "center" },
+	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 });
