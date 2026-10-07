@@ -2,9 +2,10 @@
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
 	"mcp": {
-		"tanstack": {
-			"type": "local",
-			"command": ["bunx", "@tanstack/cli", "mcp"]
+		"cloudflare": {
+			"type": "remote",
+			"url": "https://mcp.cloudflare.com/mcp",
+			"enabled": true
 		}
 	}
 }
