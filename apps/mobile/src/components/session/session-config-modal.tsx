@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Modal,
 	Pressable,
@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
+import type { GameSession } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,12 @@ import { trpcClient, useTRPC } from "@/lib/trpc";
 
 type RotationMode = "winner-stays" | "manual";
 type RandomizerType = "off" | "fisher-yates" | "diversity";
+
+type SessionConfigModalProps = {
+	isOpen: boolean;
+	onClose: () => void;
+	seasonSlug: string;
+} & ({ mode: "create"; session?: undefined } | { mode: "edit"; session: GameSession });
 
 const ROTATION_OPTIONS: { value: RotationMode; label: string }[] = [
 	{ value: "winner-stays", label: "Winner Stays" },
@@ -43,20 +50,16 @@ const RANDOMIZER_DESCRIPTION: Record<RandomizerType, string> = {
 	diversity: "Prefer pairing players who haven't played together recently",
 };
 
-export function StartSessionModal({
-	isOpen,
-	onClose,
-	seasonSlug,
-}: {
-	isOpen: boolean;
-	onClose: () => void;
-	seasonSlug: string;
-}) {
+export function SessionConfigModal(props: SessionConfigModalProps) {
+	const { isOpen, onClose, seasonSlug } = props;
+	const mode = props.mode;
+	const session = props.mode === "edit" ? props.session : undefined;
 	const insets = useSafeAreaInsets();
 	const { height: windowHeight } = useWindowDimensions();
 	const theme = useTheme();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const wasOpenRef = useRef(false);
 
 	const [rotationMode, setRotationMode] = useState<RotationMode>("winner-stays");
 	const [teamSize, setTeamSize] = useState(2);
@@ -79,24 +82,47 @@ export function StartSessionModal({
 	const seasonPlayers = useMemo(() => standingQuery.data ?? [], [standingQuery.data]);
 
 	useEffect(() => {
-		if (isOpen) {
-			setRotationMode("winner-stays");
-			setTeamSize(2);
-			setMaxConsecutiveEnabled(true);
-			setMaxConsecutiveGames(3);
-			setWinnersTakePriority(false);
-			setRandomizerType("fisher-yates");
-			setAutoCoinToss(true);
-			setSelectedPlayerIds([]);
-			setAlwaysSplitPairs([]);
-			setSplitPickA(null);
-			setSplitPickB(null);
-			setPickTarget(null);
-			setPlayerSearch("");
-			setStep(0);
-			setError("");
+		const justOpened = isOpen && !wasOpenRef.current;
+		wasOpenRef.current = isOpen;
+		if (!justOpened) return;
+
+		setSplitPickA(null);
+		setSplitPickB(null);
+		setPickTarget(null);
+		setPlayerSearch("");
+		setStep(0);
+		setError("");
+
+		if (session) {
+			const selected = session.players
+				.filter((p) => p.status !== "out")
+				.map((p) => p.seasonPlayerId);
+			setRotationMode(session.rotationMode);
+			setTeamSize(session.teamSize);
+			setMaxConsecutiveEnabled(session.maxConsecutiveEnabled);
+			setMaxConsecutiveGames(session.maxConsecutiveGames ?? 3);
+			setWinnersTakePriority(session.winnersTakePriority);
+			setRandomizerType(session.randomizerType);
+			setAutoCoinToss(session.autoCoinToss);
+			setSelectedPlayerIds(selected);
+			setAlwaysSplitPairs(
+				session.alwaysSplitConstraints.filter(
+					([a, b]) => selected.includes(a) && selected.includes(b)
+				)
+			);
+			return;
 		}
-	}, [isOpen]);
+
+		setRotationMode("winner-stays");
+		setTeamSize(2);
+		setMaxConsecutiveEnabled(true);
+		setMaxConsecutiveGames(3);
+		setWinnersTakePriority(false);
+		setRandomizerType("fisher-yates");
+		setAutoCoinToss(true);
+		setSelectedPlayerIds([]);
+		setAlwaysSplitPairs([]);
+	}, [isOpen, session]);
 
 	const sortedPlayers = useMemo(
 		() => [...seasonPlayers].sort((a, b) => b.matchCount - a.matchCount),
@@ -107,7 +133,16 @@ export function StartSessionModal({
 		return q ? sortedPlayers.filter((p) => p.name.toLowerCase().includes(q)) : sortedPlayers;
 	}, [sortedPlayers, playerSearch]);
 
+	const playingSeasonPlayerIds = useMemo(
+		() =>
+			new Set(
+				(session?.players ?? []).filter((p) => p.status === "playing").map((p) => p.seasonPlayerId)
+			),
+		[session]
+	);
+
 	const togglePlayer = (id: string) => {
+		if (playingSeasonPlayerIds.has(id)) return;
 		setSelectedPlayerIds((prev) =>
 			prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
 		);
@@ -141,39 +176,80 @@ export function StartSessionModal({
 		seasonPlayers.find((p) => p.id === seasonPlayerId)?.name ?? "Unknown";
 
 	const minPlayers = teamSize * 2;
-	const canSubmit = selectedPlayerIds.length >= minPlayers && !isSubmitting;
+	const canSubmit = (mode === "edit" || selectedPlayerIds.length >= minPlayers) && !isSubmitting;
+
+	const saveChanges = async (target: GameSession) => {
+		const activeMembers = target.players.filter((p) => p.status !== "out");
+		const initialIds = new Set(activeMembers.map((p) => p.seasonPlayerId));
+		const currentIds = new Set(selectedPlayerIds);
+		const toAdd = selectedPlayerIds.filter((id) => !initialIds.has(id));
+		const toRemove = activeMembers.filter((p) => !currentIds.has(p.seasonPlayerId));
+
+		await Promise.all([
+			...toAdd.map((seasonPlayerId) =>
+				trpcClient.session.addPlayer.mutate({ sessionId: target.id, seasonPlayerId })
+			),
+			...toRemove.map((p) =>
+				trpcClient.session.removePlayer.mutate({
+					sessionId: target.id,
+					sessionPlayerId: p.id,
+				})
+			),
+		]);
+
+		await trpcClient.session.updateSettings.mutate({
+			sessionId: target.id,
+			teamSize,
+			maxConsecutiveEnabled,
+			maxConsecutiveGames: maxConsecutiveEnabled ? maxConsecutiveGames : null,
+			winnersTakePriority,
+			randomizerType,
+			autoCoinToss,
+			alwaysSplitConstraints: alwaysSplitPairs,
+		});
+
+		queryClient.invalidateQueries({
+			queryKey: trpc.session.getById.queryKey({ sessionId: target.id }),
+		});
+		onClose();
+	};
+
+	const createSession = async () => {
+		const created = await trpcClient.session.create.mutate({
+			seasonSlug,
+			rotationMode,
+			teamSize,
+			maxConsecutiveEnabled,
+			maxConsecutiveGames: maxConsecutiveEnabled ? maxConsecutiveGames : null,
+			winnersTakePriority,
+			seasonPlayerIds: selectedPlayerIds,
+			alwaysSplitConstraints: alwaysSplitPairs,
+			randomizerType,
+			autoCoinToss,
+		});
+		queryClient.invalidateQueries({ queryKey: trpc.session.getActive.queryKey({ seasonSlug }) });
+		queryClient.invalidateQueries({
+			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
+		});
+		onClose();
+		router.replace({
+			pathname: "/seasons/[seasonSlug]/session/[sessionId]",
+			params: { seasonSlug, sessionId: created.id, view: "next" },
+		});
+	};
 
 	const submit = async () => {
-		if (selectedPlayerIds.length < minPlayers) {
-			setError(`Select at least ${minPlayers} players`);
-			return;
-		}
+		if (mode === "edit" && !session) return;
 		setIsSubmitting(true);
 		setError("");
 		try {
-			const session = await trpcClient.session.create.mutate({
-				seasonSlug,
-				rotationMode,
-				teamSize,
-				maxConsecutiveEnabled,
-				maxConsecutiveGames: maxConsecutiveEnabled ? maxConsecutiveGames : null,
-				winnersTakePriority,
-				seasonPlayerIds: selectedPlayerIds,
-				alwaysSplitConstraints: alwaysSplitPairs,
-				randomizerType,
-				autoCoinToss,
-			});
-			queryClient.invalidateQueries({ queryKey: trpc.session.getActive.queryKey({ seasonSlug }) });
-			queryClient.invalidateQueries({
-				queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
-			});
-			onClose();
-			router.replace({
-				pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-				params: { seasonSlug, sessionId: session.id, view: "next" },
-			});
+			if (mode === "edit" && session) {
+				await saveChanges(session);
+			} else {
+				await createSession();
+			}
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to start session");
+			setError(err instanceof Error ? err.message : "Failed to save session");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -196,9 +272,13 @@ export function StartSessionModal({
 						<View style={styles.titleRow}>
 							<View style={[styles.accent, { backgroundColor: "#10b981" }]} />
 							<View>
-								<ThemedText type="subtitle">Start Session</ThemedText>
+								<ThemedText type="subtitle">
+									{mode === "edit" ? "Session Settings" : "Start Session"}
+								</ThemedText>
 								<ThemedText type="small" themeColor="textSecondary">
-									Configure rotation rules and select players.
+									{mode === "edit"
+										? "Update rotation rules and players."
+										: "Configure rotation rules and select players."}
 								</ThemedText>
 							</View>
 						</View>
@@ -218,6 +298,7 @@ export function StartSessionModal({
 										options={ROTATION_OPTIONS}
 										value={rotationMode}
 										onChange={setRotationMode}
+										disabled={mode === "edit"}
 									/>
 								</View>
 
@@ -312,14 +393,17 @@ export function StartSessionModal({
 										) : (
 											filteredPlayers.map((p) => {
 												const selected = selectedPlayerIds.includes(p.id);
+												const inMatch = playingSeasonPlayerIds.has(p.id);
 												return (
 													<Pressable
 														key={p.id}
+														disabled={inMatch}
 														onPress={() => togglePlayer(p.id)}
 														style={[
 															styles.playerRow,
 															{ borderBottomColor: theme.border },
 															selected && { backgroundColor: `${theme.primary}1a` },
+															inMatch && styles.disabled,
 														]}
 													>
 														<Avatar name={p.name} image={getAvatarUri(p.image)} size={22} />
@@ -331,7 +415,11 @@ export function StartSessionModal({
 																{p.score} · {p.matchCount} matches
 															</ThemedText>
 														</View>
-														{selected ? (
+														{inMatch ? (
+															<ThemedText type="small" themeColor="textSecondary">
+																in match
+															</ThemedText>
+														) : selected ? (
 															<SymbolView
 																name={{ ios: "checkmark", android: "check", web: "check" }}
 																size={14}
@@ -434,7 +522,7 @@ export function StartSessionModal({
 									loading={isSubmitting}
 									disabled={!canSubmit}
 								>
-									Start Session
+									{mode === "edit" ? "Save Changes" : "Start Session"}
 								</Button>
 							</>
 						)}
@@ -475,19 +563,28 @@ function Segmented<T extends string>({
 	options,
 	value,
 	onChange,
+	disabled,
 }: {
 	options: { value: T; label: string }[];
 	value: T;
 	onChange: (value: T) => void;
+	disabled?: boolean;
 }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.segmented, { backgroundColor: theme.backgroundElement }]}>
+		<View
+			style={[
+				styles.segmented,
+				{ backgroundColor: theme.backgroundElement },
+				disabled && styles.disabled,
+			]}
+		>
 			{options.map((opt) => {
 				const active = opt.value === value;
 				return (
 					<Pressable
 						key={opt.value}
+						disabled={disabled}
 						onPress={() => onChange(opt.value)}
 						style={[styles.segment, active && { backgroundColor: theme.background }]}
 					>
@@ -592,6 +689,7 @@ function SplitButton({
 
 const styles = StyleSheet.create({
 	flex: { flex: 1 },
+	disabled: { opacity: 0.5 },
 	content: { flex: 1, paddingHorizontal: Spacing.four },
 	header: {
 		flexDirection: "row",
