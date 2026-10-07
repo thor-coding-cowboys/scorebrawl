@@ -51,10 +51,14 @@ jobs:
 
       - name: 🚀 Setup EAS
         if: steps.changes.outputs.mobile == 'true'
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9.0.0
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          # Blacksmith provides a transparent cache; the action's own CLI
+          # cache is redundant and intermittently fails (400 / cache outage).
+          eas-cache: false
+          expo-cache: false
 
       - name: 📱 Build iOS
         if: steps.changes.outputs.mobile == 'true'
