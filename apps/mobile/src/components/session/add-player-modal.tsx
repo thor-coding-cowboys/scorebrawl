@@ -9,6 +9,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { Fonts, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -106,9 +107,11 @@ export function AddPlayerModal({
 
 					<ScrollView style={styles.list}>
 						{standingQuery.isPending ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading players…
-							</ThemedText>
+							<View>
+								{Array.from({ length: 6 }).map((_, i) => (
+									<SkeletonListRow key={i} avatarSize={26} />
+								))}
+							</View>
 						) : available.length === 0 ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 								All season players are already in the session.
