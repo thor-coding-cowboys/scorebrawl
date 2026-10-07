@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -523,9 +525,16 @@ export default function SeasonsScreen() {
 					contentContainerStyle={styles.list}
 					ListEmptyComponent={
 						isLoading ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<View>
+								{Array.from({ length: 6 }).map((_, i) => (
+									<SkeletonListRow
+										key={i}
+										avatarSize={44}
+										avatarRadius={9}
+										trailing={<Skeleton width={46} height={16} radius={8} />}
+									/>
+								))}
+							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
 								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
