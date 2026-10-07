@@ -15,11 +15,25 @@ import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { SkeletonHeader, SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { formatDate } from "@/lib/collections/season";
 import { getLastViewedSeason, setLastViewedSeason } from "@/lib/last-viewed-season";
 import { trpcClient } from "@/lib/trpc";
+
+function HomeSkeleton() {
+	return (
+		<ThemedView style={styles.container}>
+			<SafeAreaView edges={[]} style={styles.safeArea}>
+				<SkeletonHeader />
+				{Array.from({ length: 7 }).map((_, i) => (
+					<SkeletonStandingRow key={i} />
+				))}
+			</SafeAreaView>
+		</ThemedView>
+	);
+}
 
 export default function HomeScreen() {
 	const { activeLeague, organizations, isLoading } = useActiveLeague();
@@ -92,11 +106,7 @@ export default function HomeScreen() {
 	}, [isLoading, activeLeague, activeSeasonsQuery.data, activeSeasons.length]);
 
 	if (isLoading) {
-		return (
-			<ThemedView style={styles.center}>
-				<ThemedText>Loading…</ThemedText>
-			</ThemedView>
-		);
+		return <HomeSkeleton />;
 	}
 
 	if (!organizations || organizations.length === 0) {
@@ -136,13 +146,7 @@ export default function HomeScreen() {
 	}
 
 	if (activeSeasonsQuery.isPending && activeSeasonsQuery.data === undefined) {
-		return (
-			<ThemedView style={styles.center}>
-				<ThemedText type="small" themeColor="textSecondary">
-					Loading active season…
-				</ThemedText>
-			</ThemedView>
-		);
+		return <HomeSkeleton />;
 	}
 
 	if (activeSeason === null) {
