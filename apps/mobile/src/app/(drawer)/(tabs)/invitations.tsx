@@ -21,6 +21,8 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -242,6 +244,26 @@ function InviteMemberForm({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 	);
 }
 
+function InvitationsSkeleton() {
+	return (
+		<View>
+			{Array.from({ length: 5 }).map((_, i) => (
+				<SkeletonListRow
+					key={i}
+					avatarSize={44}
+					avatarRadius={9}
+					trailing={
+						<View style={styles.skeletonTrailing}>
+							<Skeleton width={46} height={16} radius={8} />
+							<Skeleton width={54} height={24} radius={7} />
+						</View>
+					}
+				/>
+			))}
+		</View>
+	);
+}
+
 export default function InvitationsScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ create?: string }>();
@@ -411,17 +433,13 @@ export default function InvitationsScreen() {
 					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isMemberPending ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<InvitationsSkeleton />
 						) : !canAccess ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 								You don’t have access to manage invitations.
 							</ThemedText>
 						) : isLoading ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<InvitationsSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
 								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
@@ -501,6 +519,11 @@ const styles = StyleSheet.create({
 		alignItems: "flex-end",
 		alignSelf: "stretch",
 		justifyContent: "center",
+		gap: Spacing.two,
+	},
+	skeletonTrailing: {
+		flexDirection: "row",
+		alignItems: "center",
 		gap: Spacing.two,
 	},
 	pill: {
