@@ -62,7 +62,7 @@ export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 						Loading standings…
 					</ThemedText>
-				) : standingsQuery.isError ? (
+				) : standingsQuery.isError && standingsQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 							Couldn't load team standings

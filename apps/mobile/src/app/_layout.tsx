@@ -1,4 +1,5 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { useIsRestoring } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "expo-router";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -11,6 +12,7 @@ import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/lib/query-client";
+import { persistOptions } from "@/lib/query-persistence";
 import { TRPCProvider, trpcClient } from "@/lib/trpc";
 
 SplashScreen.preventAutoHideAsync();
@@ -50,6 +52,33 @@ function PushNotifications() {
 	return null;
 }
 
+function RootContent() {
+	const isRestoring = useIsRestoring();
+	if (isRestoring) return null;
+
+	return (
+		<>
+			<AnimatedSplashOverlay />
+			<PushNotifications />
+			<Stack
+				screenOptions={{
+					headerShown: false,
+					headerBackButtonDisplayMode: "minimal",
+				}}
+			>
+				<Stack.Screen name="(drawer)" />
+				<Stack.Screen name="sign-in" />
+				<Stack.Screen name="sign-up" />
+				<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
+				<Stack.Screen
+					name="settings/notifications"
+					options={{ headerShown: true, title: "Notifications" }}
+				/>
+			</Stack>
+		</>
+	);
+}
+
 export default function RootLayout() {
 	const { data, isPending } = authClient.useSession();
 	const session = data?.session ?? null;
@@ -59,27 +88,11 @@ export default function RootLayout() {
 	return (
 		<ThemeProvider>
 			<ThemedNavigationProvider>
-				<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-					<QueryClientProvider client={queryClient}>
-						<AnimatedSplashOverlay />
-						<PushNotifications />
-						<Stack
-							screenOptions={{
-								headerShown: false,
-								headerBackButtonDisplayMode: "minimal",
-							}}
-						>
-							<Stack.Screen name="(drawer)" />
-							<Stack.Screen name="sign-in" />
-							<Stack.Screen name="sign-up" />
-							<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
-							<Stack.Screen
-								name="settings/notifications"
-								options={{ headerShown: true, title: "Notifications" }}
-							/>
-						</Stack>
-					</QueryClientProvider>
-				</TRPCProvider>
+				<PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+					<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+						<RootContent />
+					</TRPCProvider>
+				</PersistQueryClientProvider>
 			</ThemedNavigationProvider>
 		</ThemeProvider>
 	);

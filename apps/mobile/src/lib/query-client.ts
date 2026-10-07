@@ -5,6 +5,7 @@ export const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
 			staleTime: 60 * 1000,
+			gcTime: 24 * 60 * 60 * 1000,
 			refetchOnWindowFocus: false,
 			retry: (failureCount, error) => {
 				if (error instanceof TRPCClientError) {
