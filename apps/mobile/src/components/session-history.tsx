@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -141,9 +142,11 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 			}
 			ListEmptyComponent={
 				active ? null : endedQuery.isPending ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading sessions…
-					</ThemedText>
+					<View>
+						{Array.from({ length: 5 }).map((_, i) => (
+							<SkeletonListRow key={i} avatarSize={null} />
+						))}
+					</View>
 				) : endedQuery.isError && endedQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
