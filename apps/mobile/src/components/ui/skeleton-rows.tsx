@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
@@ -21,15 +21,13 @@ export function SkeletonListRow({
 	avatarSize = 40,
 	avatarRadius,
 	trailing,
-	style,
 }: {
 	avatarSize?: number | null;
 	avatarRadius?: number;
 	trailing?: ReactNode;
-	style?: StyleProp<ViewStyle>;
 }) {
 	return (
-		<View style={[styles.row, style]}>
+		<View style={styles.row}>
 			{avatarSize ? (
 				<Skeleton width={avatarSize} height={avatarSize} radius={avatarRadius ?? avatarSize / 2} />
 			) : null}
@@ -42,10 +40,10 @@ export function SkeletonListRow({
 	);
 }
 
-export function SkeletonStandingRow() {
+export function SkeletonStandingRow({ avatarSize = 40 }: { avatarSize?: number }) {
 	return (
 		<View style={styles.row}>
-			<Skeleton width={40} height={40} radius={20} />
+			<Skeleton width={avatarSize} height={avatarSize} radius={avatarSize / 2} />
 			<View style={styles.col}>
 				<Skeleton width="48%" height={12} />
 				<Skeleton width="68%" height={10} />
@@ -73,11 +71,30 @@ export function SkeletonMatchRow() {
 	);
 }
 
-export function SkeletonStat({ labelWidth = 60 }: { labelWidth?: number }) {
+export function SkeletonStat() {
 	return (
 		<View style={styles.stat}>
-			<Skeleton width={labelWidth} height={9} />
+			<Skeleton width={60} height={9} />
 			<Skeleton width={44} height={18} />
+		</View>
+	);
+}
+
+export function SkeletonStatGrid({ count = 2 }: { count?: number }) {
+	return (
+		<View style={styles.statGrid}>
+			{Array.from({ length: count }).map((_, i) => (
+				<SkeletonStat key={i} />
+			))}
+		</View>
+	);
+}
+
+export function SkeletonTrailing() {
+	return (
+		<View style={styles.trailing}>
+			<Skeleton width={46} height={16} radius={8} />
+			<Skeleton width={54} height={24} radius={7} />
 		</View>
 	);
 }
@@ -115,5 +132,14 @@ const styles = StyleSheet.create({
 		flex: 1,
 		gap: 6,
 		paddingVertical: Spacing.two,
+	},
+	statGrid: {
+		flexDirection: "row",
+		gap: Spacing.three,
+	},
+	trailing: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
 	},
 });

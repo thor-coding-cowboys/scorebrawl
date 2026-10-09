@@ -3,6 +3,7 @@ import { type DimensionValue, type StyleProp, type ViewStyle } from "react-nativ
 import Animated, {
 	Easing,
 	useAnimatedStyle,
+	useReducedMotion,
 	useSharedValue,
 	withRepeat,
 	withTiming,
@@ -22,15 +23,18 @@ export function Skeleton({
 	style?: StyleProp<ViewStyle>;
 }) {
 	const theme = useTheme();
+	const reduceMotion = useReducedMotion();
 	const opacity = useSharedValue(1);
 
 	useEffect(() => {
-		opacity.value = withRepeat(
-			withTiming(0.45, { duration: 900, easing: Easing.inOut(Easing.ease) }),
-			-1,
-			true
-		);
-	}, [opacity]);
+		opacity.value = reduceMotion
+			? 1
+			: withRepeat(
+					withTiming(0.45, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+					-1,
+					true
+				);
+	}, [opacity, reduceMotion]);
 
 	const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

@@ -10,8 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonListRow } from "@/components/ui/skeleton-rows";
+import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -197,15 +196,7 @@ function MembersSkeleton() {
 	return (
 		<View>
 			{Array.from({ length: 6 }).map((_, i) => (
-				<SkeletonListRow
-					key={i}
-					trailing={
-						<View style={styles.skeletonTrailing}>
-							<Skeleton width={46} height={16} radius={8} />
-							<Skeleton width={54} height={24} radius={7} />
-						</View>
-					}
-				/>
+				<SkeletonListRow key={i} trailing={<SkeletonTrailing />} />
 			))}
 		</View>
 	);
@@ -454,11 +445,6 @@ const styles = StyleSheet.create({
 		alignItems: "flex-end",
 		alignSelf: "stretch",
 		justifyContent: "center",
-		gap: Spacing.two,
-	},
-	skeletonTrailing: {
-		flexDirection: "row",
-		alignItems: "center",
 		gap: Spacing.two,
 	},
 	rolePill: {

@@ -11,7 +11,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonSectionHeader, SkeletonStat } from "@/components/ui/skeleton-rows";
+import {
+	SkeletonSectionHeader,
+	SkeletonStandingRow,
+	SkeletonStatGrid,
+} from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -116,24 +120,11 @@ function PlayerDetailSkeleton() {
 				<Skeleton width={92} height={28} radius={7} />
 			</View>
 			<SkeletonSectionHeader width={80} />
-			<View style={styles.skeletonGrid}>
-				<SkeletonStat />
-				<SkeletonStat />
-			</View>
-			<View style={styles.skeletonGrid}>
-				<SkeletonStat />
-				<SkeletonStat />
-			</View>
+			<SkeletonStatGrid />
+			<SkeletonStatGrid />
 			<SkeletonSectionHeader width={90} />
 			{Array.from({ length: 2 }).map((_, i) => (
-				<View key={i} style={styles.skeletonTeammate}>
-					<Skeleton width={40} height={40} radius={20} />
-					<View style={styles.skeletonCol}>
-						<Skeleton width="52%" height={12} />
-						<Skeleton width="74%" height={10} />
-					</View>
-					<Skeleton width={28} height={16} />
-				</View>
+				<SkeletonStandingRow key={i} />
 			))}
 		</View>
 	);
@@ -518,20 +509,5 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingBottom: Spacing.three,
 	},
-	skeletonGrid: {
-		flexDirection: "row",
-		gap: Spacing.three,
-	},
-	skeletonTeammate: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
-		paddingVertical: Spacing.two,
-	},
-	skeletonCol: {
-		flex: 1,
-		gap: 6,
-	},
-	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 });
