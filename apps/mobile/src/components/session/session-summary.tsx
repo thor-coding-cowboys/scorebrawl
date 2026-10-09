@@ -10,6 +10,8 @@ import { formatDuration, rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonSectionHeader, SkeletonStat } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -50,6 +52,33 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 	);
 }
 
+function SessionSummarySkeleton() {
+	return (
+		<View style={styles.skeleton}>
+			<SkeletonSectionHeader width={64} />
+			<View style={styles.skeletonGrid}>
+				<SkeletonStat />
+				<SkeletonStat />
+			</View>
+			<View style={styles.skeletonGrid}>
+				<SkeletonStat />
+				<SkeletonStat />
+			</View>
+			<SkeletonSectionHeader width={110} />
+			{Array.from({ length: 3 }).map((_, i) => (
+				<View key={i} style={styles.skeletonRow}>
+					<Skeleton width={30} height={30} radius={15} />
+					<View style={styles.skeletonCol}>
+						<Skeleton width="52%" height={12} />
+						<Skeleton width="70%" height={10} />
+					</View>
+					<Skeleton width={28} height={16} />
+				</View>
+			))}
+		</View>
+	);
+}
+
 export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
@@ -70,9 +99,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<MobileHeader onBack={() => router.back()} title="Session Summary" />
 				{query.isPending ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading summary…
-					</ThemedText>
+					<SessionSummarySkeleton />
 				) : query.isError || !summary ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary">
@@ -244,4 +271,13 @@ const styles = StyleSheet.create({
 	matchWinner: { fontWeight: "700" },
 	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
+	skeleton: { gap: Spacing.three, paddingTop: Spacing.four },
+	skeletonGrid: { flexDirection: "row", gap: Spacing.three },
+	skeletonRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.three,
+		paddingVertical: Spacing.two,
+	},
+	skeletonCol: { flex: 1, gap: 6 },
 });

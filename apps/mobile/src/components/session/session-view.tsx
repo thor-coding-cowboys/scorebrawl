@@ -11,11 +11,38 @@ import type { GameSession } from "@/components/session/types";
 import { rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useSessionRealtime } from "@/hooks/use-session-realtime";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
+
+function SessionViewSkeleton() {
+	return (
+		<View style={styles.skeletonCard}>
+			<View style={styles.skeletonRow}>
+				<Skeleton width={80} height={14} />
+				<Skeleton width={64} height={26} radius={7} />
+			</View>
+			<View style={styles.skeletonScoreboard}>
+				<View style={styles.skeletonScoreCol}>
+					<Skeleton width="40%" height={9} />
+					<Skeleton width={36} height={22} />
+				</View>
+				<View style={styles.skeletonScoreCol}>
+					<Skeleton width="40%" height={9} />
+					<Skeleton width={36} height={22} />
+				</View>
+			</View>
+			<View style={styles.skeletonRosters}>
+				<Skeleton width="48%" height={110} radius={10} />
+				<Skeleton width="48%" height={110} radius={10} />
+			</View>
+			<Skeleton width="100%" height={40} radius={8} />
+		</View>
+	);
+}
 
 export function SessionView({
 	sessionId,
@@ -97,9 +124,7 @@ export function SessionView({
 				/>
 
 				{sessionQuery.isPending ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading session…
-					</ThemedText>
+					<SessionViewSkeleton />
 				) : !session ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
@@ -146,4 +171,9 @@ const styles = StyleSheet.create({
 	headerText: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
 	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three },
+	skeletonCard: { gap: Spacing.three, padding: Spacing.three },
+	skeletonRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	skeletonScoreboard: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
+	skeletonScoreCol: { flex: 1, alignItems: "center", gap: Spacing.one },
+	skeletonRosters: { flexDirection: "row", justifyContent: "space-between" },
 });
