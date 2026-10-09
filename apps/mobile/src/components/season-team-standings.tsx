@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, View } from "react-native";
 import { StandingRow, type StandingItem } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -59,9 +60,11 @@ export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 			onRefresh={onRefresh}
 			ListEmptyComponent={
 				standingsQuery.isPending ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading standings…
-					</ThemedText>
+					<View>
+						{Array.from({ length: 6 }).map((_, i) => (
+							<SkeletonStandingRow key={i} />
+						))}
+					</View>
 				) : standingsQuery.isError && standingsQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
