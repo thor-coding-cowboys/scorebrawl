@@ -16,6 +16,15 @@ export type HonoEnv = {
 		authentication?: AuthType;
 		userAssets: R2BucketRef;
 		oauthToken?: { sub?: string; scope?: string };
+		apiKey?:
+			| {
+					keyId: string;
+					organizationId: string;
+					userId: string;
+					organization: { id: string; slug: string; name: string };
+					permissions: Record<string, string[]>;
+			  }
+			| undefined;
 	};
 };
 
