@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 
 import { CreateMatchFlow } from "@/components/create-match-flow";
+import { DashboardCards } from "@/components/season/dashboard-cards";
 import { LatestMatches } from "@/components/latest-matches";
 import { HeaderActions, HeaderIconButton, HeaderPillButton } from "@/components/nav/header-buttons";
 import { SCORE_TYPE_CONFIG, type ScoreType } from "@/components/score-type-card";
@@ -111,6 +112,8 @@ export function SeasonDashboard({ season }: { season: Season }) {
 							{isLocked ? " · Locked" : ""}
 						</ThemedText>
 					</View>
+
+					<DashboardCards seasonSlug={seasonSlug} />
 
 					<SectionCard
 						title={

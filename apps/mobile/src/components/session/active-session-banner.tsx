@@ -48,8 +48,7 @@ export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 					Session in progress
 				</ThemedText>
 				<ThemedText type="small" style={styles.sub} numberOfLines={1}>
-					{rotationLabel(session.rotationMode)} · {session.players.length} players ·{" "}
-					{session.teamSize}v{session.teamSize}
+					{rotationLabel(session.rotationMode)} · {session.players.length} players
 				</ThemedText>
 			</View>
 			<View style={styles.cta}>

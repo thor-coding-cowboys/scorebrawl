@@ -14,6 +14,11 @@ import { useTheme } from "@/hooks/use-theme";
 import { achievementCatalog, getAchievement } from "@/lib/achievements";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
+const ACHIEVEMENT_ENTRIES = Object.entries(achievementCatalog);
+const ACHIEVEMENT_ROWS = Array.from({ length: Math.ceil(ACHIEVEMENT_ENTRIES.length / 2) }, (_, i) =>
+	ACHIEVEMENT_ENTRIES.slice(i * 2, i * 2 + 2)
+);
+
 type BoardRow = RouterOutput["achievement"]["getLeagueBoard"][number];
 
 interface PlayerStats {
@@ -111,54 +116,61 @@ export default function AchievementsScreen() {
 
 			<SectionCard title="League Achievements">
 				<View style={styles.grid}>
-					{Object.entries(achievementCatalog).map(([type, meta]) => {
-						const holders = byType.get(type) ?? [];
-						const earned = holders.length > 0;
-						return (
-							<View key={type} style={[styles.achievement, { borderColor: theme.border }]}>
-								<View style={styles.achievementHead}>
-									<SymbolView
-										name={meta.icon}
-										size={22}
-										tintColor={earned ? theme.primary : `${theme.textSecondary}66`}
-									/>
-									<View style={styles.achievementText}>
-										<ThemedText type="smallBold" numberOfLines={1}>
-											{meta.name}
-										</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary" style={styles.description}>
-											{meta.description}
-										</ThemedText>
-									</View>
-								</View>
-								{earned ? (
-									<View style={styles.holders}>
-										{holders.map((h, i) => (
-											<View
-												key={`${h.playerId}-${String(i)}`}
-												style={[
-													styles.holder,
-													i > 0 && styles.holderOverlap,
-													{ borderColor: theme.card },
-												]}
-											>
-												<Avatar
-													name={h.name}
-													image={getAvatarUri(h.image)}
-													headers={headers}
-													size={26}
-												/>
+					{ACHIEVEMENT_ROWS.map((row) => (
+						<View key={row.map(([type]) => type).join("|")} style={styles.gridRow}>
+							{row.map(([type, meta]) => {
+								const holders = byType.get(type) ?? [];
+								const earned = holders.length > 0;
+								return (
+									<View key={type} style={[styles.achievement, { borderColor: theme.border }]}>
+										<View style={styles.achievementHead}>
+											<SymbolView
+												name={meta.icon}
+												size={22}
+												tintColor={earned ? theme.primary : `${theme.textSecondary}66`}
+											/>
+											<View style={styles.achievementText}>
+												<ThemedText type="smallBold">{meta.name}</ThemedText>
+												<ThemedText
+													type="small"
+													themeColor="textSecondary"
+													style={styles.description}
+												>
+													{meta.description}
+												</ThemedText>
 											</View>
-										))}
+										</View>
+										{earned ? (
+											<View style={styles.holders}>
+												{holders.map((h, i) => (
+													<View
+														key={`${h.playerId}-${String(i)}`}
+														style={[
+															styles.holder,
+															i > 0 && styles.holderOverlap,
+															{ borderColor: theme.card },
+														]}
+													>
+														<Avatar
+															name={h.name}
+															image={getAvatarUri(h.image)}
+															headers={headers}
+															size={26}
+														/>
+													</View>
+												))}
+											</View>
+										) : (
+											<ThemedText type="small" themeColor="textSecondary" style={styles.nobody}>
+												Nobody yet
+											</ThemedText>
+										)}
 									</View>
-								) : (
-									<ThemedText type="small" themeColor="textSecondary" style={styles.nobody}>
-										Nobody yet
-									</ThemedText>
-								)}
-							</View>
-						);
-					})}
+								);
+							})}
+							{row.length === 1 ? <View style={styles.achievementSpacer} /> : null}
+						</View>
+					))}
 				</View>
 			</SectionCard>
 		</ScrollView>
@@ -200,18 +212,24 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingBottom: Spacing.two,
 	},
+	gridRow: {
+		flexDirection: "row",
+		gap: Spacing.two,
+	},
+	achievementSpacer: {
+		flex: 1,
+	},
 	achievement: {
+		flex: 1,
 		borderWidth: StyleSheet.hairlineWidth,
 		padding: Spacing.three,
 		gap: Spacing.two,
 	},
 	achievementHead: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
+		gap: Spacing.two,
 	},
 	achievementText: {
-		flex: 1,
+		gap: 2,
 	},
 	description: {
 		fontSize: 12,
