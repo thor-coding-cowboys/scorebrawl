@@ -13,7 +13,7 @@ import {
 	View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 
 import {
 	ScoreTypeCard,
@@ -21,7 +21,8 @@ import {
 	SCORE_TYPE_CONFIG as SCORE_TYPE_CARD_CONFIG,
 	type ScoreType,
 } from "@/components/score-type-card";
-import { MobileHeader } from "@/components/mobile-header";
+import { CreateSeasonForm } from "@/components/create-season-form";
+import { HeaderPillButton } from "@/components/nav/header-buttons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -415,6 +416,7 @@ export default function SeasonsScreen() {
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const isEditor = role === "owner" || role === "editor";
+	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const {
 		data: seasons = [],
 		isLoading,
@@ -466,7 +468,20 @@ export default function SeasonsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader title="Seasons" />
+				<Stack.Screen
+					options={{
+						headerRight: isEditor
+							? () => (
+									<HeaderPillButton
+										icon={{ ios: "plus", android: "add", web: "add" }}
+										label="Season"
+										tone="glow"
+										onPress={() => setIsCreateOpen(true)}
+									/>
+								)
+							: undefined,
+					}}
+				/>
 				<FlatList
 					data={seasons}
 					keyExtractor={(item) => item.id}
@@ -552,6 +567,7 @@ export default function SeasonsScreen() {
 					}
 				/>
 			</SafeAreaView>
+			<CreateSeasonForm isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
 			<EditSeasonModal
 				season={editingSeason}
 				isOpen={editingSeason !== null}

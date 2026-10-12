@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { StandingRow } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { StaticList } from "@/components/ui/static-list";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
@@ -30,7 +30,6 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
 	const standingsQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const { refreshing, onRefresh } = usePullToRefresh(() => standingsQuery.refetch());
 	const standings = [...(standingsQuery.data ?? [])].sort((a, b) => {
 		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
 		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
@@ -38,8 +37,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	});
 
 	return (
-		<FlatList
-			style={styles.flatList}
+		<StaticList
 			data={standings}
 			keyExtractor={(item) => item.id}
 			renderItem={({ item }) => {
@@ -57,9 +55,6 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 				);
 			}}
 			ItemSeparatorComponent={Separator}
-			contentContainerStyle={styles.list}
-			refreshing={refreshing}
-			onRefresh={onRefresh}
 			ListEmptyComponent={
 				standingsQuery.isPending ? (
 					<View>
@@ -87,13 +82,6 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 }
 
 const styles = StyleSheet.create({
-	flatList: {
-		flex: 1,
-	},
-	list: {
-		paddingLeft: Spacing.three,
-		paddingBottom: Spacing.four,
-	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
 		backgroundColor: "rgba(128,128,128,0.25)",
@@ -101,7 +89,7 @@ const styles = StyleSheet.create({
 	},
 	empty: {
 		textAlign: "center",
-		marginTop: Spacing.four,
+		marginVertical: Spacing.three,
 	},
 	emptyBox: {
 		alignItems: "center",

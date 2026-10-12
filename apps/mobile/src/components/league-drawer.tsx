@@ -1,18 +1,27 @@
 import type { DrawerContentComponentProps } from "expo-router/drawer";
-import { router, usePathname } from "expo-router";
+import { useGlobalSearchParams, usePathname, type Href } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LeagueSwitcher } from "@/components/league-switcher";
-import { UserCard } from "@/components/user-card";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { UserCard } from "@/components/user-card";
 import { Spacing } from "@/constants/theme";
+import { useActiveSeasons } from "@/hooks/use-active-seasons";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { resetTo } from "@/lib/navigation";
 
-const NAV_ITEMS = [
+type SymbolName = Parameters<typeof SymbolView>[0]["name"];
+
+const NAV_ITEMS: {
+	label: string;
+	path: Href & string;
+	icon: SymbolName;
+	requireEditor?: boolean;
+}[] = [
 	{
 		label: "Seasons",
 		path: "/seasons",
@@ -21,9 +30,14 @@ const NAV_ITEMS = [
 	{ label: "Teams", path: "/teams", icon: { ios: "person.3", android: "groups", web: "groups" } },
 	{ label: "Players", path: "/players", icon: { ios: "person", android: "person", web: "person" } },
 	{
+		label: "Achievements",
+		path: "/achievements",
+		icon: { ios: "medal", android: "military_tech", web: "military_tech" },
+	},
+	{
 		label: "Members",
 		path: "/members",
-		icon: { ios: "shield", android: "verified_user", web: "verified_user" },
+		icon: { ios: "person.2", android: "group", web: "group" },
 		requireEditor: true,
 	},
 	{
@@ -32,87 +46,210 @@ const NAV_ITEMS = [
 		icon: { ios: "envelope", android: "mail", web: "mail" },
 		requireEditor: true,
 	},
-] as const;
+];
 
-type NavItem = (typeof NAV_ITEMS)[number];
+const ACTIVE_SEASON_ICON: SymbolName = {
+	ios: "waveform.path.ecg",
+	android: "monitor_heart",
+	web: "monitor_heart",
+};
 
 export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps) {
 	const insets = useSafeAreaInsets();
 	const theme = useTheme();
 	const pathname = usePathname();
+	const { seasonSlug } = useGlobalSearchParams<{ seasonSlug?: string }>();
 	const { data: activeMember } = authClient.useActiveMember();
-	const role = activeMember?.role;
-	const canManage = role === "owner" || role === "editor";
+	const canManage = activeMember?.role === "owner" || activeMember?.role === "editor";
+	const { data: activeSeasons = [] } = useActiveSeasons();
+	const [seasonsOpen, setSeasonsOpen] = useState(true);
 
-	const handleNavPress = (path: NavItem["path"]) => {
+	const isOnActiveSeason =
+		pathname === "/" ||
+		(pathname.startsWith("/seasons/") &&
+			!pathname.includes("/session/") &&
+			activeSeasons.some((s) => s.slug === seasonSlug));
+
+	const go = (href: Href) => {
 		navigation.closeDrawer();
-		router.push(path);
+		resetTo(href);
 	};
 
-	const visibleItems = NAV_ITEMS.filter(
-		(item) => !("requireEditor" in item && item.requireEditor) || canManage
-	);
+	const visibleItems = NAV_ITEMS.filter((item) => !item.requireEditor || canManage);
 
 	return (
-		<ThemedView
-			style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+		<View
+			style={[
+				styles.container,
+				{ backgroundColor: theme.card, paddingTop: insets.top, paddingBottom: insets.bottom },
+			]}
 		>
-			<LeagueSwitcher />
+			<View style={[styles.header, { borderBottomColor: theme.border }]}>
+				<LeagueSwitcher />
+			</View>
 
-			<View style={styles.nav}>
-				<ThemedText type="smallBold" themeColor="textSecondary" style={styles.navLabel}>
+			<ScrollView style={styles.nav} contentContainerStyle={styles.navContent}>
+				<ThemedText type="small" themeColor="textSecondary" style={styles.groupLabel}>
 					League
 				</ThemedText>
-				{visibleItems.map((item) => {
-					const isActive = pathname.startsWith(item.path);
-					return (
-						<Pressable
-							key={item.path}
-							accessibilityRole="button"
-							accessibilityState={{ selected: isActive }}
-							onPress={() => handleNavPress(item.path)}
-							style={({ pressed }) => [
-								styles.navItem,
-								isActive && { backgroundColor: theme.backgroundElement },
-								pressed && { opacity: 0.7 },
-							]}
-						>
-							<SymbolView name={item.icon} size={18} tintColor={theme.text} />
-							<ThemedText type="small">{item.label}</ThemedText>
-						</Pressable>
-					);
-				})}
-			</View>
 
-			<View style={styles.footer}>
+				{activeSeasons.length === 1 ? (
+					<NavRow
+						label="Active Season"
+						icon={ACTIVE_SEASON_ICON}
+						active={isOnActiveSeason}
+						onPress={() => go({ pathname: "/", params: { seasonSlug: activeSeasons[0].slug } })}
+					/>
+				) : activeSeasons.length > 1 ? (
+					<>
+						<NavRow
+							label="Active Seasons"
+							icon={ACTIVE_SEASON_ICON}
+							active={isOnActiveSeason && !seasonsOpen}
+							onPress={() => setSeasonsOpen((open) => !open)}
+							trailing={
+								<SymbolView
+									name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
+									size={12}
+									weight="semibold"
+									tintColor={theme.textSecondary}
+									style={{ transform: [{ rotate: seasonsOpen ? "90deg" : "0deg" }] }}
+								/>
+							}
+						/>
+						{seasonsOpen ? (
+							<View style={[styles.subList, { borderLeftColor: theme.border }]}>
+								{activeSeasons.map((season) => (
+									<Pressable
+										key={season.id}
+										accessibilityRole="button"
+										accessibilityState={{
+											selected: isOnActiveSeason && seasonSlug === season.slug,
+										}}
+										onPress={() => go({ pathname: "/", params: { seasonSlug: season.slug } })}
+										style={({ pressed }) => [
+											styles.subItem,
+											isOnActiveSeason &&
+												seasonSlug === season.slug && { backgroundColor: theme.backgroundSelected },
+											pressed && styles.pressed,
+										]}
+									>
+										<ThemedText type="small" numberOfLines={1}>
+											{season.name}
+										</ThemedText>
+									</Pressable>
+								))}
+							</View>
+						) : null}
+					</>
+				) : null}
+
+				{visibleItems.map((item) => (
+					<NavRow
+						key={item.path}
+						label={item.label}
+						icon={item.icon}
+						active={
+							item.path === "/seasons"
+								? pathname === "/seasons" || (pathname.startsWith("/seasons/") && !isOnActiveSeason)
+								: pathname.startsWith(item.path)
+						}
+						onPress={() => go(item.path)}
+					/>
+				))}
+			</ScrollView>
+
+			<View style={[styles.footer, { borderTopColor: theme.border }]}>
 				<UserCard />
 			</View>
-		</ThemedView>
+		</View>
+	);
+}
+
+function NavRow({
+	label,
+	icon,
+	active,
+	onPress,
+	trailing,
+}: {
+	label: string;
+	icon: SymbolName;
+	active: boolean;
+	onPress: () => void;
+	trailing?: React.ReactNode;
+}) {
+	const theme = useTheme();
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityState={{ selected: active }}
+			onPress={onPress}
+			style={({ pressed }) => [
+				styles.navItem,
+				active && { backgroundColor: theme.backgroundSelected },
+				pressed && styles.pressed,
+			]}
+		>
+			<SymbolView name={icon} size={17} tintColor={theme.text} />
+			<ThemedText type={active ? "smallBold" : "small"} style={styles.navLabel}>
+				{label}
+			</ThemedText>
+			{trailing}
+		</Pressable>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		paddingHorizontal: Spacing.three,
+	},
+	header: {
+		paddingHorizontal: Spacing.two,
+		paddingVertical: Spacing.two,
+		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	nav: {
 		flex: 1,
-		marginTop: Spacing.four,
 	},
-	navLabel: {
-		marginBottom: Spacing.two,
+	navContent: {
 		paddingHorizontal: Spacing.two,
+		paddingVertical: Spacing.three,
+		gap: 2,
+	},
+	groupLabel: {
+		fontSize: 12,
+		paddingHorizontal: Spacing.two,
+		marginBottom: Spacing.one,
 	},
 	navItem: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.three,
-		paddingVertical: Spacing.two,
+		minHeight: 40,
 		paddingHorizontal: Spacing.two,
-		borderRadius: 0,
+	},
+	navLabel: {
+		flex: 1,
+	},
+	subList: {
+		marginLeft: Spacing.four,
+		paddingLeft: Spacing.two,
+		borderLeftWidth: 1,
+		gap: 2,
+		marginBottom: Spacing.one,
+	},
+	subItem: {
+		minHeight: 36,
+		justifyContent: "center",
+		paddingHorizontal: Spacing.two,
+	},
+	pressed: {
+		opacity: 0.6,
 	},
 	footer: {
-		marginTop: Spacing.three,
+		paddingHorizontal: Spacing.two,
+		paddingVertical: Spacing.two,
+		borderTopWidth: StyleSheet.hairlineWidth,
 	},
 });

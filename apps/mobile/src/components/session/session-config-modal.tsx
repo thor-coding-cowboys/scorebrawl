@@ -232,9 +232,9 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
 		});
 		onClose();
-		router.replace({
+		router.push({
 			pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-			params: { seasonSlug, sessionId: created.id, view: "next" },
+			params: { seasonSlug, sessionId: created.id },
 		});
 	};
 

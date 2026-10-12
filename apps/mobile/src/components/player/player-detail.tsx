@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -20,11 +19,8 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
+import { getAchievement } from "@/lib/achievements";
 import { useTRPC } from "@/lib/trpc";
-
-function formatAchievementName(type: string) {
-	return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
 	const theme = useTheme();
@@ -130,7 +126,7 @@ function PlayerDetailSkeleton() {
 	);
 }
 
-export function PlayerDetail({ playerId, view = "overview" }: { playerId: string; view?: string }) {
+export function PlayerDetail({ playerId }: { playerId: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
 
@@ -182,7 +178,7 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader onBack={() => router.back()} title={player?.name ?? "Player"} />
+				<Stack.Screen options={{ title: player?.name ?? "" }} />
 				{playerQuery.isPending || !seasonSlug ? (
 					<PlayerDetailSkeleton />
 				) : playerQuery.isError ? (
@@ -196,234 +192,225 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 						contentContainerStyle={styles.scroll}
 						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
 					>
-						{view === "overview" ? (
-							<>
-								<View style={styles.hero}>
-									<Avatar
-										name={player?.name ?? "?"}
-										image={getAvatarUri(player?.image)}
-										size={96}
-										borderRadius={8}
+						<>
+							<View style={styles.hero}>
+								<Avatar
+									name={player?.name ?? "?"}
+									image={getAvatarUri(player?.image)}
+									size={96}
+									borderRadius={8}
+								/>
+								<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
+									{player?.name}
+								</ThemedText>
+								<ThemedText type="small" themeColor="textSecondary">
+									{winRate}% win rate · {allTime?.total ?? 0} matches
+								</ThemedText>
+								<Button
+									variant="outline"
+									size="sm"
+									icon={{
+										ios: "arrow.left.arrow.right",
+										android: "compare_arrows",
+										web: "compare_arrows",
+									}}
+									onPress={() =>
+										router.push({ pathname: "/players/compare", params: { p1: playerId } })
+									}
+								>
+									Compare
+								</Button>
+							</View>
+							<Section title="Overview">
+								<View style={styles.grid}>
+									<Stat label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
+									<Stat
+										label="Win rate"
+										value={`${winRate}%`}
+										sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L`}
 									/>
-									<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
-										{player?.name}
-									</ThemedText>
-									<ThemedText type="small" themeColor="textSecondary">
-										{winRate}% win rate · {allTime?.total ?? 0} matches
-									</ThemedText>
-									<Button
-										variant="outline"
-										size="sm"
-										icon={{
-											ios: "arrow.left.arrow.right",
-											android: "compare_arrows",
-											web: "compare_arrows",
-										}}
-										onPress={() =>
-											router.push({ pathname: "/players/compare", params: { p1: playerId } })
-										}
-									>
-										Compare
-									</Button>
+									<Stat
+										label="Total matches"
+										value={String(allTime?.total ?? 0)}
+										sub={`${allTime?.seasonCount ?? 0} season(s)`}
+									/>
+									<Stat
+										label="Best season"
+										value={bestSeason?.season ?? "—"}
+										sub={bestSeason ? `Peak ${bestSeason.elo}` : undefined}
+									/>
 								</View>
-								<Section title="Overview">
-									<View style={styles.grid}>
-										<Stat label="Current score" value={bestSeason ? String(bestSeason.elo) : "—"} />
-										<Stat
-											label="Win rate"
-											value={`${winRate}%`}
-											sub={`${allTime?.wins ?? 0}W · ${allTime?.losses ?? 0}L`}
-										/>
-										<Stat
-											label="Total matches"
-											value={String(allTime?.total ?? 0)}
-											sub={`${allTime?.seasonCount ?? 0} season(s)`}
-										/>
-										<Stat
-											label="Best season"
-											value={bestSeason?.season ?? "—"}
-											sub={bestSeason ? `Peak ${bestSeason.elo}` : undefined}
-										/>
-									</View>
-								</Section>
-								<Section title="Teammates">
-									<TeammateRow
-										label="Best teammate"
-										tone="best"
-										teammate={bestTeammateQuery.data}
-									/>
-									<TeammateRow
-										label="Worst teammate"
-										tone="worst"
-										teammate={worstTeammateQuery.data}
-									/>
-								</Section>
-							</>
-						) : null}
-
-						{view === "achievements" ? (
-							<Section title="Achievements">
-								{achievements.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
-										No achievements yet
-									</ThemedText>
-								) : (
-									<View style={styles.achievements}>
-										{achievements.map((a) => (
-											<View key={a.type} style={styles.achievementItem}>
-												<View
-													style={[
-														styles.achievementBadge,
-														{
-															backgroundColor: `${theme.primary}1a`,
-															borderColor: `${theme.primary}33`,
-														},
-													]}
-												>
-													<SymbolView
-														name={{ ios: "medal", android: "military_tech", web: "military_tech" }}
-														size={28}
-														tintColor={theme.primary}
-													/>
-												</View>
-												<ThemedText type="small" style={styles.achievementName}>
-													{formatAchievementName(a.type)}
-												</ThemedText>
-											</View>
-										))}
-									</View>
-								)}
 							</Section>
-						) : null}
-
-						{view === "seasons" ? (
-							<Section title="Season history">
-								{history.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
-										No season history
-									</ThemedText>
-								) : (
-									history.map((h) => (
-										<Pressable
-											key={h.slug}
-											accessibilityRole="button"
-											onPress={() =>
-												router.push({
-													pathname: "/seasons/[seasonSlug]",
-													params: { seasonSlug: h.slug },
-												})
-											}
-											style={({ pressed }) => [
-												styles.row,
-												{ borderBottomColor: theme.border },
-												pressed && { opacity: 0.7 },
-											]}
-										>
-											<View style={styles.rowInfo}>
-												<ThemedText style={styles.rowValue} numberOfLines={1}>
-													{h.season}
-												</ThemedText>
-												<ThemedText type="small" themeColor="textSecondary">
-													{h.wins}W · {h.losses}L · {h.winRate}% W
-												</ThemedText>
-											</View>
-											<ThemedText style={styles.subValue}>{h.score}</ThemedText>
-											<SymbolView
-												name={{
-													ios: "chevron.right",
-													android: "chevron_right",
-													web: "chevron_right",
-												}}
-												size={14}
-												tintColor={theme.textSecondary}
-											/>
-										</Pressable>
-									))
-								)}
+							<Section title="Teammates">
+								<TeammateRow label="Best teammate" tone="best" teammate={bestTeammateQuery.data} />
+								<TeammateRow
+									label="Worst teammate"
+									tone="worst"
+									teammate={worstTeammateQuery.data}
+								/>
 							</Section>
-						) : null}
+						</>
 
-						{view === "matches" ? (
-							<Section title="Recent matches">
-								{recent.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
-										No recent matches
-									</ThemedText>
-								) : (
-									recent.slice(0, 15).map((m) => {
-										const homeWon = m.homeScore > m.awayScore;
-										const awayWon = m.awayScore > m.homeScore;
-										const delta = m.scoreAfter - m.scoreBefore;
-										const date = new Date(m.createdAt).toLocaleDateString("en-US", {
-											month: "short",
-											day: "numeric",
-										});
-										return (
+						<Section title="Achievements">
+							{achievements.length === 0 ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									No achievements yet
+								</ThemedText>
+							) : (
+								<View style={styles.achievements}>
+									{achievements.map((a) => (
+										<View key={a.type} style={styles.achievementItem}>
 											<View
-												key={m.id}
-												style={[styles.matchRow, { borderBottomColor: theme.border }]}
+												style={[
+													styles.achievementBadge,
+													{
+														backgroundColor: `${theme.primary}1a`,
+														borderColor: `${theme.primary}33`,
+													},
+												]}
 											>
-												<View style={styles.dateCol}>
-													<ThemedText type="small" themeColor="textSecondary">
-														{date}
-													</ThemedText>
-												</View>
-												<View style={styles.matchLines}>
-													<View style={styles.matchLine}>
-														<ThemedText
-															type="small"
-															numberOfLines={1}
-															themeColor={homeWon ? "text" : "textSecondary"}
-															style={[styles.matchTeam, homeWon && styles.matchWinner]}
-														>
-															{m.homeTeamName}
-														</ThemedText>
-														<View
-															style={[
-																styles.scoreBadge,
-																{
-																	backgroundColor: `${theme.primary}1a`,
-																	borderColor: theme.border,
-																},
-															]}
-														>
-															<ThemedText type="small">{m.homeScore}</ThemedText>
-														</View>
-													</View>
-													<View style={styles.matchLine}>
-														<ThemedText
-															type="small"
-															numberOfLines={1}
-															themeColor={awayWon ? "text" : "textSecondary"}
-															style={[styles.matchTeam, awayWon && styles.matchWinner]}
-														>
-															{m.awayTeamName}
-														</ThemedText>
-														<View
-															style={[
-																styles.scoreBadge,
-																{
-																	backgroundColor: `${theme.primary}1a`,
-																	borderColor: theme.border,
-																},
-															]}
-														>
-															<ThemedText type="small">{m.awayScore}</ThemedText>
-														</View>
-													</View>
-												</View>
-												<ThemedText
-													type="small"
-													style={{ color: delta >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700" }}
-												>
-													{delta >= 0 ? `+${delta}` : delta}
+												<SymbolView
+													name={
+														getAchievement(a.type)?.icon ?? {
+															ios: "medal",
+															android: "military_tech",
+															web: "military_tech",
+														}
+													}
+													size={28}
+													tintColor={theme.primary}
+												/>
+											</View>
+											<ThemedText type="small" style={styles.achievementName}>
+												{getAchievement(a.type)?.name ?? a.type}
+											</ThemedText>
+										</View>
+									))}
+								</View>
+							)}
+						</Section>
+
+						<Section title="Season history">
+							{history.length === 0 ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									No season history
+								</ThemedText>
+							) : (
+								history.map((h) => (
+									<Pressable
+										key={h.slug}
+										accessibilityRole="button"
+										onPress={() =>
+											router.push({
+												pathname: "/seasons/[seasonSlug]",
+												params: { seasonSlug: h.slug },
+											})
+										}
+										style={({ pressed }) => [
+											styles.row,
+											{ borderBottomColor: theme.border },
+											pressed && { opacity: 0.7 },
+										]}
+									>
+										<View style={styles.rowInfo}>
+											<ThemedText style={styles.rowValue} numberOfLines={1}>
+												{h.season}
+											</ThemedText>
+											<ThemedText type="small" themeColor="textSecondary">
+												{h.wins}W · {h.losses}L · {h.winRate}% W
+											</ThemedText>
+										</View>
+										<ThemedText style={styles.subValue}>{h.score}</ThemedText>
+										<SymbolView
+											name={{
+												ios: "chevron.right",
+												android: "chevron_right",
+												web: "chevron_right",
+											}}
+											size={14}
+											tintColor={theme.textSecondary}
+										/>
+									</Pressable>
+								))
+							)}
+						</Section>
+
+						<Section title="Recent matches">
+							{recent.length === 0 ? (
+								<ThemedText type="small" themeColor="textSecondary">
+									No recent matches
+								</ThemedText>
+							) : (
+								recent.slice(0, 15).map((m) => {
+									const homeWon = m.homeScore > m.awayScore;
+									const awayWon = m.awayScore > m.homeScore;
+									const delta = m.scoreAfter - m.scoreBefore;
+									const date = new Date(m.createdAt).toLocaleDateString("en-US", {
+										month: "short",
+										day: "numeric",
+									});
+									return (
+										<View key={m.id} style={[styles.matchRow, { borderBottomColor: theme.border }]}>
+											<View style={styles.dateCol}>
+												<ThemedText type="small" themeColor="textSecondary">
+													{date}
 												</ThemedText>
 											</View>
-										);
-									})
-								)}
-							</Section>
-						) : null}
+											<View style={styles.matchLines}>
+												<View style={styles.matchLine}>
+													<ThemedText
+														type="small"
+														numberOfLines={1}
+														themeColor={homeWon ? "text" : "textSecondary"}
+														style={[styles.matchTeam, homeWon && styles.matchWinner]}
+													>
+														{m.homeTeamName}
+													</ThemedText>
+													<View
+														style={[
+															styles.scoreBadge,
+															{
+																backgroundColor: `${theme.primary}1a`,
+																borderColor: theme.border,
+															},
+														]}
+													>
+														<ThemedText type="small">{m.homeScore}</ThemedText>
+													</View>
+												</View>
+												<View style={styles.matchLine}>
+													<ThemedText
+														type="small"
+														numberOfLines={1}
+														themeColor={awayWon ? "text" : "textSecondary"}
+														style={[styles.matchTeam, awayWon && styles.matchWinner]}
+													>
+														{m.awayTeamName}
+													</ThemedText>
+													<View
+														style={[
+															styles.scoreBadge,
+															{
+																backgroundColor: `${theme.primary}1a`,
+																borderColor: theme.border,
+															},
+														]}
+													>
+														<ThemedText type="small">{m.awayScore}</ThemedText>
+													</View>
+												</View>
+											</View>
+											<ThemedText
+												type="small"
+												style={{ color: delta >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700" }}
+											>
+												{delta >= 0 ? `+${delta}` : delta}
+											</ThemedText>
+										</View>
+									);
+								})
+							)}
+						</Section>
 					</ScrollView>
 				)}
 			</SafeAreaView>

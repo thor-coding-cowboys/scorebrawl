@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
 	FlatList,
@@ -13,12 +12,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
@@ -144,9 +143,13 @@ function EditTeamModal({
 	);
 }
 
+const TEAM_FILTERS = [
+	{ value: "all", label: "All Teams" },
+	{ value: "my", label: "My Teams" },
+] as const;
+
 export default function TeamsScreen() {
-	const params = useLocalSearchParams<{ view?: "all" | "my" }>();
-	const teamView = params.view ?? "all";
+	const [teamView, setTeamView] = useState<"all" | "my">("all");
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [editingTeam, setEditingTeam] = useState<{ id: string; name: string } | null>(null);
 	const { data: activeMember } = authClient.useActiveMember();
@@ -188,7 +191,11 @@ export default function TeamsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader title="Teams" />
+				{myPlayer ? (
+					<View style={styles.filter}>
+						<SegmentedControl options={TEAM_FILTERS} value={teamView} onChange={setTeamView} />
+					</View>
+				) : null}
 				<FlatList
 					style={styles.list}
 					data={teams}
@@ -260,6 +267,9 @@ export default function TeamsScreen() {
 }
 
 const styles = StyleSheet.create({
+	filter: {
+		paddingVertical: Spacing.three,
+	},
 	container: {
 		flex: 1,
 		flexDirection: "row",

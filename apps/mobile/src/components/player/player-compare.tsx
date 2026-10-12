@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
 	Modal,
@@ -14,7 +13,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
@@ -161,7 +159,6 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader onBack={() => router.back()} title="Compare Players" />
 				<ScrollView
 					contentContainerStyle={styles.scroll}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

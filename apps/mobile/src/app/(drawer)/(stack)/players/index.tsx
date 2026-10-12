@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
 	Alert,
@@ -15,11 +15,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
+import { HeaderPillButton } from "@/components/nav/header-buttons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
@@ -204,13 +205,18 @@ function GuestPlayerForm({
 	);
 }
 
+const PLAYER_FILTERS = [
+	{ value: "enabled", label: "Active" },
+	{ value: "disabled", label: "Disabled" },
+] as const;
+
 export default function PlayersScreen() {
 	const router = useRouter();
-	const params = useLocalSearchParams<{ create?: string; view?: "enabled" | "disabled" }>();
+
 	const queryClient = useQueryClient();
-	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
+	const { data: activeMember } = authClient.useActiveMember();
 	const isEditor = activeMember?.role === "owner" || activeMember?.role === "editor";
-	const playerView = params.view ?? "enabled";
+	const [playerView, setPlayerView] = useState<"enabled" | "disabled">("enabled");
 	const [cookie, setCookie] = useState<string | undefined>();
 	const [guestForm, setGuestForm] = useState<GuestFormState | null>(null);
 	const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
@@ -225,15 +231,6 @@ export default function PlayersScreen() {
 		};
 	}, []);
 	const avatarHeaders = cookie ? { cookie } : undefined;
-
-	useEffect(() => {
-		if (params.create !== "1") return;
-		if (isMemberPending) return;
-		if (isEditor) {
-			setGuestForm({ mode: "create" });
-		}
-		router.setParams({ create: undefined });
-	}, [params.create, isEditor, isMemberPending, router]);
 
 	const {
 		data: players = [],
@@ -286,7 +283,30 @@ export default function PlayersScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader title="Players" />
+				<Stack.Screen
+					options={{
+						headerRight: isEditor
+							? () => (
+									<HeaderPillButton
+										icon={{ ios: "plus", android: "add", web: "add" }}
+										label="Guest"
+										tone="glow"
+										onPress={() => setGuestForm({ mode: "create" })}
+									/>
+								)
+							: undefined,
+					}}
+				/>
+				<View style={styles.filter}>
+					<SegmentedControl
+						options={PLAYER_FILTERS.map((f) => ({
+							value: f.value,
+							label: `${f.label} · ${players.filter((p) => (f.value === "disabled" ? p.disabled : !p.disabled)).length}`,
+						}))}
+						value={playerView}
+						onChange={setPlayerView}
+					/>
+				</View>
 				<FlatList
 					style={styles.list}
 					data={visiblePlayers}
@@ -383,6 +403,9 @@ const styles = StyleSheet.create({
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.three,
+	},
+	filter: {
+		paddingVertical: Spacing.three,
 	},
 	headerRow: {
 		flexDirection: "row",

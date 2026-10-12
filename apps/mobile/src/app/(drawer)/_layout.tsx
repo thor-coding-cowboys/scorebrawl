@@ -1,8 +1,6 @@
 import { Drawer } from "expo-router/drawer";
 
 import { LeagueDrawerContent } from "@/components/league-drawer";
-import { AppHeaderLeft } from "@/components/app-header-left";
-import { ActiveLeagueTitle } from "@/components/active-league-title";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function DrawerLayout() {
@@ -11,17 +9,15 @@ export default function DrawerLayout() {
 	return (
 		<Drawer
 			screenOptions={{
-				headerLeft: () => <AppHeaderLeft />,
-				headerTitle: () => <ActiveLeagueTitle />,
-				headerStyle: { backgroundColor: colors.background },
-				headerTintColor: colors.text,
-				drawerStyle: { backgroundColor: colors.background },
-				headerShadowVisible: false,
-				swipeEnabled: false,
+				headerShown: false,
+				drawerType: "slide",
+				drawerStyle: { backgroundColor: colors.background, width: 300 },
+				overlayColor: "rgba(0,0,0,0.5)",
+				swipeEdgeWidth: 48,
 			}}
 			drawerContent={(props) => <LeagueDrawerContent {...props} />}
 		>
-			<Drawer.Screen name="(tabs)" options={{ title: "" }} />
+			<Drawer.Screen name="(stack)" />
 		</Drawer>
 	);
 }

@@ -5,7 +5,6 @@ import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -244,7 +243,6 @@ export default function MembersScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader title="Members" />
 				<FlatList
 					style={styles.list}
 					data={members}

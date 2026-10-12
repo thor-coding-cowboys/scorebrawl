@@ -1,18 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
+import { StaticList } from "@/components/ui/static-list";
 import { Spacing } from "@/constants/theme";
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { useTheme } from "@/hooks/use-theme";
 import type { RouterOutput } from "@/lib/trpc";
 import { useTRPC } from "@/lib/trpc";
 
 type EndedSession = RouterOutput["session"]["listEnded"][number];
-type ActiveSession = NonNullable<RouterOutput["session"]["getActive"]>;
 
 function formatDuration(start: Date, end: Date | null): string {
 	if (!end) return "In progress";
@@ -31,52 +29,6 @@ function rotationLabel(mode: string): string {
 
 function formatDate(value: Date): string {
 	return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function ActiveSessionCard({
-	session,
-	seasonSlug,
-}: {
-	session: ActiveSession;
-	seasonSlug: string;
-}) {
-	const theme = useTheme();
-	return (
-		<Pressable
-			onPress={() =>
-				router.push({
-					pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-					params: { seasonSlug, sessionId: session.id, view: "next" },
-				})
-			}
-			style={({ pressed }) => [
-				styles.activeCard,
-				{
-					borderColor: theme.glowBlueBorder,
-					backgroundColor: theme.glowBlueBg,
-					opacity: pressed ? 0.85 : 1,
-				},
-			]}
-		>
-			<View style={styles.activeHeader}>
-				<View style={styles.liveRow}>
-					<View style={styles.liveDot} />
-					<ThemedText type="smallBold" style={{ color: theme.glowBlueText }}>
-						Active session
-					</ThemedText>
-				</View>
-				<ThemedText type="small" themeColor="textSecondary">
-					{rotationLabel(session.rotationMode)}
-				</ThemedText>
-			</View>
-			<ThemedText type="smallBold" style={styles.activeDate}>
-				{formatDate(session.createdAt)}
-			</ThemedText>
-			<ThemedText type="small" themeColor="textSecondary">
-				In progress · {session.players.length} players · {session.teamSize}v{session.teamSize}
-			</ThemedText>
-		</Pressable>
-	);
 }
 
 function SessionRow({ session, seasonSlug }: { session: EndedSession; seasonSlug: string }) {
@@ -109,41 +61,18 @@ const Separator = () => <View style={styles.separator} />;
 
 export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
-	const activeQuery = useQuery(trpc.session.getActive.queryOptions({ seasonSlug }));
 	const endedQuery = useQuery(trpc.session.listEnded.queryOptions({ seasonSlug, limit: 10 }));
-	const { refreshing, onRefresh } = usePullToRefresh(() =>
-		Promise.all([activeQuery.refetch(), endedQuery.refetch()])
-	);
-
-	const active = activeQuery.data ?? null;
-	const sessions = endedQuery.data ?? [];
 
 	return (
-		<FlatList
-			style={styles.flatList}
-			data={sessions}
+		<StaticList
+			data={endedQuery.data ?? []}
 			keyExtractor={(item) => item.id}
 			renderItem={({ item }) => <SessionRow session={item} seasonSlug={seasonSlug} />}
 			ItemSeparatorComponent={Separator}
-			contentContainerStyle={styles.list}
-			refreshing={refreshing}
-			onRefresh={onRefresh}
-			ListHeaderComponent={
-				active ? (
-					<View style={styles.header}>
-						<ActiveSessionCard session={active} seasonSlug={seasonSlug} />
-						{sessions.length > 0 ? (
-							<ThemedText type="smallBold" style={styles.historyLabel}>
-								History
-							</ThemedText>
-						) : null}
-					</View>
-				) : null
-			}
 			ListEmptyComponent={
-				active ? null : endedQuery.isPending ? (
+				endedQuery.isPending ? (
 					<View>
-						{Array.from({ length: 5 }).map((_, i) => (
+						{Array.from({ length: 3 }).map((_, i) => (
 							<SkeletonListRow key={i} avatarSize={null} />
 						))}
 					</View>
@@ -167,43 +96,6 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 }
 
 const styles = StyleSheet.create({
-	flatList: {
-		flex: 1,
-	},
-	list: {
-		paddingBottom: Spacing.four,
-	},
-	header: {
-		gap: Spacing.two,
-	},
-	historyLabel: {
-		marginTop: Spacing.two,
-	},
-	activeCard: {
-		borderWidth: 1,
-		borderRadius: 10,
-		padding: Spacing.three,
-		gap: Spacing.one,
-	},
-	activeHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	liveRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
-	},
-	liveDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#22c55e",
-	},
-	activeDate: {
-		fontSize: 16,
-	},
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -224,7 +116,7 @@ const styles = StyleSheet.create({
 	},
 	empty: {
 		textAlign: "center",
-		marginTop: Spacing.four,
+		marginVertical: Spacing.three,
 	},
 	emptyBox: {
 		alignItems: "center",

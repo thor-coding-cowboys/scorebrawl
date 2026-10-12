@@ -6,6 +6,7 @@ import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SkeletonMatchRow } from "@/components/ui/skeleton-rows";
+import { StaticList } from "@/components/ui/static-list";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -194,9 +195,11 @@ const Separator = () => <View style={styles.separator} />;
 export function LatestMatches({
 	seasonSlug,
 	season,
+	limit,
 }: {
 	seasonSlug: string;
 	season?: { closed?: boolean | null; archived?: boolean | null } | null;
+	limit?: number;
 }) {
 	const trpc = useTRPC();
 	const theme = useTheme();
@@ -261,6 +264,39 @@ export function LatestMatches({
 		);
 	};
 
+	const emptyState = matchesQuery.isPending ? (
+		<View>
+			{Array.from({ length: limit ?? 6 }).map((_, i) => (
+				<SkeletonMatchRow key={i} />
+			))}
+		</View>
+	) : matchesQuery.isError && matchesQuery.data === undefined ? (
+		<View style={styles.emptyBox}>
+			<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+				Couldn't load matches
+			</ThemedText>
+			<Button variant="outline" onPress={() => matchesQuery.refetch()}>
+				Retry
+			</Button>
+		</View>
+	) : (
+		<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+			No registered matches
+		</ThemedText>
+	);
+
+	if (limit !== undefined) {
+		return (
+			<StaticList
+				data={matches.slice(0, limit)}
+				keyExtractor={(item) => item.id}
+				renderItem={({ item }) => <MatchRow match={item} headers={avatarHeaders} />}
+				ItemSeparatorComponent={Separator}
+				ListEmptyComponent={emptyState}
+			/>
+		);
+	}
+
 	return (
 		<View style={styles.container}>
 			{matches.length > 0 ? (
@@ -287,28 +323,7 @@ export function LatestMatches({
 				contentContainerStyle={styles.list}
 				refreshing={refreshing}
 				onRefresh={onRefresh}
-				ListEmptyComponent={
-					matchesQuery.isPending ? (
-						<View>
-							{Array.from({ length: 6 }).map((_, i) => (
-								<SkeletonMatchRow key={i} />
-							))}
-						</View>
-					) : matchesQuery.isError && matchesQuery.data === undefined ? (
-						<View style={styles.emptyBox}>
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Couldn't load matches
-							</ThemedText>
-							<Button variant="outline" onPress={() => matchesQuery.refetch()}>
-								Retry
-							</Button>
-						</View>
-					) : (
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-							No registered matches
-						</ThemedText>
-					)
-				}
+				ListEmptyComponent={emptyState}
 			/>
 		</View>
 	);
@@ -322,12 +337,14 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingBottom: Spacing.two,
+		paddingHorizontal: Spacing.three,
+		paddingVertical: Spacing.two,
 	},
 	flatList: {
 		flex: 1,
 	},
 	list: {
+		paddingHorizontal: Spacing.three,
 		paddingBottom: Spacing.four,
 	},
 	separator: {
@@ -378,7 +395,7 @@ const styles = StyleSheet.create({
 	},
 	empty: {
 		textAlign: "center",
-		marginTop: Spacing.four,
+		marginVertical: Spacing.three,
 	},
 	emptyBox: {
 		alignItems: "center",

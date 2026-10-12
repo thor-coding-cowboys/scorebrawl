@@ -1,11 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
 import type { ReactNode } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { MobileHeader } from "@/components/mobile-header";
 import { formatDuration, rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -87,7 +85,6 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader onBack={() => router.back()} title="Session Summary" />
 				{query.isPending ? (
 					<SessionSummarySkeleton />
 				) : query.isError || !summary ? (

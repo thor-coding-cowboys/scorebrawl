@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { StandingRow, type StandingItem } from "@/components/standing-row";
 import type { SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
+import { StaticList } from "@/components/ui/static-list";
 import { Spacing } from "@/constants/theme";
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
@@ -43,7 +43,6 @@ export function SessionPlayerStandings({
 	);
 
 	const query = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const { refreshing, onRefresh } = usePullToRefresh(() => query.refetch());
 	const standings: (StandingItem & { dimmed: boolean })[] = [...(query.data ?? [])]
 		.sort((a, b) => {
 			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
@@ -63,15 +62,11 @@ export function SessionPlayerStandings({
 		}));
 
 	return (
-		<FlatList
-			style={styles.flatList}
+		<StaticList
 			data={standings}
 			keyExtractor={(item) => item.id}
 			renderItem={({ item }) => <StandingRow item={item} headers={headers} dimmed={item.dimmed} />}
 			ItemSeparatorComponent={Separator}
-			contentContainerStyle={styles.list}
-			refreshing={refreshing}
-			onRefresh={onRefresh}
 			ListEmptyComponent={
 				query.isPending ? (
 					<View>
@@ -101,9 +96,6 @@ export function SessionTeamStandings({
 
 	const playersQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
 	const teamsQuery = useQuery(trpc.seasonTeam.getStanding.queryOptions({ seasonSlug }));
-	const { refreshing, onRefresh } = usePullToRefresh(() =>
-		Promise.all([playersQuery.refetch(), teamsQuery.refetch()])
-	);
 
 	const highlightLeaguePlayerIds = useMemo(() => {
 		const sessionSeasonPlayerIds = new Set(sessionPlayers.map((p) => p.seasonPlayerId));
@@ -133,15 +125,11 @@ export function SessionTeamStandings({
 		}));
 
 	return (
-		<FlatList
-			style={styles.flatList}
+		<StaticList
 			data={standings}
 			keyExtractor={(item) => item.id}
 			renderItem={({ item }) => <StandingRow item={item} headers={headers} dimmed={item.dimmed} />}
 			ItemSeparatorComponent={Separator}
-			contentContainerStyle={styles.list}
-			refreshing={refreshing}
-			onRefresh={onRefresh}
 			ListEmptyComponent={
 				teamsQuery.isPending ? (
 					<View>
@@ -160,15 +148,10 @@ export function SessionTeamStandings({
 }
 
 const styles = StyleSheet.create({
-	flatList: { flex: 1 },
-	list: {
-		paddingLeft: Spacing.three,
-		paddingBottom: Spacing.four,
-	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
 		backgroundColor: "rgba(128,128,128,0.25)",
 		marginLeft: 44,
 	},
-	empty: { textAlign: "center", marginTop: Spacing.four },
+	empty: { textAlign: "center", marginVertical: Spacing.three },
 });
