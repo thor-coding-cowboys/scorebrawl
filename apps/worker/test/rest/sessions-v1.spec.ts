@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SELF } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
+import { randUuid } from "@ngneat/falso";
+import { and, eq } from "drizzle-orm";
+import { getDb } from "../../src/db/index";
+import { apikey, member } from "../../src/db/schema/auth-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
@@ -59,6 +63,21 @@ async function logMatchRequest(opts: { leagueId: string; key?: string; body: unk
 	});
 }
 
+describe("better-auth api-key endpoints are blocked", () => {
+	it("blocks direct api-key create and list over HTTP", async () => {
+		const create = await SELF.fetch("http://example.com/api/auth/api-key/create", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "bypass" }),
+		});
+		expect(create.status).toBe(404);
+		expect((await create.json()) as { error: string }).toEqual({ error: "not_found" });
+
+		const list = await SELF.fetch("http://example.com/api/auth/api-key/list", { method: "GET" });
+		expect(list.status).toBe(404);
+	});
+});
+
 describe("sessions v1 api key auth", () => {
 	it("rejects a request with no api key", async () => {
 		const { ctx } = await setupActiveSession();
@@ -96,6 +115,39 @@ describe("sessions v1 api key auth", () => {
 		expect(res.status).toBe(403);
 		const data = (await res.json()) as { error: string };
 		expect(data.error).toBe("insufficient_scope");
+	});
+
+	it("rejects a key with no creator metadata", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:log"]);
+		const db = getDb(env.DB);
+		await db.update(apikey).set({ metadata: null }).where(eq(apikey.id, key.id));
+
+		const res = await logMatchRequest({
+			leagueId: ctx.league.id,
+			key: key.key,
+			body: { home: 2, away: 3 },
+		});
+		expect(res.status).toBe(401);
+		expect((await res.json()) as { error: string }).toEqual({ error: "invalid_api_key" });
+	});
+
+	it("rejects a key whose creator is no longer an owner", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:log"]);
+		const db = getDb(env.DB);
+		await db
+			.update(member)
+			.set({ role: "member" })
+			.where(and(eq(member.organizationId, ctx.league.id), eq(member.userId, ctx.user.id)));
+
+		const res = await logMatchRequest({
+			leagueId: ctx.league.id,
+			key: key.key,
+			body: { home: 2, away: 3 },
+		});
+		expect(res.status).toBe(403);
+		expect((await res.json()) as { error: string }).toEqual({ error: "key_owner_not_owner" });
 	});
 
 	it("records the current match with a match:log key", async () => {
@@ -235,6 +287,23 @@ describe("sessions v1 rest routes", () => {
 		expect(res.status).toBe(200);
 		const data = (await res.json()) as { teamSelection: { id: string } };
 		expect(data.teamSelection.id).toBeDefined();
+	});
+
+	it("rejects a lineup containing players not in the season", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:lineup"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/lineup", "PUT", key.key, {
+			home: [seasonPlayers[0].id, seasonPlayers[1].id],
+			away: [seasonPlayers[2].id, randUuid()],
+		});
+
+		expect(res.status).toBe(400);
 	});
 
 	it("rejects an invalid log body", async () => {

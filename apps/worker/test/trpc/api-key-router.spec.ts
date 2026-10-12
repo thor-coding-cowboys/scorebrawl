@@ -115,6 +115,10 @@ describe("api key router", () => {
 		expect(regenerated.key).toMatch(/^sbk_/);
 		expect(regenerated.key).not.toBe(created.key);
 		expect(regenerated.id).not.toBe(created.id);
+
+		const keys = await client.apiKey.list.query();
+		expect(keys.some((key) => key.id === created.id)).toBe(false);
+		expect(keys.some((key) => key.id === regenerated.id)).toBe(true);
 	});
 
 	const nonOwnerCalls: { label: string; call: (client: TestClient) => Promise<unknown> }[] = [
