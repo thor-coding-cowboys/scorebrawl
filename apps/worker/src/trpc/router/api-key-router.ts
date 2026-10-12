@@ -62,7 +62,7 @@ async function createOrgApiKey(ctx: CreateOrgApiKeyContext, input: CreateOrgApiK
 			name: input.name,
 			permissions: scopesToPermissions(input.scopes),
 			expiresIn: expiresInSeconds(input.expiry),
-			metadata: { createdByUserId: ctx.authentication.user.id },
+			metadata: { createdByUserId: ctx.authentication.user.id, expiry: input.expiry },
 		},
 	});
 	return {
@@ -87,6 +87,7 @@ export const apiKeyRouter = {
 			start: key.start ?? "",
 			createdAt: key.createdAt,
 			expiresAt: key.expiresAt,
+			expiry: (key.metadata as { expiry?: string } | null)?.expiry ?? "never",
 			scopes: permissionsToScopes(key.permissions ?? null),
 		}));
 	}),

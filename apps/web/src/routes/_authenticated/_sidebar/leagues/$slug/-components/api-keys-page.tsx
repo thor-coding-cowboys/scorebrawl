@@ -66,6 +66,10 @@ function isScope(value: string): value is Scope {
 	return (SCOPE_OPTIONS as readonly string[]).includes(value);
 }
 
+function isExpiry(value: string): value is Expiry {
+	return (EXPIRY_OPTIONS as readonly { value: string }[]).some((option) => option.value === value);
+}
+
 function formatDate(value: Date | string | null | undefined): string {
 	if (!value) return "Never";
 	return new Date(value).toLocaleDateString("en-US", {
@@ -112,11 +116,14 @@ export function ApiKeysPage({ slug }: { slug: string }) {
 	const regenerateMutation = useMutation({
 		mutationFn: (target: ApiKey) => {
 			const validScopes = target.scopes.filter(isScope);
+			if (validScopes.length === 0) {
+				throw new Error("This key has no valid scopes and cannot be regenerated");
+			}
 			return trpcClient.apiKey.regenerate.mutate({
 				id: target.id,
 				name: target.name || "API Key",
-				scopes: validScopes.length > 0 ? validScopes : [...SCOPE_OPTIONS],
-				expiry: "never",
+				scopes: validScopes,
+				expiry: isExpiry(target.expiry) ? target.expiry : "never",
 			});
 		},
 		onSuccess: (res) => {
@@ -235,6 +242,7 @@ export function ApiKeysPage({ slug }: { slug: string }) {
 															type="button"
 															variant="ghost"
 															size="sm"
+															disabled={key.scopes.filter(isScope).length === 0}
 															onClick={() => setRegenerateTarget(key)}
 														>
 															Regenerate
