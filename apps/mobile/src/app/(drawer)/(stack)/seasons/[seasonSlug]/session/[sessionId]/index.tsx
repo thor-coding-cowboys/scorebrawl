@@ -3,19 +3,14 @@ import { useLocalSearchParams } from "expo-router";
 import { SessionView } from "@/components/session/session-view";
 
 export default function SessionScreen() {
-	const {
-		seasonSlug,
-		sessionId,
-		view = "next",
-	} = useLocalSearchParams<{
+	const { seasonSlug, sessionId } = useLocalSearchParams<{
 		seasonSlug: string;
 		sessionId: string;
-		view?: string;
 	}>();
 
 	if (!seasonSlug || !sessionId) {
 		return null;
 	}
 
-	return <SessionView sessionId={sessionId} seasonSlug={seasonSlug} view={view} />;
+	return <SessionView sessionId={sessionId} seasonSlug={seasonSlug} />;
 }

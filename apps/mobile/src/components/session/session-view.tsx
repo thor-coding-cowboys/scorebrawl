@@ -1,24 +1,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { SymbolView } from "expo-symbols";
+import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MobileHeader } from "@/components/mobile-header";
+import { HeaderActions, HeaderIconButton, HeaderPillButton } from "@/components/nav/header-buttons";
 import { AddPlayerModal } from "@/components/session/add-player-modal";
 import { NextMatchTab } from "@/components/session/next-match-tab";
 import { SessionConfigModal } from "@/components/session/session-config-modal";
 import { SessionPlayerStandings, SessionTeamStandings } from "@/components/session/standings-tab";
 import type { GameSession } from "@/components/session/types";
-import { rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { SectionCard } from "@/components/ui/section-card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useSessionRealtime } from "@/hooks/use-session-realtime";
-import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
 function SessionViewSkeleton() {
@@ -47,16 +46,12 @@ function SessionViewSkeleton() {
 	);
 }
 
-export function SessionView({
-	sessionId,
-	seasonSlug,
-	view,
-}: {
-	sessionId: string;
-	seasonSlug: string;
-	view: string;
-}) {
-	const theme = useTheme();
+const STANDING_TABS = [
+	{ value: "players", label: "Standings" },
+	{ value: "teams", label: "Team Standings" },
+] as const;
+
+export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seasonSlug: string }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { activeLeague } = useActiveLeague();
@@ -66,6 +61,7 @@ export function SessionView({
 
 	const [showSettings, setShowSettings] = useState(false);
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
+	const [standingTab, setStandingTab] = useState<"players" | "teams">("players");
 
 	const handleRemoteEnd = useCallback(() => {
 		queryClient.invalidateQueries({
@@ -74,7 +70,8 @@ export function SessionView({
 		queryClient.invalidateQueries({
 			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
 		});
-		router.replace({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug } });
+		if (router.canGoBack()) router.back();
+		else router.replace({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug } });
 	}, [queryClient, seasonSlug, trpc]);
 
 	useSessionRealtime({
@@ -114,33 +111,27 @@ export function SessionView({
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader
-					onBack={() => router.back()}
-					title="Session"
-					eyebrow={session ? rotationLabel(session.rotationMode) : undefined}
-					right={
-						session ? (
-							<View style={styles.headerActions}>
-								<Pressable
-									onPress={() => setShowSettings(true)}
-									hitSlop={8}
-									accessibilityRole="button"
-									accessibilityLabel="Session settings"
-								>
-									<SymbolView
-										name={{ ios: "gearshape", android: "settings", web: "settings" }}
-										size={18}
-										tintColor={theme.text}
-									/>
-								</Pressable>
-								<Pressable onPress={endSession} hitSlop={8}>
-									<ThemedText type="smallBold" style={{ color: theme.destructive }}>
-										End Session
-									</ThemedText>
-								</Pressable>
-							</View>
-						) : undefined
-					}
+				<Stack.Screen
+					options={{
+						title: "Session",
+						headerRight: session
+							? () => (
+									<HeaderActions>
+										<HeaderIconButton
+											icon={{ ios: "person.badge.plus", android: "person_add", web: "person_add" }}
+											label="Add player"
+											onPress={() => setShowAddPlayer(true)}
+										/>
+										<HeaderIconButton
+											icon={{ ios: "gearshape", android: "settings", web: "settings" }}
+											label="Session settings"
+											onPress={() => setShowSettings(true)}
+										/>
+										<HeaderPillButton label="End" tone="destructive" onPress={endSession} />
+									</HeaderActions>
+								)
+							: undefined,
+					}}
 				/>
 
 				{sessionQuery.isPending ? (
@@ -172,16 +163,32 @@ export function SessionView({
 							</ThemedText>
 						</Pressable>
 					</View>
-				) : view === "standings" ? (
-					<SessionPlayerStandings seasonSlug={seasonSlug} sessionPlayers={session.players} />
-				) : view === "teams" ? (
-					<SessionTeamStandings seasonSlug={seasonSlug} sessionPlayers={session.players} />
 				) : (
 					<NextMatchTab
 						session={session}
 						sessionId={sessionId}
 						seasonSlug={seasonSlug}
 						refresh={() => sessionQuery.refetch()}
+						footer={
+							<SectionCard
+								title={
+									<SegmentedControl
+										options={STANDING_TABS}
+										value={standingTab}
+										onChange={setStandingTab}
+									/>
+								}
+							>
+								{standingTab === "teams" ? (
+									<SessionTeamStandings seasonSlug={seasonSlug} sessionPlayers={session.players} />
+								) : (
+									<SessionPlayerStandings
+										seasonSlug={seasonSlug}
+										sessionPlayers={session.players}
+									/>
+								)}
+							</SectionCard>
+						}
 					/>
 				)}
 
@@ -212,16 +219,7 @@ const styles = StyleSheet.create({
 		maxWidth: MaxContentWidth,
 		paddingHorizontal: Spacing.three,
 		paddingTop: Spacing.three,
-		paddingBottom: Spacing.three,
 	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginBottom: Spacing.three,
-	},
-	headerText: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-	headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
 	empty: { textAlign: "center" },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 	skeletonCard: { gap: Spacing.three, padding: Spacing.three },

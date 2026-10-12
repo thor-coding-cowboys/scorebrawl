@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
 
 import { authClient } from "@/lib/auth-client";
 import { useOrganizations } from "@/hooks/use-organizations";
+import { resetTo } from "@/lib/navigation";
 
 export function useActiveLeague() {
 	const queryClient = useQueryClient();
@@ -59,7 +59,7 @@ export function useActiveLeague() {
 			await queryClient.invalidateQueries();
 			// Reset navigation so the active season is re-resolved for the new league
 			// instead of showing the previously selected league's season.
-			router.replace("/");
+			resetTo("/");
 			return true;
 		},
 		[queryClient]

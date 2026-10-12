@@ -1,7 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withRepeat,
+	withTiming,
+} from "react-native-reanimated";
 
 import { rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
@@ -13,41 +20,51 @@ export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
 	const theme = useTheme();
 	const { data: session } = useQuery(trpc.session.getActive.queryOptions({ seasonSlug }));
+	const pulse = useSharedValue(1);
+
+	useEffect(() => {
+		pulse.value = withRepeat(withTiming(0.35, { duration: 900 }), -1, true);
+	}, [pulse]);
+
+	const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
 	if (!session || session.status !== "active") return null;
 
 	return (
 		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel="Go to session"
 			onPress={() =>
 				router.push({
 					pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-					params: { seasonSlug, sessionId: session.id, view: "next" },
+					params: { seasonSlug, sessionId: session.id },
 				})
 			}
 			style={({ pressed }) => [
 				styles.banner,
-				{
-					backgroundColor: theme.glowBlueBg,
-					borderColor: theme.glowBlueBorder,
-					opacity: pressed ? 0.85 : 1,
-				},
+				{ backgroundColor: theme.amberBg, borderBottomColor: theme.amberBorder },
+				pressed && { opacity: 0.85 },
 			]}
 		>
-			<View style={styles.liveDot} />
+			<Animated.View style={[styles.liveDot, { backgroundColor: theme.amberText }, dotStyle]} />
 			<View style={styles.info}>
-				<ThemedText type="smallBold" style={{ color: theme.glowBlueText }}>
+				<ThemedText type="smallBold" style={[styles.title, { color: theme.amberText }]}>
 					Session in progress
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
-					{rotationLabel(session.rotationMode)} · {session.players.length} players ·{" "}
-					{session.teamSize}v{session.teamSize}
+				<ThemedText type="small" style={[styles.sub, { color: theme.amberText }]} numberOfLines={1}>
+					{rotationLabel(session.rotationMode)} · {session.players.length} players
 				</ThemedText>
 			</View>
-			<SymbolView
-				name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
-				size={16}
-				tintColor={theme.glowBlueText}
-			/>
+			<View style={[styles.cta, { borderColor: theme.amberBorder }]}>
+				<SymbolView
+					name={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
+					size={11}
+					tintColor={theme.amberText}
+				/>
+				<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.amberText }]}>
+					Go to Session
+				</ThemedText>
+			</View>
 		</Pressable>
 	);
 }
@@ -56,20 +73,38 @@ const styles = StyleSheet.create({
 	banner: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: Spacing.three,
-		borderRadius: 0,
-		borderTopWidth: StyleSheet.hairlineWidth,
+		gap: Spacing.two,
+		paddingHorizontal: Spacing.three,
+		paddingVertical: Spacing.two,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		paddingHorizontal: Spacing.four,
-		paddingVertical: Spacing.three,
-		marginHorizontal: -Spacing.four,
-		marginBottom: Spacing.three,
 	},
 	liveDot: {
 		width: 8,
 		height: 8,
 		borderRadius: 4,
-		backgroundColor: "#22c55e",
 	},
-	info: { flex: 1, gap: 1 },
+	info: {
+		flex: 1,
+	},
+	title: {
+		fontSize: 13,
+		lineHeight: 18,
+	},
+	sub: {
+		opacity: 0.85,
+		fontSize: 12,
+		lineHeight: 16,
+	},
+	cta: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+		paddingHorizontal: 10,
+		height: 30,
+		borderWidth: 1,
+	},
+	ctaLabel: {
+		fontSize: 12,
+		lineHeight: 16,
+	},
 });

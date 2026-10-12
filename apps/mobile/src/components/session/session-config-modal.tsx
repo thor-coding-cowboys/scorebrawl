@@ -175,8 +175,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 	const playerName = (seasonPlayerId: string) =>
 		seasonPlayers.find((p) => p.id === seasonPlayerId)?.name ?? "Unknown";
 
-	const minPlayers = teamSize * 2;
-	const canSubmit = (mode === "edit" || selectedPlayerIds.length >= minPlayers) && !isSubmitting;
+	const canSubmit = !isSubmitting;
 
 	const saveChanges = async (target: GameSession) => {
 		const activeMembers = target.players.filter((p) => p.status !== "out");
@@ -232,9 +231,9 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
 		});
 		onClose();
-		router.replace({
+		router.push({
 			pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-			params: { seasonSlug, sessionId: created.id, view: "next" },
+			params: { seasonSlug, sessionId: created.id },
 		});
 	};
 
@@ -271,8 +270,13 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 					<View style={styles.header}>
 						<View style={styles.titleRow}>
 							<View style={[styles.accent, { backgroundColor: "#10b981" }]} />
-							<View>
-								<ThemedText type="subtitle">
+							<View style={styles.titleText}>
+								<ThemedText
+									type="subtitle"
+									style={styles.title}
+									numberOfLines={1}
+									adjustsFontSizeToFit
+								>
 									{mode === "edit" ? "Session Settings" : "Start Session"}
 								</ThemedText>
 								<ThemedText type="small" themeColor="textSecondary">
@@ -697,8 +701,10 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		paddingBottom: Spacing.three,
 	},
-	titleRow: { flexDirection: "row", alignItems: "center", gap: Spacing.two, flex: 1 },
-	accent: { width: 4, height: 28, borderRadius: 2 },
+	titleRow: { flexDirection: "row", alignItems: "stretch", gap: Spacing.three, flex: 1 },
+	accent: { width: 3, marginVertical: 6 },
+	titleText: { flex: 1, gap: Spacing.one },
+	title: { fontSize: 26, lineHeight: 32 },
 	scroll: { flex: 1 },
 	form: { gap: Spacing.four, paddingBottom: Spacing.four },
 	section: { gap: Spacing.two },

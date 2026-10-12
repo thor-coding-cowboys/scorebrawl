@@ -282,13 +282,12 @@ const styles = StyleSheet.create({
 	},
 	titleRow: {
 		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
+		alignItems: "stretch",
+		gap: Spacing.three,
 	},
 	accent: {
-		width: 4,
-		height: 20,
-		borderRadius: 2,
+		width: 3,
+		marginVertical: 8,
 	},
 	scroll: {
 		flex: 1,

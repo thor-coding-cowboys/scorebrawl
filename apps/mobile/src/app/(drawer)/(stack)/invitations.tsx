@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SymbolView } from "expo-symbols";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
 	Alert,
@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MobileHeader } from "@/components/mobile-header";
+import { HeaderPillButton } from "@/components/nav/header-buttons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -254,8 +254,6 @@ function InvitationsSkeleton() {
 }
 
 export default function InvitationsScreen() {
-	const router = useRouter();
-	const params = useLocalSearchParams<{ create?: string }>();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
@@ -266,15 +264,6 @@ export default function InvitationsScreen() {
 		id: string;
 		kind: "resend" | "cancel";
 	} | null>(null);
-
-	useEffect(() => {
-		if (params.create !== "1") return;
-		if (isMemberPending) return;
-		if (canAccess) {
-			setIsInviteOpen(true);
-		}
-		router.setParams({ create: undefined });
-	}, [params.create, canAccess, isMemberPending, router]);
 
 	const {
 		data: invitations = [],
@@ -357,7 +346,20 @@ export default function InvitationsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
-				<MobileHeader title="Invitations" />
+				<Stack.Screen
+					options={{
+						headerRight: canAccess
+							? () => (
+									<HeaderPillButton
+										icon={{ ios: "plus", android: "add", web: "add" }}
+										label="Invite"
+										tone="glow"
+										onPress={() => setIsInviteOpen(true)}
+									/>
+								)
+							: undefined,
+					}}
+				/>
 				<FlatList
 					style={styles.list}
 					data={invitations}

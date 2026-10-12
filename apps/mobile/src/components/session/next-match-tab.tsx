@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
 	Alert,
 	Modal,
@@ -38,11 +38,13 @@ export function NextMatchTab({
 	sessionId,
 	seasonSlug,
 	refresh,
+	footer,
 }: {
 	session: GameSession;
 	sessionId: string;
 	seasonSlug: string;
 	refresh: () => Promise<unknown>;
+	footer?: ReactNode;
 }) {
 	const { refreshing, onRefresh } = usePullToRefresh(refresh);
 	const sessionTheme = useSessionTheme();
@@ -422,12 +424,12 @@ export function NextMatchTab({
 								<TeamRosterCard
 									label="Home"
 									players={homePlayers}
-									emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+									emptyHint={`Pick ${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
 								/>
 								<TeamRosterCard
 									label="Away"
 									players={awayPlayers}
-									emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+									emptyHint={`Pick ${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
 								/>
 							</View>
 							<View style={styles.stack}>
@@ -498,6 +500,8 @@ export function NextMatchTab({
 					</View>
 				) : null}
 			</Card>
+
+			{footer}
 
 			<TeamEditorModal
 				isOpen={showTeamEditor}
