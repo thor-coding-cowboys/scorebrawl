@@ -144,4 +144,25 @@ describe("api key router", () => {
 		const code = await errorCode(() => call(client));
 		expect(code).toBe("FORBIDDEN");
 	});
+
+	it("isolates keys between leagues", async () => {
+		const clientA = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+		const created = await clientA.apiKey.create.mutate({
+			name: "League A key",
+			scopes: ["session:start"],
+			expiry: "never",
+		});
+
+		const otherCtx = await createAuthContext();
+		const clientB = createTRPCTestClient({ sessionToken: otherCtx.sessionToken });
+
+		const listB = await clientB.apiKey.list.query();
+		expect(listB.some((key) => key.id === created.id)).toBe(false);
+
+		const code = await errorCode(() => clientB.apiKey.delete.mutate({ id: created.id }));
+		expect(code).toBe("NOT_FOUND");
+
+		const listA = await clientA.apiKey.list.query();
+		expect(listA.some((key) => key.id === created.id)).toBe(true);
+	});
 });

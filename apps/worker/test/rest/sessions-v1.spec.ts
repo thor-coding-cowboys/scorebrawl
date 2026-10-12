@@ -6,7 +6,7 @@ import { createTRPCTestClient } from "../trpc/trpc-test-client";
 
 type TestClient = ReturnType<typeof createTRPCTestClient>;
 
-async function setupActiveSession(playerCount = 4, teamSize = 2) {
+async function setupSeason(playerCount = 4) {
 	const ctx = await createAuthContext();
 	const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
 
@@ -19,6 +19,12 @@ async function setupActiveSession(playerCount = 4, teamSize = 2) {
 		startDate: new Date(),
 	});
 	const seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });
+
+	return { ctx, client, season, seasonPlayers };
+}
+
+async function setupActiveSession(playerCount = 4, teamSize = 2) {
+	const { ctx, client, season, seasonPlayers } = await setupSeason(playerCount);
 
 	const session = await client.session.create.mutate({
 		seasonSlug: season.slug,
@@ -143,5 +149,110 @@ describe("sessions v1 api key auth", () => {
 		expect(res.status).toBe(403);
 		const data = (await res.json()) as { error: string };
 		expect(data.error).toBe("insufficient_scope");
+	});
+});
+
+describe("sessions v1 rest routes", () => {
+	async function jsonRequest(
+		leagueId: string,
+		path: string,
+		method: string,
+		key: string,
+		body?: unknown
+	) {
+		return SELF.fetch(sessionsUrl(leagueId, path), {
+			method,
+			headers: { "x-api-key": key, "Content-Type": "application/json" },
+			...(body === undefined ? {} : { body: JSON.stringify(body) }),
+		});
+	}
+
+	it("starts a session with default options", async () => {
+		const { ctx, client, season } = await setupSeason();
+		const key = await createKey(client, ["session:start"]);
+
+		const res = await jsonRequest(ctx.league.id, "", "POST", key.key, {
+			seasonSlug: season.slug,
+		});
+
+		expect(res.status).toBe(201);
+		const data = (await res.json()) as {
+			session: { id: string; rotationMode: string; teamSize: number };
+		};
+		expect(data.session.id).toBeDefined();
+		expect(data.session.rotationMode).toBe("winner-stays");
+		expect(data.session.teamSize).toBe(1);
+	});
+
+	it("ends the active session", async () => {
+		const { ctx, client, session } = await setupActiveSession();
+		const key = await createKey(client, ["session:stop"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/end", "POST", key.key);
+
+		expect(res.status).toBe(200);
+		const data = (await res.json()) as { session: { id: string } };
+		expect(data.session.id).toBe(session.id);
+	});
+
+	it("returns 404 when ending with no active session", async () => {
+		const { ctx, client } = await setupSeason();
+		const key = await createKey(client, ["session:stop"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/end", "POST", key.key);
+
+		expect(res.status).toBe(404);
+	});
+
+	it("starts the next match", async () => {
+		const { ctx, client, seasonPlayers } = await setupActiveSession();
+		const key = await createKey(client, ["match:start"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {
+			home: [seasonPlayers[0].id, seasonPlayers[1].id],
+			away: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+
+		expect(res.status).toBe(201);
+		const data = (await res.json()) as { match: { id: string } };
+		expect(data.match.id).toBeDefined();
+	});
+
+	it("sets the lineup for the current match", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:lineup"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/lineup", "PUT", key.key, {
+			home: [seasonPlayers[0].id, seasonPlayers[1].id],
+			away: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+
+		expect(res.status).toBe(200);
+		const data = (await res.json()) as { teamSelection: { id: string } };
+		expect(data.teamSelection.id).toBeDefined();
+	});
+
+	it("rejects an invalid log body", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:log"]);
+
+		const negative = await logMatchRequest({
+			leagueId: ctx.league.id,
+			key: key.key,
+			body: { home: -1, away: 3 },
+		});
+		expect(negative.status).toBe(400);
+
+		const missing = await logMatchRequest({
+			leagueId: ctx.league.id,
+			key: key.key,
+			body: { home: 2 },
+		});
+		expect(missing.status).toBe(400);
 	});
 });
