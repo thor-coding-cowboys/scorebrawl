@@ -155,6 +155,14 @@ const memberCheckMiddleware = t.middleware(({ ctx, next }) => {
 	return next();
 });
 
+const ownerCheckMiddleware = t.middleware(({ ctx, next }) => {
+	const typedCtx = ctx as unknown as LeagueContext;
+	if (typedCtx.role !== "owner") {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Owner access required" });
+	}
+	return next();
+});
+
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
@@ -179,6 +187,11 @@ export const leagueMemberProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
+
+export const leagueOwnerProcedure = t.procedure
+	.use(enforceUserIsAuthed)
+	.use(leagueAccessMiddleware)
+	.use(ownerCheckMiddleware);
 
 // Admin check middleware - mirrors better-auth's admin plugin config
 // (adminUserIds plus users with the "admin" role).
