@@ -101,6 +101,13 @@ describe("sessions v1 api key auth", () => {
 		expect(res.status).toBe(403);
 		const data = (await res.json()) as { error: string };
 		expect(data.error).toBe("wrong_league");
+
+		const [stored] = await getDb(env.DB)
+			.select({ requestCount: apikey.requestCount, lastRequest: apikey.lastRequest })
+			.from(apikey)
+			.where(eq(apikey.id, otherKey.id));
+		expect(stored?.requestCount ?? 0).toBe(0);
+		expect(stored?.lastRequest).toBeNull();
 	});
 
 	it("rejects a key missing the required scope", async () => {

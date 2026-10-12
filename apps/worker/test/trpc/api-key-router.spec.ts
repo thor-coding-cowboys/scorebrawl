@@ -121,6 +121,35 @@ describe("api key router", () => {
 		expect(keys.some((key) => key.id === regenerated.id)).toBe(true);
 	});
 
+	it("keeps only the original key when deleting it fails during regenerate", async () => {
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+		const created = await client.apiKey.create.mutate({
+			name: "Original",
+			scopes: ["session:start"],
+			expiry: "30d",
+		});
+
+		const trigger = `block_apikey_delete_${created.id.replace(/\W/g, "_")}`;
+		await env.DB.exec(
+			`CREATE TRIGGER ${trigger} BEFORE DELETE ON apikey WHEN OLD.id = '${created.id}' BEGIN SELECT RAISE(ABORT, 'blocked'); END;`
+		);
+		try {
+			await expect(
+				client.apiKey.regenerate.mutate({
+					id: created.id,
+					name: "Rotated",
+					scopes: ["session:start"],
+					expiry: "30d",
+				})
+			).rejects.toThrow();
+		} finally {
+			await env.DB.exec(`DROP TRIGGER ${trigger};`);
+		}
+
+		const keys = await client.apiKey.list.query();
+		expect(keys.map((key) => key.id)).toEqual([created.id]);
+	});
+
 	const nonOwnerCalls: { label: string; call: (client: TestClient) => Promise<unknown> }[] = [
 		{
 			label: "create",

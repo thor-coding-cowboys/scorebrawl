@@ -1,7 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import { and, eq } from "drizzle-orm";
+import { defaultKeyHasher } from "@better-auth/api-key";
 import type { HonoEnv } from "../middleware/context";
-import { league, member } from "../db/schema/auth-schema";
+import { apikey, league, member } from "../db/schema/auth-schema";
 
 function hasRequiredPermissions(
 	permissions: Record<string, string[]>,
@@ -20,6 +21,19 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 			c.req.header("x-api-key") ?? c.req.header("authorization")?.replace(/^Bearer /i, "");
 		if (!key) {
 			return c.json({ error: "missing_api_key" }, 401);
+		}
+		const [stored] = await db
+			.select({ referenceId: apikey.referenceId, slug: league.slug, name: league.name })
+			.from(apikey)
+			.innerJoin(league, eq(league.id, apikey.referenceId))
+			.where(eq(apikey.key, await defaultKeyHasher(key)))
+			.limit(1);
+		if (!stored) {
+			return c.json({ error: "invalid_api_key", error_description: null }, 401);
+		}
+		const leagueId = c.req.param("leagueId");
+		if (stored.referenceId !== leagueId) {
+			return c.json({ error: "wrong_league" }, 403);
 		}
 		const result = await auth.api.verifyApiKey({ body: { key } });
 		if (!result.valid || !result.key) {
@@ -44,18 +58,6 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 		if (!hasRequiredPermissions(permissions, required)) {
 			return c.json({ error: "insufficient_scope" }, 403);
 		}
-		const leagueId = c.req.param("leagueId");
-		if (result.key.referenceId !== leagueId) {
-			return c.json({ error: "wrong_league" }, 403);
-		}
-		const [org] = await db
-			.select({ id: league.id, slug: league.slug, name: league.name })
-			.from(league)
-			.where(eq(league.id, leagueId))
-			.limit(1);
-		if (!org) {
-			return c.json({ error: "league_not_found" }, 404);
-		}
 		const metadata = (result.key.metadata ?? {}) as { createdByUserId?: string };
 		const createdByUserId = metadata.createdByUserId;
 		if (!createdByUserId) {
@@ -71,10 +73,10 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 		}
 		c.set("apiKey", {
 			keyId: result.key.id,
-			organizationId: result.key.referenceId,
+			organizationId: leagueId,
 			userId: createdByUserId,
 			keyName: result.key.name ?? "API Key",
-			organization: { id: org.id, slug: org.slug, name: org.name },
+			organization: { id: leagueId, slug: stored.slug, name: stored.name },
 			permissions,
 		});
 		await next();
