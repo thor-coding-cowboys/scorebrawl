@@ -424,12 +424,12 @@ export function NextMatchTab({
 								<TeamRosterCard
 									label="Home"
 									players={homePlayers}
-									emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+									emptyHint={`Pick ${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
 								/>
 								<TeamRosterCard
 									label="Away"
 									players={awayPlayers}
-									emptyHint={`${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
+									emptyHint={`Pick ${session.teamSize} player${session.teamSize !== 1 ? "s" : ""}`}
 								/>
 							</View>
 							<View style={styles.stack}>
