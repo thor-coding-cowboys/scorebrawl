@@ -128,7 +128,7 @@ export function LeagueSwitcher() {
 										onPress={() => handleSelect(org.id)}
 										style={({ pressed }) => [
 											styles.leagueItem,
-											isActive && { backgroundColor: theme.backgroundSelected },
+											isActive && { backgroundColor: theme.backgroundElement },
 											pressed && { opacity: 0.7 },
 										]}
 									>

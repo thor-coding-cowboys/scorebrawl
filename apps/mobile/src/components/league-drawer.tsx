@@ -81,7 +81,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 		<View
 			style={[
 				styles.container,
-				{ backgroundColor: theme.card, paddingTop: insets.top, paddingBottom: insets.bottom },
+				{ backgroundColor: theme.surface, paddingTop: insets.top, paddingBottom: insets.bottom },
 			]}
 		>
 			<View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -130,7 +130,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 										style={({ pressed }) => [
 											styles.subItem,
 											isOnActiveSeason &&
-												seasonSlug === season.slug && { backgroundColor: theme.backgroundSelected },
+												seasonSlug === season.slug && { backgroundColor: theme.backgroundElement },
 											pressed && styles.pressed,
 										]}
 									>
@@ -187,7 +187,7 @@ function NavRow({
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.navItem,
-				active && { backgroundColor: theme.backgroundSelected },
+				active && { backgroundColor: theme.backgroundElement },
 				pressed && styles.pressed,
 			]}
 		>

@@ -7,7 +7,7 @@ export function Card({ style, ...props }: ViewProps) {
 	const theme = useTheme();
 	return (
 		<View
-			style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }, style]}
+			style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, style]}
 			{...props}
 		/>
 	);
