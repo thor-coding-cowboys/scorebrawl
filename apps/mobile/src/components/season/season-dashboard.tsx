@@ -83,7 +83,7 @@ export function SeasonDashboard({ season }: { season: Season }) {
 												web: "play_circle",
 											}}
 											label={activeSession ? "Go to session" : "Start session"}
-											tint={activeSession ? "#f59e0b" : undefined}
+											tint={activeSession ? theme.amberText : undefined}
 											onPress={openSession}
 										/>
 									) : null}

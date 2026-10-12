@@ -13,12 +13,12 @@ import Animated, {
 import { rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import { useTRPC } from "@/lib/trpc";
-
-const AMBER = "#f59e0b";
 
 export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const { data: session } = useQuery(trpc.session.getActive.queryOptions({ seasonSlug }));
 	const pulse = useSharedValue(1);
 
@@ -40,24 +40,28 @@ export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 					params: { seasonSlug, sessionId: session.id },
 				})
 			}
-			style={({ pressed }) => [styles.banner, pressed && { opacity: 0.85 }]}
+			style={({ pressed }) => [
+				styles.banner,
+				{ backgroundColor: theme.amberBg, borderBottomColor: theme.amberBorder },
+				pressed && { opacity: 0.85 },
+			]}
 		>
-			<Animated.View style={[styles.liveDot, dotStyle]} />
+			<Animated.View style={[styles.liveDot, { backgroundColor: theme.amberText }, dotStyle]} />
 			<View style={styles.info}>
-				<ThemedText type="smallBold" style={styles.title}>
+				<ThemedText type="smallBold" style={[styles.title, { color: theme.amberText }]}>
 					Session in progress
 				</ThemedText>
-				<ThemedText type="small" style={styles.sub} numberOfLines={1}>
+				<ThemedText type="small" style={[styles.sub, { color: theme.amberText }]} numberOfLines={1}>
 					{rotationLabel(session.rotationMode)} · {session.players.length} players
 				</ThemedText>
 			</View>
-			<View style={styles.cta}>
+			<View style={[styles.cta, { borderColor: theme.amberBorder }]}>
 				<SymbolView
 					name={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
 					size={11}
-					tintColor={AMBER}
+					tintColor={theme.amberText}
 				/>
-				<ThemedText type="smallBold" style={styles.ctaLabel}>
+				<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.amberText }]}>
 					Go to Session
 				</ThemedText>
 			</View>
@@ -72,26 +76,22 @@ const styles = StyleSheet.create({
 		gap: Spacing.two,
 		paddingHorizontal: Spacing.three,
 		paddingVertical: Spacing.two,
-		backgroundColor: "rgba(245, 158, 11, 0.10)",
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(245, 158, 11, 0.25)",
 	},
 	liveDot: {
 		width: 8,
 		height: 8,
 		borderRadius: 4,
-		backgroundColor: AMBER,
 	},
 	info: {
 		flex: 1,
 	},
 	title: {
-		color: AMBER,
 		fontSize: 13,
 		lineHeight: 18,
 	},
 	sub: {
-		color: "rgba(245, 158, 11, 0.8)",
+		opacity: 0.85,
 		fontSize: 12,
 		lineHeight: 16,
 	},
@@ -102,10 +102,8 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		height: 30,
 		borderWidth: 1,
-		borderColor: "rgba(245, 158, 11, 0.35)",
 	},
 	ctaLabel: {
-		color: AMBER,
 		fontSize: 12,
 		lineHeight: 16,
 	},

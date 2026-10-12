@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string>({
 		<View
 			accessibilityRole="tablist"
 			onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
-			style={[styles.container, { backgroundColor: theme.backgroundSelected }]}
+			style={[styles.container, { backgroundColor: theme.backgroundElement }]}
 		>
 			{width > 0 ? (
 				<Animated.View

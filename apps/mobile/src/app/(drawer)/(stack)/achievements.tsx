@@ -148,7 +148,7 @@ export default function AchievementsScreen() {
 														style={[
 															styles.holder,
 															i > 0 && styles.holderOverlap,
-															{ borderColor: theme.card },
+															{ borderColor: theme.surface },
 														]}
 													>
 														<Avatar

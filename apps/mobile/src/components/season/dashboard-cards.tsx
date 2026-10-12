@@ -12,6 +12,7 @@ import {
 
 import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
+import { CardGlow } from "@/components/ui/card-glow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
@@ -40,8 +41,8 @@ function DashboardCard({
 }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-			<View style={[styles.glow, { backgroundColor: `${accent}0d` }]} />
+		<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+			<CardGlow color={accent} />
 			<View style={styles.cardHeader}>
 				<ThemedText type="smallBold">{title}</ThemedText>
 				<SymbolView name={icon} size={16} tintColor={accent} />
@@ -322,14 +323,6 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		minHeight: 120,
 		overflow: "hidden",
-	},
-	glow: {
-		position: "absolute",
-		top: -60,
-		right: -60,
-		width: 180,
-		height: 180,
-		borderRadius: 90,
 	},
 	cardHeader: {
 		flexDirection: "row",
