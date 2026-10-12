@@ -1,9 +1,9 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import type { betterAuth } from "better-auth";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z } from "zod";
 import type { getDb } from "../db";
+import type { createAuth } from "../lib/better-auth";
 import { member, league as organization } from "../db/schema/auth-schema";
 import { season } from "../db/schema/league-schema";
 import type { AuthType, HonoEnv } from "../middleware/context";
@@ -13,7 +13,7 @@ import type { R2BucketRef } from "../lib/asset-util";
 interface BaseContext {
 	authentication?: AuthType;
 	db: ReturnType<typeof getDb>;
-	betterAuth: ReturnType<typeof betterAuth>;
+	betterAuth: ReturnType<typeof createAuth>;
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
 	waitUntil: (promise: Promise<unknown>) => void;
