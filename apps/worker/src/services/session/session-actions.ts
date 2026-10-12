@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { HonoEnv } from "../../middleware/context";
 import type { DrizzleDB } from "../../db";
@@ -366,6 +366,21 @@ export async function setLineup(
 	input: { sessionId?: string; home: string[]; away: string[] }
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	const playerIds = [...new Set([...input.home, ...input.away])];
+	if (playerIds.length > 0) {
+		const found = await ctx.db
+			.select({ id: seasonPlayer.id })
+			.from(seasonPlayer)
+			.where(and(eq(seasonPlayer.seasonId, session.seasonId), inArray(seasonPlayer.id, playerIds)));
+		if (found.length !== playerIds.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Lineup contains players not in this season",
+			});
+		}
+	}
+
 	const sessionMatchId = await resolveCurrentMatchId(ctx, session.id);
 
 	const updated = await sessionRepository.updateTeamSelection({

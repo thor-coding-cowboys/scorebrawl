@@ -130,7 +130,12 @@ export const apiKeyRouter = {
 				throw new TRPCError({ code: "NOT_FOUND", message: "API key not found" });
 			}
 			const created = await createOrgApiKey(ctx, input);
-			await ctx.db.delete(apikey).where(eq(apikey.id, input.id));
+			try {
+				await ctx.db.delete(apikey).where(eq(apikey.id, input.id));
+			} catch (error) {
+				await ctx.db.delete(apikey).where(eq(apikey.id, created.id));
+				throw error;
+			}
 			return created;
 		}),
 } satisfies TRPCRouterRecord;

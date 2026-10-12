@@ -40,6 +40,7 @@ function mapError(error: unknown): HTTPException {
 		};
 		return new HTTPException(codes[error.code] ?? 400, { message: error.message });
 	}
+	console.error("[sessions-v1]", error);
 	return new HTTPException(500, { message: "Internal server error" });
 }
 
@@ -50,7 +51,7 @@ function actionCtx(c: Context<HonoEnv>): SessionActionContext {
 		db: c.get("db"),
 		env: c.env,
 		organization: apiKey.organization,
-		user: { id: apiKey.userId, name: "API Key" },
+		user: { id: apiKey.userId, name: apiKey.keyName },
 		waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
 	};
 }
