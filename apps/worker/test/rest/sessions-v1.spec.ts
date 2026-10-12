@@ -183,6 +183,30 @@ describe("sessions v1 api key auth", () => {
 		expect(recorded).toBeDefined();
 	});
 
+	it("rate limits a key once its per-key limit is reached", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:log"]);
+		const db = getDb(env.DB);
+		await db
+			.update(apikey)
+			.set({ rateLimitEnabled: true, rateLimitMax: 2, rateLimitTimeWindow: 60_000 })
+			.where(eq(apikey.id, key.id));
+
+		const req = () =>
+			logMatchRequest({ leagueId: ctx.league.id, key: key.key, body: { home: 2, away: 3 } });
+		expect((await req()).status).not.toBe(429);
+		expect((await req()).status).not.toBe(429);
+
+		const limited = await logMatchRequest({
+			leagueId: ctx.league.id,
+			key: key.key,
+			body: { home: 2, away: 3 },
+		});
+		expect(limited.status).toBe(429);
+		const data = (await limited.json()) as { error: string };
+		expect(data.error).toBe("rate_limited");
+	});
+
 	it("forbids a session:start-only key from logging a match", async () => {
 		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
 
