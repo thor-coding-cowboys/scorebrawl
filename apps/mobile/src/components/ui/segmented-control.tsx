@@ -31,13 +31,13 @@ export function SegmentedControl<T extends string>({
 		<View
 			accessibilityRole="tablist"
 			onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
-			style={[styles.container, { backgroundColor: theme.backgroundElement }]}
+			style={[styles.container, { backgroundColor: theme.segmentTrack, borderColor: theme.border }]}
 		>
 			{width > 0 ? (
 				<Animated.View
 					style={[
 						styles.indicator,
-						{ backgroundColor: theme.background, borderColor: theme.border },
+						{ backgroundColor: theme.segmentThumb, borderColor: theme.segmentThumbBorder },
 						indicatorStyle,
 					]}
 				/>
@@ -53,7 +53,7 @@ export function SegmentedControl<T extends string>({
 						style={styles.segment}
 					>
 						<ThemedText
-							type={selected ? "smallBold" : "small"}
+							type="small"
 							themeColor={selected ? "text" : "textSecondary"}
 							numberOfLines={1}
 							style={styles.label}
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
 	container: {
 		flexDirection: "row",
 		padding: 3,
+		borderWidth: StyleSheet.hairlineWidth,
 	},
 	indicator: {
 		position: "absolute",
@@ -83,9 +84,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		paddingVertical: 6,
+		paddingVertical: 5,
 	},
 	label: {
-		fontSize: 13,
+		fontSize: 12,
+		lineHeight: 18,
 	},
 });
