@@ -1,6 +1,7 @@
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import { oauthProvider } from "@better-auth/oauth-provider";
+import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization, admin, bearer, deviceAuthorization, jwt } from "better-auth/plugins";
@@ -332,6 +333,14 @@ export function createAuth({
 				origin: passkeyOrigin,
 			}),
 			bearer(),
+			apiKey({
+				references: "organization",
+				defaultPrefix: "sbk_",
+				startingCharactersConfig: { shouldStore: true, charactersLength: 12 },
+				enableMetadata: true,
+				requireName: true,
+				keyExpiration: { defaultExpiresIn: null, minExpiresIn: 1, maxExpiresIn: 3650 },
+			}),
 			deviceAuthorization({
 				verificationUri: "/device",
 				schema: {},
