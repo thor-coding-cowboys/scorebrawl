@@ -10,6 +10,12 @@ import { MobileHeader } from "@/components/mobile-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+	SkeletonSectionHeader,
+	SkeletonStandingRow,
+	SkeletonStatGrid,
+} from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -104,6 +110,26 @@ function TeammateRow({
 	);
 }
 
+function PlayerDetailSkeleton() {
+	return (
+		<View style={styles.skeleton}>
+			<View style={styles.skeletonHero}>
+				<Skeleton width={78} height={78} radius={14} />
+				<Skeleton width={120} height={16} />
+				<Skeleton width={150} height={11} />
+				<Skeleton width={92} height={28} radius={7} />
+			</View>
+			<SkeletonSectionHeader width={80} />
+			<SkeletonStatGrid />
+			<SkeletonStatGrid />
+			<SkeletonSectionHeader width={90} />
+			{Array.from({ length: 2 }).map((_, i) => (
+				<SkeletonStandingRow key={i} />
+			))}
+		</View>
+	);
+}
+
 export function PlayerDetail({ playerId, view = "overview" }: { playerId: string; view?: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
@@ -158,9 +184,7 @@ export function PlayerDetail({ playerId, view = "overview" }: { playerId: string
 			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<MobileHeader onBack={() => router.back()} title={player?.name ?? "Player"} />
 				{playerQuery.isPending || !seasonSlug ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading player…
-					</ThemedText>
+					<PlayerDetailSkeleton />
 				) : playerQuery.isError ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary">
@@ -476,6 +500,14 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		paddingHorizontal: Spacing.one,
 	},
-	empty: { textAlign: "center", marginTop: Spacing.five },
+	skeleton: {
+		gap: Spacing.three,
+		paddingTop: Spacing.four,
+	},
+	skeletonHero: {
+		alignItems: "center",
+		gap: Spacing.two,
+		paddingBottom: Spacing.three,
+	},
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
 });

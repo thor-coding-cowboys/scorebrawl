@@ -5,6 +5,7 @@ import { Alert, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { SkeletonMatchRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -288,9 +289,11 @@ export function LatestMatches({
 				onRefresh={onRefresh}
 				ListEmptyComponent={
 					matchesQuery.isPending ? (
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-							Loading matches…
-						</ThemedText>
+						<View>
+							{Array.from({ length: 6 }).map((_, i) => (
+								<SkeletonMatchRow key={i} />
+							))}
+						</View>
 					) : matchesQuery.isError && matchesQuery.data === undefined ? (
 						<View style={styles.emptyBox}>
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

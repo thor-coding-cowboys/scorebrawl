@@ -24,6 +24,7 @@ export const Colors = {
 		destructive: "#dc2626",
 		card: "#ffffff",
 		mutedForeground: "#71717a",
+		splashBackground: "#FAFBFE",
 	},
 	dark: {
 		text: "#ffffff",
@@ -41,6 +42,7 @@ export const Colors = {
 		destructive: "#f87171",
 		card: "#202023",
 		mutedForeground: "#a1a1aa",
+		splashBackground: "#061739",
 	},
 } as const;
 

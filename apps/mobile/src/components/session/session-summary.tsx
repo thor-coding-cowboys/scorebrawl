@@ -10,6 +10,11 @@ import { formatDuration, rotationLabel } from "@/components/session/utils";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import {
+	SkeletonSectionHeader,
+	SkeletonStandingRow,
+	SkeletonStatGrid,
+} from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -50,6 +55,20 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 	);
 }
 
+function SessionSummarySkeleton() {
+	return (
+		<View style={styles.skeleton}>
+			<SkeletonSectionHeader width={64} />
+			<SkeletonStatGrid />
+			<SkeletonStatGrid />
+			<SkeletonSectionHeader width={110} />
+			{Array.from({ length: 3 }).map((_, i) => (
+				<SkeletonStandingRow key={i} avatarSize={30} />
+			))}
+		</View>
+	);
+}
+
 export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 	const theme = useTheme();
 	const trpc = useTRPC();
@@ -70,9 +89,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 			<SafeAreaView edges={[]} style={styles.safeArea}>
 				<MobileHeader onBack={() => router.back()} title="Session Summary" />
 				{query.isPending ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading summary…
-					</ThemedText>
+					<SessionSummarySkeleton />
 				) : query.isError || !summary ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary">
@@ -242,6 +259,6 @@ const styles = StyleSheet.create({
 	},
 	matchSide: { flex: 1 },
 	matchWinner: { fontWeight: "700" },
-	empty: { textAlign: "center", marginTop: Spacing.five },
 	emptyBox: { alignItems: "center", gap: Spacing.three, marginTop: Spacing.five },
+	skeleton: { gap: Spacing.three, paddingTop: Spacing.four },
 });

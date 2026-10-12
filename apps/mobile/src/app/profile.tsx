@@ -10,6 +10,8 @@ import { EditProfileModal } from "@/components/profile/edit-profile-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -199,9 +201,15 @@ export default function ProfileScreen() {
 						</View>
 
 						{sessionsQuery.isPending ? (
-							<ThemedText type="small" themeColor="textSecondary">
-								Loading sessions…
-							</ThemedText>
+							<View>
+								{Array.from({ length: 3 }).map((_, i) => (
+									<SkeletonListRow
+										key={i}
+										avatarSize={null}
+										trailing={<Skeleton width={48} height={12} />}
+									/>
+								))}
+							</View>
 						) : sessionsQuery.isError ? (
 							<ThemedText type="small" themeColor="textSecondary">
 								Couldn't load sessions

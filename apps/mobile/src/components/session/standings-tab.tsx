@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, View } from "react-native";
 import { StandingRow, type StandingItem } from "@/components/standing-row";
 import type { SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
+import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -72,9 +73,17 @@ export function SessionPlayerStandings({
 			refreshing={refreshing}
 			onRefresh={onRefresh}
 			ListEmptyComponent={
-				<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-					{query.isPending ? "Loading standings…" : "No standings"}
-				</ThemedText>
+				query.isPending ? (
+					<View>
+						{Array.from({ length: 5 }).map((_, i) => (
+							<SkeletonStandingRow key={i} />
+						))}
+					</View>
+				) : (
+					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						No standings
+					</ThemedText>
+				)
 			}
 		/>
 	);
@@ -134,9 +143,17 @@ export function SessionTeamStandings({
 			refreshing={refreshing}
 			onRefresh={onRefresh}
 			ListEmptyComponent={
-				<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-					{teamsQuery.isPending ? "Loading standings…" : "No team standings"}
-				</ThemedText>
+				teamsQuery.isPending ? (
+					<View>
+						{Array.from({ length: 5 }).map((_, i) => (
+							<SkeletonStandingRow key={i} />
+						))}
+					</View>
+				) : (
+					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						No team standings
+					</ThemedText>
+				)
 			}
 		/>
 	);

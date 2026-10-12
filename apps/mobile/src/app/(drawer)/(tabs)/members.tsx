@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
@@ -191,6 +192,16 @@ function ChangeRoleModal({
 	);
 }
 
+function MembersSkeleton() {
+	return (
+		<View>
+			{Array.from({ length: 6 }).map((_, i) => (
+				<SkeletonListRow key={i} trailing={<SkeletonTrailing />} />
+			))}
+		</View>
+	);
+}
+
 export default function MembersScreen() {
 	const theme = useTheme();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
@@ -303,17 +314,13 @@ export default function MembersScreen() {
 					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isMemberPending ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<MembersSkeleton />
 						) : !canAccess ? (
 							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
 								You don’t have access to manage members.
 							</ThemedText>
 						) : isLoading ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<MembersSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
 								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

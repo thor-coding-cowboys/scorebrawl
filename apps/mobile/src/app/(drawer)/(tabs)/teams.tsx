@@ -19,6 +19,8 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
@@ -223,9 +225,14 @@ export default function TeamsScreen() {
 					contentContainerStyle={styles.listContent}
 					ListEmptyComponent={
 						isLoading ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-								Loading…
-							</ThemedText>
+							<View>
+								{Array.from({ length: 6 }).map((_, i) => (
+									<SkeletonListRow
+										key={i}
+										trailing={<Skeleton width={54} height={24} radius={7} />}
+									/>
+								))}
+							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
 								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

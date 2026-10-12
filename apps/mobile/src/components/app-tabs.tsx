@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CreateMatchFlow } from "@/components/create-match-flow";
 import { CreateSeasonForm } from "@/components/create-season-form";
 import { AddPlayerModal } from "@/components/session/add-player-modal";
-import { StartSessionModal } from "@/components/start-session-modal";
+import { SessionConfigModal } from "@/components/session/session-config-modal";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -443,7 +443,8 @@ export default function AppTabs() {
 				/>
 			) : null}
 			{isSeasonView && seasonSlug ? (
-				<StartSessionModal
+				<SessionConfigModal
+					mode="create"
 					isOpen={isStartSessionOpen}
 					onClose={() => setIsStartSessionOpen(false)}
 					seasonSlug={seasonSlug}

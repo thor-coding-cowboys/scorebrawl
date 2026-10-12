@@ -13,6 +13,7 @@ import { SessionHistory } from "@/components/session-history";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
+import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { getSeasonStatus } from "@/lib/collections/season";
@@ -53,9 +54,11 @@ export default function SeasonOverviewScreen() {
 				<ActiveSessionBanner seasonSlug={seasonSlug} />
 
 				{isLoading ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-						Loading…
-					</ThemedText>
+					<View>
+						{Array.from({ length: 6 }).map((_, i) => (
+							<SkeletonStandingRow key={i} />
+						))}
+					</View>
 				) : isError ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>

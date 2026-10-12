@@ -5,10 +5,13 @@ import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { useTheme } from "@/hooks/use-theme";
+
 const INITIAL_SCALE_FACTOR = Dimensions.get("screen").height / 90;
-const DURATION = 600;
+const DURATION = 400;
 
 export function AnimatedSplashOverlay() {
+	const theme = useTheme();
 	const [animate, setAnimate] = useState(false);
 	const [visible, setVisible] = useState(true);
 
@@ -16,24 +19,23 @@ export function AnimatedSplashOverlay() {
 
 	const splashKeyframe = new Keyframe({
 		0: {
-			transform: [{ scale: 1 }],
 			opacity: 1,
-		},
-		20: {
-			opacity: 1,
-		},
-		70: {
-			opacity: 0,
-			easing: Easing.elastic(0.7),
 		},
 		100: {
 			opacity: 0,
-			transform: [{ scale: 1 }],
-			easing: Easing.elastic(0.7),
+			easing: Easing.linear,
 		},
 	});
 
-	const image = <Image style={styles.image} source={require("@/assets/images/expo-logo.png")} />;
+	const splashContent = (
+		<Image
+			style={styles.splashImage}
+			source={require("@/assets/images/splash.png")}
+			contentFit="contain"
+		/>
+	);
+
+	const overlayStyle = [styles.splashOverlay, { backgroundColor: theme.splashBackground }];
 
 	return animate ? (
 		<Animated.View
@@ -43,9 +45,9 @@ export function AnimatedSplashOverlay() {
 					scheduleOnRN(setVisible, false);
 				}
 			})}
-			style={styles.splashOverlay}
+			style={overlayStyle}
 		>
-			{image}
+			{splashContent}
 		</Animated.View>
 	) : (
 		<View
@@ -54,9 +56,9 @@ export function AnimatedSplashOverlay() {
 					setAnimate(true);
 				});
 			}}
-			style={styles.splashOverlay}
+			style={overlayStyle}
 		>
-			{image}
+			{splashContent}
 		</View>
 	);
 }
@@ -133,6 +135,10 @@ const styles = StyleSheet.create({
 		width: 76,
 		height: 71,
 	},
+	splashImage: {
+		width: "100%",
+		height: "100%",
+	},
 	background: {
 		borderRadius: 40,
 		experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
@@ -142,7 +148,6 @@ const styles = StyleSheet.create({
 	},
 	splashOverlay: {
 		...StyleSheet.absoluteFill,
-		backgroundColor: "#208AEF",
 		alignItems: "center",
 		justifyContent: "center",
 		zIndex: 1000,

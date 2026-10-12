@@ -16,6 +16,7 @@ import { persistOptions } from "@/lib/query-persistence";
 import { TRPCProvider, trpcClient } from "@/lib/trpc";
 
 SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ fade: true, duration: 400 });
 
 function useProtectedRoute(session: { userId: string } | null, isPending: boolean) {
 	const segments = useSegments();

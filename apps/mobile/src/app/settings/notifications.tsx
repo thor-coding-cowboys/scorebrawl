@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -37,6 +38,22 @@ const TOGGLES: Array<{ key: ToggleKey; label: string; description: string }> = [
 		description: "When a player reaches a win streak",
 	},
 ];
+
+function NotificationSettingsSkeleton() {
+	return (
+		<View>
+			{Array.from({ length: 5 }).map((_, i) => (
+				<View key={i} style={styles.skeletonRow}>
+					<View style={styles.skeletonCol}>
+						<Skeleton width="48%" height={12} />
+						<Skeleton width="78%" height={10} />
+					</View>
+					<Skeleton width={40} height={24} radius={12} />
+				</View>
+			))}
+		</View>
+	);
+}
 
 export default function NotificationSettingsScreen() {
 	const trpc = useTRPC();
@@ -83,9 +100,7 @@ export default function NotificationSettingsScreen() {
 					<Card>
 						<CardContent style={styles.list}>
 							{settingsQuery.isPending ? (
-								<ThemedText type="small" themeColor="textSecondary">
-									Loading settings…
-								</ThemedText>
+								<NotificationSettingsSkeleton />
 							) : settingsQuery.isError ? (
 								<ThemedText type="small" themeColor="textSecondary">
 									Unable to load notification settings.
@@ -152,4 +167,17 @@ const styles = StyleSheet.create({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	rowInfo: { flex: 1, gap: Spacing.one },
+	skeletonRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: Spacing.three,
+		padding: Spacing.four,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: "rgba(128,128,128,0.25)",
+	},
+	skeletonCol: {
+		flex: 1,
+		gap: 7,
+	},
 });
