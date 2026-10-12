@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { HonoEnv } from "../middleware/context";
-import { league } from "../db/schema/auth-schema";
+import { league, member } from "../db/schema/auth-schema";
 
 function hasRequiredPermissions(
 	permissions: Record<string, string[]>,
@@ -23,6 +23,15 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 		}
 		const result = await auth.api.verifyApiKey({ body: { key } });
 		if (!result.valid || !result.key) {
+			if (result.error?.code?.includes("RATE_LIMIT")) {
+				return c.json(
+					{
+						error: "rate_limited",
+						error_description: result.error.message ?? null,
+					},
+					429
+				);
+			}
 			return c.json(
 				{
 					error: "invalid_api_key",
@@ -48,10 +57,23 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 			return c.json({ error: "league_not_found" }, 404);
 		}
 		const metadata = (result.key.metadata ?? {}) as { createdByUserId?: string };
+		const createdByUserId = metadata.createdByUserId;
+		if (!createdByUserId) {
+			return c.json({ error: "invalid_api_key" }, 401);
+		}
+		const [creatorMember] = await db
+			.select({ role: member.role })
+			.from(member)
+			.where(and(eq(member.organizationId, leagueId), eq(member.userId, createdByUserId)))
+			.limit(1);
+		if (!creatorMember || creatorMember.role !== "owner") {
+			return c.json({ error: "key_owner_not_owner" }, 403);
+		}
 		c.set("apiKey", {
 			keyId: result.key.id,
 			organizationId: result.key.referenceId,
-			userId: metadata.createdByUserId ?? "",
+			userId: createdByUserId,
+			keyName: result.key.name ?? "API Key",
 			organization: { id: org.id, slug: org.slug, name: org.name },
 			permissions,
 		});

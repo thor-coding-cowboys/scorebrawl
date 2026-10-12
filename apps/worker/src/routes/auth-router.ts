@@ -6,4 +6,9 @@ export const authRouter = new Hono<{
 	Variables: HonoEnv["Variables"];
 }>({
 	strict: false,
-}).on(["POST", "GET"], "/*", (c) => c.get("betterAuth").handler(c.req.raw));
+}).all("/*", async (c) => {
+	if (c.req.path.includes("/api-key")) {
+		return c.json({ error: "not_found" }, 404);
+	}
+	return c.get("betterAuth").handler(c.req.raw);
+});

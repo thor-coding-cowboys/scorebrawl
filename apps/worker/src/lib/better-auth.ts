@@ -339,7 +339,7 @@ export function createAuth({
 				startingCharactersConfig: { shouldStore: true, charactersLength: 12 },
 				enableMetadata: true,
 				requireName: true,
-				rateLimit: { enabled: false },
+				rateLimit: { enabled: true, maxRequests: 600, timeWindow: 60_000 },
 				keyExpiration: { defaultExpiresIn: null, minExpiresIn: 1, maxExpiresIn: 3650 },
 			}),
 			deviceAuthorization({

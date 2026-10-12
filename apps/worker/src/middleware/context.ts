@@ -21,6 +21,7 @@ export type HonoEnv = {
 					keyId: string;
 					organizationId: string;
 					userId: string;
+					keyName: string;
 					organization: { id: string; slug: string; name: string };
 					permissions: Record<string, string[]>;
 			  }
