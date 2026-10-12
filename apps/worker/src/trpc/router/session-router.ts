@@ -9,9 +9,12 @@ import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import * as sessionService from "../../services/session";
-import type { AchievementQueueMessage } from "../../services/achievement-calculation";
-import { buildStreakPushEvents, sessionStarted } from "../../services/notification-events";
-import { sendLeaguePush } from "../../services/push-notification";
+import {
+	endSession,
+	logMatch,
+	startNextMatch,
+	startSession,
+} from "../../services/session/session-actions";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
@@ -23,16 +26,6 @@ async function getSeasonBySlug(db: SessionDb, seasonSlug: string, organizationId
 			throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
 		}
 		throw error;
-	}
-}
-
-async function assertSessionsAllowed(db: SessionDb, seasonId: string) {
-	const season = await seasonRepository.getById({ db, seasonId });
-	if (season.scoreType === "1-v-n-elo") {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Sessions are not available for 1-v-n seasons",
-		});
 	}
 }
 
@@ -64,70 +57,20 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
-
-			if (s.scoreType === "1-v-n-elo") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Sessions are not available for 1-v-n seasons",
-				});
-			}
-
-			const active = await sessionRepository.getActiveSession({
-				db: ctx.db,
-				seasonId: s.id,
-			});
-
-			if (active) {
-				throw new TRPCError({ code: "CONFLICT", message: "An active session already exists" });
-			}
-
-			const session = await sessionRepository.createSession({
-				db: ctx.db,
-				seasonId: s.id,
-				createdBy: ctx.authentication.user.id,
-				rotationMode: input.rotationMode,
-				teamSize: input.teamSize,
-				maxConsecutiveGames: input.maxConsecutiveGames,
-				alwaysSplitConstraints: input.alwaysSplitConstraints,
-				autoCoinToss: input.autoCoinToss,
-				seasonPlayerIds: input.seasonPlayerIds,
-				winnersTakePriority: input.winnersTakePriority,
-				maxConsecutiveEnabled: input.maxConsecutiveEnabled,
-				randomizerType: input.randomizerType,
-			});
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-					type: "session:start",
-					data: { session },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			ctx.waitUntil(
-				sendLeaguePush({
+			return startSession(
+				{
 					db: ctx.db,
-					organizationId: ctx.organization.id,
-					events: [
-						sessionStarted(
-							{
-								type: "session:start",
-								leagueSlug: ctx.organization.slug,
-								seasonSlug: input.seasonSlug,
-								sessionId: session.id,
-							},
-							{
-								actorId: ctx.authentication.user.id,
-								actorName: ctx.authentication.user.name,
-								leagueName: ctx.organization.name,
-							}
-						),
-					],
-				})
+					env: ctx.env,
+					organization: {
+						id: ctx.organization.id,
+						slug: ctx.organization.slug,
+						name: ctx.organization.name,
+					},
+					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+					waitUntil: ctx.waitUntil,
+				},
+				input
 			);
-
-			return session;
 		}),
 
 	getActive: leagueMemberProcedure
@@ -289,25 +232,25 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-			await assertSessionsAllowed(ctx.db, sessionInfo.sessionSeasonId);
-
-			const sessionMatch = await sessionRepository.startNextMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				homeSeasonPlayerIds: input.homeSeasonPlayerIds,
-				awaySeasonPlayerIds: input.awaySeasonPlayerIds,
-			});
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, match: sessionMatch },
+			return startNextMatch(
+				{
+					db: ctx.db,
+					env: ctx.env,
+					organization: {
+						id: ctx.organization.id,
+						slug: ctx.organization.slug,
+						name: ctx.organization.name,
+					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
+					waitUntil: ctx.waitUntil,
+				},
+				ctx.organizationId,
+				{
+					sessionId: input.sessionId,
+					home: input.homeSeasonPlayerIds,
+					away: input.awaySeasonPlayerIds,
+				}
 			);
-
-			return sessionMatch;
 		}),
 
 	recordResult: leagueMemberProcedure
@@ -320,116 +263,26 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-			await assertSessionsAllowed(ctx.db, sessionInfo.sessionSeasonId);
-
-			const result = await sessionService.recordResult(ctx.db, {
-				sessionId: input.sessionId,
-				sessionMatchId: input.sessionMatchId,
-				homeScore: input.homeScore,
-				awayScore: input.awayScore,
-				seasonId: sessionInfo.sessionSeasonId,
-				userId: ctx.authentication.user.id,
-			});
-
-			ctx.waitUntil(
-				ctx.env.ACHIEVEMENT_QUEUE.send({
-					seasonPlayerIds: [
-						...result.streakData.homeSeasonPlayerIds,
-						...result.streakData.awaySeasonPlayerIds,
-					],
-					organizationId: ctx.organization.id,
-					leagueSlug: ctx.organization.slug,
-					seasonSlug: sessionInfo.seasonSlug,
-				} satisfies AchievementQueueMessage)
-			);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: {
-						sessionId: input.sessionId,
-						match: result.match,
-						players: result.players,
-						proposedLineup: result.proposedLineup,
+			return logMatch(
+				{
+					db: ctx.db,
+					env: ctx.env,
+					organization: {
+						id: ctx.organization.id,
+						slug: ctx.organization.slug,
+						name: ctx.organization.name,
 					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			const streakCheckPromise = (async () => {
-				const [streakPlayers, streakTeams] = await Promise.all([
-					matchRepository.checkStreakThresholds({
-						db: ctx.db,
-						seasonPlayerIds: [
-							...result.streakData.homeSeasonPlayerIds,
-							...result.streakData.awaySeasonPlayerIds,
-						],
-					}),
-					matchRepository.checkTeamStreakThresholds({
-						db: ctx.db,
-						matchId: result.streakData.createdMatchId,
-					}),
-				]);
-
-				const user = { id: ctx.authentication.user.id, name: ctx.authentication.user.name };
-				const timestamp = Date.now();
-				const streakEvents = [
-					...streakPlayers.map((p) => ({
-						type: "streak" as const,
-						data: {
-							playerId: p.playerId,
-							playerName: p.playerName,
-							playerImage: p.playerImage,
-							streak: p.streak,
-							timestamp,
-						},
-						user,
-					})),
-					...streakTeams.map((t) => ({
-						type: "streak" as const,
-						data: {
-							playerId: t.seasonTeamId,
-							playerName: t.teamName,
-							playerImage: t.teamLogo,
-							streak: t.streak,
-							timestamp,
-							isTeam: true,
-						},
-						user,
-					})),
-				];
-				await Promise.all(
-					streakEvents.map((event) =>
-						broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, event)
-					)
-				);
-
-				if (streakPlayers.length > 0) {
-					await sendLeaguePush({
-						db: ctx.db,
-						organizationId: ctx.organization.id,
-						events: buildStreakPushEvents(streakPlayers, {
-							leagueSlug: ctx.organization.slug,
-							seasonSlug: sessionInfo.seasonSlug,
-						}),
-					});
+					waitUntil: ctx.waitUntil,
+				},
+				ctx.organizationId,
+				{
+					sessionId: input.sessionId,
+					sessionMatchId: input.sessionMatchId,
+					home: input.homeScore,
+					away: input.awayScore,
 				}
-			})();
-
-			if (process.env.NODE_ENV === "development") {
-				await streakCheckPromise;
-			} else {
-				ctx.waitUntil(streakCheckPromise);
-			}
-
-			return {
-				match: result.match,
-				players: result.players,
-				proposedLineup: result.proposedLineup,
-				coinTossId: result.coinTossId,
-				autoResolvedCoinToss: result.autoResolvedCoinToss,
-			};
+			);
 		}),
 
 	resolveCoinToss: leagueMemberProcedure
@@ -464,22 +317,21 @@ export const sessionRouter = {
 	end: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const ended = await sessionRepository.endSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:end",
-					data: { session: ended },
+			return endSession(
+				{
+					db: ctx.db,
+					env: ctx.env,
+					organization: {
+						id: ctx.organization.id,
+						slug: ctx.organization.slug,
+						name: ctx.organization.name,
+					},
 					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
+					waitUntil: ctx.waitUntil,
+				},
+				ctx.organizationId,
+				{ sessionId: input.sessionId }
 			);
-
-			return ended;
 		}),
 
 	listEnded: leagueMemberProcedure
