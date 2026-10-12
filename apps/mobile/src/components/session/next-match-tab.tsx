@@ -449,6 +449,11 @@ export function NextMatchTab({
 								>
 									Start Match
 								</Button>
+								{session.players.filter((p) => p.status !== "out").length < session.teamSize * 2 ? (
+									<ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+										Need at least {session.teamSize * 2} players in the session to start a match
+									</ThemedText>
+								) : null}
 								{completedCount > 0 ? (
 									<Button
 										variant="ghost"
@@ -966,6 +971,7 @@ const styles = StyleSheet.create({
 	rosterName: { fontSize: 12, lineHeight: 16, fontWeight: "400" },
 	rosterScore: { fontSize: 11, lineHeight: 14 },
 	stack: { gap: Spacing.two },
+	hint: { textAlign: "center" },
 	playersHeading: { fontSize: 14, lineHeight: 20, fontWeight: "400" },
 	alwaysSplit: { marginTop: Spacing.three, gap: 2 },
 	coinOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
