@@ -3,8 +3,14 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { Avatar } from "@/components/avatar";
+import {
+	AnimatedCollapse,
+	useCollapseProgress,
+	useRotation,
+} from "@/components/ui/animated-collapse";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useThemeMode } from "@/hooks/use-theme-mode";
@@ -33,6 +39,8 @@ export function UserCard() {
 	const user = data?.user;
 	const { uri, headers } = useUserAvatar(user?.image);
 	const [expanded, setExpanded] = useState(false);
+	const progress = useCollapseProgress(expanded);
+	const chevronStyle = useRotation(progress, 180);
 	const queryClient = useQueryClient();
 
 	const handleSignOut = async () => {
@@ -58,58 +66,54 @@ export function UserCard() {
 						{user?.email}
 					</ThemedText>
 				</View>
-				<SymbolView
-					name={{
-						ios: expanded ? "chevron.down" : "chevron.up",
-						android: "expand_more",
-						web: "expand_more",
-					}}
-					size={16}
-					tintColor={theme.textSecondary}
-				/>
+				<Animated.View style={chevronStyle}>
+					<SymbolView
+						name={{ ios: "chevron.up", android: "expand_less", web: "expand_less" }}
+						size={16}
+						tintColor={theme.textSecondary}
+					/>
+				</Animated.View>
 			</Pressable>
 
-			{expanded && (
-				<View style={styles.actions}>
-					<Pressable
-						accessibilityRole="button"
-						onPress={() => {
-							setExpanded(false);
-							router.push("/profile");
-						}}
-						style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-					>
-						<SymbolView
-							name={{ ios: "person.crop.circle", android: "person", web: "person" }}
-							size={18}
-							tintColor={theme.text}
-						/>
-						<ThemedText type="small">Profile</ThemedText>
-					</Pressable>
-					<Pressable
-						accessibilityRole="button"
-						onPress={cycleThemeMode}
-						style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-					>
-						<SymbolView name={themeIconName(themeMode)} size={18} tintColor={theme.text} />
-						<ThemedText type="small">{themeLabel(themeMode)}</ThemedText>
-					</Pressable>
-					<Pressable
-						accessibilityRole="button"
-						onPress={handleSignOut}
-						style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
-					>
-						<SymbolView
-							name={{ ios: "rectangle.portrait.and.arrow.right", android: "logout", web: "logout" }}
-							size={18}
-							tintColor={theme.destructive}
-						/>
-						<ThemedText type="small" style={{ color: theme.destructive }}>
-							Log out
-						</ThemedText>
-					</Pressable>
-				</View>
-			)}
+			<AnimatedCollapse expanded={expanded} progress={progress} style={styles.actions}>
+				<Pressable
+					accessibilityRole="button"
+					onPress={() => {
+						setExpanded(false);
+						router.push("/profile");
+					}}
+					style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+				>
+					<SymbolView
+						name={{ ios: "person.crop.circle", android: "person", web: "person" }}
+						size={18}
+						tintColor={theme.text}
+					/>
+					<ThemedText type="small">Profile</ThemedText>
+				</Pressable>
+				<Pressable
+					accessibilityRole="button"
+					onPress={cycleThemeMode}
+					style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+				>
+					<SymbolView name={themeIconName(themeMode)} size={18} tintColor={theme.text} />
+					<ThemedText type="small">{themeLabel(themeMode)}</ThemedText>
+				</Pressable>
+				<Pressable
+					accessibilityRole="button"
+					onPress={handleSignOut}
+					style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+				>
+					<SymbolView
+						name={{ ios: "rectangle.portrait.and.arrow.right", android: "logout", web: "logout" }}
+						size={18}
+						tintColor={theme.destructive}
+					/>
+					<ThemedText type="small" style={{ color: theme.destructive }}>
+						Log out
+					</ThemedText>
+				</Pressable>
+			</AnimatedCollapse>
 		</View>
 	);
 }

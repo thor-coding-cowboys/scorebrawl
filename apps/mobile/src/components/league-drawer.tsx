@@ -3,10 +3,16 @@ import { useGlobalSearchParams, usePathname, type Href } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LeagueSwitcher } from "@/components/league-switcher";
 import { ThemedText } from "@/components/themed-text";
+import {
+	AnimatedCollapse,
+	useCollapseProgress,
+	useRotation,
+} from "@/components/ui/animated-collapse";
 import { UserCard } from "@/components/user-card";
 import { Spacing } from "@/constants/theme";
 import { useActiveSeasons } from "@/hooks/use-active-seasons";
@@ -63,6 +69,8 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 	const canManage = activeMember?.role === "owner" || activeMember?.role === "editor";
 	const { data: activeSeasons = [] } = useActiveSeasons();
 	const [seasonsOpen, setSeasonsOpen] = useState(true);
+	const seasonsProgress = useCollapseProgress(seasonsOpen);
+	const seasonsChevronStyle = useRotation(seasonsProgress, 90);
 
 	const isOnActiveSeason =
 		pathname === "/" ||
@@ -108,39 +116,42 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 							active={isOnActiveSeason && !seasonsOpen}
 							onPress={() => setSeasonsOpen((open) => !open)}
 							trailing={
-								<SymbolView
-									name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
-									size={12}
-									weight="semibold"
-									tintColor={theme.textSecondary}
-									style={{ transform: [{ rotate: seasonsOpen ? "90deg" : "0deg" }] }}
-								/>
+								<Animated.View style={seasonsChevronStyle}>
+									<SymbolView
+										name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
+										size={12}
+										weight="semibold"
+										tintColor={theme.textSecondary}
+									/>
+								</Animated.View>
 							}
 						/>
-						{seasonsOpen ? (
-							<View style={[styles.subList, { borderLeftColor: theme.border }]}>
-								{activeSeasons.map((season) => (
-									<Pressable
-										key={season.id}
-										accessibilityRole="button"
-										accessibilityState={{
-											selected: isOnActiveSeason && seasonSlug === season.slug,
-										}}
-										onPress={() => go({ pathname: "/", params: { seasonSlug: season.slug } })}
-										style={({ pressed }) => [
-											styles.subItem,
-											isOnActiveSeason &&
-												seasonSlug === season.slug && { backgroundColor: theme.backgroundElement },
-											pressed && styles.pressed,
-										]}
-									>
-										<ThemedText type="small" numberOfLines={1}>
-											{season.name}
-										</ThemedText>
-									</Pressable>
-								))}
-							</View>
-						) : null}
+						<AnimatedCollapse
+							expanded={seasonsOpen}
+							progress={seasonsProgress}
+							style={[styles.subList, { borderLeftColor: theme.border }]}
+						>
+							{activeSeasons.map((season) => (
+								<Pressable
+									key={season.id}
+									accessibilityRole="button"
+									accessibilityState={{
+										selected: isOnActiveSeason && seasonSlug === season.slug,
+									}}
+									onPress={() => go({ pathname: "/", params: { seasonSlug: season.slug } })}
+									style={({ pressed }) => [
+										styles.subItem,
+										isOnActiveSeason &&
+											seasonSlug === season.slug && { backgroundColor: theme.backgroundElement },
+										pressed && styles.pressed,
+									]}
+								>
+									<ThemedText type="small" numberOfLines={1}>
+										{season.name}
+									</ThemedText>
+								</Pressable>
+							))}
+						</AnimatedCollapse>
 					</>
 				) : null}
 
