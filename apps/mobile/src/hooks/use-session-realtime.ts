@@ -12,6 +12,9 @@ type SeasonRealtimeEvent = {
 	data?: {
 		sessionId?: string;
 		session?: { id: string };
+		sessionMatchId?: string;
+		homeScore?: number;
+		awayScore?: number;
 	};
 };
 
@@ -20,11 +23,17 @@ export function useSessionRealtime({
 	seasonSlug,
 	sessionId,
 	onSessionEnd,
+	onScoreUpdate,
 }: {
 	leagueSlug?: string;
 	seasonSlug: string;
 	sessionId: string;
 	onSessionEnd?: () => void;
+	onScoreUpdate?: (input: {
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	}) => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -92,9 +101,18 @@ export function useSessionRealtime({
 					return;
 				}
 
+				const eventSessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;
+
+				if (parsed.type === "session:score-update") {
+					if (eventSessionId !== sessionId) return;
+					const { sessionMatchId, homeScore, awayScore } = parsed.data ?? {};
+					if (typeof homeScore !== "number" || typeof awayScore !== "number") return;
+					onScoreUpdate?.({ sessionMatchId, homeScore, awayScore });
+					return;
+				}
+
 				if (parsed.type !== "session:update" && parsed.type !== "session:end") return;
 
-				const eventSessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;
 				if (eventSessionId !== sessionId) return;
 
 				if (parsed.type === "session:end") {
@@ -138,7 +156,7 @@ export function useSessionRealtime({
 			if (stableTimer) clearTimeout(stableTimer);
 			socket?.close();
 		};
-	}, [leagueSlug, seasonSlug, sessionId, onSessionEnd, queryClient, trpc]);
+	}, [leagueSlug, seasonSlug, sessionId, onSessionEnd, onScoreUpdate, queryClient, trpc]);
 
 	return { connectionStatus, hasConnected };
 }

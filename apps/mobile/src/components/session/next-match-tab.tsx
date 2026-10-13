@@ -28,21 +28,30 @@ import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Fonts, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { useScoreSync } from "@/hooks/use-score-sync";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
 type Team = "home" | "away";
 
+const SSE_SCORE_DEBOUNCE_MS = 500;
+
 export function NextMatchTab({
 	session,
 	sessionId,
 	seasonSlug,
+	scoreUpdate,
 	refresh,
 	footer,
 }: {
 	session: GameSession;
 	sessionId: string;
 	seasonSlug: string;
+	scoreUpdate?: {
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	} | null;
 	refresh: () => Promise<unknown>;
 	footer?: ReactNode;
 }) {
@@ -58,8 +67,16 @@ export function NextMatchTab({
 	const [showCoinToss, setShowCoinToss] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const prevMatchIdRef = useRef<string | null>(null);
+	const homeScoreRef = useRef(0);
+	const awayScoreRef = useRef(0);
+	const lastLocalScoreChangeRef = useRef(0);
+	const currentMatchRef = useRef<{ id: string } | null>(null);
 
 	const currentMatch = session.matches.find((m) => m.result === null) ?? null;
+	currentMatchRef.current = currentMatch ? { id: currentMatch.id } : null;
+
+	const { debouncedUpdateScore } = useScoreSync(sessionId, currentMatchRef);
+
 	const completedCount = session.matches.filter((m) => m.result !== null).length;
 	const pendingCoinToss = session.pendingCoinTosses[0] ?? null;
 	const coinTossCandidates =
@@ -110,10 +127,39 @@ export function NextMatchTab({
 		const id = currentMatch?.id ?? null;
 		if (id !== prevMatchIdRef.current) {
 			prevMatchIdRef.current = id;
-			setHomeScore(currentMatch?.homeSessionScore ?? 0);
-			setAwayScore(currentMatch?.awaySessionScore ?? 0);
+			const nextHome = currentMatch?.homeSessionScore ?? 0;
+			const nextAway = currentMatch?.awaySessionScore ?? 0;
+			homeScoreRef.current = nextHome;
+			awayScoreRef.current = nextAway;
+			setHomeScore(nextHome);
+			setAwayScore(nextAway);
 		}
 	}, [currentMatch]);
+
+	useEffect(() => {
+		if (!scoreUpdate) return;
+		const match = currentMatchRef.current;
+		if (!match || scoreUpdate.sessionMatchId !== match.id) return;
+		if (Date.now() - lastLocalScoreChangeRef.current < SSE_SCORE_DEBOUNCE_MS) return;
+		homeScoreRef.current = scoreUpdate.homeScore;
+		awayScoreRef.current = scoreUpdate.awayScore;
+		setHomeScore(scoreUpdate.homeScore);
+		setAwayScore(scoreUpdate.awayScore);
+	}, [scoreUpdate]);
+
+	const updateHomeScore = (updater: (prev: number) => number) => {
+		lastLocalScoreChangeRef.current = Date.now();
+		homeScoreRef.current = updater(homeScoreRef.current);
+		setHomeScore(homeScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
+	};
+
+	const updateAwayScore = (updater: (prev: number) => number) => {
+		lastLocalScoreChangeRef.current = Date.now();
+		awayScoreRef.current = updater(awayScoreRef.current);
+		setAwayScore(awayScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
+	};
 
 	const homePlayers = teamAssignment.filter((p) => p.team === "home");
 	const awayPlayers = teamAssignment.filter((p) => p.team === "away");
@@ -378,16 +424,16 @@ export function NextMatchTab({
 							label="Home"
 							score={homeScore}
 							disabled={!currentMatch}
-							onIncrement={() => setHomeScore((s) => s + 1)}
-							onDecrement={() => setHomeScore((s) => Math.max(0, s - 1))}
+							onIncrement={() => updateHomeScore((s) => s + 1)}
+							onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
 						/>
 						<View style={[styles.scoreDivider, { backgroundColor: sessionTheme.border }]} />
 						<ScoreStepper
 							label="Away"
 							score={awayScore}
 							disabled={!currentMatch}
-							onIncrement={() => setAwayScore((s) => s + 1)}
-							onDecrement={() => setAwayScore((s) => Math.max(0, s - 1))}
+							onIncrement={() => updateAwayScore((s) => s + 1)}
+							onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
 						/>
 					</View>
 
