@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
+import { MAX_MATCH_SCORE } from "../../src/lib/match-score";
 
 async function setupSeasonWithSession(playerCount = 4) {
 	const ctx = await createAuthContext();
@@ -112,6 +113,19 @@ describe("session score sync", () => {
 					sessionMatchId: currentMatch.id,
 					homeScore: 3.5,
 					awayScore: 2,
+				})
+			).rejects.toThrow();
+		});
+
+		it("rejects scores above the maximum", async () => {
+			const { client, session, currentMatch } = await setupSeasonWithSession();
+
+			await expect(
+				client.session.updateMatchScore.mutate({
+					sessionId: session.id,
+					sessionMatchId: currentMatch.id,
+					homeScore: MAX_MATCH_SCORE + 1,
+					awayScore: 0,
 				})
 			).rejects.toThrow();
 		});

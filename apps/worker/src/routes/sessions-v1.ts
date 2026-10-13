@@ -6,6 +6,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { HonoEnv } from "../middleware/context";
 import { requireApiKeyScope } from "./api-key-auth";
+import { scorePairSchema } from "../lib/match-score";
 import {
 	startSession,
 	endSession,
@@ -26,7 +27,7 @@ const startMatchSchema = z.object({
 	home: z.array(z.string()).optional(),
 	away: z.array(z.string()).optional(),
 });
-const logSchema = z.object({ home: z.number().int().min(0), away: z.number().int().min(0) });
+const logSchema = scorePairSchema;
 const lineupSchema = z.object({ home: z.array(z.string()), away: z.array(z.string()) });
 
 function mapError(error: unknown): HTTPException {

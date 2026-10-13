@@ -7,6 +7,7 @@ import { apikey, member } from "../../src/db/schema/auth-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
+import { MAX_MATCH_SCORE } from "../../src/lib/match-score";
 
 type TestClient = ReturnType<typeof createTRPCTestClient>;
 
@@ -359,6 +360,34 @@ describe("sessions v1 rest routes", () => {
 			away: 0,
 		});
 		expect(res.status).toBe(404);
+	});
+
+	it("rejects an out-of-range live score with 400", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:score", "match:log"]);
+
+		const tooHigh = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: MAX_MATCH_SCORE + 1,
+			away: 0,
+		});
+		expect(tooHigh.status).toBe(400);
+
+		const negative = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: -1,
+			away: 0,
+		});
+		expect(negative.status).toBe(400);
+
+		const logTooHigh = await jsonRequest(ctx.league.id, "/active/match/log", "POST", key.key, {
+			home: 0,
+			away: MAX_MATCH_SCORE + 1,
+		});
+		expect(logTooHigh.status).toBe(400);
 	});
 
 	it("works without leagueId in the path (league taken from the key)", async () => {
