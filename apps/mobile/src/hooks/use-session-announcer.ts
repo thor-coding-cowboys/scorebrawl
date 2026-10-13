@@ -19,6 +19,13 @@ export function useSessionAnnouncer({
 	const initializedRef = useRef(false);
 
 	useEffect(() => {
+		if (!enabled) void Speech.stop();
+		return () => {
+			void Speech.stop();
+		};
+	}, [enabled]);
+
+	useEffect(() => {
 		if (!session) return;
 
 		const lineup = getNextLineup(session);
