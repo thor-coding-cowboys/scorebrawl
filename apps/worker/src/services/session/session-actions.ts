@@ -1,15 +1,23 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { HonoEnv } from "../../middleware/context";
 import type { DrizzleDB } from "../../db";
-import { seasonPlayer, player, gameSession, sessionMatch } from "../../db/schema/league-schema";
+import {
+	seasonPlayer,
+	player,
+	gameSession,
+	sessionMatch,
+	sessionPlayer,
+} from "../../db/schema/league-schema";
 import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
 import {
-	recomputeLineupAfterPlayerRemoval,
 	recordResult as recordResultService,
+	resolveCoinToss as resolveCoinTossService,
+	recomputeProposedLineup as recomputeProposedLineupService,
+	recomputeLineupAfterPlayerRemoval as recomputeLineupAfterPlayerRemovalService,
 } from "./session-service";
 import type { AchievementQueueMessage } from "../achievement-calculation";
 import { buildStreakPushEvents, sessionStarted } from "../notification-events";
@@ -106,6 +114,53 @@ async function resolveCurrentMatchId(
 		throw new TRPCError({ code: "NOT_FOUND", message: "No in-progress match" });
 	}
 	return match.id;
+}
+
+async function resolveProposedLineup(
+	ctx: SessionActionContext,
+	sessionId: string
+): Promise<{ home: string[]; away: string[] }> {
+	const [row] = await ctx.db
+		.select({ proposedLineup: gameSession.proposedLineup })
+		.from(gameSession)
+		.where(eq(gameSession.id, sessionId))
+		.limit(1);
+
+	const proposed = sessionRepository.parseProposedLineup(row?.proposedLineup);
+	const homeSessionPlayerIds = proposed?.selectedHomePlayerIds?.length
+		? proposed.selectedHomePlayerIds
+		: (proposed?.homePlayerIds ?? []);
+	const awaySessionPlayerIds = proposed?.selectedAwayPlayerIds?.length
+		? proposed.selectedAwayPlayerIds
+		: (proposed?.awayPlayerIds ?? []);
+
+	const sessionPlayerIds = [...new Set([...homeSessionPlayerIds, ...awaySessionPlayerIds])];
+	const sessionPlayers =
+		sessionPlayerIds.length > 0
+			? await ctx.db
+					.select({
+						id: sessionPlayer.id,
+						seasonPlayerId: sessionPlayer.seasonPlayerId,
+						status: sessionPlayer.status,
+					})
+					.from(sessionPlayer)
+					.where(
+						and(eq(sessionPlayer.sessionId, sessionId), inArray(sessionPlayer.id, sessionPlayerIds))
+					)
+			: [];
+
+	const seasonPlayerIdBySessionPlayerId = new Map(
+		sessionPlayers.filter((p) => p.status !== "out").map((p) => [p.id, p.seasonPlayerId])
+	);
+	const toSeasonPlayerIds = (ids: string[]) =>
+		ids
+			.map((id) => seasonPlayerIdBySessionPlayerId.get(id))
+			.filter((id): id is string => id !== undefined);
+
+	return {
+		home: toSeasonPlayerIds(homeSessionPlayerIds),
+		away: toSeasonPlayerIds(awaySessionPlayerIds),
+	};
 }
 
 export async function startSession(ctx: SessionActionContext, input: StartSessionInput) {
@@ -213,14 +268,9 @@ export async function startNextMatch(
 	let away = input.away;
 
 	if (!home || !away) {
-		const [row] = await ctx.db
-			.select({ proposedLineup: gameSession.proposedLineup })
-			.from(gameSession)
-			.where(eq(gameSession.id, session.id))
-			.limit(1);
-		const proposed = sessionRepository.parseProposedLineup(row?.proposedLineup);
-		home = home ?? proposed?.homePlayerIds ?? [];
-		away = away ?? proposed?.awayPlayerIds ?? [];
+		const proposed = await resolveProposedLineup(ctx, session.id);
+		home = home ?? proposed.home;
+		away = away ?? proposed.away;
 	}
 
 	const sessionMatchRow = await sessionRepository.startNextMatch({
@@ -363,35 +413,66 @@ export async function logMatch(
 	};
 }
 
-export async function setLineup(
+async function mapSeasonPlayerIdsToSessionPlayerIds(
 	ctx: SessionActionContext,
-	leagueId: string,
-	input: { sessionId?: string; home: string[]; away: string[] }
-) {
-	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	sessionId: string,
+	homeSeasonPlayerIds: string[],
+	awaySeasonPlayerIds: string[]
+): Promise<{ home: string[]; away: string[] }> {
+	const playerIds = [...new Set([...homeSeasonPlayerIds, ...awaySeasonPlayerIds])];
+	const sessionPlayerIdBySeasonPlayerId = new Map<string, string>();
 
-	const playerIds = [...new Set([...input.home, ...input.away])];
 	if (playerIds.length > 0) {
 		const found = await ctx.db
-			.select({ id: seasonPlayer.id })
-			.from(seasonPlayer)
-			.where(and(eq(seasonPlayer.seasonId, session.seasonId), inArray(seasonPlayer.id, playerIds)));
+			.select({ id: sessionPlayer.id, seasonPlayerId: sessionPlayer.seasonPlayerId })
+			.from(sessionPlayer)
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					inArray(sessionPlayer.seasonPlayerId, playerIds)
+				)
+			);
 		if (found.length !== playerIds.length) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Lineup contains players not in this season",
+				message: "Lineup contains players not in this session",
 			});
+		}
+		for (const sessionPlayerRow of found) {
+			sessionPlayerIdBySeasonPlayerId.set(sessionPlayerRow.seasonPlayerId, sessionPlayerRow.id);
 		}
 	}
 
-	const sessionMatchId = await resolveCurrentMatchId(ctx, session.id);
+	const toSessionPlayerIds = (seasonPlayerIds: string[]) =>
+		seasonPlayerIds
+			.map((id) => sessionPlayerIdBySeasonPlayerId.get(id))
+			.filter((id): id is string => id !== undefined);
+
+	return {
+		home: toSessionPlayerIds(homeSeasonPlayerIds),
+		away: toSessionPlayerIds(awaySeasonPlayerIds),
+	};
+}
+
+export async function updateTeamSelection(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: {
+		sessionId?: string;
+		sessionMatchId?: string;
+		selectedHomePlayerIds: string[];
+		selectedAwayPlayerIds: string[];
+	}
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	const sessionMatchId = await resolveCurrentMatchId(ctx, session.id, input.sessionMatchId);
 
 	const updated = await sessionRepository.updateTeamSelection({
 		db: ctx.db,
 		sessionId: session.id,
 		sessionMatchId,
-		selectedHomePlayerIds: input.home,
-		selectedAwayPlayerIds: input.away,
+		selectedHomePlayerIds: input.selectedHomePlayerIds,
+		selectedAwayPlayerIds: input.selectedAwayPlayerIds,
 	});
 
 	ctx.waitUntil(
@@ -403,6 +484,218 @@ export async function setLineup(
 	);
 
 	return updated;
+}
+
+export async function setLineup(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId?: string; home: string[]; away: string[] }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	const { home, away } = await mapSeasonPlayerIdsToSessionPlayerIds(
+		ctx,
+		session.id,
+		input.home,
+		input.away
+	);
+
+	return updateTeamSelection(ctx, leagueId, {
+		sessionId: session.id,
+		selectedHomePlayerIds: home,
+		selectedAwayPlayerIds: away,
+	});
+}
+
+export async function joinSelf(
+	ctx: SessionActionContext,
+	_leagueId: string,
+	input: { sessionId: string }
+) {
+	const session = await sessionRepository.getSessionWithSeason({
+		db: ctx.db,
+		sessionId: input.sessionId,
+	});
+
+	if (!session) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+	}
+
+	if (session.sessionStatus !== "active") {
+		throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
+	}
+
+	const [seasonPlayerRecord] = await ctx.db
+		.select({
+			id: seasonPlayer.id,
+			alreadyInSession: sql<boolean>`EXISTS(
+				SELECT 1 FROM ${sessionPlayer}
+				WHERE ${sessionPlayer.sessionId} = ${session.sessionId}
+				AND ${sessionPlayer.seasonPlayerId} = ${seasonPlayer.id}
+			)`.as("already_in_session"),
+		})
+		.from(seasonPlayer)
+		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+		.where(and(eq(seasonPlayer.seasonId, session.sessionSeasonId), eq(player.userId, ctx.user.id)))
+		.limit(1);
+
+	if (!seasonPlayerRecord) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "You are not a player in this season",
+		});
+	}
+
+	if (seasonPlayerRecord.alreadyInSession) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "You are already in this session",
+		});
+	}
+
+	const newPlayer = await sessionRepository.addPlayerToSession({
+		db: ctx.db,
+		sessionId: session.sessionId,
+		seasonPlayerId: seasonPlayerRecord.id,
+	});
+
+	await recomputeProposedLineupService(ctx.db, session.sessionId);
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.sessionId, player: newPlayer },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return newPlayer;
+}
+
+export async function addPlayer(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId: string; seasonPlayerId: string }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	const newPlayer = await sessionRepository.addPlayerToSession({
+		db: ctx.db,
+		sessionId: session.id,
+		seasonPlayerId: input.seasonPlayerId,
+	});
+
+	await recomputeProposedLineupService(ctx.db, session.id);
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, player: newPlayer },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return newPlayer;
+}
+
+export async function removePlayer(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId: string; sessionPlayerId: string }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	const removedPlayer = await sessionRepository.removePlayerFromSession({
+		db: ctx.db,
+		sessionId: session.id,
+		sessionPlayerId: input.sessionPlayerId,
+	});
+
+	const fullSession = await sessionRepository.getSessionById({ db: ctx.db, sessionId: session.id });
+	const hasActiveMatch = fullSession?.matches.some((m) => m.result === null) ?? false;
+
+	if (!hasActiveMatch) {
+		await recomputeLineupAfterPlayerRemovalService(ctx.db, {
+			sessionId: session.id,
+			removedSessionPlayerId: removedPlayer.id,
+		});
+	}
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, removedSessionPlayerId: input.sessionPlayerId },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+}
+
+export async function resolveCoinToss(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { coinTossId: string; resolvedWinnerIds: string[] }
+) {
+	const result = await resolveCoinTossService(ctx.db, {
+		coinTossId: input.coinTossId,
+		resolvedWinnerIds: input.resolvedWinnerIds,
+	});
+
+	const session = await resolveSession(ctx, leagueId, result.resolved.sessionId);
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: {
+				sessionId: result.resolved.sessionId,
+				resolvedCoinToss: result.resolved,
+				proposedLineup: result.proposedLineup,
+			},
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return { resolved: result.resolved, proposedLineup: result.proposedLineup };
+}
+
+export async function cancelMatch(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId?: string } = {}
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	await assertSessionsAllowed(ctx, session.seasonId);
+
+	const result = await sessionRepository.cancelCurrentMatch({
+		db: ctx.db,
+		sessionId: session.id,
+	});
+
+	const outPlayerIds = result.restoredProposedLineup
+		? [
+				...result.restoredProposedLineup.homePlayerIds,
+				...result.restoredProposedLineup.awayPlayerIds,
+			].filter((id) => result.players.find((p) => p.id === id)?.status === "out")
+		: [];
+
+	for (const removedSessionPlayerId of outPlayerIds) {
+		await recomputeLineupAfterPlayerRemovalService(ctx.db, {
+			sessionId: session.id,
+			removedSessionPlayerId,
+		});
+	}
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, players: result.players },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return {
+		deletedMatch: result.deletedMatch,
+		players: result.players,
+		restoredProposedLineup: result.restoredProposedLineup,
+	};
 }
 
 export async function updateLiveScore(
@@ -434,29 +727,23 @@ export async function updateLiveScore(
 	return updated;
 }
 
-export async function cancelMatch(
+export async function deleteLastMatch(
 	ctx: SessionActionContext,
 	leagueId: string,
-	input: { sessionId?: string } = {}
+	input: { sessionId: string }
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
-	await assertSessionsAllowed(ctx, session.seasonId);
 
-	const result = await sessionRepository.cancelCurrentMatch({
+	const result = await sessionRepository.deleteLastMatch({
 		db: ctx.db,
 		sessionId: session.id,
 	});
 
-	const outPlayerIds = result.restoredProposedLineup
-		? [
-				...result.restoredProposedLineup.homePlayerIds,
-				...result.restoredProposedLineup.awayPlayerIds,
-			].filter((id) => result.players.find((p) => p.id === id)?.status === "out")
-		: [];
-	for (const removedSessionPlayerId of outPlayerIds) {
-		await recomputeLineupAfterPlayerRemoval(ctx.db, {
-			sessionId: session.id,
-			removedSessionPlayerId,
+	if (result.deletedMatch.matchId) {
+		await matchRepository.remove({
+			db: ctx.db,
+			matchId: result.deletedMatch.matchId,
+			seasonId: session.seasonId,
 		});
 	}
 
@@ -468,8 +755,99 @@ export async function cancelMatch(
 		})
 	);
 
-	return {
-		deletedMatch: result.deletedMatch,
-		restoredProposedLineup: result.restoredProposedLineup,
-	};
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "match:delete",
+			data: { matchId: result.deletedMatch.matchId },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return result;
+}
+
+export async function updateMatchScore(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId: string; sessionMatchId: string; homeScore: number; awayScore: number }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	return sessionRepository.updateMatchScore({
+		db: ctx.db,
+		sessionId: session.id,
+		sessionMatchId: input.sessionMatchId,
+		homeScore: input.homeScore,
+		awayScore: input.awayScore,
+	});
+}
+
+export async function updateProposedLineup(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: {
+		sessionId: string;
+		proposedLineup: {
+			homePlayerIds: string[];
+			awayPlayerIds: string[];
+			rotatedOut: string[];
+			coinTossNeeded: { conflictType: string; candidates: string[] } | null;
+			selectedHomePlayerIds?: string[];
+			selectedAwayPlayerIds?: string[];
+		};
+	}
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	return sessionRepository.updateProposedLineup({
+		db: ctx.db,
+		sessionId: session.id,
+		proposedLineup: input.proposedLineup,
+	});
+}
+
+export async function updateSettings(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: {
+		sessionId: string;
+		settings: {
+			teamSize?: number;
+			maxConsecutiveGames?: number | null;
+			maxConsecutiveEnabled?: boolean;
+			winnersTakePriority?: boolean;
+			autoCoinToss?: boolean;
+			randomizerType?: "off" | "fisher-yates" | "diversity";
+			alwaysSplitConstraints?: [string, string][];
+		};
+	}
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	const updatedSession = await sessionRepository.updateSessionSettings({
+		db: ctx.db,
+		sessionId: session.id,
+		settings: input.settings,
+	});
+
+	const shouldRecalcQueue =
+		input.settings.winnersTakePriority !== undefined ||
+		input.settings.maxConsecutiveEnabled !== undefined ||
+		input.settings.maxConsecutiveGames !== undefined;
+
+	if (shouldRecalcQueue) {
+		await sessionRepository.recalcQueuePositions(ctx.db, session.id);
+	}
+
+	await recomputeProposedLineupService(ctx.db, session.id);
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, settings: updatedSession },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return updatedSession;
 }

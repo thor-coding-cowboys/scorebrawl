@@ -1,20 +1,11 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and, sql } from "drizzle-orm";
-import { seasonPlayer, player, sessionPlayer } from "../../db/schema/league-schema";
 import { leagueMemberProcedure } from "../trpc";
 import * as sessionRepository from "../../repositories/session";
-import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
-import { broadcastSeasonEvent } from "../../routes/sse-router";
-import * as sessionService from "../../services/session";
-import {
-	endSession,
-	logMatch,
-	startNextMatch,
-	startSession,
-} from "../../services/session/session-actions";
+import * as sessionActions from "../../services/session/session-actions";
+import type { SessionActionContext } from "../../services/session/session-actions";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
@@ -40,6 +31,26 @@ async function getSessionForOrg(db: SessionDb, sessionId: string, organizationId
 	return info;
 }
 
+function toActionContext(ctx: {
+	db: SessionDb;
+	env: SessionActionContext["env"];
+	organization: { id: string; slug: string; name: string };
+	authentication: { user: { id: string; name: string } };
+	waitUntil: SessionActionContext["waitUntil"];
+}): SessionActionContext {
+	return {
+		db: ctx.db,
+		env: ctx.env,
+		organization: {
+			id: ctx.organization.id,
+			slug: ctx.organization.slug,
+			name: ctx.organization.name,
+		},
+		user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+		waitUntil: ctx.waitUntil,
+	};
+}
+
 export const sessionRouter = {
 	create: leagueMemberProcedure
 		.input(
@@ -57,20 +68,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return startSession(
-				{
-					db: ctx.db,
-					env: ctx.env,
-					organization: {
-						id: ctx.organization.id,
-						slug: ctx.organization.slug,
-						name: ctx.organization.name,
-					},
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-					waitUntil: ctx.waitUntil,
-				},
-				input
-			);
+			return sessionActions.startSession(toActionContext(ctx), input);
 		}),
 
 	getActive: leagueMemberProcedure
@@ -100,127 +98,19 @@ export const sessionRouter = {
 	joinSelf: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await sessionRepository.getSessionWithSeason({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			if (!sessionInfo) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
-			}
-
-			if (sessionInfo.sessionStatus !== "active") {
-				throw new TRPCError({ code: "BAD_REQUEST", message: "Session is not active" });
-			}
-
-			const [seasonPlayerRecord] = await ctx.db
-				.select({
-					id: seasonPlayer.id,
-					alreadyInSession: sql<boolean>`EXISTS(
-					SELECT 1 FROM ${sessionPlayer}
-					WHERE ${sessionPlayer.sessionId} = ${input.sessionId}
-					AND ${sessionPlayer.seasonPlayerId} = ${seasonPlayer.id}
-				)`.as("already_in_session"),
-				})
-				.from(seasonPlayer)
-				.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-				.where(
-					and(
-						eq(seasonPlayer.seasonId, sessionInfo.sessionSeasonId),
-						eq(player.userId, ctx.authentication.user.id)
-					)
-				)
-				.limit(1);
-
-			if (!seasonPlayerRecord) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "You are not a player in this season",
-				});
-			}
-
-			if (seasonPlayerRecord.alreadyInSession) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "You are already in this session",
-				});
-			}
-
-			const newPlayer = await sessionRepository.addPlayerToSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				seasonPlayerId: seasonPlayerRecord.id,
-			});
-
-			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, player: newPlayer },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return newPlayer;
+			return sessionActions.joinSelf(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	addPlayer: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string(), seasonPlayerId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const newPlayer = await sessionRepository.addPlayerToSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				seasonPlayerId: input.seasonPlayerId,
-			});
-
-			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, player: newPlayer },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return newPlayer;
+			return sessionActions.addPlayer(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	removePlayer: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string(), sessionPlayerId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const removedPlayer = await sessionRepository.removePlayerFromSession({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				sessionPlayerId: input.sessionPlayerId,
-			});
-
-			const fullSession = await sessionRepository.getSessionById({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			const hasActiveMatch = fullSession?.matches.some((m) => m.result === null) ?? false;
-
-			if (!hasActiveMatch) {
-				await sessionService.recomputeLineupAfterPlayerRemoval(ctx.db, {
-					sessionId: input.sessionId,
-					removedSessionPlayerId: removedPlayer.id,
-				});
-			}
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, removedSessionPlayerId: input.sessionPlayerId },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
+			return sessionActions.removePlayer(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	startNextMatch: leagueMemberProcedure
@@ -232,25 +122,11 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return startNextMatch(
-				{
-					db: ctx.db,
-					env: ctx.env,
-					organization: {
-						id: ctx.organization.id,
-						slug: ctx.organization.slug,
-						name: ctx.organization.name,
-					},
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-					waitUntil: ctx.waitUntil,
-				},
-				ctx.organizationId,
-				{
-					sessionId: input.sessionId,
-					home: input.homeSeasonPlayerIds,
-					away: input.awaySeasonPlayerIds,
-				}
-			);
+			return sessionActions.startNextMatch(toActionContext(ctx), ctx.organizationId, {
+				sessionId: input.sessionId,
+				home: input.homeSeasonPlayerIds,
+				away: input.awaySeasonPlayerIds,
+			});
 		}),
 
 	recordResult: leagueMemberProcedure
@@ -263,75 +139,26 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return logMatch(
-				{
-					db: ctx.db,
-					env: ctx.env,
-					organization: {
-						id: ctx.organization.id,
-						slug: ctx.organization.slug,
-						name: ctx.organization.name,
-					},
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-					waitUntil: ctx.waitUntil,
-				},
-				ctx.organizationId,
-				{
-					sessionId: input.sessionId,
-					sessionMatchId: input.sessionMatchId,
-					home: input.homeScore,
-					away: input.awayScore,
-				}
-			);
+			return sessionActions.logMatch(toActionContext(ctx), ctx.organizationId, {
+				sessionId: input.sessionId,
+				sessionMatchId: input.sessionMatchId,
+				home: input.homeScore,
+				away: input.awayScore,
+			});
 		}),
 
 	resolveCoinToss: leagueMemberProcedure
 		.input(z.object({ coinTossId: z.string(), resolvedWinnerIds: z.array(z.string()) }))
 		.mutation(async ({ ctx, input }) => {
-			const result = await sessionService.resolveCoinToss(ctx.db, {
-				coinTossId: input.coinTossId,
-				resolvedWinnerIds: input.resolvedWinnerIds,
-			});
-
-			const sessionInfo = await getSessionForOrg(
-				ctx.db,
-				result.resolved.sessionId,
-				ctx.organizationId
-			);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: {
-						sessionId: result.resolved.sessionId,
-						resolvedCoinToss: result.resolved,
-						proposedLineup: result.proposedLineup,
-					},
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return { resolved: result.resolved, proposedLineup: result.proposedLineup };
+			return sessionActions.resolveCoinToss(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	end: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return endSession(
-				{
-					db: ctx.db,
-					env: ctx.env,
-					organization: {
-						id: ctx.organization.id,
-						slug: ctx.organization.slug,
-						name: ctx.organization.name,
-					},
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-					waitUntil: ctx.waitUntil,
-				},
-				ctx.organizationId,
-				{ sessionId: input.sessionId }
-			);
+			return sessionActions.endSession(toActionContext(ctx), ctx.organizationId, {
+				sessionId: input.sessionId,
+			});
 		}),
 
 	listEnded: leagueMemberProcedure
@@ -365,73 +192,13 @@ export const sessionRouter = {
 	cancelMatch: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const result = await sessionRepository.cancelCurrentMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			const outPlayerIds = result.restoredProposedLineup
-				? [
-						...result.restoredProposedLineup.homePlayerIds,
-						...result.restoredProposedLineup.awayPlayerIds,
-					].filter((id) => result.players.find((p) => p.id === id)?.status === "out")
-				: [];
-
-			for (const removedSessionPlayerId of outPlayerIds) {
-				await sessionService.recomputeLineupAfterPlayerRemoval(ctx.db, {
-					sessionId: input.sessionId,
-					removedSessionPlayerId,
-				});
-			}
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, players: result.players },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return result;
+			return sessionActions.cancelMatch(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	deleteLastMatch: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const result = await sessionRepository.deleteLastMatch({
-				db: ctx.db,
-				sessionId: input.sessionId,
-			});
-
-			if (result.deletedMatch.matchId) {
-				await matchRepository.remove({
-					db: ctx.db,
-					matchId: result.deletedMatch.matchId,
-					seasonId: sessionInfo.sessionSeasonId,
-				});
-			}
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, players: result.players },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "match:delete",
-					data: { matchId: result.deletedMatch.matchId },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return result;
+			return sessionActions.deleteLastMatch(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	updateMatchScore: leagueMemberProcedure
@@ -444,17 +211,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateMatchScore({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				sessionMatchId: input.sessionMatchId,
-				homeScore: input.homeScore,
-				awayScore: input.awayScore,
-			});
-
-			return updated;
+			return sessionActions.updateMatchScore(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	updateTeamSelection: leagueMemberProcedure
@@ -467,17 +224,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateTeamSelection({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				sessionMatchId: input.sessionMatchId,
-				selectedHomePlayerIds: input.selectedHomePlayerIds,
-				selectedAwayPlayerIds: input.selectedAwayPlayerIds,
-			});
-
-			return updated;
+			return sessionActions.updateTeamSelection(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	updateProposedLineup: leagueMemberProcedure
@@ -500,15 +247,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updated = await sessionRepository.updateProposedLineup({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				proposedLineup: input.proposedLineup,
-			});
-
-			return updated;
+			return sessionActions.updateProposedLineup(toActionContext(ctx), ctx.organizationId, input);
 		}),
 
 	updateSettings: leagueMemberProcedure
@@ -525,41 +264,10 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			const sessionInfo = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
-
-			const updatedSession = await sessionRepository.updateSessionSettings({
-				db: ctx.db,
-				sessionId: input.sessionId,
-				settings: {
-					teamSize: input.teamSize,
-					maxConsecutiveGames: input.maxConsecutiveGames,
-					maxConsecutiveEnabled: input.maxConsecutiveEnabled,
-					winnersTakePriority: input.winnersTakePriority,
-					autoCoinToss: input.autoCoinToss,
-					randomizerType: input.randomizerType,
-					alwaysSplitConstraints: input.alwaysSplitConstraints,
-				},
+			const { sessionId, ...settings } = input;
+			return sessionActions.updateSettings(toActionContext(ctx), ctx.organizationId, {
+				sessionId,
+				settings,
 			});
-
-			const shouldRecalcQueue =
-				input.winnersTakePriority !== undefined ||
-				input.maxConsecutiveEnabled !== undefined ||
-				input.maxConsecutiveGames !== undefined;
-
-			if (shouldRecalcQueue) {
-				await sessionRepository.recalcQueuePositions(ctx.db, input.sessionId);
-			}
-
-			await sessionService.recomputeProposedLineup(ctx.db, input.sessionId);
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, sessionInfo.seasonSlug, {
-					type: "session:update",
-					data: { sessionId: input.sessionId, settings: updatedSession },
-					user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-				})
-			);
-
-			return updatedSession;
 		}),
 } satisfies TRPCRouterRecord;

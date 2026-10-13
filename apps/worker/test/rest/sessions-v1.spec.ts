@@ -438,4 +438,87 @@ describe("sessions v1 rest routes", () => {
 		});
 		expect(missing.status).toBe(400);
 	});
+
+	it("starts the next match from the stored proposed lineup", async () => {
+		const { ctx, client, session } = await setupActiveSession(4, 2);
+		const key = await createKey(client, ["match:start"]);
+
+		const proposed = (await client.session.getById.query({ sessionId: session.id }))
+			.proposedLineup!;
+		const expectedHome = proposed.selectedHomePlayerIds ?? proposed.homePlayerIds;
+		const expectedAway = proposed.selectedAwayPlayerIds ?? proposed.awayPlayerIds;
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {});
+		expect(res.status).toBe(201);
+
+		const { match } = (await res.json()) as {
+			match: { homePlayerIds: string; awayPlayerIds: string };
+		};
+
+		const persisted = await client.session.getById.query({ sessionId: session.id });
+		const seasonPlayerIdBySessionPlayerId = new Map(
+			persisted.players.map((p) => [p.id, p.seasonPlayerId])
+		);
+
+		expect(JSON.parse(match.homePlayerIds)).toEqual(
+			expectedHome.map((id) => seasonPlayerIdBySessionPlayerId.get(id))
+		);
+		expect(JSON.parse(match.awayPlayerIds)).toEqual(
+			expectedAway.map((id) => seasonPlayerIdBySessionPlayerId.get(id))
+		);
+	});
+
+	it("drives a multi-match remote flow through the public API", async () => {
+		const { ctx, client } = await setupActiveSession(6, 2);
+		const startKey = await createKey(client, ["match:start"]);
+		const logKey = await createKey(client, ["match:log"]);
+
+		for (let i = 0; i < 3; i++) {
+			const start = await jsonRequest(
+				ctx.league.id,
+				"/active/match/start",
+				"POST",
+				startKey.key,
+				{}
+			);
+			expect(start.status).toBe(201);
+
+			const log = await jsonRequest(ctx.league.id, "/active/match/log", "POST", logKey.key, {
+				home: 3,
+				away: 1,
+			});
+			expect(log.status).toBe(200);
+		}
+	});
+
+	it("persists team selection using session player ids for web parity", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession(4, 2);
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:lineup"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/lineup", "PUT", key.key, {
+			home: [seasonPlayers[0].id, seasonPlayers[1].id],
+			away: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		expect(res.status).toBe(200);
+
+		const persisted = await client.session.getById.query({ sessionId: session.id });
+		const currentMatch = persisted.matches.find((m) => m.result === null)!;
+		const sessionPlayerIdBySeasonPlayerId = new Map(
+			persisted.players.map((p) => [p.seasonPlayerId, p.id])
+		);
+
+		expect(currentMatch.selectedHomePlayerIds).toEqual([
+			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[0].id),
+			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[1].id),
+		]);
+		expect(currentMatch.selectedAwayPlayerIds).toEqual([
+			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[2].id),
+			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[3].id),
+		]);
+	});
 });
