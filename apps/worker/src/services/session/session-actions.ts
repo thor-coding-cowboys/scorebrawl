@@ -7,7 +7,10 @@ import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
 import { broadcastSeasonEvent } from "../../routes/sse-router";
-import { recordResult as recordResultService } from "./session-service";
+import {
+	recomputeLineupAfterPlayerRemoval,
+	recordResult as recordResultService,
+} from "./session-service";
 import type { AchievementQueueMessage } from "../achievement-calculation";
 import { buildStreakPushEvents, sessionStarted } from "../notification-events";
 import { sendLeaguePush } from "../push-notification";
@@ -429,4 +432,44 @@ export async function updateLiveScore(
 	);
 
 	return updated;
+}
+
+export async function cancelMatch(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId?: string } = {}
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	await assertSessionsAllowed(ctx, session.seasonId);
+
+	const result = await sessionRepository.cancelCurrentMatch({
+		db: ctx.db,
+		sessionId: session.id,
+	});
+
+	const outPlayerIds = result.restoredProposedLineup
+		? [
+				...result.restoredProposedLineup.homePlayerIds,
+				...result.restoredProposedLineup.awayPlayerIds,
+			].filter((id) => result.players.find((p) => p.id === id)?.status === "out")
+		: [];
+	for (const removedSessionPlayerId of outPlayerIds) {
+		await recomputeLineupAfterPlayerRemoval(ctx.db, {
+			sessionId: session.id,
+			removedSessionPlayerId,
+		});
+	}
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, players: result.players },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return {
+		deletedMatch: result.deletedMatch,
+		restoredProposedLineup: result.restoredProposedLineup,
+	};
 }

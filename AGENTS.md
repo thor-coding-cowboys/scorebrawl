@@ -45,7 +45,7 @@ Always use joins/subqueries. Fetch related data in single round-trip.
 Single worker serves two hosts, split by `enforceHostScope` (`apps/worker/src/public-api/host-scope.ts`), driven by `PROD_URL` / `PROD_PUBLIC_API_URL` vars:
 
 - `https://api.scorebrawl.com/v1` - personal resources (`/me`, `/leagues`), personal keys (`sbp_`, config `personal`, act as the user; scopes `profile:read`, `league:read`; created via tRPC `personalApiKey`, no UI)
-- `https://api.scorebrawl.com/leagues/v1/:leagueId/sessions/...` - league resources, league keys (`sbk_`, owner-only, UI at `/leagues/:slug/api-keys`; scopes `session:start|stop`, `match:start|log|score|lineup`)
+- `https://api.scorebrawl.com/leagues/v1/sessions/...` - league resources (league taken from the key; `/leagues/v1/:leagueId/sessions/...` also accepted and must match the key), league keys (`sbk_`, owner-only, UI at `/leagues/:slug/api-keys`; scopes `session:start|stop`, `match:start|log|score|cancel|lineup`)
 - `scorebrawl.com` rejects those paths (404); `api.scorebrawl.com` rejects everything else
 - Previews: vars unset, both surfaces on same `*.workers.dev` domain
 - `/api/*` (tRPC, better-auth, OAuth, MCP, `/api/v1` OAuth REST) stays on `scorebrawl.com`
