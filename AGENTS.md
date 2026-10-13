@@ -15,7 +15,7 @@
 
 ## Dependencies
 
-Always use **catalog** for workspace dependencies. Define versions in root `package.json` catalog, reference with `"catalog:"` in workspace packages.
+Use **catalog** only for dependencies shared by **2+** workspace packages. Define shared versions in root `package.json` catalog and reference them with `"catalog:"`. Declare dependencies used by a single package inline in that package's `package.json` — keep paired deps (e.g. `react`/`react-dom`, `tailwindcss`/`@tailwindcss/vite`, `drizzle-orm`/`drizzle-kit`) either both in the catalog or both inline together so their versions stay aligned.
 
 ## tRPC Procedures
 

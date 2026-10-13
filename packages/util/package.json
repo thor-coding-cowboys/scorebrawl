@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"@ihs7/ts-elo": "catalog:",
-		"ulid": "catalog:"
+		"ulid": "^2.4.0"
 	},
 	"devDependencies": {
 		"typescript": "catalog:",
