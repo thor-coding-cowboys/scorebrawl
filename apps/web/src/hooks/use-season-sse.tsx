@@ -77,6 +77,8 @@ export type SeasonSSEEvent =
 			};
 	  };
 
+const CONNECT_STABILITY_MS = 500;
+
 interface UseSeasonSSEOptions {
 	leagueSlug: string;
 	seasonSlug: string;
@@ -96,12 +98,15 @@ export function useSeasonSSE({
 	const queryClient = useQueryClient();
 	const wsRef = useRef<WebSocket | null>(null);
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const stableTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reconnectAttemptsRef = useRef(0);
 	const enabledRef = useRef(enabled);
 	const paramsRef = useRef({ leagueSlug, seasonSlug, seasonId, currentUserId });
 	const [connectionStatus, setConnectionStatus] = useState<
 		"connecting" | "connected" | "disconnected"
 	>("connecting");
+	const [hasConnected, setHasConnected] = useState(false);
+	const hasConnectedRef = useRef(false);
 
 	const trpcRef = useRef(trpc);
 	const queryClientRef = useRef(queryClient);
@@ -113,6 +118,23 @@ export function useSeasonSSE({
 
 	useEffect(() => {
 		let isMounted = true;
+
+		const reconcile = () => {
+			const t = trpcRef.current;
+			const qc = queryClientRef.current;
+			const { seasonSlug: slug, seasonId: id } = paramsRef.current;
+
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.season.getFixtures.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: t.session.getActive.queryKey({ seasonSlug: slug }) });
+			qc.invalidateQueries({ queryKey: ["infinite-matches", id] });
+			qc.invalidateQueries({ queryKey: ["matches", id] });
+		};
 
 		const connect = () => {
 			if (!enabledRef.current || !isMounted) return;
@@ -126,9 +148,19 @@ export function useSeasonSSE({
 
 			ws.onopen = () => {
 				reconnectAttemptsRef.current = 0;
-				if (isMounted) {
+				if (!isMounted) return;
+				if (stableTimerRef.current) clearTimeout(stableTimerRef.current);
+				stableTimerRef.current = setTimeout(() => {
+					stableTimerRef.current = null;
+					if (!isMounted) return;
 					setConnectionStatus("connected");
-				}
+					if (hasConnectedRef.current) {
+						reconcile();
+					} else {
+						hasConnectedRef.current = true;
+						setHasConnected(true);
+					}
+				}, CONNECT_STABILITY_MS);
 			};
 
 			ws.onmessage = (event) => {
@@ -291,6 +323,10 @@ export function useSeasonSSE({
 
 			ws.onclose = () => {
 				wsRef.current = null;
+				if (stableTimerRef.current) {
+					clearTimeout(stableTimerRef.current);
+					stableTimerRef.current = null;
+				}
 				if (isMounted) {
 					setConnectionStatus("disconnected");
 					const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30000);
@@ -308,6 +344,10 @@ export function useSeasonSSE({
 			if (reconnectTimeoutRef.current) {
 				clearTimeout(reconnectTimeoutRef.current);
 			}
+			if (stableTimerRef.current) {
+				clearTimeout(stableTimerRef.current);
+				stableTimerRef.current = null;
+			}
 			if (wsRef.current) {
 				wsRef.current.close();
 			}
@@ -316,6 +356,7 @@ export function useSeasonSSE({
 
 	return {
 		connectionStatus,
+		hasConnected,
 		disconnect: () => {
 			if (wsRef.current) {
 				wsRef.current.close();
