@@ -11,12 +11,13 @@ export const API_KEY_SCOPES = [
 	"session:stop",
 	"match:start",
 	"match:log",
+	"match:score",
 	"match:lineup",
 ] as const;
 
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
-export function scopesToPermissions(scopes: ApiKeyScope[]): Record<string, string[]> {
+export function scopesToPermissions(scopes: readonly string[]): Record<string, string[]> {
 	const permissions: Record<string, string[]> = {};
 	for (const scope of scopes) {
 		const [resource, action] = scope.split(":") as [string, string];

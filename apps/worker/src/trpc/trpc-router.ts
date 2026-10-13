@@ -13,10 +13,12 @@ import { seasonTeamRouter } from "./router/season-team-router";
 import { leagueTeamRouter } from "./router/league-team-router";
 import { sessionRouter } from "./router/session-router";
 import { apiKeyRouter } from "./router/api-key-router";
+import { personalApiKeyRouter } from "./router/personal-api-key-router";
 import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
 	apiKey: apiKeyRouter,
+	personalApiKey: personalApiKeyRouter,
 	admin: adminRouter,
 	achievement: achievementRouter,
 	leagueTeam: leagueTeamRouter,

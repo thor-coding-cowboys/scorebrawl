@@ -10,6 +10,8 @@ interface __BaseEnv_Env {
 	VITE_GOOGLE_CLIENT_ID: "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com";
 	VERSION: "local";
 	OAUTH_RESOURCE: "https://scorebrawl.com/api/v1";
+	PROD_URL: "https://scorebrawl.com";
+	PROD_PUBLIC_API_URL: "https://api.scorebrawl.com";
 	GITHUB_CLIENT_SECRET: string;
 	GOOGLE_CLIENT_SECRET: string;
 	BETTER_AUTH_SECRET: string;
@@ -31,7 +33,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "VITE_GITHUB_CLIENT_ID" | "VITE_GOOGLE_CLIENT_ID" | "VERSION" | "OAUTH_RESOURCE" | "GITHUB_CLIENT_SECRET" | "GOOGLE_CLIENT_SECRET" | "BETTER_AUTH_SECRET" | "RESEND_API_KEY" | "ADMIN_USER_IDS" | "SEED_ALLOWED" | "BETTER_AUTH_URL">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "VITE_GITHUB_CLIENT_ID" | "VITE_GOOGLE_CLIENT_ID" | "VERSION" | "OAUTH_RESOURCE" | "PROD_URL" | "PROD_PUBLIC_API_URL" | "GITHUB_CLIENT_SECRET" | "GOOGLE_CLIENT_SECRET" | "BETTER_AUTH_SECRET" | "RESEND_API_KEY" | "ADMIN_USER_IDS" | "SEED_ALLOWED" | "BETTER_AUTH_URL">> {}
 }
 
 // Begin runtime types

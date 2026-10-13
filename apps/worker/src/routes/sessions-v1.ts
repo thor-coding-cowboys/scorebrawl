@@ -12,6 +12,7 @@ import {
 	startNextMatch,
 	logMatch,
 	setLineup,
+	updateLiveScore,
 	type SessionActionContext,
 } from "../services/session/session-actions";
 
@@ -123,6 +124,20 @@ sessionsV1Router.put(
 		try {
 			const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
 			return c.json({ teamSelection });
+		} catch (error) {
+			throw mapError(error);
+		}
+	}
+);
+
+sessionsV1Router.put(
+	"/active/match/score",
+	requireApiKeyScope({ match: ["score"] }),
+	zValidator("json", logSchema),
+	async (c) => {
+		try {
+			const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
+			return c.json({ match });
 		} catch (error) {
 			throw mapError(error);
 		}

@@ -48,6 +48,7 @@ const SCOPE_OPTIONS = [
 	"session:stop",
 	"match:start",
 	"match:log",
+	"match:score",
 	"match:lineup",
 ] as const;
 type Scope = (typeof SCOPE_OPTIONS)[number];

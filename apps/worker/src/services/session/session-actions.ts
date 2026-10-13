@@ -401,3 +401,32 @@ export async function setLineup(
 
 	return updated;
 }
+
+export async function updateLiveScore(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId?: string; home: number; away: number }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+	await assertSessionsAllowed(ctx, session.seasonId);
+
+	const sessionMatchId = await resolveCurrentMatchId(ctx, session.id);
+
+	const updated = await sessionRepository.updateMatchScore({
+		db: ctx.db,
+		sessionId: session.id,
+		sessionMatchId,
+		homeScore: input.home,
+		awayScore: input.away,
+	});
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, match: updated },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return updated;
+}
