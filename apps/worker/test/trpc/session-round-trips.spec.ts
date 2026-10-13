@@ -6,6 +6,7 @@ import { createTRPCTestClient } from "./trpc-test-client";
 import { createRoundTripCounter } from "../setup/d1-round-trip-counter";
 import * as sessionRepository from "../../src/repositories/session";
 import * as sessionService from "../../src/services/session";
+import { updateLiveScore } from "../../src/services/session/session-actions";
 
 const TEST_TIMEOUT = 30000;
 
@@ -82,6 +83,40 @@ describe("session D1 round trips", () => {
 			});
 
 			expect(counter.count()).toBeLessThanOrEqual(6);
+		},
+		TEST_TIMEOUT
+	);
+
+	it(
+		"updateLiveScore stays within a small round-trip budget",
+		async () => {
+			const { ctx, client, sessionId, full } = await setupActiveSession();
+			const lineup = full.proposedLineup!;
+			const toSeason = (ids: string[]) =>
+				ids.map((id) => full.players.find((p) => p.id === id)!.seasonPlayerId);
+
+			await client.session.startNextMatch.mutate({
+				sessionId,
+				homeSeasonPlayerIds: toSeason(lineup.homePlayerIds),
+				awaySeasonPlayerIds: toSeason(lineup.awayPlayerIds),
+			});
+
+			const counter = createRoundTripCounter(env.DB);
+			await updateLiveScore(
+				{
+					db: counter.db,
+					env,
+					organization: { id: ctx.league.id, slug: ctx.league.slug, name: ctx.league.name },
+					user: { id: ctx.user.id, name: ctx.user.name },
+					waitUntil: (promise) => {
+						promise.catch(() => {});
+					},
+				},
+				ctx.league.id,
+				{ sessionId, home: 2, away: 1 }
+			);
+
+			expect(counter.count()).toBeLessThanOrEqual(3);
 		},
 		TEST_TIMEOUT
 	);
