@@ -78,9 +78,13 @@ convention.
 - `main` and `exports."."` → `./src/index.ts` (same pattern as `packages/util`).
 - Scripts: `typecheck` (`tsc --noEmit`), `test` (`vitest run`) — consistent with `packages/util`.
 - Dependencies: none yet. devDependencies: `typescript`, `vitest` (both `catalog:`).
+- `vitest.config.ts` with `environment: "node"` (without a local vitest config, vitest picks up
+  the stale repo-root `vite.config.ts` and fails on its Cloudflare plugin).
 - `tsconfig.json`: `moduleResolution: "bundler"`, `strict`, `noEmit`, `lib: ["ES2023"]`,
-  `types: []` — `types: []` plus the absence of a DOM lib make Node/worker/DOM globals a
-  typecheck error, enforcing "framework-agnostic".
+  `types: []`, `exclude: ["**/*.spec.ts"]` — `types: []` plus the absence of a DOM lib make
+  Node/worker/DOM globals a typecheck error, enforcing "framework-agnostic". The spec exclusion
+  is required for that to hold: a spec file's `vitest` import pulls `@types/node` into the
+  program and leaks Node globals into production source.
 - `src/index.ts` holds one trivial export so consumers can prove resolution; a co-located
   `src/index.spec.ts` proves the vitest wiring. Both are replaced by sub-issue 697.
 
@@ -92,8 +96,10 @@ convention.
 - devDependencies: the same three (so the package typechecks standalone) plus `@types/react`,
   `typescript`, `vitest`.
 - Scripts: `typecheck` (`tsc --noEmit`), `test` (`vitest run`).
-- `tsconfig.json`: as core, plus `jsx: "react-jsx"` and `lib: ["ES2023", "DOM"]` (DOM included
-  for `@types/react` compatibility; it does not permit DOM runtime code on mobile).
+- `vitest.config.ts` with `environment: "node"` (same reason as core).
+- `tsconfig.json`: as core (including `exclude: ["**/*.spec.ts"]`), plus `jsx: "react-jsx"` and
+  `lib: ["ES2023", "DOM"]` (DOM included for `@types/react` compatibility; it does not permit
+  DOM runtime code on mobile).
 - `src/index.ts` has one trivial export that imports `react` at runtime, proving the peer resolves;
   a co-located `src/index.spec.ts` covers the vitest wiring.
 
@@ -116,11 +122,32 @@ convention.
 
 ## Guardrail: worker must not import `packages/client`
 
-Chosen enforcement (per issue: "if not enforceable by config, document how it's checked"):
-`apps/worker/package.json` simply does not declare `@coding-cowboys/scorebrawl-client`. Because
-the package is private and unpublished, an `import` from it cannot resolve, so both
-`apps/worker`'s `tsgo --noEmit` typecheck and the Wrangler/esbuild build fail. No `turbo
-boundaries`, no oxlint rule.
+The natural "no dependency edge" approach is **not sufficient** and was rejected after testing:
+bun hoists every workspace package to the repo-root `node_modules/@coding-cowboys/*`, so
+`import "@coding-cowboys/scorebrawl-client"` resolves from `apps/worker` regardless of the
+dependency edge. A probe importing it passed both `tsgo --noEmit` and
+`wrangler deploy --dry-run` (exit 0 each).
+
+Enforcement is therefore an oxlint `no-restricted-imports` override scoped to
+`apps/worker/**` in `.oxlintrc.json`, which runs in `bun lint` / `bun check`:
+
+```json
+{
+	"files": ["apps/worker/**/*.ts", "apps/worker/**/*.tsx"],
+	"rules": {
+		"no-restricted-imports": [
+			"error",
+			{
+				"paths": [{ "name": "@coding-cowboys/scorebrawl-client", "message": "..." }],
+				"patterns": ["@coding-cowboys/scorebrawl-client/*"]
+			}
+		]
+	}
+}
+```
+
+`apps/worker/package.json` still omits the dependency (so intent is visible and tooling that
+does not hoist would also fail).
 
 ## Verification / acceptance
 
@@ -130,7 +157,8 @@ boundaries`, no oxlint rule.
 - Importability proof in each intended consumer, using **temporary** imports whose evidence is
   captured and then removed (the real imports arrive in sub-issues 697–701):
   - **worker** (`tsgo --noEmit` + wrangler dry-run): import from `core` → passes; add an import
-    from `client` → **fails** (demonstrates the guardrail).
+    from `client` → the oxlint `no-restricted-imports` rule fails (`bun lint`), demonstrating the
+    guardrail.
   - **web** (`bun run build` → `vite build`): import from `core` and `client` → passes.
   - **mobile** (`bunx expo export --platform ios`): runtime import from `core` and `client` →
     bundles.

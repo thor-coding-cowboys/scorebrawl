@@ -11,11 +11,6 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run"
 	},
-	"peerDependencies": {
-		"@tanstack/react-query": "catalog:",
-		"@trpc/client": "catalog:",
-		"react": "catalog:"
-	},
 	"devDependencies": {
 		"@tanstack/react-query": "catalog:",
 		"@trpc/client": "catalog:",
@@ -23,5 +18,10 @@
 		"react": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@tanstack/react-query": "catalog:",
+		"@trpc/client": "catalog:",
+		"react": "catalog:"
 	}
 }
