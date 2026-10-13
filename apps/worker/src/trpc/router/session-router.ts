@@ -2,6 +2,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { leagueMemberProcedure } from "../trpc";
+import { matchScoreSchema } from "../../lib/match-score";
 import * as sessionRepository from "../../repositories/session";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as sessionActions from "../../services/session/session-actions";
@@ -134,8 +135,8 @@ export const sessionRouter = {
 			z.object({
 				sessionId: z.string(),
 				sessionMatchId: z.string(),
-				homeScore: z.number().int().min(0),
-				awayScore: z.number().int().min(0),
+				homeScore: matchScoreSchema,
+				awayScore: matchScoreSchema,
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -206,8 +207,8 @@ export const sessionRouter = {
 			z.object({
 				sessionId: z.string(),
 				sessionMatchId: z.string(),
-				homeScore: z.number().int().min(0),
-				awayScore: z.number().int().min(0),
+				homeScore: matchScoreSchema,
+				awayScore: matchScoreSchema,
 			})
 		)
 		.mutation(async ({ ctx, input }) => {

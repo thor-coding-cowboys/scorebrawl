@@ -12,6 +12,7 @@ import {
 	type MatchCreationContext,
 } from "../../services/match-creation";
 import { seasonProcedure, leagueMemberProcedure } from "../trpc";
+import { matchScoreSchema } from "../../lib/match-score";
 
 const matchIdSchema = createOptionalIdSchema("match");
 
@@ -36,8 +37,8 @@ export const matchRouter = {
 		.input(
 			z.object({
 				seasonSlug: z.string(),
-				homeScore: z.number().int().min(0),
-				awayScore: z.number().int().min(0),
+				homeScore: matchScoreSchema,
+				awayScore: matchScoreSchema,
 				fixtureId: z.string(),
 			})
 		)
@@ -109,8 +110,8 @@ export const matchRouter = {
 			z.object({
 				id: matchIdSchema,
 				seasonSlug: z.string(),
-				homeScore: z.number().int().min(0),
-				awayScore: z.number().int().min(0),
+				homeScore: matchScoreSchema,
+				awayScore: matchScoreSchema,
 				homeTeamPlayerIds: z.array(z.string()),
 				awayTeamPlayerIds: z.array(z.string()),
 			})
