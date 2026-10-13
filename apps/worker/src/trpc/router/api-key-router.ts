@@ -12,6 +12,7 @@ export const API_KEY_SCOPES = [
 	"match:start",
 	"match:log",
 	"match:score",
+	"match:cancel",
 	"match:lineup",
 ] as const;
 

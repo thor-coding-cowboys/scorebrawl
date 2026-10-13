@@ -49,6 +49,7 @@ const SCOPE_OPTIONS = [
 	"match:start",
 	"match:log",
 	"match:score",
+	"match:cancel",
 	"match:lineup",
 ] as const;
 type Scope = (typeof SCOPE_OPTIONS)[number];

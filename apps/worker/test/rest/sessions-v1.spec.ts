@@ -361,6 +361,48 @@ describe("sessions v1 rest routes", () => {
 		expect(res.status).toBe(404);
 	});
 
+	it("works without leagueId in the path (league taken from the key)", async () => {
+		const { client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:score"]);
+		const res = await SELF.fetch("http://example.com/leagues/v1/sessions/active/match/score", {
+			method: "PUT",
+			headers: { "x-api-key": key.key, "Content-Type": "application/json" },
+			body: JSON.stringify({ home: 2, away: 1 }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	it("cancels the in-progress match", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:cancel", "match:score"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match", "DELETE", key.key);
+		expect(res.status).toBe(200);
+
+		const again = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: 1,
+			away: 0,
+		});
+		expect(again.status).toBe(404);
+	});
+
+	it("rejects cancel without the match:cancel scope", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:score"]);
+		const res = await jsonRequest(ctx.league.id, "/active/match", "DELETE", key.key);
+		expect(res.status).toBe(403);
+	});
+
 	it("rejects a lineup containing players not in the season", async () => {
 		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
 		await client.session.startNextMatch.mutate({

@@ -32,10 +32,11 @@ export function requireApiKeyScope(required: Record<string, string[]>) {
 		if (!stored) {
 			return c.json({ error: "invalid_api_key", error_description: null }, 401);
 		}
-		const leagueId = c.req.param("leagueId");
-		if (stored.referenceId !== leagueId) {
+		const pathLeagueId = c.req.param("leagueId");
+		if (pathLeagueId !== undefined && stored.referenceId !== pathLeagueId) {
 			return c.json({ error: "wrong_league" }, 403);
 		}
+		const leagueId = stored.referenceId;
 		const result = await auth.api.verifyApiKey({ body: { key } });
 		if (!result.valid || !result.key) {
 			if (result.error?.code?.includes("RATE_LIMIT")) {

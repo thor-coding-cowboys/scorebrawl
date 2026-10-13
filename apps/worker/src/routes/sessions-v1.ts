@@ -13,6 +13,7 @@ import {
 	logMatch,
 	setLineup,
 	updateLiveScore,
+	cancelMatch,
 	type SessionActionContext,
 } from "../services/session/session-actions";
 
@@ -58,9 +59,9 @@ function actionCtx(c: Context<HonoEnv>): SessionActionContext {
 }
 
 function leagueId(c: Context<HonoEnv>): string {
-	const id = c.req.param("leagueId");
-	if (!id) throw new HTTPException(400, { message: "Missing leagueId" });
-	return id;
+	const apiKey = c.get("apiKey");
+	if (!apiKey) throw new HTTPException(401, { message: "Invalid API key" });
+	return apiKey.organizationId;
 }
 
 export const sessionsV1Router = new Hono<HonoEnv>();
@@ -143,3 +144,12 @@ sessionsV1Router.put(
 		}
 	}
 );
+
+sessionsV1Router.delete("/active/match", requireApiKeyScope({ match: ["cancel"] }), async (c) => {
+	try {
+		const result = await cancelMatch(actionCtx(c), leagueId(c));
+		return c.json(result);
+	} catch (error) {
+		throw mapError(error);
+	}
+});
