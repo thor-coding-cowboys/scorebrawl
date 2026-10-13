@@ -246,6 +246,25 @@ export const getActiveSession = async ({ db, seasonId }: { db: DrizzleDB; season
 	return { ...session, players };
 };
 
+export const getActiveSessionsForLeague = async ({
+	db,
+	leagueId,
+}: {
+	db: DrizzleDB;
+	leagueId: string;
+}) => {
+	return db
+		.select({
+			id: gameSession.id,
+			seasonId: gameSession.seasonId,
+			seasonSlug: season.slug,
+			status: gameSession.status,
+		})
+		.from(gameSession)
+		.innerJoin(season, eq(season.id, gameSession.seasonId))
+		.where(and(eq(season.leagueId, leagueId), eq(gameSession.status, "active")));
+};
+
 export const getActiveSessionFull = async ({
 	db,
 	seasonId,

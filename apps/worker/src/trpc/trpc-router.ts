@@ -12,9 +12,11 @@ import { organizationRouter } from "./router/organization-router";
 import { seasonTeamRouter } from "./router/season-team-router";
 import { leagueTeamRouter } from "./router/league-team-router";
 import { sessionRouter } from "./router/session-router";
+import { apiKeyRouter } from "./router/api-key-router";
 import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
+	apiKey: apiKeyRouter,
 	admin: adminRouter,
 	achievement: achievementRouter,
 	leagueTeam: leagueTeamRouter,

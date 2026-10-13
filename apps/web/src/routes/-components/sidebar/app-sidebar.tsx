@@ -6,6 +6,7 @@ import {
 	Mail01Icon,
 	ArrowRight01Icon,
 	MedalFirstPlaceIcon,
+	Key01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -117,6 +118,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const isAchievementsRoute = matchRoute({ to: "/leagues/$slug/achievements", fuzzy: false });
 	const isMembersRoute = matchRoute({ to: "/leagues/$slug/members", fuzzy: false });
 	const isInvitationsRoute = matchRoute({ to: "/leagues/$slug/invitations", fuzzy: false });
+	const isApiKeysRoute = matchRoute({ to: "/leagues/$slug/api-keys", fuzzy: false });
 
 	// Fetch all active seasons for the current league
 	const { data: activeSeasons } = useQuery({
@@ -266,6 +268,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 										</SidebarMenuButton>
 									</SidebarMenuItem>
 								</>
+							)}
+							{userRole === "owner" && (
+								<SidebarMenuItem>
+									<SidebarMenuButton asChild isActive={!!isApiKeysRoute}>
+										<Link
+											to="/leagues/$slug/api-keys"
+											params={{ slug: leagueSlug }}
+											onClick={handleNavClick}
+										>
+											<HugeiconsIcon icon={Key01Icon} className="size-4" />
+											<span>API Keys</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
 							)}
 						</SidebarMenu>
 					</SidebarGroup>

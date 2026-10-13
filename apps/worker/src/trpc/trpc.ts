@@ -1,9 +1,9 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import type { betterAuth } from "better-auth";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z } from "zod";
 import type { getDb } from "../db";
+import type { createAuth } from "../lib/better-auth";
 import { member, league as organization } from "../db/schema/auth-schema";
 import { season } from "../db/schema/league-schema";
 import type { AuthType, HonoEnv } from "../middleware/context";
@@ -13,7 +13,7 @@ import type { R2BucketRef } from "../lib/asset-util";
 interface BaseContext {
 	authentication?: AuthType;
 	db: ReturnType<typeof getDb>;
-	betterAuth: ReturnType<typeof betterAuth>;
+	betterAuth: ReturnType<typeof createAuth>;
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
 	waitUntil: (promise: Promise<unknown>) => void;
@@ -155,6 +155,14 @@ const memberCheckMiddleware = t.middleware(({ ctx, next }) => {
 	return next();
 });
 
+const ownerCheckMiddleware = t.middleware(({ ctx, next }) => {
+	const typedCtx = ctx as unknown as LeagueContext;
+	if (typedCtx.role !== "owner") {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Owner access required" });
+	}
+	return next();
+});
+
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
@@ -179,6 +187,11 @@ export const leagueMemberProcedure = t.procedure
 	.use(enforceUserIsAuthed)
 	.use(leagueAccessMiddleware)
 	.use(memberCheckMiddleware);
+
+export const leagueOwnerProcedure = t.procedure
+	.use(enforceUserIsAuthed)
+	.use(leagueAccessMiddleware)
+	.use(ownerCheckMiddleware);
 
 // Admin check middleware - mirrors better-auth's admin plugin config
 // (adminUserIds plus users with the "admin" role).

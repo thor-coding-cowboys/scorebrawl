@@ -33,6 +33,7 @@ import { Route as AuthenticatedSidebarLeaguesSlugIndexRouteImport } from './rout
 import { Route as AuthenticatedSidebarLeaguesSlugTeamsRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/teams'
 import { Route as AuthenticatedSidebarLeaguesSlugMembersRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/members'
 import { Route as AuthenticatedSidebarLeaguesSlugInvitationsRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/invitations'
+import { Route as AuthenticatedSidebarLeaguesSlugApiKeysRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/api-keys'
 import { Route as AuthenticatedSidebarLeaguesSlugTeamsIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/teams/index'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/index'
 import { Route as AuthenticatedSidebarLeaguesSlugPlayersIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/players/index'
@@ -178,6 +179,12 @@ const AuthenticatedSidebarLeaguesSlugInvitationsRoute =
     path: '/invitations',
     getParentRoute: () => AuthenticatedSidebarLeaguesSlugRouteRoute,
   } as any)
+const AuthenticatedSidebarLeaguesSlugApiKeysRoute =
+  AuthenticatedSidebarLeaguesSlugApiKeysRouteImport.update({
+    id: '/api-keys',
+    path: '/api-keys',
+    getParentRoute: () => AuthenticatedSidebarLeaguesSlugRouteRoute,
+  } as any)
 const AuthenticatedSidebarLeaguesSlugTeamsIndexRoute =
   AuthenticatedSidebarLeaguesSlugTeamsIndexRouteImport.update({
     id: '/',
@@ -286,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/oauth-clients': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
+  '/leagues/$slug/api-keys': typeof AuthenticatedSidebarLeaguesSlugApiKeysRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -321,6 +329,7 @@ export interface FileRoutesByTo {
   '/admin/leagues': typeof AuthenticatedAdminLeaguesIndexRoute
   '/admin/oauth-clients': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
+  '/leagues/$slug/api-keys': typeof AuthenticatedSidebarLeaguesSlugApiKeysRoute
   '/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/leagues/$slug': typeof AuthenticatedSidebarLeaguesSlugIndexRoute
@@ -359,6 +368,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/leagues/': typeof AuthenticatedAdminLeaguesIndexRoute
   '/_authenticated/admin/oauth-clients/': typeof AuthenticatedAdminOauthClientsIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
+  '/_authenticated/_sidebar/leagues/$slug/api-keys': typeof AuthenticatedSidebarLeaguesSlugApiKeysRoute
   '/_authenticated/_sidebar/leagues/$slug/invitations': typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   '/_authenticated/_sidebar/leagues/$slug/members': typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   '/_authenticated/_sidebar/leagues/$slug/teams': typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/admin/leagues'
     | '/admin/oauth-clients'
     | '/admin/users'
+    | '/leagues/$slug/api-keys'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug/teams'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/admin/leagues'
     | '/admin/oauth-clients'
     | '/admin/users'
+    | '/leagues/$slug/api-keys'
     | '/leagues/$slug/invitations'
     | '/leagues/$slug/members'
     | '/leagues/$slug'
@@ -469,6 +481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/leagues/'
     | '/_authenticated/admin/oauth-clients/'
     | '/_authenticated/admin/users/'
+    | '/_authenticated/_sidebar/leagues/$slug/api-keys'
     | '/_authenticated/_sidebar/leagues/$slug/invitations'
     | '/_authenticated/_sidebar/leagues/$slug/members'
     | '/_authenticated/_sidebar/leagues/$slug/teams'
@@ -668,6 +681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugInvitationsRouteImport
       parentRoute: typeof AuthenticatedSidebarLeaguesSlugRouteRoute
     }
+    '/_authenticated/_sidebar/leagues/$slug/api-keys': {
+      id: '/_authenticated/_sidebar/leagues/$slug/api-keys'
+      path: '/api-keys'
+      fullPath: '/leagues/$slug/api-keys'
+      preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugApiKeysRouteImport
+      parentRoute: typeof AuthenticatedSidebarLeaguesSlugRouteRoute
+    }
     '/_authenticated/_sidebar/leagues/$slug/teams/': {
       id: '/_authenticated/_sidebar/leagues/$slug/teams/'
       path: '/'
@@ -824,6 +844,7 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRouteWithChildren =
   )
 
 interface AuthenticatedSidebarLeaguesSlugRouteRouteChildren {
+  AuthenticatedSidebarLeaguesSlugApiKeysRoute: typeof AuthenticatedSidebarLeaguesSlugApiKeysRoute
   AuthenticatedSidebarLeaguesSlugInvitationsRoute: typeof AuthenticatedSidebarLeaguesSlugInvitationsRoute
   AuthenticatedSidebarLeaguesSlugMembersRoute: typeof AuthenticatedSidebarLeaguesSlugMembersRoute
   AuthenticatedSidebarLeaguesSlugTeamsRoute: typeof AuthenticatedSidebarLeaguesSlugTeamsRouteWithChildren
@@ -838,6 +859,8 @@ interface AuthenticatedSidebarLeaguesSlugRouteRouteChildren {
 
 const AuthenticatedSidebarLeaguesSlugRouteRouteChildren: AuthenticatedSidebarLeaguesSlugRouteRouteChildren =
   {
+    AuthenticatedSidebarLeaguesSlugApiKeysRoute:
+      AuthenticatedSidebarLeaguesSlugApiKeysRoute,
     AuthenticatedSidebarLeaguesSlugInvitationsRoute:
       AuthenticatedSidebarLeaguesSlugInvitationsRoute,
     AuthenticatedSidebarLeaguesSlugMembersRoute:
