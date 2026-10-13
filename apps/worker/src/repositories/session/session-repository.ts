@@ -258,6 +258,7 @@ export const getActiveSessionsForLeague = async ({
 			id: gameSession.id,
 			seasonId: gameSession.seasonId,
 			seasonSlug: season.slug,
+			scoreType: season.scoreType,
 			status: gameSession.status,
 		})
 		.from(gameSession)
@@ -455,6 +456,7 @@ export const getSessionWithSeason = async ({
 			sessionId: gameSession.id,
 			sessionSeasonId: gameSession.seasonId,
 			seasonSlug: season.slug,
+			seasonScoreType: season.scoreType,
 			leagueId: season.leagueId,
 			sessionStatus: gameSession.status,
 		})

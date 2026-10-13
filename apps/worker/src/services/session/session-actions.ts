@@ -59,9 +59,8 @@ async function resolveSeasonBySlug(ctx: SessionActionContext, seasonSlug: string
 	}
 }
 
-async function assertSessionsAllowed(ctx: SessionActionContext, seasonId: string) {
-	const season = await seasonRepository.getById({ db: ctx.db, seasonId });
-	if (season.scoreType === "1-v-n-elo") {
+function assertSessionsAllowed(session: { scoreType: string }) {
+	if (session.scoreType === "1-v-n-elo") {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Sessions are not available for 1-v-n seasons",
@@ -73,7 +72,7 @@ async function resolveSession(
 	ctx: SessionActionContext,
 	leagueId: string,
 	sessionId?: string
-): Promise<{ id: string; seasonId: string; seasonSlug: string }> {
+): Promise<{ id: string; seasonId: string; seasonSlug: string; scoreType: string }> {
 	if (sessionId) {
 		const info = await sessionRepository.getSessionWithSeason({ db: ctx.db, sessionId });
 		if (!info) {
@@ -82,7 +81,12 @@ async function resolveSession(
 		if (info.leagueId !== leagueId) {
 			throw new TRPCError({ code: "FORBIDDEN", message: "Session not in your league" });
 		}
-		return { id: info.sessionId, seasonId: info.sessionSeasonId, seasonSlug: info.seasonSlug };
+		return {
+			id: info.sessionId,
+			seasonId: info.sessionSeasonId,
+			seasonSlug: info.seasonSlug,
+			scoreType: info.seasonScoreType,
+		};
 	}
 
 	const active = await sessionRepository.getActiveSessionsForLeague({ db: ctx.db, leagueId });
@@ -93,7 +97,12 @@ async function resolveSession(
 		throw new TRPCError({ code: "CONFLICT", message: "Multiple active sessions" });
 	}
 	const session = active[0]!;
-	return { id: session.id, seasonId: session.seasonId, seasonSlug: session.seasonSlug };
+	return {
+		id: session.id,
+		seasonId: session.seasonId,
+		seasonSlug: session.seasonSlug,
+		scoreType: session.scoreType,
+	};
 }
 
 async function resolveCurrentMatchId(
@@ -262,7 +271,7 @@ export async function startNextMatch(
 	input: { sessionId?: string; home?: string[]; away?: string[]; sessionMatchId?: string }
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
-	await assertSessionsAllowed(ctx, session.seasonId);
+	assertSessionsAllowed(session);
 
 	let home = input.home;
 	let away = input.away;
@@ -297,7 +306,7 @@ export async function logMatch(
 	input: { sessionId?: string; home: number; away: number; sessionMatchId?: string }
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
-	await assertSessionsAllowed(ctx, session.seasonId);
+	assertSessionsAllowed(session);
 
 	const hasExplicitMatch = input.sessionId !== undefined && input.sessionMatchId !== undefined;
 	const sessionMatchId = hasExplicitMatch
@@ -662,7 +671,7 @@ export async function cancelMatch(
 	input: { sessionId?: string } = {}
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
-	await assertSessionsAllowed(ctx, session.seasonId);
+	assertSessionsAllowed(session);
 
 	const result = await sessionRepository.cancelCurrentMatch({
 		db: ctx.db,
@@ -704,7 +713,7 @@ export async function updateLiveScore(
 	input: { sessionId?: string; home: number; away: number }
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
-	await assertSessionsAllowed(ctx, session.seasonId);
+	assertSessionsAllowed(session);
 
 	const sessionMatchId = await resolveCurrentMatchId(ctx, session.id);
 
