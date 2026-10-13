@@ -69,6 +69,18 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 	const [showSettings, setShowSettings] = useState(false);
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
 	const [standingTab, setStandingTab] = useState<"players" | "teams">("players");
+	const [scoreUpdate, setScoreUpdate] = useState<{
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	} | null>(null);
+
+	const handleScoreUpdate = useCallback(
+		(input: { sessionMatchId?: string; homeScore: number; awayScore: number }) => {
+			setScoreUpdate(input);
+		},
+		[]
+	);
 
 	const handleRemoteEnd = useCallback(() => {
 		queryClient.invalidateQueries({
@@ -86,6 +98,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 		seasonSlug,
 		sessionId,
 		onSessionEnd: handleRemoteEnd,
+		onScoreUpdate: handleScoreUpdate,
 	});
 
 	const reconnecting = hasConnected && connectionStatus !== "connected";
@@ -187,6 +200,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 						session={session}
 						sessionId={sessionId}
 						seasonSlug={seasonSlug}
+						scoreUpdate={scoreUpdate}
 						refresh={() => sessionQuery.refetch()}
 						footer={
 							<SectionCard
