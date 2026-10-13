@@ -718,8 +718,13 @@ export async function updateLiveScore(
 
 	ctx.waitUntil(
 		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
-			type: "session:update",
-			data: { sessionId: session.id, match: updated },
+			type: "session:score-update",
+			data: {
+				sessionId: session.id,
+				sessionMatchId,
+				homeScore: input.home,
+				awayScore: input.away,
+			},
 			user: { id: ctx.user.id, name: ctx.user.name },
 		})
 	);
@@ -773,13 +778,28 @@ export async function updateMatchScore(
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
 
-	return sessionRepository.updateMatchScore({
+	const updated = await sessionRepository.updateMatchScore({
 		db: ctx.db,
 		sessionId: session.id,
 		sessionMatchId: input.sessionMatchId,
 		homeScore: input.homeScore,
 		awayScore: input.awayScore,
 	});
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:score-update",
+			data: {
+				sessionId: session.id,
+				sessionMatchId: input.sessionMatchId,
+				homeScore: input.homeScore,
+				awayScore: input.awayScore,
+			},
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return updated;
 }
 
 export async function updateProposedLineup(

@@ -4,6 +4,13 @@ export interface SessionEventDetail {
 	userName?: string;
 }
 
+export interface SessionScoreEventDetail {
+	sessionId?: string;
+	sessionMatchId?: string;
+	homeScore?: number;
+	awayScore?: number;
+}
+
 export interface StreakEventDetail {
 	playerId?: string;
 	playerName?: string;
@@ -24,6 +31,7 @@ export interface AchievementEventDetail {
 declare global {
 	interface WindowEventMap {
 		"session-event": CustomEvent<SessionEventDetail>;
+		"session-score-event": CustomEvent<SessionScoreEventDetail>;
 		"streak-event": CustomEvent<StreakEventDetail>;
 		"achievement-event": CustomEvent<AchievementEventDetail>;
 	}

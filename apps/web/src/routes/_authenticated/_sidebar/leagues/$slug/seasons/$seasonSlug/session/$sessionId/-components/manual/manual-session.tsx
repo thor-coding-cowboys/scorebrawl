@@ -42,6 +42,8 @@ interface ManualSessionProps {
 	seasonSlug: string;
 }
 
+const SSE_SCORE_DEBOUNCE_MS = 500;
+
 export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProps) {
 	const navigate = useNavigate();
 	const { data: authSession } = useSession();
@@ -68,15 +70,31 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	const handleSessionUpdate = (isOwnUpdate: boolean) => {
 		if (!isOwnUpdate) {
 			setTeamAssignment([]);
+			homeScoreRef.current = 0;
+			awayScoreRef.current = 0;
 			setHomeScore(0);
 			setAwayScore(0);
 		}
+	};
+
+	const handleScoreUpdate = (input: {
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	}) => {
+		if (!currentMatchRef.current || input.sessionMatchId !== currentMatchRef.current.id) return;
+		if (Date.now() - lastLocalScoreChangeRef.current < SSE_SCORE_DEBOUNCE_MS) return;
+		homeScoreRef.current = input.homeScore;
+		awayScoreRef.current = input.awayScore;
+		setHomeScore(input.homeScore);
+		setAwayScore(input.awayScore);
 	};
 
 	const { setAuthSession } = useSessionSSE({
 		sessionId,
 		onSessionEnd: handleSessionEnd,
 		onSessionUpdate: handleSessionUpdate,
+		onScoreUpdate: handleScoreUpdate,
 	});
 
 	useEffect(() => {
@@ -88,6 +106,9 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	const [teamAssignment, setTeamAssignment] = useState<PlayerWithTeam[]>([]);
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
+	const homeScoreRef = useRef(0);
+	const awayScoreRef = useRef(0);
+	const lastLocalScoreChangeRef = useRef(0);
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
 
 	const allMatches = session?.matches ?? [];
@@ -95,14 +116,32 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	currentMatchRef.current = currentMatch ? { id: currentMatch.id } : null;
 
 	const currentMatchId = currentMatch?.id ?? null;
-	const prevMatchIdRef = useRef<string | null>(currentMatchId);
+	const prevMatchIdRef = useRef<string | null | undefined>(undefined);
 	if (currentMatchId !== prevMatchIdRef.current) {
 		prevMatchIdRef.current = currentMatchId;
-		setHomeScore(currentMatch?.homeSessionScore ?? 0);
-		setAwayScore(currentMatch?.awaySessionScore ?? 0);
+		const nextHome = currentMatch?.homeSessionScore ?? 0;
+		const nextAway = currentMatch?.awaySessionScore ?? 0;
+		homeScoreRef.current = nextHome;
+		awayScoreRef.current = nextAway;
+		setHomeScore(nextHome);
+		setAwayScore(nextAway);
 	}
 
-	useScoreSync(sessionId, currentMatchRef);
+	const { debouncedUpdateScore } = useScoreSync(sessionId, currentMatchRef);
+
+	const updateHomeScore = (updater: (prev: number) => number) => {
+		lastLocalScoreChangeRef.current = Date.now();
+		homeScoreRef.current = updater(homeScoreRef.current);
+		setHomeScore(homeScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
+	};
+
+	const updateAwayScore = (updater: (prev: number) => number) => {
+		lastLocalScoreChangeRef.current = Date.now();
+		awayScoreRef.current = updater(awayScoreRef.current);
+		setAwayScore(awayScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
+	};
 
 	useEffect(() => {
 		if (!session) return;
@@ -213,15 +252,15 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 									<ScoreStepper
 										label="Home"
 										score={homeScore}
-										onIncrement={() => setHomeScore((s) => s + 1)}
-										onDecrement={() => setHomeScore((s) => Math.max(0, s - 1))}
+										onIncrement={() => updateHomeScore((s) => s + 1)}
+										onDecrement={() => updateHomeScore((s) => Math.max(0, s - 1))}
 										disabled={!currentMatch}
 									/>
 									<ScoreStepper
 										label="Away"
 										score={awayScore}
-										onIncrement={() => setAwayScore((s) => s + 1)}
-										onDecrement={() => setAwayScore((s) => Math.max(0, s - 1))}
+										onIncrement={() => updateAwayScore((s) => s + 1)}
+										onDecrement={() => updateAwayScore((s) => Math.max(0, s - 1))}
 										disabled={!currentMatch}
 									/>
 								</div>

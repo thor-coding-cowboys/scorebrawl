@@ -56,6 +56,16 @@ export type SeasonSSEEvent =
 	| { type: "session:start"; user?: { id: string; name: string }; data: SessionData }
 	| { type: "session:update"; user?: { id: string; name: string }; data: SessionData }
 	| { type: "session:end"; user?: { id: string; name: string }; data: SessionData }
+	| {
+			type: "session:score-update";
+			user?: { id: string; name: string };
+			data: {
+				sessionId?: string;
+				sessionMatchId?: string;
+				homeScore?: number;
+				awayScore?: number;
+			};
+	  }
 	| { type: "match:insert"; user?: { id: string; name: string }; data?: MatchData }
 	| { type: "match:delete"; user?: { id: string; name: string }; data?: MatchData }
 	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData }
@@ -173,6 +183,20 @@ export function useSeasonSSE({
 								})
 							);
 						}
+						return;
+					}
+
+					if (parsed.type === "session:score-update" && parsed.data) {
+						window.dispatchEvent(
+							new CustomEvent("session-score-event", {
+								detail: {
+									sessionId: parsed.data.sessionId,
+									sessionMatchId: parsed.data.sessionMatchId,
+									homeScore: parsed.data.homeScore,
+									awayScore: parsed.data.awayScore,
+								},
+							})
+						);
 						return;
 					}
 

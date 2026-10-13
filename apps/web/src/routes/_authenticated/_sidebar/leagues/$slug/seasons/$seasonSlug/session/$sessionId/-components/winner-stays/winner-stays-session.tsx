@@ -53,6 +53,8 @@ interface WinnerStaysSessionProps {
 	seasonSlug: string;
 }
 
+const SSE_SCORE_DEBOUNCE_MS = 500;
+
 export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysSessionProps) {
 	const navigate = useNavigate();
 	const { data: authSession } = useSession();
@@ -82,15 +84,31 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 			setProposedLineup(null);
 			setTeamAssignment([]);
 			setPendingCoinTossId(null);
+			homeScoreRef.current = 0;
+			awayScoreRef.current = 0;
 			setHomeScore(0);
 			setAwayScore(0);
 		}
+	};
+
+	const handleScoreUpdate = (input: {
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	}) => {
+		if (!currentMatchRef.current || input.sessionMatchId !== currentMatchRef.current.id) return;
+		if (Date.now() - lastLocalScoreChangeRef.current < SSE_SCORE_DEBOUNCE_MS) return;
+		homeScoreRef.current = input.homeScore;
+		awayScoreRef.current = input.awayScore;
+		setHomeScore(input.homeScore);
+		setAwayScore(input.awayScore);
 	};
 
 	const { setAuthSession } = useSessionSSE({
 		sessionId,
 		onSessionEnd: handleSessionEnd,
 		onSessionUpdate: handleSessionUpdate,
+		onScoreUpdate: handleScoreUpdate,
 	});
 
 	useEffect(() => {
@@ -103,6 +121,9 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	const [pendingCoinTossId, setPendingCoinTossId] = useState<string | null>(null);
 	const [homeScore, setHomeScore] = useState(0);
 	const [awayScore, setAwayScore] = useState(0);
+	const homeScoreRef = useRef(0);
+	const awayScoreRef = useRef(0);
+	const lastLocalScoreChangeRef = useRef(0);
 	const [showCoinToss, setShowCoinToss] = useState(false);
 	const [showPlayerDrawer, setShowPlayerDrawer] = useState(false);
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
@@ -118,21 +139,31 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	currentMatchRef.current = currentMatch ? { id: currentMatch.id } : null;
 
 	const currentMatchId = currentMatch?.id ?? null;
-	const prevMatchIdRef = useRef<string | null>(currentMatchId);
+	const prevMatchIdRef = useRef<string | null | undefined>(undefined);
 	if (currentMatchId !== prevMatchIdRef.current) {
 		prevMatchIdRef.current = currentMatchId;
-		setHomeScore(currentMatch?.homeSessionScore ?? 0);
-		setAwayScore(currentMatch?.awaySessionScore ?? 0);
+		const nextHome = currentMatch?.homeSessionScore ?? 0;
+		const nextAway = currentMatch?.awaySessionScore ?? 0;
+		homeScoreRef.current = nextHome;
+		awayScoreRef.current = nextAway;
+		setHomeScore(nextHome);
+		setAwayScore(nextAway);
 	}
 
-	useScoreSync(sessionId, currentMatchRef);
+	const { debouncedUpdateScore } = useScoreSync(sessionId, currentMatchRef);
 
 	const updateHomeScore = (updater: (prev: number) => number) => {
-		setHomeScore(updater);
+		lastLocalScoreChangeRef.current = Date.now();
+		homeScoreRef.current = updater(homeScoreRef.current);
+		setHomeScore(homeScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
 	};
 
 	const updateAwayScore = (updater: (prev: number) => number) => {
-		setAwayScore(updater);
+		lastLocalScoreChangeRef.current = Date.now();
+		awayScoreRef.current = updater(awayScoreRef.current);
+		setAwayScore(awayScoreRef.current);
+		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
 	};
 
 	useEffect(() => {
