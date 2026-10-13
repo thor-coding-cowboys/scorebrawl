@@ -40,6 +40,18 @@ await Promise.all(items.map(i => db.select().from(y).where(...)));
 const data = await db.select({...}).from(x).leftJoin(y, ...);
 Always use joins/subqueries. Fetch related data in single round-trip.
 
+## Public API
+
+Single worker serves two hosts, split by `enforceHostScope` (`apps/worker/src/public-api/host-scope.ts`), driven by `PROD_URL` / `PROD_PUBLIC_API_URL` vars:
+
+- `https://api.scorebrawl.com/v1` - personal resources (`/me`, `/leagues`), personal keys (`sbp_`, config `personal`, act as the user; scopes `profile:read`, `league:read`; created via tRPC `personalApiKey`, no UI)
+- `https://api.scorebrawl.com/leagues/v1/:leagueId/sessions/...` - league resources, league keys (`sbk_`, owner-only, UI at `/leagues/:slug/api-keys`; scopes `session:start|stop`, `match:start|log|score|lineup`)
+- `scorebrawl.com` rejects those paths (404); `api.scorebrawl.com` rejects everything else
+- Previews: vars unset, both surfaces on same `*.workers.dev` domain
+- `/api/*` (tRPC, better-auth, OAuth, MCP, `/api/v1` OAuth REST) stays on `scorebrawl.com`
+- Public API: REST on Hono, no tRPC. API keys only (`requireApiKeyScope` / `requirePersonalApiKeyScope`, `apps/worker/src/routes/api-key-auth.ts`). Key type is a key property (better-auth api-key `configId`); a key of one type is rejected on the other surface. Scopes `{resource: [action]}` enforced server-side
+- New public prefix: add to `PUBLIC_API_PREFIXES` and `run_worker_first` in `wrangler.jsonc`
+
 ## Hono Route Validation
 
 Always validate headers, payload (body), and search params in Hono routes using **@hono/zod-validator**:

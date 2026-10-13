@@ -49,7 +49,7 @@ async function createKey(
 }
 
 function sessionsUrl(leagueId: string, path = "") {
-	return `http://example.com/api/v1/leagues/${leagueId}/sessions${path}`;
+	return `http://example.com/leagues/v1/${leagueId}/sessions${path}`;
 }
 
 async function logMatchRequest(opts: { leagueId: string; key?: string; body: unknown }) {
@@ -318,6 +318,47 @@ describe("sessions v1 rest routes", () => {
 		expect(res.status).toBe(200);
 		const data = (await res.json()) as { teamSelection: { id: string } };
 		expect(data.teamSelection.id).toBeDefined();
+	});
+
+	it("updates the live score of the in-progress match without finishing it", async () => {
+		const { ctx, client, session, seasonPlayers } = await setupActiveSession();
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const key = await createKey(client, ["match:score"]);
+
+		const res = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: 3,
+			away: 2,
+		});
+
+		expect(res.status).toBe(200);
+		const data = (await res.json()) as {
+			match: { homeSessionScore: number; awaySessionScore: number };
+		};
+		expect(data.match.homeSessionScore).toBe(3);
+		expect(data.match.awaySessionScore).toBe(2);
+
+		const forbidden = await jsonRequest(
+			ctx.league.id,
+			"/active/match/score",
+			"PUT",
+			(await createKey(client, ["match:log"])).key,
+			{ home: 1, away: 1 }
+		);
+		expect(forbidden.status).toBe(403);
+	});
+
+	it("returns 404 when updating the live score with no in-progress match", async () => {
+		const { ctx, client } = await setupActiveSession();
+		const key = await createKey(client, ["match:score"]);
+		const res = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: 1,
+			away: 0,
+		});
+		expect(res.status).toBe(404);
 	});
 
 	it("rejects a lineup containing players not in the season", async () => {

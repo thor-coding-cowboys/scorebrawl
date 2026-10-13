@@ -68,11 +68,17 @@
 		"VITE_GOOGLE_CLIENT_ID": "972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
 		"VERSION": "local",
 		"SEED_ALLOWED": "true",
-		"OAUTH_RESOURCE": "https://scorebrawl.com/api/v1"
+		"OAUTH_RESOURCE": "https://scorebrawl.com/api/v1",
+		"PROD_URL": "https://scorebrawl.com",
+		"PROD_PUBLIC_API_URL": "https://api.scorebrawl.com"
 	},
 	"routes": [
 		{
 			"pattern": "scorebrawl.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "api.scorebrawl.com",
 			"custom_domain": true
 		}
 	],
@@ -81,7 +87,9 @@
 		"directory": "../../apps/web/dist/client",
 		"not_found_handling": "single-page-application",
 		"run_worker_first": [
-			"/api/*"
+			"/api/*",
+			"/v1/*",
+			"/leagues/v1/*"
 		]
 	}
 }

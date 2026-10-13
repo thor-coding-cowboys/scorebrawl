@@ -111,6 +111,7 @@ config.routes = undefined;
 config.vars = {
 	ADMIN_USER_IDS: "seed-user-id",
 	OAUTH_RESOURCE: "https://scorebrawl.com/api/v1",
+	// PROD_URL / PROD_PUBLIC_API_URL intentionally omitted: host split is disabled on previews
 };
 
 // Write preview config

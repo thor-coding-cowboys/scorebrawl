@@ -15,6 +15,8 @@ import { invitation, league, member as memberTable } from "../db/schema/auth-sch
 import { guest, player } from "../db/schema/league-schema";
 import { createId } from "../utils/id-util";
 
+export const PERSONAL_API_KEY_CONFIG_ID = "personal";
+
 import { defaultStatements, adminAc } from "better-auth/plugins/organization/access";
 
 const statement = {
@@ -333,15 +335,28 @@ export function createAuth({
 				origin: passkeyOrigin,
 			}),
 			bearer(),
-			apiKey({
-				references: "organization",
-				defaultPrefix: "sbk_",
-				startingCharactersConfig: { shouldStore: true, charactersLength: 12 },
-				enableMetadata: true,
-				requireName: true,
-				rateLimit: { enabled: true, maxRequests: 600, timeWindow: 60_000 },
-				keyExpiration: { defaultExpiresIn: null, minExpiresIn: 1, maxExpiresIn: 3650 },
-			}),
+			apiKey([
+				{
+					configId: "default",
+					references: "organization",
+					defaultPrefix: "sbk_",
+					startingCharactersConfig: { shouldStore: true, charactersLength: 12 },
+					enableMetadata: true,
+					requireName: true,
+					rateLimit: { enabled: true, maxRequests: 600, timeWindow: 60_000 },
+					keyExpiration: { defaultExpiresIn: null, minExpiresIn: 1, maxExpiresIn: 3650 },
+				},
+				{
+					configId: PERSONAL_API_KEY_CONFIG_ID,
+					references: "user",
+					defaultPrefix: "sbp_",
+					startingCharactersConfig: { shouldStore: true, charactersLength: 12 },
+					enableMetadata: true,
+					requireName: true,
+					rateLimit: { enabled: true, maxRequests: 600, timeWindow: 60_000 },
+					keyExpiration: { defaultExpiresIn: null, minExpiresIn: 1, maxExpiresIn: 3650 },
+				},
+			]),
 			deviceAuthorization({
 				verificationUri: "/device",
 				schema: {},
