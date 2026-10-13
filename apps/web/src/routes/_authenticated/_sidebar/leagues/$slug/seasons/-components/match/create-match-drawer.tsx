@@ -74,13 +74,17 @@ export function CreateMatchDialog({
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
-	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
-
-	const { data: seasonPlayers } = useQuery(
-		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug })
+	const { data: season } = useQuery(
+		trpc.season.getBySlug.queryOptions({ seasonSlug }, { enabled: isOpen })
 	);
 
-	const { data: latestMatch } = useQuery(trpc.match.getLatest.queryOptions({ seasonSlug }));
+	const { data: seasonPlayers } = useQuery(
+		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }, { enabled: isOpen })
+	);
+
+	const { data: latestMatch } = useQuery(
+		trpc.match.getLatest.queryOptions({ seasonSlug }, { enabled: isOpen })
+	);
 
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);

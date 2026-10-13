@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { debounce } from "@/lib/utils";
@@ -16,19 +16,22 @@ export function useScoreSync(
 		}) => trpcClient.session.updateMatchScore.mutate(input),
 	});
 
+	const mutateRef = useRef(updateMatchScore.mutate);
+	mutateRef.current = updateMatchScore.mutate;
+
 	const debouncedUpdateScore = useMemo(
 		() =>
 			debounce((home: number, away: number) => {
 				const match = currentMatchRef.current;
 				if (!match) return;
-				updateMatchScore.mutate({
+				mutateRef.current({
 					sessionId,
 					sessionMatchId: match.id,
 					homeScore: home,
 					awayScore: away,
 				});
 			}, 300),
-		[sessionId, currentMatchRef, updateMatchScore]
+		[sessionId, currentMatchRef]
 	);
 
 	useEffect(() => {

@@ -7,7 +7,7 @@ test.describe("Session live match", () => {
 
 	// Covers the session write path end to end: session.getById, session.startNextMatch,
 	// session.recordResult (match create + result recording + achievement queue).
-	test("starts a live session, starts a match and records a result", async ({ page }) => {
+	test("starts a live session, starts a match and records a result", async ({ page, browser }) => {
 		await page.goto(`/leagues/${SEED_LEAGUE.slug}/seasons/${SEED_SEASON.slug}`);
 
 		// Create the session via the config dialog (default team size 2 -> pick 4 players).
@@ -52,5 +52,37 @@ test.describe("Session live match", () => {
 		await expect(page.getByTestId("session-matches-played")).toHaveText(/1 played/, {
 			timeout: 15000,
 		});
+
+		// In-progress scores persist and sync to a second device.
+		const nextMatch = page.getByTestId("session-start-match");
+		await expect(nextMatch).toBeEnabled({ timeout: 15000 });
+		await nextMatch.click();
+		await expect(page.getByTestId("session-home-increment")).toBeEnabled({ timeout: 15000 });
+		const sessionUrl = page.url();
+
+		await page.getByTestId("session-home-increment").click();
+		await page.getByTestId("session-home-increment").click();
+		await expect(page.getByTestId("session-home-score")).toHaveText("2");
+
+		const secondContext = await browser.newContext({ ignoreHTTPSErrors: true });
+		const secondPage = await secondContext.newPage();
+		try {
+			await signIn(secondPage, SEED_USER.email, SEED_USER.password);
+			await secondPage.goto(sessionUrl);
+
+			// Mount-sync: a device that loads after scoring shows the persisted in-progress score.
+			await expect(secondPage.getByTestId("session-home-score")).toHaveText("2", {
+				timeout: 15000,
+			});
+
+			// Live-sync: further scoring on device one reflects on device two over SSE.
+			await page.getByTestId("session-home-increment").click();
+			await expect(page.getByTestId("session-home-score")).toHaveText("3");
+			await expect(secondPage.getByTestId("session-home-score")).toHaveText("3", {
+				timeout: 10000,
+			});
+		} finally {
+			await secondContext.close();
+		}
 	});
 });

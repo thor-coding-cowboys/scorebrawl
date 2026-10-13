@@ -1,14 +1,24 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { SessionEventDetail } from "@/lib/event-types";
+import type { SessionEventDetail, SessionScoreEventDetail } from "@/lib/event-types";
 
 interface UseSessionSSEOptions {
 	sessionId: string;
 	onSessionEnd?: (userName?: string) => void;
 	onSessionUpdate?: (isOwnUpdate: boolean) => void;
+	onScoreUpdate?: (input: {
+		sessionMatchId?: string;
+		homeScore: number;
+		awayScore: number;
+	}) => void;
 }
 
-export function useSessionSSE({ sessionId, onSessionEnd, onSessionUpdate }: UseSessionSSEOptions) {
+export function useSessionSSE({
+	sessionId,
+	onSessionEnd,
+	onSessionUpdate,
+	onScoreUpdate,
+}: UseSessionSSEOptions) {
 	const queryClient = useQueryClient();
 	const authSessionRef = useRef<{ user?: { name?: string } } | null>(null);
 
@@ -25,9 +35,23 @@ export function useSessionSSE({ sessionId, onSessionEnd, onSessionUpdate }: UseS
 				queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
 			}
 		};
+		const scoreHandler = (e: CustomEvent<SessionScoreEventDetail>) => {
+			const detail = e.detail;
+			if (detail.sessionId !== sessionId) return;
+			if (typeof detail.homeScore !== "number" || typeof detail.awayScore !== "number") return;
+			onScoreUpdate?.({
+				sessionMatchId: detail.sessionMatchId,
+				homeScore: detail.homeScore,
+				awayScore: detail.awayScore,
+			});
+		};
 		window.addEventListener("session-event", handler);
-		return () => window.removeEventListener("session-event", handler);
-	}, [sessionId, queryClient, onSessionEnd, onSessionUpdate]);
+		window.addEventListener("session-score-event", scoreHandler);
+		return () => {
+			window.removeEventListener("session-event", handler);
+			window.removeEventListener("session-score-event", scoreHandler);
+		};
+	}, [sessionId, queryClient, onSessionEnd, onSessionUpdate, onScoreUpdate]);
 
 	return {
 		setAuthSession: (session: typeof authSessionRef.current) => {
