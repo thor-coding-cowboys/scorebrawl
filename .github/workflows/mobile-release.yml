@@ -1,10 +1,13 @@
 name: Mobile Release
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build (branch, tag, or SHA). Defaults to main.
+        required: false
+        type: string
+        default: main
 
 concurrency:
   group: mobile-testflight
@@ -12,7 +15,6 @@ concurrency:
 
 jobs:
   testflight:
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 60
     permissions:
@@ -21,36 +23,22 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 2
-
-      - name: 🔎 Detect mobile changes
-        id: changes
-        run: |
-          if git diff --name-only HEAD^ HEAD | grep -qE '^(apps/mobile/|packages/|\.github/workflows/mobile-release\.yml$|bun\.lock$|package\.json$)'; then
-            echo "mobile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "mobile=false" >> "$GITHUB_OUTPUT"
-          fi
+          ref: ${{ inputs.ref }}
 
       - name: 🥟 Setup Bun
-        if: steps.changes.outputs.mobile == 'true'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Setup Node.js 22.x
-        if: steps.changes.outputs.mobile == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.x
 
       - name: 📦 Install dependencies
-        if: steps.changes.outputs.mobile == 'true'
         run: bun install
 
       - name: 🚀 Setup EAS
-        if: steps.changes.outputs.mobile == 'true'
         uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9.0.0
         with:
           eas-version: latest
@@ -61,12 +49,10 @@ jobs:
           expo-cache: false
 
       - name: 📱 Build iOS
-        if: steps.changes.outputs.mobile == 'true'
         working-directory: apps/mobile
         run: eas build --platform ios --profile production --non-interactive
 
       - name: 🚀 Submit to TestFlight
-        if: steps.changes.outputs.mobile == 'true'
         working-directory: apps/mobile
         run: |
           superseded=$(eas workflow:runs --workflow submit-ios.yaml --status IN_PROGRESS --json | jq -r '.[].id')
