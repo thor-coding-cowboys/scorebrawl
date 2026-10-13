@@ -102,6 +102,8 @@ export function useSeasonSSE({
 	const [connectionStatus, setConnectionStatus] = useState<
 		"connecting" | "connected" | "disconnected"
 	>("connecting");
+	const [hasConnected, setHasConnected] = useState(false);
+	const hasConnectedRef = useRef(false);
 
 	const trpcRef = useRef(trpc);
 	const queryClientRef = useRef(queryClient);
@@ -113,6 +115,23 @@ export function useSeasonSSE({
 
 	useEffect(() => {
 		let isMounted = true;
+
+		const reconcile = () => {
+			const t = trpcRef.current;
+			const qc = queryClientRef.current;
+			const { seasonSlug, seasonId } = paramsRef.current;
+
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.season.getFixtures.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: t.session.getActive.queryKey({ seasonSlug }) });
+			qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
+			qc.invalidateQueries({ queryKey: ["matches", seasonId] });
+		};
 
 		const connect = () => {
 			if (!enabledRef.current || !isMounted) return;
@@ -126,8 +145,13 @@ export function useSeasonSSE({
 
 			ws.onopen = () => {
 				reconnectAttemptsRef.current = 0;
-				if (isMounted) {
-					setConnectionStatus("connected");
+				if (!isMounted) return;
+				setConnectionStatus("connected");
+				if (hasConnectedRef.current) {
+					reconcile();
+				} else {
+					hasConnectedRef.current = true;
+					setHasConnected(true);
 				}
 			};
 
@@ -316,6 +340,7 @@ export function useSeasonSSE({
 
 	return {
 		connectionStatus,
+		hasConnected,
 		disconnect: () => {
 			if (wsRef.current) {
 				wsRef.current.close();

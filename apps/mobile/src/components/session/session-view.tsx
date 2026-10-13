@@ -81,12 +81,14 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 		else router.replace({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug } });
 	}, [queryClient, seasonSlug, trpc]);
 
-	useSessionRealtime({
+	const { connectionStatus, hasConnected } = useSessionRealtime({
 		leagueSlug: activeLeague?.slug,
 		seasonSlug,
 		sessionId,
 		onSessionEnd: handleRemoteEnd,
 	});
+
+	const reconnecting = hasConnected && connectionStatus !== "connected";
 
 	const endSession = () => {
 		Alert.alert(
@@ -209,6 +211,21 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 					/>
 				)}
 
+				{reconnecting ? (
+					<View
+						pointerEvents="none"
+						style={[
+							styles.reconnectPill,
+							{ backgroundColor: theme.background, borderColor: theme.border },
+						]}
+					>
+						<View style={[styles.reconnectDot, { backgroundColor: theme.amberText }]} />
+						<ThemedText type="small" style={{ color: theme.amberText }}>
+							Reconnecting…
+						</ThemedText>
+					</View>
+				) : null}
+
 				{session ? (
 					<SessionConfigModal
 						mode="edit"
@@ -244,4 +261,17 @@ const styles = StyleSheet.create({
 	skeletonScoreboard: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
 	skeletonScoreCol: { flex: 1, alignItems: "center", gap: Spacing.one },
 	skeletonRosters: { flexDirection: "row", justifyContent: "space-between" },
+	reconnectPill: {
+		position: "absolute",
+		bottom: Spacing.four,
+		alignSelf: "center",
+		flexDirection: "row",
+		alignItems: "center",
+		gap: Spacing.two,
+		paddingHorizontal: Spacing.three,
+		paddingVertical: Spacing.one,
+		borderRadius: 999,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	reconnectDot: { width: 6, height: 6, borderRadius: 999 },
 });

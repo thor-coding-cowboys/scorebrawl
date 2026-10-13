@@ -38,13 +38,15 @@ function SeasonLayout() {
 	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 	const { data: authSession } = useSession();
 
-	useSeasonSSE({
+	const { connectionStatus, hasConnected } = useSeasonSSE({
 		leagueSlug: slug,
 		seasonSlug,
 		seasonId: season?.id ?? "",
 		currentUserId: authSession?.user.id,
 		enabled: !!season?.id,
 	});
+
+	const reconnecting = hasConnected && connectionStatus !== "connected";
 
 	useEffect(() => {
 		const handler = (e: CustomEvent<SessionEventDetail>) => {
@@ -91,6 +93,12 @@ function SeasonLayout() {
 				</div>
 			)}
 			<Outlet />
+			{reconnecting && (
+				<div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
+					<span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+					Reconnecting…
+				</div>
+			)}
 		</div>
 	);
 }
