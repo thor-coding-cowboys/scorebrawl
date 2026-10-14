@@ -146,7 +146,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 													: { ios: "speaker.slash.fill", android: "volume_off", web: "volume_off" }
 											}
 											label={announcerEnabled ? "Announcer on" : "Announcer off"}
-											tint={announcerEnabled ? theme.primary : theme.text}
+											tint={announcerEnabled ? theme.primary : theme.foreground}
 											onPress={() => setAnnouncerEnabled(!announcerEnabled)}
 										/>
 										<HeaderIconButton
@@ -170,7 +170,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 					<SessionViewSkeleton />
 				) : !session ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 							Session not found.
 						</ThemedText>
 						<Pressable onPress={() => router.back()} hitSlop={8}>
@@ -182,7 +182,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 				) : session.players.length === 0 ? (
 					<View style={styles.emptyBox}>
 						<ThemedText type="smallBold">No players in this session</ThemedText>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 							Add players to start playing matches.
 						</ThemedText>
 						<Pressable
@@ -233,8 +233,8 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 							{ backgroundColor: theme.background, borderColor: theme.border },
 						]}
 					>
-						<View style={[styles.reconnectDot, { backgroundColor: theme.amberText }]} />
-						<ThemedText type="small" style={{ color: theme.amberText }}>
+						<View style={[styles.reconnectDot, { backgroundColor: theme.glowAmberText }]} />
+						<ThemedText type="small" style={{ color: theme.glowAmberText }}>
 							Reconnecting…
 						</ThemedText>
 					</View>

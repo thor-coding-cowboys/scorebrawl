@@ -102,7 +102,7 @@ export default function NotificationSettingsScreen() {
 							{settingsQuery.isPending ? (
 								<NotificationSettingsSkeleton />
 							) : settingsQuery.isError ? (
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									Unable to load notification settings.
 								</ThemedText>
 							) : (
@@ -110,7 +110,7 @@ export default function NotificationSettingsScreen() {
 									<View style={[styles.row, { borderBottomColor: theme.border }]}>
 										<View style={styles.rowInfo}>
 											<ThemedText type="smallBold">Push notifications</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												Master switch for all push notifications
 											</ThemedText>
 										</View>
@@ -126,7 +126,7 @@ export default function NotificationSettingsScreen() {
 										<View key={key} style={[styles.row, { borderBottomColor: theme.border }]}>
 											<View style={styles.rowInfo}>
 												<ThemedText type="smallBold">{label}</ThemedText>
-												<ThemedText type="small" themeColor="textSecondary">
+												<ThemedText type="small" themeColor="mutedForeground">
 													{description}
 												</ThemedText>
 											</View>

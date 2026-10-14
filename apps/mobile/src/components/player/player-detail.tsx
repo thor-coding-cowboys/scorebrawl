@@ -38,7 +38,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 	const theme = useTheme();
 	return (
 		<View style={[styles.section, { borderTopColor: theme.border }]}>
-			<ThemedText themeColor="textSecondary" style={styles.sectionTitle}>
+			<ThemedText themeColor="mutedForeground" style={styles.sectionTitle}>
 				{title}
 			</ThemedText>
 			{children}
@@ -49,14 +49,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
 	return (
 		<View style={styles.stat}>
-			<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+			<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 				{label}
 			</ThemedText>
 			<ThemedText style={styles.statValue} numberOfLines={1}>
 				{value}
 			</ThemedText>
 			{sub ? (
-				<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+				<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 					{sub}
 				</ThemedText>
 			) : null}
@@ -90,10 +90,10 @@ function TeammateRow({
 	if (!teammate) {
 		return (
 			<View style={[styles.row, { borderBottomColor: theme.border }]}>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{label}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					No data
 				</ThemedText>
 			</View>
@@ -106,7 +106,7 @@ function TeammateRow({
 				<ThemedText style={styles.rowValue} numberOfLines={1}>
 					{teammate.name}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+				<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 					{teammate.matchesTogether} together · {teammate.winRate}% W · {teammate.wins}W-
 					{teammate.losses}L
 				</ThemedText>
@@ -195,7 +195,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 					<PlayerDetailSkeleton />
 				) : playerQuery.isError ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary">
+						<ThemedText type="small" themeColor="mutedForeground">
 							Player not found
 						</ThemedText>
 					</View>
@@ -215,7 +215,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 								<ThemedText type="subtitle" numberOfLines={1} style={styles.heroName}>
 									{player?.name}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									{winRate}% win rate · {allTime?.total ?? 0} matches
 								</ThemedText>
 								<Button
@@ -265,7 +265,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 
 						<Section title="Achievements">
 							{achievements.length === 0 ? (
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									No achievements yet
 								</ThemedText>
 							) : (
@@ -298,7 +298,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 
 						<Section title="Season history">
 							{history.length === 0 ? (
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									No season history
 								</ThemedText>
 							) : (
@@ -322,7 +322,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 											<ThemedText style={styles.rowValue} numberOfLines={1}>
 												{h.season}
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{h.wins}W · {h.losses}L · {h.winRate}% W
 											</ThemedText>
 										</View>
@@ -334,7 +334,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 												web: "chevron_right",
 											}}
 											size={14}
-											tintColor={theme.textSecondary}
+											tintColor={theme.mutedForeground}
 										/>
 									</Pressable>
 								))
@@ -343,7 +343,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 
 						<Section title="Recent matches">
 							{recent.length === 0 ? (
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									No recent matches
 								</ThemedText>
 							) : (
@@ -358,7 +358,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 									return (
 										<View key={m.id} style={[styles.matchRow, { borderBottomColor: theme.border }]}>
 											<View style={styles.dateCol}>
-												<ThemedText type="small" themeColor="textSecondary">
+												<ThemedText type="small" themeColor="mutedForeground">
 													{date}
 												</ThemedText>
 											</View>
@@ -367,7 +367,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 													<ThemedText
 														type="small"
 														numberOfLines={1}
-														themeColor={homeWon ? "text" : "textSecondary"}
+														themeColor={homeWon ? "foreground" : "mutedForeground"}
 														style={[styles.matchTeam, homeWon && styles.matchWinner]}
 													>
 														{m.homeTeamName}
@@ -388,7 +388,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 													<ThemedText
 														type="small"
 														numberOfLines={1}
-														themeColor={awayWon ? "text" : "textSecondary"}
+														themeColor={awayWon ? "foreground" : "mutedForeground"}
 														style={[styles.matchTeam, awayWon && styles.matchWinner]}
 													>
 														{m.awayTeamName}

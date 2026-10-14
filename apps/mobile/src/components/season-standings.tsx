@@ -61,7 +61,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 					</View>
 				) : standingsQuery.isError && standingsQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 							Couldn't load standings
 						</ThemedText>
 						<Button variant="outline" onPress={() => standingsQuery.refetch()}>
@@ -69,7 +69,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 						</Button>
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No matches registered
 					</ThemedText>
 				)

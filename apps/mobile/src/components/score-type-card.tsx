@@ -71,10 +71,10 @@ export function ScoreTypeCard({
 				<SymbolView name={config.icon} size={20} tintColor={config.color} />
 			</View>
 			<View style={styles.scoreText}>
-				<ThemedText type="smallBold" style={{ color: selected ? config.color : theme.text }}>
+				<ThemedText type="smallBold" style={{ color: selected ? config.color : theme.foreground }}>
 					{config.label}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{config.description}
 				</ThemedText>
 			</View>

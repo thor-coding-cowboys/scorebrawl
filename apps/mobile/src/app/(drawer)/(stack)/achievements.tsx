@@ -66,7 +66,7 @@ export default function AchievementsScreen() {
 				{boardQuery.isPending ? (
 					Array.from({ length: 3 }).map((_, i) => <SkeletonListRow key={i} />)
 				) : decorated.length === 0 ? (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No achievements earned in this league yet
 					</ThemedText>
 				) : (
@@ -89,7 +89,7 @@ export default function AchievementsScreen() {
 								pressed && styles.pressed,
 							]}
 						>
-							<ThemedText type="smallBold" themeColor="textSecondary" style={styles.rank}>
+							<ThemedText type="smallBold" themeColor="mutedForeground" style={styles.rank}>
 								{index + 1}
 							</ThemedText>
 							<Avatar
@@ -102,7 +102,7 @@ export default function AchievementsScreen() {
 								<ThemedText type="smallBold" numberOfLines={1}>
 									{player.name}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 									{player.types
 										.map((t) => getAchievement(t)?.name)
 										.filter(Boolean)
@@ -128,13 +128,13 @@ export default function AchievementsScreen() {
 											<SymbolView
 												name={achievementIcons[meta.iconKey]}
 												size={22}
-												tintColor={earned ? theme.primary : `${theme.textSecondary}66`}
+												tintColor={earned ? theme.primary : `${theme.mutedForeground}66`}
 											/>
 											<View style={styles.achievementText}>
 												<ThemedText type="smallBold">{meta.name}</ThemedText>
 												<ThemedText
 													type="small"
-													themeColor="textSecondary"
+													themeColor="mutedForeground"
 													style={styles.description}
 												>
 													{meta.description}
@@ -149,7 +149,7 @@ export default function AchievementsScreen() {
 														style={[
 															styles.holder,
 															i > 0 && styles.holderOverlap,
-															{ borderColor: theme.surface },
+															{ borderColor: theme.card },
 														]}
 													>
 														<Avatar
@@ -162,7 +162,7 @@ export default function AchievementsScreen() {
 												))}
 											</View>
 										) : (
-											<ThemedText type="small" themeColor="textSecondary" style={styles.nobody}>
+											<ThemedText type="small" themeColor="mutedForeground" style={styles.nobody}>
 												Nobody yet
 											</ThemedText>
 										)}

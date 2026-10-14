@@ -214,7 +214,7 @@ export default function TeamsScreen() {
 								<ThemedText style={styles.rowName} numberOfLines={1}>
 									{item.name}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 									{memberSummary(item.players)}
 								</ThemedText>
 							</View>
@@ -242,7 +242,7 @@ export default function TeamsScreen() {
 							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load teams
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -250,7 +250,7 @@ export default function TeamsScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No teams yet
 							</ThemedText>
 						)

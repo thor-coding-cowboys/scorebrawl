@@ -356,7 +356,7 @@ function ScoreStepper({
 }) {
 	return (
 		<View style={styles.stepper}>
-			<ThemedText themeColor="textSecondary" style={styles.stepperLabel}>
+			<ThemedText themeColor="mutedForeground" style={styles.stepperLabel}>
 				{label}
 			</ThemedText>
 			<View style={styles.stepperControls}>
@@ -389,17 +389,17 @@ function RosterCard({ label, players }: { label: string; players: SelectablePlay
 					{ borderBottomColor: sessionTheme.border, backgroundColor: sessionTheme.mutedBg },
 				]}
 			>
-				<ThemedText themeColor="textSecondary" style={styles.rosterLabel}>
+				<ThemedText themeColor="mutedForeground" style={styles.rosterLabel}>
 					{label}
 				</ThemedText>
-				<ThemedText themeColor="textSecondary" style={styles.rosterCount}>
+				<ThemedText themeColor="mutedForeground" style={styles.rosterCount}>
 					{players.length}p
 				</ThemedText>
 			</View>
 			<View style={styles.rosterBody}>
 				{players.length === 0 ? (
 					<View style={styles.rosterEmpty}>
-						<ThemedText type="small" themeColor="textSecondary">
+						<ThemedText type="small" themeColor="mutedForeground">
 							No players
 						</ThemedText>
 					</View>
@@ -411,7 +411,7 @@ function RosterCard({ label, players }: { label: string; players: SelectablePlay
 								<ThemedText style={styles.rosterName} numberOfLines={1}>
 									{p.name}
 								</ThemedText>
-								<ThemedText themeColor="textSecondary" style={styles.rosterScore}>
+								<ThemedText themeColor="mutedForeground" style={styles.rosterScore}>
 									{p.score}
 								</ThemedText>
 							</View>
@@ -454,7 +454,7 @@ function CheckRow({
 				style={[
 					styles.checkbox,
 					{ borderColor: value ? theme.glowBlueBorder : theme.border },
-					value && { backgroundColor: theme.glowBlueBg },
+					value && { backgroundColor: theme.glowBlueBackground },
 				]}
 			>
 				{value ? (
@@ -551,7 +551,7 @@ function SelectionColumn({
 			]}
 		>
 			<View style={[styles.columnHeader, { borderBottomColor: theme.border }]}>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{label.toUpperCase()}
 				</ThemedText>
 			</View>
@@ -565,7 +565,7 @@ function SelectionColumn({
 							style={[
 								styles.playerItem,
 								{ borderBottomColor: theme.border },
-								onThisTeam && { backgroundColor: theme.glowBlueBg },
+								onThisTeam && { backgroundColor: theme.glowBlueBackground },
 							]}
 						>
 							<Avatar name={player.name} image={player.image} size={22} />
@@ -573,7 +573,7 @@ function SelectionColumn({
 								<ThemedText type="small" numberOfLines={1}>
 									{player.name}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									{player.score}
 								</ThemedText>
 							</View>

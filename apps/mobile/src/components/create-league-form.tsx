@@ -124,7 +124,7 @@ export function CreateLeagueForm({ isOpen, onClose }: { isOpen: boolean; onClose
 							</ThemedText>
 							<ModalCloseButton onPress={onClose} />
 						</View>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.subtitle}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.subtitle}>
 							Start tracking scores and competing with your friends
 						</ThemedText>
 

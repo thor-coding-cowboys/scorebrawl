@@ -43,7 +43,7 @@ export default function SandboxScreen() {
 					))}
 				</View>
 
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					Streak: {streak}
 				</ThemedText>
 
@@ -55,7 +55,7 @@ export default function SandboxScreen() {
 					{[36, 56, 80].map((size) => (
 						<View key={size} style={styles.sizeItem}>
 							<StreakAvatar name="Test Player" streak={streak} size={size} />
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								{size}
 							</ThemedText>
 						</View>
@@ -66,7 +66,7 @@ export default function SandboxScreen() {
 					{[7, 0, -7].map((s) => (
 						<View key={s} style={styles.sizeItem}>
 							<StreakAvatar name="Test Player" streak={s} size={36} />
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								{s > 0 ? `+${s}` : s}
 							</ThemedText>
 						</View>

@@ -24,7 +24,7 @@ function FormDots({
 	if (!form || form.length === 0) {
 		return (
 			<>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					–
 				</ThemedText>
 				{pointDiff !== 0 ? (
@@ -82,11 +82,11 @@ export function StandingRow({
 					{item.name}
 				</ThemedText>
 				<View style={styles.meta}>
-					<ThemedText type="small" themeColor="textSecondary">
+					<ThemedText type="small" themeColor="mutedForeground">
 						{item.matchCount} MP
 					</ThemedText>
 					<View style={styles.dot} />
-					<ThemedText type="small" themeColor="textSecondary">
+					<ThemedText type="small" themeColor="mutedForeground">
 						{winPct(item)}% W
 					</ThemedText>
 					<View style={styles.metaDivider} />

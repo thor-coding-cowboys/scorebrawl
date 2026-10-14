@@ -57,7 +57,7 @@ export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 					</View>
 				) : standingsQuery.isError && standingsQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 							Couldn't load team standings
 						</ThemedText>
 						<Button variant="outline" onPress={() => standingsQuery.refetch()}>
@@ -65,7 +65,7 @@ export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 						</Button>
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No team standings
 					</ThemedText>
 				)

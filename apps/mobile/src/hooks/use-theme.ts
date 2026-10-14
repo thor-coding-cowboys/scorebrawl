@@ -7,11 +7,13 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 
-export function useTheme() {
+/** The active colour scheme, with the user's override applied. */
+export function useResolvedThemeMode(): "light" | "dark" {
 	const { themeMode } = useThemeMode();
 	const deviceScheme = useColorScheme();
-	const resolved =
-		themeMode === "system" ? (deviceScheme === "dark" ? "dark" : "light") : themeMode;
+	return themeMode === "system" ? (deviceScheme === "dark" ? "dark" : "light") : themeMode;
+}
 
-	return Colors[resolved];
+export function useTheme() {
+	return Colors[useResolvedThemeMode()];
 }

@@ -41,7 +41,7 @@ export function HeaderIconButton({
 			hitSlop={8}
 			style={({ pressed }) => [styles.icon, pressed && styles.pressed]}
 		>
-			<SymbolView name={icon} size={20} tintColor={tint ?? theme.text} />
+			<SymbolView name={icon} size={20} tintColor={tint ?? theme.foreground} />
 		</Pressable>
 	);
 }
@@ -61,7 +61,11 @@ export function HeaderPillButton({
 }) {
 	const theme = useTheme();
 	const color =
-		tone === "glow" ? theme.glowBlueText : tone === "destructive" ? theme.destructive : theme.text;
+		tone === "glow"
+			? theme.glowBlueText
+			: tone === "destructive"
+				? theme.destructive
+				: theme.foreground;
 
 	return (
 		<Pressable

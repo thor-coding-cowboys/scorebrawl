@@ -54,7 +54,7 @@ export function Button({
 	const backgroundColor = isPrimary
 		? theme.buttonPrimary
 		: isGlow
-			? theme.glowBlueBg
+			? theme.glowBlueBackground
 			: pressed
 				? theme.backgroundSelected
 				: "transparent";
@@ -69,8 +69,8 @@ export function Button({
 		: isGlow
 			? theme.glowBlueText
 			: isGhost
-				? theme.textSecondary
-				: theme.text;
+				? theme.mutedForeground
+				: theme.foreground;
 
 	return (
 		<Pressable

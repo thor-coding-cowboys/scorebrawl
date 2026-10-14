@@ -59,12 +59,12 @@ function PlayerSlot({
 				</>
 			) : (
 				<>
-					<View style={[styles.slotEmpty, { backgroundColor: theme.backgroundElement }]}>
-						<ThemedText type="small" themeColor="textSecondary">
+					<View style={[styles.slotEmpty, { backgroundColor: theme.muted }]}>
+						<ThemedText type="small" themeColor="mutedForeground">
 							+
 						</ThemedText>
 					</View>
-					<ThemedText type="small" themeColor="textSecondary">
+					<ThemedText type="small" themeColor="mutedForeground">
 						{label}
 					</ThemedText>
 				</>
@@ -96,7 +96,7 @@ function CompareRow({
 			>
 				{left}
 			</ThemedText>
-			<ThemedText type="small" themeColor="textSecondary" style={styles.compareLabel}>
+			<ThemedText type="small" themeColor="mutedForeground" style={styles.compareLabel}>
 				{label}
 			</ThemedText>
 			<ThemedText
@@ -169,7 +169,7 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 					</View>
 
 					{player1Id && player1Id === player2Id ? (
-						<ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.hint}>
 							Pick two different players
 						</ThemedText>
 					) : null}
@@ -229,21 +229,21 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 									<View style={styles.h2hSummary}>
 										<View style={styles.h2hSide}>
 											<ThemedText type="subtitle">{h2h?.player1Wins ?? 0}</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+											<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 												{p1?.name}
 											</ThemedText>
 										</View>
 										<View style={styles.h2hMiddle}>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{h2h?.matchesPlayed ?? 0} played
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{h2h?.draws ?? 0} drawn
 											</ThemedText>
 										</View>
 										<View style={styles.h2hSide}>
 											<ThemedText type="subtitle">{h2h?.player2Wins ?? 0}</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+											<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 												{p2?.name}
 											</ThemedText>
 										</View>
@@ -272,7 +272,7 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 											<ThemedText type="small" style={styles.flex}>
 												{m.homeScore} - {m.awayScore}
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{new Date(m.date).toLocaleDateString("en-US", {
 													month: "short",
 													day: "numeric",
@@ -284,7 +284,7 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 							</Card>
 						</>
 					) : (
-						<ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.hint}>
 							Select two players to compare them.
 						</ThemedText>
 					)}
@@ -305,7 +305,11 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 							placeholderTextColor={theme.mutedForeground}
 							style={[
 								styles.search,
-								{ borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
+								{
+									borderColor: theme.border,
+									color: theme.foreground,
+									backgroundColor: theme.background,
+								},
 							]}
 						/>
 						<ScrollView style={styles.flex}>

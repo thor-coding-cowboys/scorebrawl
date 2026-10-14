@@ -16,7 +16,7 @@ export function SectionCard({
 }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+		<View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
 			{title || right ? (
 				<View style={styles.header}>
 					{typeof title === "string" ? (

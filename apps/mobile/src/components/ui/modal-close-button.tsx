@@ -17,7 +17,7 @@ export function ModalCloseButton({ onPress }: { onPress: () => void }) {
 			<SymbolView
 				name={{ ios: "xmark", android: "close", web: "close" }}
 				size={18}
-				tintColor={theme.textSecondary}
+				tintColor={theme.mutedForeground}
 			/>
 		</Pressable>
 	);

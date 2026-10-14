@@ -35,7 +35,7 @@ function DashboardCard({
 }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+		<View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
 			<CardGlow color={accent} />
 			<View style={styles.cardHeader}>
 				<ThemedText type="smallBold">{title}</ThemedText>
@@ -75,7 +75,7 @@ function PlayerStat({
 	if (loading) return <Skeleton width="100%" height={40} />;
 	if (!player) {
 		return (
-			<ThemedText type="small" themeColor="textSecondary">
+			<ThemedText type="small" themeColor="mutedForeground">
 				{empty}
 			</ThemedText>
 		);
@@ -87,7 +87,7 @@ function PlayerStat({
 				<ThemedText type="smallBold" numberOfLines={1}>
 					{player.name}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary" style={styles.caption}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
 					{player.score} points
 				</ThemedText>
 			</View>
@@ -149,7 +149,7 @@ function InfoCard({ seasonSlug }: { seasonSlug: string }) {
 					].map(({ value, label }) => (
 						<View key={label} style={styles.infoCell}>
 							<ThemedText style={styles.infoValue}>{value}</ThemedText>
-							<ThemedText type="small" themeColor="textSecondary" style={styles.caption}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
 								{label}
 							</ThemedText>
 						</View>
@@ -198,7 +198,7 @@ function MatchSide({
 			<Avatar name={avatar.name} image={avatar.image} headers={headers} size={24} />
 			<ThemedText
 				type={isWinner ? "smallBold" : "small"}
-				themeColor={isLoser ? "textSecondary" : "text"}
+				themeColor={isLoser ? "mutedForeground" : "foreground"}
 				numberOfLines={1}
 				style={styles.sideLabel}
 			>
@@ -212,7 +212,7 @@ function MatchSide({
 			>
 				<ThemedText
 					type={isWinner ? "smallBold" : "small"}
-					themeColor={isLoser ? "textSecondary" : "text"}
+					themeColor={isLoser ? "mutedForeground" : "foreground"}
 				>
 					{score}
 				</ThemedText>
@@ -254,7 +254,7 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 					/>
 				</View>
 			) : (
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					No matches yet
 				</ThemedText>
 			)}
@@ -300,8 +300,8 @@ export function DashboardCards({ seasonSlug }: { seasonSlug: string }) {
 						style={[
 							styles.dot,
 							i === active
-								? { width: 16, backgroundColor: theme.text }
-								: { backgroundColor: `${theme.textSecondary}55` },
+								? { width: 16, backgroundColor: theme.foreground }
+								: { backgroundColor: `${theme.mutedForeground}55` },
 						]}
 					/>
 				))}

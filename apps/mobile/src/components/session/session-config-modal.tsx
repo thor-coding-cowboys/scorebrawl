@@ -279,7 +279,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 								>
 									{mode === "edit" ? "Session Settings" : "Start Session"}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									{mode === "edit"
 										? "Update rotation rules and players."
 										: "Configure rotation rules and select players."}
@@ -340,7 +340,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 
 										<View style={styles.section}>
 											<ThemedText type="smallBold">Auto Randomize</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{RANDOMIZER_DESCRIPTION[randomizerType]}
 											</ThemedText>
 											<Segmented
@@ -364,7 +364,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 								<View style={[styles.playersBox, { borderColor: theme.border }]}>
 									<View style={styles.playersHeader}>
 										<ThemedText type="smallBold">Players</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary">
+										<ThemedText type="small" themeColor="mutedForeground">
 											{selectedPlayerIds.length} selected
 										</ThemedText>
 									</View>
@@ -372,14 +372,14 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 										<SymbolView
 											name={{ ios: "magnifyingglass", android: "search", web: "search" }}
 											size={15}
-											tintColor={theme.textSecondary}
+											tintColor={theme.mutedForeground}
 										/>
 										<TextInput
 											value={playerSearch}
 											onChangeText={setPlayerSearch}
 											placeholder="Search players..."
 											placeholderTextColor={theme.mutedForeground}
-											style={[styles.searchInput, { color: theme.text }]}
+											style={[styles.searchInput, { color: theme.foreground }]}
 										/>
 									</View>
 									<ScrollView
@@ -389,7 +389,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 										{filteredPlayers.length === 0 ? (
 											<ThemedText
 												type="small"
-												themeColor="textSecondary"
+												themeColor="mutedForeground"
 												style={styles.emptyPlayers}
 											>
 												{seasonPlayers.length === 0 ? "No players in this season" : "No matches"}
@@ -415,12 +415,12 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 															<ThemedText type="small" numberOfLines={1}>
 																{p.name}
 															</ThemedText>
-															<ThemedText type="small" themeColor="textSecondary">
+															<ThemedText type="small" themeColor="mutedForeground">
 																{p.score} · {p.matchCount} matches
 															</ThemedText>
 														</View>
 														{inMatch ? (
-															<ThemedText type="small" themeColor="textSecondary">
+															<ThemedText type="small" themeColor="mutedForeground">
 																in match
 															</ThemedText>
 														) : selected ? (
@@ -440,7 +440,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 								{selectedPlayerIds.length >= 2 && rotationMode === "winner-stays" ? (
 									<View style={styles.section}>
 										<ThemedText type="smallBold">Always Split</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary">
+										<ThemedText type="small" themeColor="mutedForeground">
 											Pairs that must always be on opposite teams
 										</ThemedText>
 										<View style={styles.splitRow}>
@@ -468,7 +468,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 														<ThemedText type="small" style={styles.pairName} numberOfLines={1}>
 															{playerName(a)}
 														</ThemedText>
-														<ThemedText type="small" themeColor="textSecondary">
+														<ThemedText type="small" themeColor="mutedForeground">
 															vs
 														</ThemedText>
 														<ThemedText type="small" style={styles.pairName} numberOfLines={1}>
@@ -485,7 +485,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 															<SymbolView
 																name={{ ios: "xmark", android: "close", web: "close" }}
 																size={13}
-																tintColor={theme.textSecondary}
+																tintColor={theme.mutedForeground}
 															/>
 														</Pressable>
 													</View>
@@ -576,13 +576,7 @@ function Segmented<T extends string>({
 }) {
 	const theme = useTheme();
 	return (
-		<View
-			style={[
-				styles.segmented,
-				{ backgroundColor: theme.backgroundElement },
-				disabled && styles.disabled,
-			]}
-		>
+		<View style={[styles.segmented, { backgroundColor: theme.muted }, disabled && styles.disabled]}>
 			{options.map((opt) => {
 				const active = opt.value === value;
 				return (
@@ -594,7 +588,7 @@ function Segmented<T extends string>({
 					>
 						<ThemedText
 							type="small"
-							style={active ? { color: theme.text } : { color: theme.textSecondary }}
+							style={active ? { color: theme.foreground } : { color: theme.mutedForeground }}
 							numberOfLines={1}
 						>
 							{opt.label}
@@ -622,7 +616,7 @@ function ToggleRow({
 		<Pressable onPress={onToggle} style={styles.toggleRow} hitSlop={4}>
 			<View style={styles.toggleText}>
 				<ThemedText type="smallBold">{label}</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{description}
 				</ThemedText>
 			</View>

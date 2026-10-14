@@ -511,7 +511,7 @@ export default function SeasonsScreen() {
 											<View style={styles.dot} />
 											<ThemedText
 												type="small"
-												themeColor="textSecondary"
+												themeColor="mutedForeground"
 												numberOfLines={1}
 												style={styles.rowDates}
 											>
@@ -552,7 +552,7 @@ export default function SeasonsScreen() {
 							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load seasons
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -560,7 +560,7 @@ export default function SeasonsScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No seasons yet
 							</ThemedText>
 						)

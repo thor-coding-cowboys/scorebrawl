@@ -84,14 +84,14 @@ export function LeagueSwitcher() {
 					<ThemedText type="smallBold" numberOfLines={1}>
 						{activeLeague.name}
 					</ThemedText>
-					<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+					<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 						/{activeLeague.slug}
 					</ThemedText>
 				</View>
 				<SymbolView
 					name={{ ios: "chevron.up.chevron.down", android: "unfold_more", web: "unfold_more" }}
 					size={16}
-					tintColor={theme.textSecondary}
+					tintColor={theme.mutedForeground}
 				/>
 			</Pressable>
 
@@ -111,7 +111,7 @@ export function LeagueSwitcher() {
 					>
 						<View style={styles.sheetHandle} />
 						<View style={styles.sheetHeader}>
-							<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sheetLabel}>
+							<ThemedText type="smallBold" themeColor="mutedForeground" style={styles.sheetLabel}>
 								Leagues
 							</ThemedText>
 							<ModalCloseButton onPress={() => setIsOpen(false)} />
@@ -128,7 +128,7 @@ export function LeagueSwitcher() {
 										onPress={() => handleSelect(org.id)}
 										style={({ pressed }) => [
 											styles.leagueItem,
-											isActive && { backgroundColor: theme.backgroundElement },
+											isActive && { backgroundColor: theme.muted },
 											pressed && { opacity: 0.7 },
 										]}
 									>
@@ -155,7 +155,7 @@ export function LeagueSwitcher() {
 							<SymbolView
 								name={{ ios: "plus", android: "add", web: "add" }}
 								size={16}
-								tintColor={theme.text}
+								tintColor={theme.foreground}
 							/>
 							<ThemedText type="small">Create league</ThemedText>
 						</Pressable>

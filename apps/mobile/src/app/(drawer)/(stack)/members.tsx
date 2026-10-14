@@ -13,7 +13,7 @@ import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { useTheme } from "@/hooks/use-theme";
+import { useResolvedThemeMode, useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
 
 type Member = {
@@ -116,7 +116,7 @@ function ChangeRoleModal({
 							{name}
 						</ThemedText>
 						{email ? (
-							<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+							<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 								{email}
 							</ThemedText>
 						) : null}
@@ -148,7 +148,7 @@ function ChangeRoleModal({
 								>
 									<ThemedText
 										type="smallBold"
-										style={{ color: selected ? theme.primary : theme.text }}
+										style={{ color: selected ? theme.primary : theme.foreground }}
 									>
 										{formatRole(role)}
 									</ThemedText>
@@ -202,7 +202,7 @@ function MembersSkeleton() {
 }
 
 export default function MembersScreen() {
-	const theme = useTheme();
+	const mode = useResolvedThemeMode();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canAccess = role === "owner" || role === "editor";
@@ -254,8 +254,7 @@ export default function MembersScreen() {
 						const email = item.user?.email || item.email || "";
 						const currentRole = item.role || "member";
 						const canEditThisRole = role === "owner" || (canAccess && currentRole !== "owner");
-						const roleColor =
-							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
+						const roleColor = ROLE_COLORS[currentRole]?.[mode] ?? "#64748b";
 						return (
 							<View style={styles.row}>
 								<View style={styles.rowMain}>
@@ -271,7 +270,7 @@ export default function MembersScreen() {
 										</ThemedText>
 										<ThemedText
 											type="small"
-											themeColor="textSecondary"
+											themeColor="mutedForeground"
 											numberOfLines={1}
 											style={styles.rowEmail}
 										>
@@ -314,14 +313,14 @@ export default function MembersScreen() {
 						isMemberPending ? (
 							<MembersSkeleton />
 						) : !canAccess ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								You don’t have access to manage members.
 							</ThemedText>
 						) : isLoading ? (
 							<MembersSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load members
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -329,7 +328,7 @@ export default function MembersScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No members yet
 							</ThemedText>
 						)

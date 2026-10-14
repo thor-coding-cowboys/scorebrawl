@@ -42,12 +42,12 @@ function GuestBadge() {
 			style={[
 				styles.badge,
 				{
-					backgroundColor: `${theme.textSecondary}1a`,
-					borderColor: `${theme.textSecondary}40`,
+					backgroundColor: `${theme.mutedForeground}1a`,
+					borderColor: `${theme.mutedForeground}40`,
 				},
 			]}
 		>
-			<ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 10 }}>
+			<ThemedText type="small" style={{ color: theme.mutedForeground, fontSize: 10 }}>
 				Guest
 			</ThemedText>
 		</View>
@@ -333,7 +333,7 @@ export default function PlayersScreen() {
 									</ThemedText>
 									{item.isGuest ? <GuestBadge /> : null}
 								</View>
-								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 									{item.email ?? "No email"}
 								</ThemedText>
 							</View>
@@ -362,7 +362,7 @@ export default function PlayersScreen() {
 							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load players
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -370,7 +370,7 @@ export default function PlayersScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No players yet
 							</ThemedText>
 						)

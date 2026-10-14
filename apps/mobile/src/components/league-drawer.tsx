@@ -89,7 +89,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 		<View
 			style={[
 				styles.container,
-				{ backgroundColor: theme.surface, paddingTop: insets.top, paddingBottom: insets.bottom },
+				{ backgroundColor: theme.card, paddingTop: insets.top, paddingBottom: insets.bottom },
 			]}
 		>
 			<View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -97,7 +97,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 			</View>
 
 			<ScrollView style={styles.nav} contentContainerStyle={styles.navContent}>
-				<ThemedText type="small" themeColor="textSecondary" style={styles.groupLabel}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.groupLabel}>
 					League
 				</ThemedText>
 
@@ -121,7 +121,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 										name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
 										size={12}
 										weight="semibold"
-										tintColor={theme.textSecondary}
+										tintColor={theme.mutedForeground}
 									/>
 								</Animated.View>
 							}
@@ -142,7 +142,7 @@ export function LeagueDrawerContent({ navigation }: DrawerContentComponentProps)
 									style={({ pressed }) => [
 										styles.subItem,
 										isOnActiveSeason &&
-											seasonSlug === season.slug && { backgroundColor: theme.backgroundElement },
+											seasonSlug === season.slug && { backgroundColor: theme.muted },
 										pressed && styles.pressed,
 									]}
 								>
@@ -198,11 +198,11 @@ function NavRow({
 			onPress={onPress}
 			style={({ pressed }) => [
 				styles.navItem,
-				active && { backgroundColor: theme.backgroundElement },
+				active && { backgroundColor: theme.muted },
 				pressed && styles.pressed,
 			]}
 		>
-			<SymbolView name={icon} size={17} tintColor={theme.text} />
+			<SymbolView name={icon} size={17} tintColor={theme.foreground} />
 			<ThemedText type={active ? "smallBold" : "small"} style={styles.navLabel}>
 				{label}
 			</ThemedText>

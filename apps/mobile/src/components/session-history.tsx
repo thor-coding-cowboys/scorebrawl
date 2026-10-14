@@ -31,12 +31,12 @@ function SessionRow({ session, seasonSlug }: { session: EndedSession; seasonSlug
 		>
 			<View style={styles.rowInfo}>
 				<ThemedText style={styles.rowDate}>{formatDate(session.createdAt)}</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{formatDuration(session.createdAt, session.endedAt)} · {session.totalMatches} matches ·{" "}
 					{session.playerCount} players
 				</ThemedText>
 			</View>
-			<ThemedText type="small" themeColor="textSecondary">
+			<ThemedText type="small" themeColor="mutedForeground">
 				{rotationLabel(session.rotationMode)}
 			</ThemedText>
 		</Pressable>
@@ -64,7 +64,7 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 					</View>
 				) : endedQuery.isError && endedQuery.data === undefined ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+						<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 							Couldn't load sessions
 						</ThemedText>
 						<Button variant="outline" onPress={() => endedQuery.refetch()}>
@@ -72,7 +72,7 @@ export function SessionHistory({ seasonSlug }: { seasonSlug: string }) {
 						</Button>
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No sessions yet
 					</ThemedText>
 				)

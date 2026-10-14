@@ -72,7 +72,7 @@ export function SessionPlayerStandings({
 						))}
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No standings
 					</ThemedText>
 				)
@@ -131,7 +131,7 @@ export function SessionTeamStandings({
 						))}
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No team standings
 					</ThemedText>
 				)

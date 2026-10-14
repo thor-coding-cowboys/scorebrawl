@@ -184,7 +184,7 @@ function InviteMemberForm({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 										>
 											<ThemedText
 												type="smallBold"
-												style={{ color: selected ? theme.primary : theme.text }}
+												style={{ color: selected ? theme.primary : theme.foreground }}
 											>
 												{formatRole(option)}
 											</ThemedText>
@@ -386,7 +386,7 @@ export default function InvitationsScreen() {
 									<ThemedText style={styles.rowName} numberOfLines={1}>
 										{item.email}
 									</ThemedText>
-									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+									<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 										{formatRole(item.role || "member")} • Sent {formatDate(item.createdAt)}
 									</ThemedText>
 								</View>
@@ -426,14 +426,14 @@ export default function InvitationsScreen() {
 						isMemberPending ? (
 							<InvitationsSkeleton />
 						) : !canAccess ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								You don’t have access to manage invitations.
 							</ThemedText>
 						) : isLoading ? (
 							<InvitationsSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load invitations
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -441,7 +441,7 @@ export default function InvitationsScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No invitations sent yet
 							</ThemedText>
 						)

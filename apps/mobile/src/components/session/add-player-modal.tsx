@@ -88,14 +88,14 @@ export function AddPlayerModal({
 						<SymbolView
 							name={{ ios: "magnifyingglass", android: "search", web: "search" }}
 							size={15}
-							tintColor={theme.textSecondary}
+							tintColor={theme.mutedForeground}
 						/>
 						<TextInput
 							value={search}
 							onChangeText={setSearch}
 							placeholder="Search players..."
 							placeholderTextColor={theme.mutedForeground}
-							style={[styles.searchInput, { color: theme.text }]}
+							style={[styles.searchInput, { color: theme.foreground }]}
 						/>
 					</View>
 
@@ -113,7 +113,7 @@ export function AddPlayerModal({
 								))}
 							</View>
 						) : available.length === 0 ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								All season players are already in the session.
 							</ThemedText>
 						) : (
@@ -129,12 +129,12 @@ export function AddPlayerModal({
 										<ThemedText type="small" numberOfLines={1}>
 											{p.name}
 										</ThemedText>
-										<ThemedText type="small" themeColor="textSecondary">
+										<ThemedText type="small" themeColor="mutedForeground">
 											{p.score}
 										</ThemedText>
 									</View>
 									{addingId === p.id ? (
-										<ThemedText type="small" themeColor="textSecondary">
+										<ThemedText type="small" themeColor="mutedForeground">
 											Adding…
 										</ThemedText>
 									) : null}

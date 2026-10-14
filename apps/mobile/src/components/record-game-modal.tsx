@@ -105,7 +105,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 
 					<ScrollView style={styles.scroll} contentContainerStyle={styles.form}>
 						<View style={styles.section}>
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								PLAYERS ({playerIds.length})
 							</ThemedText>
 							<View style={styles.chips}>
@@ -132,12 +132,12 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 						</View>
 
 						<View style={styles.section}>
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								WINNER
 							</ThemedText>
 							<View style={styles.winnerList}>
 								{selectedPlayers.length === 0 ? (
-									<ThemedText type="small" themeColor="textSecondary">
+									<ThemedText type="small" themeColor="mutedForeground">
 										Select players first
 									</ThemedText>
 								) : (
@@ -156,7 +156,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 												<View
 													style={[
 														styles.radio,
-														{ borderColor: isWinner ? theme.primary : theme.textSecondary },
+														{ borderColor: isWinner ? theme.primary : theme.mutedForeground },
 													]}
 												>
 													{isWinner ? (
@@ -235,7 +235,7 @@ function CheckRow({
 				style={[
 					styles.checkbox,
 					{ borderColor: value ? theme.glowBlueBorder : theme.border },
-					value && { backgroundColor: theme.glowBlueBg },
+					value && { backgroundColor: theme.glowBlueBackground },
 				]}
 			>
 				{value ? (
