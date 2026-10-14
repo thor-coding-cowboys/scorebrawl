@@ -30,6 +30,7 @@
 		"@better-auth/expo": "catalog:",
 		"@better-auth/oauth-provider": "1.7.3",
 		"@better-auth/passkey": "1.7.3",
+		"@coding-cowboys/scorebrawl-core": "workspace:*",
 		"@coding-cowboys/scorebrawl-util": "workspace:*",
 		"@hono/trpc-server": "^0.4.1",
 		"@hono/zod-validator": "^0.4.3",

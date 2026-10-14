@@ -26,6 +26,25 @@
 		"import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
 		"react/react-in-jsx-scope": "off"
 	},
+	"overrides": [
+		{
+			"files": ["apps/worker/**/*.ts", "apps/worker/**/*.tsx"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"paths": [
+							{
+								"name": "@coding-cowboys/scorebrawl-client",
+								"message": "packages/client is web/mobile-only; the worker must not depend on React client infra."
+							}
+						],
+						"patterns": ["@coding-cowboys/scorebrawl-client/*"]
+					}
+				]
+			}
+		}
+	],
 	"ignorePatterns": [
 		"**/routeTree.gen.ts",
 		"**/index.css",

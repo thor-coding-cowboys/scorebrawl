@@ -14,6 +14,8 @@
 	},
 	"dependencies": {
 		"@better-auth/expo": "catalog:",
+		"@coding-cowboys/scorebrawl-client": "workspace:*",
+		"@coding-cowboys/scorebrawl-core": "workspace:*",
 		"@coding-cowboys/scorebrawl-worker": "workspace:*",
 		"@expo/ui": "~57.0.15",
 		"@shopify/react-native-skia": "2.6.2",

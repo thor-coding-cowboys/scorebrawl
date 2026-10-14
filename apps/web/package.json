@@ -13,6 +13,8 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.0.0",
+		"@coding-cowboys/scorebrawl-client": "workspace:*",
+		"@coding-cowboys/scorebrawl-core": "workspace:*",
 		"@coding-cowboys/scorebrawl-worker": "workspace:*",
 		"@fontsource-variable/jetbrains-mono": "^5.2.8",
 		"@hugeicons/core-free-icons": "^2.0.0",
