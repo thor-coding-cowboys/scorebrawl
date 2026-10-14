@@ -31,7 +31,11 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { fisherYatesShuffle, enforceAlwaysSplit, getPlayerBySeasonId } from "../session-utils";
+import {
+	enforceAlwaysSplit,
+	fisherYatesShuffle,
+	getPlayerBySeasonId,
+} from "@coding-cowboys/scorebrawl-core/session";
 import { SessionDashboardCards } from "../session-dashboard-cards";
 import { ScoreStepper, TeamRosterCard } from "../score-stepper";
 import { SessionStandings } from "../session-standings";

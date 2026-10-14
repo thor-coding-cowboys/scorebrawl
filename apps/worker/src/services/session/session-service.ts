@@ -1,7 +1,8 @@
 import type { DrizzleDB } from "../../db";
 import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
-import { computeWinnerStaysLineup, enforceAlwaysSplit } from "./strategies/winner-stays";
+import { computeWinnerStaysLineup } from "./strategies/winner-stays";
+import { enforceAlwaysSplit } from "@coding-cowboys/scorebrawl-core/session";
 import { computeManualLineup } from "./strategies/manual";
 import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
 import type { RandomizerType, WinnerStaysSettings } from "./strategies/types";

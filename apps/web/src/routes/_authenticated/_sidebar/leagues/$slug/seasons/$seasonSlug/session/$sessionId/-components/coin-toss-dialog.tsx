@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Crown02Icon, FireIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
-import { getPlayerById } from "./session-utils";
+import { getPlayerById } from "@coding-cowboys/scorebrawl-core/session";
 import type { GameSession, CoinTossPhase } from "./session-types";
 import "./coin-toss-dialog.css";
 

@@ -1,5 +1,4 @@
 export * from "./session-types";
-export * from "./session-utils";
 export { ScoreStepper, TeamRosterCard, QueueList } from "./score-stepper";
 export { CoinTossDialog } from "./coin-toss-dialog";
 export { AddPlayerDialog } from "./add-player-dialog";

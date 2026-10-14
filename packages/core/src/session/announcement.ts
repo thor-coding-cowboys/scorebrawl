@@ -1,8 +1,10 @@
-import type { GameSession } from "@/components/session/types";
+import type { GameSession } from "./types";
 
 export type NextLineup = { homeIds: string[]; awayIds: string[] };
 
-export function getNextLineup(session: GameSession): NextLineup | null {
+export function getNextLineup(
+	session: Pick<GameSession, "players" | "matches" | "proposedLineup" | "teamSize">
+): NextLineup | null {
 	if (session.matches.some((m) => m.result === null)) return null;
 
 	const lineup = session.proposedLineup;
@@ -20,7 +22,7 @@ export function getNextLineup(session: GameSession): NextLineup | null {
 function resolveIds(
 	selected: string[] | undefined,
 	fallback: string[],
-	session: GameSession
+	session: Pick<GameSession, "players">
 ): string[] {
 	const source = selected && selected.length > 0 ? selected : fallback;
 	const known = new Set(session.players.map((p) => p.id));
@@ -31,7 +33,10 @@ export function lineupSignature(lineup: NextLineup): string {
 	return `${[...lineup.homeIds].sort().join(",")}|${[...lineup.awayIds].sort().join(",")}`;
 }
 
-export function buildAnnouncement(session: GameSession, lineup: NextLineup): string {
+export function buildAnnouncement(
+	session: Pick<GameSession, "players">,
+	lineup: NextLineup
+): string {
 	const nameById = new Map(session.players.map((p) => [p.id, p.displayName]));
 	const home = formatNames(lineup.homeIds.map((id) => nameById.get(id) ?? ""));
 	const away = formatNames(lineup.awayIds.map((id) => nameById.get(id) ?? ""));
