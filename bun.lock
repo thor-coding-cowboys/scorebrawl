@@ -193,6 +193,9 @@
     "packages/core": {
       "name": "@coding-cowboys/scorebrawl-core",
       "version": "0.0.0",
+      "dependencies": {
+        "@sindresorhus/slugify": "^2.2.1",
+      },
       "devDependencies": {
         "typescript": "catalog:",
         "vitest": "catalog:",

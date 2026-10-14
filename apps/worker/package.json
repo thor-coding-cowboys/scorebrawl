@@ -35,7 +35,6 @@
 		"@hono/trpc-server": "^0.4.1",
 		"@hono/zod-validator": "^0.4.3",
 		"@ihs7/ts-elo": "catalog:",
-		"@sindresorhus/slugify": "^2.2.1",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
 		"cloudflare": "^5.2.0",

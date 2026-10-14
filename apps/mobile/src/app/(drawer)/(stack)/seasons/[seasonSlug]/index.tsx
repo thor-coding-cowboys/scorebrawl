@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { getSeasonStatus } from "@/lib/collections/season";
+import { getSeasonStatus } from "@coding-cowboys/scorebrawl-core/league";
 import { setLastViewedSeason } from "@/lib/last-viewed-season";
 import { useTRPC } from "@/lib/trpc";
 

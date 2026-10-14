@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { queryClient } from "@/lib/query-client";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 import {
 	Award01Icon,
 	Calendar01Icon,

@@ -20,7 +20,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
-import { formatDate } from "@/lib/collections/season";
+import { formatDate } from "@coding-cowboys/scorebrawl-core/league";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
 type Season = RouterOutput["season"]["getBySlug"];
