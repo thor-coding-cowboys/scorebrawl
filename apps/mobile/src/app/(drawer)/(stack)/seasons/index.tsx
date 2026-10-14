@@ -35,7 +35,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
-import { formatDate, getSeasonStatus } from "@/lib/collections/season";
+import { formatDate, getSeasonStatus } from "@coding-cowboys/scorebrawl-core/league";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
 
 function StatusPill({

@@ -11,7 +11,7 @@ import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 

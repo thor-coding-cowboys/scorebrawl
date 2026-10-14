@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 import { useTRPC } from "@/lib/trpc";
 
 const seedLeagueSchema = z.object({

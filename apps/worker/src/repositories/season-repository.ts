@@ -12,7 +12,7 @@ import {
 	type scoreType,
 	match,
 } from "../db/schema/league-schema";
-import { slugifyWithCustomReplacement } from "./slug";
+import { slugifyWithCustomReplacement } from "@coding-cowboys/scorebrawl-core/slug";
 
 export interface SeasonCreateInput {
 	id?: string;

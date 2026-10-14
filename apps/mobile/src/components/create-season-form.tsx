@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 import { trpcClient } from "@/lib/trpc";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;

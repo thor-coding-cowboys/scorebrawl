@@ -21,6 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
+import { formatDate, getSeasonStatus } from "@coding-cowboys/scorebrawl-core/league";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { useQuery } from "@tanstack/react-query";
 import { CreateSeasonForm } from "./-components/seasons/create-season-form";
@@ -35,27 +36,6 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 });
 
 type Season = RouterOutput["season"]["getAll"][number];
-
-function formatDate(date: Date) {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-}
-
-function getSeasonStatus(season: Season) {
-	if (season.archived) return "archived";
-	if (season.closed) return "locked";
-
-	const now = new Date();
-	const startDate = new Date(season.startDate);
-	const endDate = season.endDate ? new Date(season.endDate) : null;
-
-	if (startDate > now) return "upcoming";
-	if (endDate && endDate < now) return "ended";
-	return "active";
-}
 
 function getStatusIcon(status: string) {
 	switch (status) {

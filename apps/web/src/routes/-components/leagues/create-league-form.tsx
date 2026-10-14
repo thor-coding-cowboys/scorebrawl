@@ -4,7 +4,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { LogoUpload } from "@/components/ui/logo-upload";
 import { authClient } from "@/lib/auth-client";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 import { useTRPC } from "@/lib/trpc";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -6,12 +6,17 @@
 	"main": "./src/index.ts",
 	"exports": {
 		".": "./src/index.ts",
+		"./league": "./src/league/index.ts",
 		"./presentation": "./src/presentation/index.ts",
-		"./session": "./src/session/index.ts"
+		"./session": "./src/session/index.ts",
+		"./slug": "./src/slug/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run"
+	},
+	"dependencies": {
+		"@sindresorhus/slugify": "^2.2.1"
 	},
 	"devDependencies": {
 		"typescript": "catalog:",
