@@ -170,7 +170,7 @@
     background-image: radial-gradient(circle at left, color-mix(in oklab, var(--form-loss) 15%, transparent), transparent 70%);
 }
 @utility row-glow-neutral {
-    background-image: radial-gradient(circle at left, color-mix(in oklab, var(--divider) 15%, transparent), transparent 70%);
+    background-image: radial-gradient(circle at left, color-mix(in oklab, var(--faint) 15%, transparent), transparent 70%);
 }
 @utility col-glow-win {
     background-image: radial-gradient(circle at top, color-mix(in oklab, var(--form-win) 10%, transparent), transparent 70%);

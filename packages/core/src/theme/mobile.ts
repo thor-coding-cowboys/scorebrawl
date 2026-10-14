@@ -1,11 +1,26 @@
 import { oklchToHex } from "./oklch";
-import type { ThemeMode } from "./tokens";
+import type { ThemeMode, ThemeTokens } from "./tokens";
 import { themes } from "./tokens";
 
 const capitalize = (segment: string): string => segment.charAt(0).toUpperCase() + segment.slice(1);
 
 const join = (prefix: string, segment: string): string =>
 	prefix ? `${prefix}${capitalize(segment)}` : segment;
+
+type JoinPath<P extends string, K extends string> = P extends "" ? K : `${P}${Capitalize<K>}`;
+
+/**
+ * Every camelCase path in the token tree — the exact key set `toMobileColors`
+ * emits. Narrower than `string`, so a stale `theme.someKey` fails to compile.
+ */
+type Paths<T, P extends string = ""> = T extends string
+	? P
+	: T extends readonly unknown[]
+		? Paths<T[number], `${P}${number}`>
+		: { [K in keyof T & string]: Paths<T[K], JoinPath<P, K>> }[keyof T & string];
+
+export type MobileColorKey = Paths<ThemeTokens>;
+export type MobileColors = Record<MobileColorKey, string>;
 
 function flatten(value: unknown, prefix: string, out: Record<string, string>): void {
 	if (typeof value === "string") {
@@ -32,10 +47,10 @@ function flatten(value: unknown, prefix: string, out: Record<string, string>): v
  * `useTheme()` exposes on mobile. React Native cannot parse oklch, so every
  * value is converted here, once.
  */
-export function toMobileColors(mode: ThemeMode): Record<string, string> {
+export function toMobileColors(mode: ThemeMode): MobileColors {
 	const colors: Record<string, string> = {};
 	flatten(themes[mode], "", colors);
-	return colors;
+	return colors as MobileColors;
 }
 
 export function mobileColorKeys(): string[] {

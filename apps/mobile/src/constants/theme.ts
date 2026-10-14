@@ -7,9 +7,10 @@
 import "@/global.css";
 
 import { toMobileColors } from "@coding-cowboys/scorebrawl-core/theme";
+import type { MobileColors } from "@coding-cowboys/scorebrawl-core/theme";
 import { Platform } from "react-native";
 
-export type MobileColors = Record<string, string>;
+export type { MobileColors };
 
 export const Colors: { light: MobileColors; dark: MobileColors } = {
 	light: toMobileColors("light"),

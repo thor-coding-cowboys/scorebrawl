@@ -1,3 +1,11 @@
+import { oklchToHex, themes } from "../theme";
+
+const formHex = (key: "win" | "draw" | "loss"): string => {
+	const hex = oklchToHex(themes.light.form[key]);
+	if (!hex) throw new Error(`Form token is not convertible to hex: ${key}`);
+	return hex;
+};
+
 export type StandingFormResult = "W" | "D" | "L";
 
 export type StandingItem = {
@@ -57,7 +65,7 @@ export function getStreakType(streak: number): StreakType {
 }
 
 export const FORM_COLORS: Record<StandingFormResult, string> = {
-	W: "#16a34a",
-	D: "#d97706",
-	L: "#dc2626",
+	W: formHex("win"),
+	D: formHex("draw"),
+	L: formHex("loss"),
 };

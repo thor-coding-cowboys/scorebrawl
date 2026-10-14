@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { MobileColorKey } from "@coding-cowboys/scorebrawl-core/theme";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
@@ -34,7 +35,7 @@ type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
 
-const ROLE_TOKEN_KEYS: Record<string, string> = {
+const ROLE_TOKEN_KEYS: Record<string, MobileColorKey> = {
 	owner: "roleOwner",
 	editor: "roleEditor",
 	member: "roleMember",
