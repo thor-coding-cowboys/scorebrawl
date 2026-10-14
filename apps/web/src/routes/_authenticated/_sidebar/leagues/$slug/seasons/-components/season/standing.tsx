@@ -9,7 +9,11 @@ import {
 } from "@/components/ui/table";
 import { StreakAvatar } from "@/components/streak-avatar";
 import { FormDots } from "@/components/ui/form-dots";
-import { calculateStreak } from "@/lib/streak";
+import {
+	calculateStreak,
+	sortStandings,
+	winPct,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 import { FormBar } from "./form-bar";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -41,7 +45,6 @@ function MobileStandingRow({
 	onClick?: () => void;
 	dimmed?: boolean;
 }) {
-	const winPct = item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
 	const streak = calculateStreak(item.form);
 
 	return (
@@ -73,7 +76,7 @@ function MobileStandingRow({
 					>
 						{item.matchCount}
 					</span>
-					<span className="text-xs text-muted-foreground tabular-nums">{winPct}% W</span>
+					<span className="text-xs text-muted-foreground tabular-nums">{winPct(item)}% W</span>
 					<FormBar form={item.form} delta={item.pointDiff} />
 				</div>
 			</div>
@@ -106,11 +109,7 @@ export function Standing({ seasonSlug, leagueSlug, highlightPlayerIds }: Standin
 		);
 	}
 
-	const sortedData = [...standings].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
-	});
+	const sortedData = sortStandings(standings);
 
 	return (
 		<div className="rounded-md" data-testid="standings-table">

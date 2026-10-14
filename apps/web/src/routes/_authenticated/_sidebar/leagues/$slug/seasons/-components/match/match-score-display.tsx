@@ -3,9 +3,13 @@ import { cn } from "@/lib/utils";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserMultipleIcon } from "@hugeicons/core-free-icons";
-import { getTeamInfo, getSideLabel, type MatchDisplayPlayer } from "@/lib/match-names";
+import {
+	getSideLabel,
+	getTeamInfo,
+	type MatchDisplayPlayer,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 
-export type { MatchDisplayPlayer } from "@/lib/match-names";
+export type { MatchDisplayPlayer } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;

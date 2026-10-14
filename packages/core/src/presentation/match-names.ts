@@ -8,7 +8,7 @@ export interface MatchDisplayPlayer {
 }
 
 export function getTeamInfo(
-	players: MatchDisplayPlayer[]
+	players: readonly Pick<MatchDisplayPlayer, "name" | "teamName" | "teamLogo">[]
 ): { name: string; logo: string | null } | null {
 	if (players.length <= 1) return null;
 	const teamName = players[0]?.teamName;
@@ -17,7 +17,9 @@ export function getTeamInfo(
 	return { name: players.map((p) => p.name.split(" ")[0]).join(" & "), logo: teamLogo };
 }
 
-export function getSideLabel(players: MatchDisplayPlayer[]): string {
+export function getSideLabel(
+	players: readonly Pick<MatchDisplayPlayer, "name" | "teamName" | "teamLogo">[]
+): string {
 	if (players.length === 0) return "Unknown";
 	const teamInfo = getTeamInfo(players);
 	if (teamInfo) return teamInfo.name;
@@ -26,7 +28,7 @@ export function getSideLabel(players: MatchDisplayPlayer[]): string {
 
 export function buildMatchResultToast(opts: {
 	scoreType: string;
-	players: MatchDisplayPlayer[];
+	players: readonly MatchDisplayPlayer[];
 	homeScore: number;
 	awayScore: number;
 }): string {

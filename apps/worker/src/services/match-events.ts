@@ -1,3 +1,4 @@
+import type { MatchDisplayPlayer } from "@coding-cowboys/scorebrawl-core/presentation";
 import type { DrizzleDB } from "../db";
 import type { scoreType } from "../db/schema/league-schema";
 import * as matchRepository from "../repositories/match-repository";
@@ -6,15 +7,6 @@ import * as seasonPlayerRepository from "../repositories/season-player-repositor
 export type SeasonScoreType = (typeof scoreType)[number];
 
 export type Standing = Awaited<ReturnType<typeof seasonPlayerRepository.getStanding>>;
-
-export interface MatchDisplayPlayer {
-	id: string;
-	name: string;
-	image: string | null;
-	teamName: string | null;
-	teamLogo: string | null;
-	homeTeam: boolean;
-}
 
 export interface MatchInsertData {
 	match: {

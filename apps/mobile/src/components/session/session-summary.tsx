@@ -4,7 +4,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { formatDuration, rotationLabel } from "@/components/session/utils";
+import { formatDuration, rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";

@@ -32,7 +32,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RowCard } from "@/components/ui/row-card";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/invitations")({
 	component: InvitationsPage,

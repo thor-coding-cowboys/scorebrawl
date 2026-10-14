@@ -11,6 +11,7 @@ import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
+import { sortStandings } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -30,11 +31,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
 	const standingsQuery = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const standings = [...(standingsQuery.data ?? [])].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
-	});
+	const standings = sortStandings(standingsQuery.data ?? []);
 
 	return (
 		<StaticList

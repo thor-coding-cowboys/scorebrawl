@@ -5,7 +5,7 @@ import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { Add01Icon, PlayIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";

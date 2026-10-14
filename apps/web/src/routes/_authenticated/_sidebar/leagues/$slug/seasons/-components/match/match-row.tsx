@@ -1,5 +1,5 @@
 import { MatchScoreDisplay } from "./match-score-display";
-import type { MatchDisplayPlayer } from "@/lib/match-names";
+import type { MatchDisplayPlayer } from "@coding-cowboys/scorebrawl-core/presentation";
 
 interface MatchPlayer {
 	id: string;

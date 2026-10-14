@@ -22,7 +22,7 @@ import { UserMultipleIcon, PencilEdit01Icon, Add01Icon } from "@hugeicons/core-f
 import { toast } from "sonner";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 
 // Helper to construct asset URL from key
 const getAssetUrl = (key: string | null | undefined): string | null => {

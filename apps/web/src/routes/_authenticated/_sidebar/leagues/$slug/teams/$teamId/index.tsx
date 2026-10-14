@@ -31,7 +31,7 @@ import { LogoUpload } from "@/components/ui/logo-upload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { trpcClient, useTRPC } from "@/lib/trpc";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {

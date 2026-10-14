@@ -1,3 +1,8 @@
+export function truncateSlug(slug: string, maxLength = 10): string {
+	if (slug.length <= maxLength) return slug;
+	return `${slug.slice(0, maxLength)}…`;
+}
+
 export function formatDuration(start: Date, end: Date | null): string {
 	if (!end) return "In progress";
 	const minutes = Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 60000);

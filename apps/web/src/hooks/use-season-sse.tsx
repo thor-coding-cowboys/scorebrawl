@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
-import { buildMatchResultToast, type MatchDisplayPlayer } from "@/lib/match-names";
+import {
+	buildMatchResultToast,
+	type MatchDisplayPlayer,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 import { achievementCatalog } from "@/lib/achievements";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import "@/lib/event-types";

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTRPC } from "@/lib/trpc";
-import { formatDuration, rotationLabel } from "@/lib/utils";
+import { formatDuration, rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
 import { OverviewCard } from "../season/overview-card";
 import {
 	Clock01Icon,

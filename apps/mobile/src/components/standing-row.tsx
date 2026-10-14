@@ -3,42 +3,14 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import {
+	FORM_COLORS,
+	type StandingItem,
+	calculateStreak,
+	winPct,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 
-export type StandingItem = {
-	id: string;
-	playerId?: string;
-	name: string;
-	image?: string | null;
-	score: number;
-	matchCount: number;
-	winCount: number;
-	pointDiff: number;
-	form?: ("W" | "D" | "L")[];
-};
-
-function winPct(item: StandingItem) {
-	return item.matchCount > 0 ? Math.round((item.winCount / item.matchCount) * 100) : 0;
-}
-
-function calculateStreak(form?: ("W" | "D" | "L")[]) {
-	if (!form || form.length === 0) return 0;
-	let streak = 0;
-	const first = form[0];
-	for (const result of form) {
-		if (result === first) {
-			streak += first === "W" ? 1 : first === "L" ? -1 : 0;
-		} else {
-			break;
-		}
-	}
-	return streak;
-}
-
-const FORM_COLORS = {
-	W: "#16a34a",
-	D: "#d97706",
-	L: "#dc2626",
-} as const;
+export type { StandingItem };
 
 function FormDots({
 	form,

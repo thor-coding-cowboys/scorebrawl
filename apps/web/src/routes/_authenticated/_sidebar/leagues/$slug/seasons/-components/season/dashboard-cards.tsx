@@ -1,3 +1,4 @@
+import { getSideLabel, getTeamInfo } from "@coding-cowboys/scorebrawl-core/presentation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCard } from "./dashboard-card";
 import {
@@ -179,20 +180,6 @@ interface MatchPlayer {
 	image: string | null;
 	teamName: string | null;
 	teamLogo: string | null;
-}
-
-function getTeamInfo(players: MatchPlayer[]): { name: string; logo: string | null } | null {
-	if (players.length <= 1) return null;
-	const teamName = players[0]?.teamName;
-	const teamLogo = players[0]?.teamLogo ?? null;
-	if (teamName) return { name: teamName, logo: teamLogo };
-	return { name: players.map((p) => p.name.split(" ")[0]).join(" & "), logo: teamLogo };
-}
-
-function getSideLabel(players: MatchPlayer[]): string {
-	if (players.length === 0) return "Unknown";
-	const teamInfo = getTeamInfo(players);
-	return teamInfo ? teamInfo.name : players.map((p) => p.name).join(", ");
 }
 
 function SideDisplay({ players, isWinner }: { players: MatchPlayer[]; isWinner?: boolean }) {

@@ -16,7 +16,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { queryClient } from "@/lib/query-client";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const matchesSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
