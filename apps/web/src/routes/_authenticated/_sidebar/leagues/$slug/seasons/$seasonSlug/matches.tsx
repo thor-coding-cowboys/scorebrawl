@@ -157,7 +157,7 @@ function MatchesPage() {
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0 min-h-0">
 				<div className="grid gap-3 md:grid-cols-1">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-blue" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Total Matches</CardTitle>
 							<HugeiconsIcon icon={Award01Icon} className="size-4 text-blue-600" />

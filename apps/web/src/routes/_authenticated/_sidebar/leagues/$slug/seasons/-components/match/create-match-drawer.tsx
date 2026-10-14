@@ -466,7 +466,7 @@ export function CreateMatchDialog({
 											className={cn(
 												"size-5 rounded-sm transition-all",
 												keepOpen &&
-													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 selected-glow-blue"
 											)}
 										/>
 										<span
@@ -489,7 +489,7 @@ export function CreateMatchDialog({
 											className={cn(
 												"size-5 rounded-sm transition-all",
 												keepPlayers &&
-													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+													"!bg-blue-500/10 dark:!bg-blue-600/20 !border-blue-500/20 dark:!border-blue-600/30 !text-blue-600 dark:!text-blue-300 selected-glow-blue"
 											)}
 										/>
 										<span

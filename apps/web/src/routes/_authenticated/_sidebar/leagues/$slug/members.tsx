@@ -236,7 +236,7 @@ function MembersPage() {
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-3">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-amber" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Owners + Editors</CardTitle>
 							<HugeiconsIcon icon={Crown02Icon} className="size-4 text-amber-500" />
@@ -249,7 +249,7 @@ function MembersPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-emerald" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Participants</CardTitle>
 							<HugeiconsIcon icon={UserCheck01Icon} className="size-4 text-emerald-600" />
@@ -262,7 +262,7 @@ function MembersPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(2,132,199,0.08),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-blue" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">30-Day Growth</CardTitle>
 							<HugeiconsIcon icon={UserShield01Icon} className="size-4 text-sky-600" />

@@ -29,13 +29,21 @@ export function GlowToggle({
 			aria-checked={checked}
 			disabled={disabled}
 			onClick={() => onCheckedChange(!checked)}
+			style={
+				checked
+					? {
+							backgroundColor: colors.background,
+							color: colors.text,
+							borderColor: colors.border,
+						}
+					: undefined
+			}
 			className={cn(
 				"inline-flex items-center gap-1.5 rounded-none border px-2.5 h-7 text-xs font-medium transition-all select-none",
 				"focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:border-ring outline-none",
 				"disabled:pointer-events-none disabled:opacity-50",
-				checked
-					? cn(colors.background, colors.text, colors.border)
-					: "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/20",
+				!checked &&
+					"bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/20",
 				className
 			)}
 		>

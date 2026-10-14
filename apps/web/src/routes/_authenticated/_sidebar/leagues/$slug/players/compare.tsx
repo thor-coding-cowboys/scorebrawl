@@ -382,7 +382,7 @@ function PlayerComparisonPage() {
 						{/* Player 1 Card */}
 						{p1 ? (
 							<Card className="relative overflow-hidden border-l-4 border-l-blue-500">
-								<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+								<div className="absolute inset-0 card-glow-blue" />
 								<CardContent className="relative p-6">
 									<div className="flex items-center gap-4">
 										<Avatar className="h-20 w-20 rounded-xl ring-4 ring-blue-500/20">
@@ -438,7 +438,7 @@ function PlayerComparisonPage() {
 						{/* Player 2 Card - Empty State or Data */}
 						{p2 ? (
 							<Card className="relative overflow-hidden border-l-4 border-l-rose-500">
-								<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(244,63,94,0.1),transparent_60%)]" />
+								<div className="absolute inset-0 card-glow-pink" />
 								<CardContent className="relative p-6">
 									<div className="flex items-center gap-4">
 										<Avatar className="h-20 w-20 rounded-xl ring-4 ring-rose-500/20">

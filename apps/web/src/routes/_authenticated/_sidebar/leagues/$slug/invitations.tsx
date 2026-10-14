@@ -436,7 +436,7 @@ function InvitationsPage() {
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid auto-rows-min gap-3 md:grid-cols-3 xl:grid-cols-3">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.12),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-amber" />
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Total Invites</CardTitle>
 							<HugeiconsIcon icon={UserMultipleIcon} className="size-4 text-muted-foreground" />
@@ -447,7 +447,7 @@ function InvitationsPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.12),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-amber" />
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Pending</CardTitle>
 							<HugeiconsIcon icon={Clock01Icon} className="size-4 text-yellow-500" />
@@ -458,7 +458,7 @@ function InvitationsPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-emerald" />
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Accepted</CardTitle>
 							<HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-green-500" />

@@ -246,7 +246,7 @@ function PlayerProfilePage() {
 				{/* Stats Overview */}
 				<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-blue" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
 								Current Score
@@ -269,7 +269,7 @@ function PlayerProfilePage() {
 					</Card>
 
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-emerald" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">Win Rate</CardTitle>
 							<HugeiconsIcon icon={Award01Icon} className="size-4 text-emerald-600" />
@@ -292,7 +292,7 @@ function PlayerProfilePage() {
 					</Card>
 
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-amber" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
 								Total Matches
@@ -318,7 +318,7 @@ function PlayerProfilePage() {
 					</Card>
 
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-purple" />
 						<CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium text-muted-foreground">
 								Best Season
@@ -671,11 +671,7 @@ function PlayerProfilePage() {
 											{/* Left glow effect */}
 											<div
 												className={`absolute inset-y-0 left-0 w-24 ${
-													isWin
-														? "bg-[radial-gradient(circle_at_left,_rgba(34,197,94,0.15),transparent_70%)]"
-														: isLoss
-															? "bg-[radial-gradient(circle_at_left,_rgba(239,68,68,0.15),transparent_70%)]"
-															: "bg-[radial-gradient(circle_at_left,_rgba(156,163,175,0.15),transparent_70%)]"
+													isWin ? "row-glow-win" : isLoss ? "row-glow-loss" : "row-glow-neutral"
 												}`}
 											/>
 											<div className="relative flex items-center gap-4">

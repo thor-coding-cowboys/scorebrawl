@@ -82,7 +82,7 @@ function HotStreakCard({ player, streak }: { player: SessionPlayer | null; strea
 		<DashboardCard
 			title="Hot Streak"
 			icon={FireIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(239,68,68,0.1),transparent_60%)]"
+			glowColor="card-glow-red"
 			iconColor="text-red-600"
 		>
 			{player && streak > 0 ? (
@@ -114,7 +114,7 @@ function SessionMVPCard({ player }: { player: SessionPlayer | null }) {
 		<DashboardCard
 			title="Session MVP"
 			icon={Crown02Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]"
+			glowColor="card-glow-amber"
 			iconColor="text-amber-600"
 		>
 			{player ? (
@@ -146,7 +146,7 @@ function LatestResultCard({
 			<DashboardCard
 				title="Latest Result"
 				icon={Award01Icon}
-				glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
+				glowColor="card-glow-blue"
 				iconColor="text-blue-600"
 			>
 				<div className="text-sm text-muted-foreground">No matches yet</div>
@@ -170,7 +170,7 @@ function LatestResultCard({
 		<DashboardCard
 			title="Latest Result"
 			icon={Award01Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
+			glowColor="card-glow-blue"
 			iconColor="text-blue-600"
 		>
 			<div className="space-y-1.5">
@@ -244,7 +244,7 @@ function SessionInfoCard({
 		<DashboardCard
 			title="Session Info"
 			icon={BarChartIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]"
+			glowColor="card-glow-emerald"
 			iconColor="text-emerald-600"
 		>
 			<div className="grid grid-cols-3 gap-2 text-center">

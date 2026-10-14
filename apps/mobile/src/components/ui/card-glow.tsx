@@ -1,8 +1,15 @@
+import { glowIntensity } from "@coding-cowboys/scorebrawl-core/theme";
 import { useId } from "react";
 import { StyleSheet } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
-export function CardGlow({ color, intensity = 0.18 }: { color: string; intensity?: number }) {
+export function CardGlow({
+	color,
+	intensity = glowIntensity,
+}: {
+	color: string;
+	intensity?: number;
+}) {
 	const id = useId();
 	return (
 		<Svg style={StyleSheet.absoluteFill} pointerEvents="none">

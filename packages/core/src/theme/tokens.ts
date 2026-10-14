@@ -158,6 +158,7 @@ const domain = {
 	dividerStrong: "oklch(60% 0 0 / 50%)",
 	overlay: "oklch(0 0 0 / 50%)",
 	overlaySoft: "oklch(0 0 0 / 40%)",
+	vignette: "oklch(0 0 0 / 80%)",
 	faint: "oklch(71.366% 0.0192 261.325)",
 	warning: "oklch(66.584% 0.1574 58.318)",
 	link: "oklch(63.45% 0.1834 258.558)",
@@ -288,6 +289,7 @@ export interface ThemeTokens {
 	dividerStrong: string;
 	overlay: string;
 	overlaySoft: string;
+	vignette: string;
 	faint: string;
 	warning: string;
 	link: string;

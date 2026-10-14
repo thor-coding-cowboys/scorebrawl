@@ -138,6 +138,57 @@
   }
 }
 
+/* Radial card glows — shared tone + intensity from packages/core/theme. */
+@utility card-glow-red {
+    background-image: radial-gradient(circle at top right, var(--glow-red-radial), transparent 60%);
+}
+@utility card-glow-blue {
+    background-image: radial-gradient(circle at top right, var(--glow-blue-radial), transparent 60%);
+}
+@utility card-glow-emerald {
+    background-image: radial-gradient(circle at top right, var(--glow-emerald-radial), transparent 60%);
+}
+@utility card-glow-amber {
+    background-image: radial-gradient(circle at top right, var(--glow-amber-radial), transparent 60%);
+}
+@utility card-glow-purple {
+    background-image: radial-gradient(circle at top right, var(--glow-purple-radial), transparent 60%);
+}
+@utility card-glow-pink {
+    background-image: radial-gradient(circle at top right, var(--glow-pink-radial), transparent 60%);
+}
+
+@utility card-halo-purple {
+    box-shadow: 0 0 120px 60px color-mix(in oklab, var(--glow-purple-solid) 15%, transparent);
+}
+
+/* Result-row glows: win / loss / neutral, left- or top-anchored. */
+@utility row-glow-win {
+    background-image: radial-gradient(circle at left, color-mix(in oklab, var(--form-win) 15%, transparent), transparent 70%);
+}
+@utility row-glow-loss {
+    background-image: radial-gradient(circle at left, color-mix(in oklab, var(--form-loss) 15%, transparent), transparent 70%);
+}
+@utility row-glow-neutral {
+    background-image: radial-gradient(circle at left, color-mix(in oklab, var(--divider) 15%, transparent), transparent 70%);
+}
+@utility col-glow-win {
+    background-image: radial-gradient(circle at top, color-mix(in oklab, var(--form-win) 10%, transparent), transparent 70%);
+}
+@utility col-glow-loss {
+    background-image: radial-gradient(circle at top, color-mix(in oklab, var(--form-loss) 10%, transparent), transparent 70%);
+}
+
+/* Vignette behind flyout overlays. */
+@utility flyout-vignette {
+    background-image: radial-gradient(circle at center, transparent 20%, var(--vignette) 80%);
+}
+
+/* Selected-state halo on drawer options. */
+@utility selected-glow-blue {
+    box-shadow: 0 0 8px color-mix(in oklab, var(--glow-blue-solid) 30%, transparent);
+}
+
 
 .h-screen-safe {
     height: 100vh;

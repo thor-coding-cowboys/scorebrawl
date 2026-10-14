@@ -392,7 +392,7 @@ export function StreakFlyout() {
 			/>
 
 			{/* Vignette */}
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,black_80%)]" />
+			<div className="absolute inset-0 flyout-vignette" />
 
 			{/* Radial burst lines */}
 			{phase !== "exiting" && <RadialBurst isFire={isFire} />}

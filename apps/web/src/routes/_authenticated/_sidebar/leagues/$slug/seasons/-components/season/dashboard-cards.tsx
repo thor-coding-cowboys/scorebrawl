@@ -108,7 +108,7 @@ function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 		<PlayerStatCard
 			title="On Fire"
 			icon={FireIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(239,68,68,0.1),transparent_60%)]"
+			glowColor="card-glow-red"
 			iconColor="text-red-600"
 			isLoading={isLoading}
 			player={data}
@@ -127,7 +127,7 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 		<PlayerStatCard
 			title="Struggling"
 			icon={SnowIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
+			glowColor="card-glow-blue"
 			iconColor="text-blue-600"
 			isLoading={!standings}
 			player={player}
@@ -144,7 +144,7 @@ function InfoCard({ seasonSlug }: { seasonSlug: string }) {
 		<DashboardCard
 			title="General Info"
 			icon={BarChartIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]"
+			glowColor="card-glow-emerald"
 			iconColor="text-emerald-600"
 		>
 			{isLoading ? (
@@ -230,7 +230,7 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 		<DashboardCard
 			title="Latest Match"
 			icon={Award01Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]"
+			glowColor="card-glow-amber"
 			iconColor="text-amber-600"
 		>
 			{isLoading ? (
@@ -343,7 +343,7 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 		<DashboardCard
 			title="Next Match"
 			icon={Calendar03Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]"
+			glowColor="card-glow-emerald"
 			iconColor="text-emerald-600"
 		>
 			{fixturesLoading ? (
