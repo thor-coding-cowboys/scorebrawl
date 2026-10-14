@@ -1,15 +1,9 @@
-export interface SessionEventDetail {
-	type: "session:start" | "session:update" | "session:end";
-	sessionId?: string;
-	userName?: string;
-}
+import type {
+	SessionEventDetail,
+	SessionScoreEventDetail,
+} from "@coding-cowboys/scorebrawl-client/realtime";
 
-export interface SessionScoreEventDetail {
-	sessionId?: string;
-	sessionMatchId?: string;
-	homeScore?: number;
-	awayScore?: number;
-}
+export type { SessionEventDetail, SessionScoreEventDetail };
 
 export interface StreakEventDetail {
 	playerId?: string;

@@ -28,7 +28,10 @@ import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Fonts, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { useScoreSync } from "@/hooks/use-score-sync";
+import {
+	useScoreSync,
+	type UpdateMatchScoreInput,
+} from "@coding-cowboys/scorebrawl-client/score-sync";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
@@ -75,7 +78,13 @@ export function NextMatchTab({
 	const currentMatch = session.matches.find((m) => m.result === null) ?? null;
 	currentMatchRef.current = currentMatch ? { id: currentMatch.id } : null;
 
-	const { debouncedUpdateScore } = useScoreSync(sessionId, currentMatchRef);
+	const { debouncedUpdateScore } = useScoreSync({
+		sessionId,
+		currentMatchRef,
+		updateMatchScore: (input: UpdateMatchScoreInput) => {
+			trpcClient.session.updateMatchScore.mutate(input).catch(() => undefined);
+		},
+	});
 
 	const completedCount = session.matches.filter((m) => m.result !== null).length;
 	const pendingCoinToss = session.pendingCoinTosses[0] ?? null;
