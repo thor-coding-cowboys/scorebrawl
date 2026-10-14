@@ -17,12 +17,12 @@ describe("enforceAlwaysSplit", () => {
 	it("returns the teams unchanged when there are no constraints", () => {
 		const homeIds = ["a", "b"];
 		const awayIds = ["c", "d"];
-		const result = enforceAlwaysSplit(homeIds, awayIds, [], [
-			player("a", 0),
-			player("b", 1),
-			player("c", 2),
-			player("d", 3),
-		]);
+		const result = enforceAlwaysSplit(
+			homeIds,
+			awayIds,
+			[],
+			[player("a", 0), player("b", 1), player("c", 2), player("d", 3)]
+		);
 		expect(result).toEqual({ homeIds, awayIds });
 	});
 
