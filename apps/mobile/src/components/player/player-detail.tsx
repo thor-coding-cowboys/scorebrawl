@@ -19,8 +19,20 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
-import { getAchievement } from "@/lib/achievements";
+import { getAchievement } from "@coding-cowboys/scorebrawl-core/achievements";
+import { achievementIcons } from "@/lib/achievements";
 import { useTRPC } from "@/lib/trpc";
+
+const FALLBACK_ACHIEVEMENT_ICON = {
+	ios: "medal",
+	android: "military_tech",
+	web: "military_tech",
+} as const;
+
+function achievementIcon(type: string) {
+	const meta = getAchievement(type);
+	return meta ? achievementIcons[meta.iconKey] : FALLBACK_ACHIEVEMENT_ICON;
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
 	const theme = useTheme();
@@ -270,13 +282,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 												]}
 											>
 												<SymbolView
-													name={
-														getAchievement(a.type)?.icon ?? {
-															ios: "medal",
-															android: "military_tech",
-															web: "military_tech",
-														}
-													}
+													name={achievementIcon(a.type)}
 													size={28}
 													tintColor={theme.primary}
 												/>

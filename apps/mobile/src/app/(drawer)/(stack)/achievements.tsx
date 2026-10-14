@@ -11,7 +11,8 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
-import { achievementCatalog, getAchievement } from "@/lib/achievements";
+import { achievementCatalog, getAchievement } from "@coding-cowboys/scorebrawl-core/achievements";
+import { achievementIcons } from "@/lib/achievements";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
 const ACHIEVEMENT_ENTRIES = Object.entries(achievementCatalog);
@@ -125,7 +126,7 @@ export default function AchievementsScreen() {
 									<View key={type} style={[styles.achievement, { borderColor: theme.border }]}>
 										<View style={styles.achievementHead}>
 											<SymbolView
-												name={meta.icon}
+												name={achievementIcons[meta.iconKey]}
 												size={22}
 												tintColor={earned ? theme.primary : `${theme.textSecondary}66`}
 											/>

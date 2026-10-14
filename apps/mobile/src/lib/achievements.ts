@@ -1,12 +1,7 @@
 import type { SymbolView } from "expo-symbols";
+import type { AchievementIconKey } from "@coding-cowboys/scorebrawl-core/achievements";
 
 type SymbolName = Parameters<typeof SymbolView>[0]["name"];
-
-export interface AchievementMetadata {
-	name: string;
-	description: string;
-	icon: SymbolName;
-}
 
 const FIRE: SymbolName = {
 	ios: "flame.fill",
@@ -20,65 +15,18 @@ const REDEMPTION: SymbolName = {
 };
 const SHIELD: SymbolName = { ios: "shield.fill", android: "shield", web: "shield" };
 const TARGET: SymbolName = { ios: "target", android: "track_changes", web: "track_changes" };
+const CROWN: SymbolName = { ios: "crown.fill", android: "emoji_events", web: "emoji_events" };
 
-export const achievementCatalog = {
-	"5_win_streak": { name: "5 Win Streak", description: "Win 5 matches in a row", icon: FIRE },
-	"10_win_streak": { name: "10 Win Streak", description: "Win 10 matches in a row", icon: FIRE },
-	"15_win_streak": { name: "15 Win Streak", description: "Win 15 matches in a row", icon: FIRE },
-	"3_win_loss_redemption": {
-		name: "3-Game Redemption",
-		description: "Lose 3 in a row, then win 3 in a row",
-		icon: REDEMPTION,
-	},
-	"5_win_loss_redemption": {
-		name: "5-Game Redemption",
-		description: "Lose 5 in a row, then win 5 in a row",
-		icon: REDEMPTION,
-	},
-	"8_win_loss_redemption": {
-		name: "8-Game Redemption",
-		description: "Lose 8 in a row, then win 8 in a row",
-		icon: REDEMPTION,
-	},
-	"5_clean_sheet_streak": {
-		name: "5 Clean Sheets",
-		description: "5 straight matches without conceding",
-		icon: SHIELD,
-	},
-	"10_clean_sheet_streak": {
-		name: "10 Clean Sheets",
-		description: "10 straight matches without conceding",
-		icon: SHIELD,
-	},
-	"15_clean_sheet_streak": {
-		name: "15 Clean Sheets",
-		description: "15 straight matches without conceding",
-		icon: SHIELD,
-	},
-	"3_goals_5_games": {
-		name: "Goal Machine",
-		description: "Score 3+ goals in 5 straight matches",
-		icon: TARGET,
-	},
-	"5_goals_5_games": {
-		name: "Sharpshooter",
-		description: "Score 5+ goals in 5 straight matches",
-		icon: TARGET,
-	},
-	"8_goals_5_games": {
-		name: "Goal Overlord",
-		description: "Score 8+ goals in 5 straight matches",
-		icon: TARGET,
-	},
-	season_winner: {
-		name: "Season Winner",
-		description: "Finish a season at the top of the standings",
-		icon: { ios: "crown.fill", android: "emoji_events", web: "emoji_events" },
-	},
-} satisfies Record<string, AchievementMetadata>;
-
-export type AchievementType = keyof typeof achievementCatalog;
-
-export function getAchievement(type: string): AchievementMetadata | undefined {
-	return type in achievementCatalog ? achievementCatalog[type as AchievementType] : undefined;
-}
+export const achievementIcons: Record<AchievementIconKey, SymbolName> = {
+	"fire-1": FIRE,
+	"fire-2": FIRE,
+	"fire-3": FIRE,
+	redemption: REDEMPTION,
+	"shield-1": SHIELD,
+	"shield-2": SHIELD,
+	"shield-3": SHIELD,
+	"target-1": TARGET,
+	"target-2": TARGET,
+	"target-3": TARGET,
+	crown: CROWN,
+};

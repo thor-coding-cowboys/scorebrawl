@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { achievementCatalog } from "@/lib/achievements";
+import { achievementCatalog, getAchievement } from "@coding-cowboys/scorebrawl-core/achievements";
+import { achievementIcons } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import "@/lib/event-types";
 import "./achievement-animations.css";
@@ -219,9 +220,7 @@ export function AchievementFlyout() {
 
 	if (!currentEvent || phase === "hidden") return null;
 
-	const meta =
-		achievementCatalog[currentEvent.type as keyof typeof achievementCatalog] ??
-		achievementCatalog["5_win_streak"];
+	const meta = getAchievement(currentEvent.type) ?? achievementCatalog["5_win_streak"];
 
 	return (
 		<div
@@ -270,7 +269,7 @@ export function AchievementFlyout() {
 					style={{ transitionDelay: phase === "visible" ? "100ms" : "0ms" }}
 				>
 					<div className="flex items-center justify-center size-36 rounded-full bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-2 ring-fuchsia-400/40 text-fuchsia-300">
-						<HugeiconsIcon icon={meta.icon} className="size-16" />
+						<HugeiconsIcon icon={achievementIcons[meta.iconKey]} className="size-16" />
 					</div>
 				</div>
 

@@ -6,6 +6,7 @@
 	"main": "./src/index.ts",
 	"exports": {
 		".": "./src/index.ts",
+		"./achievements": "./src/achievements/index.ts",
 		"./league": "./src/league/index.ts",
 		"./presentation": "./src/presentation/index.ts",
 		"./session": "./src/session/index.ts",
