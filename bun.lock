@@ -175,6 +175,9 @@
     "packages/client": {
       "name": "@coding-cowboys/scorebrawl-client",
       "version": "0.0.0",
+      "dependencies": {
+        "@coding-cowboys/scorebrawl-core": "workspace:*",
+      },
       "devDependencies": {
         "@tanstack/react-query": "catalog:",
         "@trpc/client": "catalog:",
