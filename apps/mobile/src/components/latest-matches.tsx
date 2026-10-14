@@ -13,6 +13,11 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
 import { trpcClient, useTRPC } from "@/lib/trpc";
+import {
+	getSideLabel,
+	getTeamInfo,
+	type MatchDisplayPlayer,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 
 interface MatchPlayer {
 	id: string;
@@ -28,29 +33,6 @@ interface MatchTeam {
 	name: string | null;
 	logo: string | null;
 	players: MatchPlayer[];
-}
-
-interface DisplayPlayer {
-	id: string;
-	name: string;
-	image: string | null;
-	teamName: string | null;
-	teamLogo: string | null;
-}
-
-function getTeamInfo(players: DisplayPlayer[]) {
-	if (players.length <= 1) return null;
-	const teamName = players[0]?.teamName;
-	if (teamName) return { name: teamName, logo: players[0]?.teamLogo ?? null };
-	return {
-		name: players.map((p) => p.name.split(" ")[0]).join(" & "),
-		logo: players[0]?.teamLogo ?? null,
-	};
-}
-
-function getSideLabel(players: DisplayPlayer[]) {
-	if (players.length === 0) return "Unknown";
-	return getTeamInfo(players)?.name ?? players.map((p) => p.name).join(", ");
 }
 
 function formatTimestamp(date: Date) {
@@ -79,7 +61,7 @@ function ScoreLine({
 	isMuted,
 	headers,
 }: {
-	players: DisplayPlayer[];
+	players: MatchDisplayPlayer[];
 	score: number;
 	isWinner: boolean;
 	isMuted: boolean;
@@ -143,17 +125,18 @@ function MatchRow({
 	};
 	headers?: Record<string, string>;
 }) {
-	const toDisplay = (team: MatchTeam): DisplayPlayer[] =>
+	const toDisplay = (team: MatchTeam, homeTeam: boolean): MatchDisplayPlayer[] =>
 		team.players.map((p) => ({
 			id: p.id,
 			name: p.name,
 			image: getAvatarUri(p.image) ?? null,
 			teamName: team.name,
 			teamLogo: getAvatarUri(team.logo) ?? null,
+			homeTeam,
 		}));
 
-	const homePlayers = toDisplay(match.homeTeam);
-	const awayPlayers = toDisplay(match.awayTeam);
+	const homePlayers = toDisplay(match.homeTeam, true);
+	const awayPlayers = toDisplay(match.awayTeam, false);
 	const homeWins = match.homeScore > match.awayScore;
 	const awayWins = match.awayScore > match.homeScore;
 	const timestamp = formatTimestamp(match.createdAt);

@@ -24,14 +24,7 @@ import {
 } from "react-native-reanimated";
 
 import { Avatar } from "@/components/avatar";
-
-type StreakType = "fire" | "ice" | "none";
-
-function getStreakType(streak: number): StreakType {
-	if (streak >= 5) return "fire";
-	if (streak <= -5) return "ice";
-	return "none";
-}
+import { getStreakType, type StreakType } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const TAU = Math.PI * 2;
 

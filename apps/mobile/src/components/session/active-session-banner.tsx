@@ -10,7 +10,7 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 
-import { rotationLabel } from "@/components/session/utils";
+import { rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";

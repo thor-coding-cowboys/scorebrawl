@@ -18,15 +18,9 @@ import { Spacing } from "@/constants/theme";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC } from "@/lib/trpc";
+import { FORM_COLORS, type StandingFormResult } from "@coding-cowboys/scorebrawl-core/presentation";
 
 type SymbolName = Parameters<typeof SymbolView>[0]["name"];
-type FormResult = "W" | "D" | "L";
-
-const FORM_COLORS: Record<FormResult, string> = {
-	W: "#16a34a",
-	D: "#d97706",
-	L: "#dc2626",
-};
 
 function DashboardCard({
 	title,
@@ -52,7 +46,7 @@ function DashboardCard({
 	);
 }
 
-function FormDots({ form }: { form: FormResult[] }) {
+function FormDots({ form }: { form: StandingFormResult[] }) {
 	return (
 		<View style={styles.formDots}>
 			{form.map((result, i) => (
@@ -71,7 +65,7 @@ function PlayerStat({
 	empty,
 }: {
 	player:
-		| { name: string; image: string | null; score: number; form?: FormResult[] }
+		| { name: string; image: string | null; score: number; form?: StandingFormResult[] }
 		| null
 		| undefined;
 	loading: boolean;

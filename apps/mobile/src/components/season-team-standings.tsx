@@ -11,6 +11,7 @@ import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
+import { sortStandings } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -30,22 +31,16 @@ export function SeasonTeamStandings({ seasonSlug }: { seasonSlug: string }) {
 	const avatarHeaders = cookie ? { cookie } : undefined;
 
 	const standingsQuery = useQuery(trpc.seasonTeam.getStanding.queryOptions({ seasonSlug }));
-	const standings: StandingItem[] = [...(standingsQuery.data ?? [])]
-		.sort((a, b) => {
-			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-			if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-			return b.score - a.score;
-		})
-		.map((item) => ({
-			id: item.id,
-			name: item.name,
-			image: getAvatarUri(item.logo),
-			score: item.score,
-			matchCount: item.matchCount,
-			winCount: item.winCount,
-			pointDiff: item.pointDiff,
-			form: item.form,
-		}));
+	const standings: StandingItem[] = sortStandings(standingsQuery.data ?? []).map((item) => ({
+		id: item.id,
+		name: item.name,
+		image: getAvatarUri(item.logo),
+		score: item.score,
+		matchCount: item.matchCount,
+		winCount: item.winCount,
+		pointDiff: item.pointDiff,
+		form: item.form,
+	}));
 
 	return (
 		<StaticList
