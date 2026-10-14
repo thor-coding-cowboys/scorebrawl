@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		padding: Spacing.four,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	skeletonCol: {
 		flex: 1,

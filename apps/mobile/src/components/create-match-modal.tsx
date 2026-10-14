@@ -9,7 +9,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Fonts, Spacing } from "@/constants/theme";
+import { Fonts, Spacing, SharedColors } from "@/constants/theme";
 import { useSessionTheme } from "@/components/session/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -429,7 +429,7 @@ function Warning({ text }: { text: string }) {
 			<SymbolView
 				name={{ ios: "exclamationmark.triangle", android: "warning", web: "warning" }}
 				size={13}
-				tintColor="#d97706"
+				tintColor={SharedColors.warning}
 			/>
 			<ThemedText type="small" style={styles.warningText}>
 				{text}
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
 	},
 	warningText: {
 		flex: 1,
-		color: "#d97706",
+		color: SharedColors.warning,
 	},
 	stack: {
 		gap: Spacing.two,

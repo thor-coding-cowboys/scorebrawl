@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { confettiColors } from "@/lib/theme-tokens";
 import { achievementCatalog, getAchievement } from "@coding-cowboys/scorebrawl-core/achievements";
 import { achievementIcons } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -14,15 +15,7 @@ export interface AchievementFlyoutEvent {
 	timestamp: number;
 }
 
-const CONFETTI_COLORS = [
-	"#f97316",
-	"#22c55e",
-	"#3b82f6",
-	"#eab308",
-	"#a855f7",
-	"#ec4899",
-	"#06b6d4",
-];
+const CONFETTI_COLORS = confettiColors;
 
 const CONFETTI_COUNT = 120;
 

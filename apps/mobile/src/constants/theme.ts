@@ -16,6 +16,42 @@ export const Colors: { light: MobileColors; dark: MobileColors } = {
 	dark: toMobileColors("dark"),
 };
 
+const shared = Colors.light;
+
+/**
+ * Mode-invariant utility colours — safe to reference at module scope (e.g.
+ * `StyleSheet.create`). `packages/core` tests assert light and dark agree.
+ * Mode-dependent families (`glow`, `role`, the semantic tokens) must be read
+ * from `useTheme()` instead.
+ */
+export const SharedColors = {
+	divider: shared.divider,
+	dividerBorder: shared.dividerBorder,
+	dividerStrong: shared.dividerStrong,
+	overlay: shared.overlay,
+	overlaySoft: shared.overlaySoft,
+	faint: shared.faint,
+	warning: shared.warning,
+	link: shared.link,
+	brandFrom: shared.brandFrom,
+	brandTo: shared.brandTo,
+	formWin: shared.formWin,
+	formDraw: shared.formDraw,
+	formLoss: shared.formLoss,
+	seasonStatusActiveText: shared.seasonStatusActiveText,
+	seasonStatusUpcomingText: shared.seasonStatusUpcomingText,
+	seasonStatusEndedText: shared.seasonStatusEndedText,
+	seasonStatusLockedText: shared.seasonStatusLockedText,
+	seasonStatusArchivedText: shared.seasonStatusArchivedText,
+	invitationStatusPendingText: shared.invitationStatusPendingText,
+	invitationStatusAcceptedText: shared.invitationStatusAcceptedText,
+	invitationStatusRejectedText: shared.invitationStatusRejectedText,
+	invitationStatusCanceledText: shared.invitationStatusCanceledText,
+	scoreTypeEloText: shared.scoreTypeEloText,
+	scoreTypeThreeOneZeroText: shared.scoreTypeThreeOneZeroText,
+	scoreTypeOneVnEloText: shared.scoreTypeOneVnEloText,
+};
+
 /** Semantic surface/ink tokens addressable by `ThemedText`/`ThemedView`. */
 export type ThemeColor =
 	| "background"

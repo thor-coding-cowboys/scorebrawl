@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { StreakAvatar } from "@/components/streak-avatar";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import {
 	FORM_COLORS,
 	type StandingItem,
@@ -19,7 +19,8 @@ function FormDots({
 	form: ("W" | "D" | "L")[] | undefined;
 	pointDiff: number;
 }) {
-	const diffColor = pointDiff > 0 ? "#16a34a" : pointDiff < 0 ? "#dc2626" : undefined;
+	const diffColor =
+		pointDiff > 0 ? SharedColors.formWin : pointDiff < 0 ? SharedColors.formLoss : undefined;
 
 	if (!form || form.length === 0) {
 		return (
@@ -140,12 +141,12 @@ const styles = StyleSheet.create({
 		width: 3,
 		height: 3,
 		borderRadius: 2,
-		backgroundColor: "rgba(128,128,128,0.5)",
+		backgroundColor: SharedColors.dividerStrong,
 	},
 	metaDivider: {
 		width: StyleSheet.hairlineWidth,
 		height: 12,
-		backgroundColor: "rgba(128,128,128,0.3)",
+		backgroundColor: SharedColors.dividerBorder,
 		marginHorizontal: Spacing.one,
 	},
 	formDots: {
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
 		textAlign: "right",
 	},
 	scoreZero: {
-		color: "#9CA3AF",
+		color: SharedColors.faint,
 		fontWeight: "400",
 		fontSize: 15,
 	},

@@ -15,7 +15,7 @@ import {
 	SkeletonStandingRow,
 	SkeletonStatGrid,
 } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -86,7 +86,7 @@ function TeammateRow({
 		| undefined;
 }) {
 	const theme = useTheme();
-	const color = tone === "best" ? "#22c55e" : "#ef4444";
+	const color = tone === "best" ? SharedColors.formWin : SharedColors.formLoss;
 	if (!teammate) {
 		return (
 			<View style={[styles.row, { borderBottomColor: theme.border }]}>
@@ -408,7 +408,10 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
 											</View>
 											<ThemedText
 												type="small"
-												style={{ color: delta >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700" }}
+												style={{
+													color: delta >= 0 ? SharedColors.formWin : SharedColors.formLoss,
+													fontWeight: "700",
+												}}
 											>
 												{delta >= 0 ? `+${delta}` : delta}
 											</ThemedText>

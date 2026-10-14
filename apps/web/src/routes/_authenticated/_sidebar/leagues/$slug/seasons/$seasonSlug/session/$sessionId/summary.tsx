@@ -22,6 +22,7 @@ import { DashboardCard } from "../../../-components/season/dashboard-card";
 import { OverviewCard } from "../../../-components/season/overview-card";
 import { useCarousel } from "@/hooks/use-carousel";
 import { cn } from "@/lib/utils";
+import { formColors } from "@/lib/theme-tokens";
 import {
 	formatDuration,
 	rotationLabel,
@@ -50,9 +51,9 @@ function formatDate(d: Date | null | undefined): string {
 }
 
 const matchResultsConfig = {
-	wins: { label: "Wins", color: "#22c55e" },
-	losses: { label: "Losses", color: "#ef4444" },
-	draws: { label: "Draws", color: "#6b7280" },
+	wins: { label: "Wins", color: formColors.W },
+	losses: { label: "Losses", color: formColors.L },
+	draws: { label: "Draws", color: formColors.D },
 } satisfies ChartConfig;
 
 function SessionSummaryPage() {

@@ -7,6 +7,8 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import { useTheme } from "@/hooks/use-theme";
 
+import { SharedColors } from "@/constants/theme";
+
 const INITIAL_SCALE_FACTOR = Dimensions.get("screen").height / 90;
 const DURATION = 400;
 
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
 	},
 	background: {
 		borderRadius: 40,
-		experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
+		experimental_backgroundImage: `linear-gradient(180deg, ${SharedColors.brandFrom}, ${SharedColors.brandTo})`,
 		width: 128,
 		height: 128,
 		position: "absolute",

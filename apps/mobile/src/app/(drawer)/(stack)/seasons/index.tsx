@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, SharedColors, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
@@ -46,17 +46,23 @@ function StatusPill({
 	const config: Record<string, { color: string; icon: Parameters<typeof SymbolView>[0]["name"] }> =
 		{
 			active: {
-				color: "#16a34a",
+				color: SharedColors.seasonStatusActiveText,
 				icon: { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" },
 			},
 			upcoming: {
-				color: "#2563eb",
+				color: SharedColors.seasonStatusUpcomingText,
 				icon: { ios: "clock.fill", android: "schedule", web: "schedule" },
 			},
-			ended: { color: "#d97706", icon: { ios: "flag.fill", android: "flag", web: "flag" } },
-			locked: { color: "#6b7280", icon: { ios: "lock.fill", android: "lock", web: "lock" } },
+			ended: {
+				color: SharedColors.seasonStatusEndedText,
+				icon: { ios: "flag.fill", android: "flag", web: "flag" },
+			},
+			locked: {
+				color: SharedColors.seasonStatusLockedText,
+				icon: { ios: "lock.fill", android: "lock", web: "lock" },
+			},
 			archived: {
-				color: "#9ca3af",
+				color: SharedColors.seasonStatusArchivedText,
 				icon: { ios: "archivebox.fill", android: "archive", web: "archive" },
 			},
 		};
@@ -77,17 +83,17 @@ const SCORE_TYPE_CONFIG: Record<
 > = {
 	elo: {
 		label: "ELO",
-		color: "#10b981",
+		color: SharedColors.scoreTypeEloText,
 		icon: { ios: "trophy.fill", android: "emoji_events", web: "emoji_events" },
 	},
 	"3-1-0": {
 		label: "Points",
-		color: "#3b82f6",
+		color: SharedColors.scoreTypeThreeOneZeroText,
 		icon: { ios: "target", android: "track_changes", web: "track_changes" },
 	},
 	"1-v-n-elo": {
 		label: "1-v-N ELO",
-		color: "#a855f7",
+		color: SharedColors.scoreTypeOneVnEloText,
 		icon: { ios: "person.3.fill", android: "groups", web: "groups" },
 	},
 };
@@ -602,7 +608,7 @@ const styles = StyleSheet.create({
 		paddingVertical: Spacing.three,
 		gap: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	rowMain: {
 		flex: 1,
@@ -638,14 +644,14 @@ const styles = StyleSheet.create({
 		width: 3,
 		height: 3,
 		borderRadius: 2,
-		backgroundColor: "rgba(128,128,128,0.6)",
+		backgroundColor: SharedColors.dividerStrong,
 	},
 	rowDates: {
 		flexShrink: 1,
 	},
 	rowRail: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: "rgba(128,128,128,0.25)",
+		borderLeftColor: SharedColors.divider,
 		paddingLeft: Spacing.three,
 		alignItems: "flex-end",
 		alignSelf: "stretch",
@@ -713,6 +719,6 @@ const styles = StyleSheet.create({
 	modalActions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

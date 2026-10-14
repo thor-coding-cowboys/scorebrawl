@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { CreateLeagueForm } from "@/components/create-league-form";
 import { ThemedText } from "@/components/themed-text";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
 	},
 	backdrop: {
 		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
+		backgroundColor: SharedColors.overlay,
 		justifyContent: "flex-end",
 	},
 	sheet: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 4,
 		borderRadius: 0,
-		backgroundColor: "rgba(128,128,128,0.4)",
+		backgroundColor: SharedColors.dividerStrong,
 		marginBottom: Spacing.three,
 	},
 	sheetLabel: {
@@ -229,6 +229,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: Spacing.two,
 		marginTop: Spacing.two,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

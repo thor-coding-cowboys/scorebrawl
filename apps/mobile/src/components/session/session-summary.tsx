@@ -13,7 +13,7 @@ import {
 	SkeletonStandingRow,
 	SkeletonStatGrid,
 } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -156,7 +156,10 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 										</View>
 										{delta != null ? (
 											<ThemedText
-												style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
+												style={[
+													styles.subValue,
+													{ color: delta >= 0 ? SharedColors.formWin : SharedColors.formLoss },
+												]}
 											>
 												{delta >= 0 ? `+${delta}` : delta}
 											</ThemedText>

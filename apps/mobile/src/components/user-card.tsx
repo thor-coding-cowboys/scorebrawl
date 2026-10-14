@@ -12,7 +12,7 @@ import {
 	useRotation,
 } from "@/components/ui/animated-collapse";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
 	actions: {
 		marginTop: Spacing.two,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 		paddingTop: Spacing.two,
 	},
 	actionRow: {

@@ -54,6 +54,7 @@ import {
 	ChartLegendContent,
 	type ChartConfig,
 } from "@/components/ui/chart";
+import { formColors } from "@/lib/theme-tokens";
 
 const teamSearchSchema = z.object({
 	season: z.string().optional(),
@@ -90,15 +91,15 @@ const seasonHistoryConfig = {
 const matchResultsConfig = {
 	wins: {
 		label: "Wins",
-		color: "#22c55e",
+		color: formColors.W,
 	},
 	losses: {
 		label: "Losses",
-		color: "#ef4444",
+		color: formColors.L,
 	},
 	draws: {
 		label: "Draws",
-		color: "#6b7280",
+		color: formColors.D,
 	},
 } satisfies ChartConfig;
 

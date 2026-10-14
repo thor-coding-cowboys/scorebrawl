@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/drawer";
 import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { chartSeries } from "@/lib/theme-tokens";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -669,8 +670,8 @@ function PlayerComparisonPage() {
 							<CardContent>
 								<ChartContainer
 									config={{
-										[p1.name]: { label: p1.name, color: "#3b82f6" },
-										[p2.name]: { label: p2.name, color: "#f43f5e" },
+										[p1.name]: { label: p1.name, color: chartSeries.a },
+										[p2.name]: { label: p2.name, color: chartSeries.b },
 									}}
 									className="h-[300px]"
 								>
@@ -683,16 +684,16 @@ function PlayerComparisonPage() {
 										<Line
 											type="monotone"
 											dataKey={p1.name}
-											stroke="#3b82f6"
+											stroke={chartSeries.a}
 											strokeWidth={2}
-											dot={{ fill: "#3b82f6" }}
+											dot={{ fill: chartSeries.a }}
 										/>
 										<Line
 											type="monotone"
 											dataKey={p2.name}
-											stroke="#f43f5e"
+											stroke={chartSeries.b}
 											strokeWidth={2}
-											dot={{ fill: "#f43f5e" }}
+											dot={{ fill: chartSeries.b }}
 										/>
 									</LineChart>
 								</ChartContainer>
@@ -717,15 +718,15 @@ function PlayerComparisonPage() {
 										<Radar
 											name={p1.name}
 											dataKey="p1"
-											stroke="#3b82f6"
-											fill="#3b82f6"
+											stroke={chartSeries.a}
+											fill={chartSeries.a}
 											fillOpacity={0.3}
 										/>
 										<Radar
 											name={p2.name}
 											dataKey="p2"
-											stroke="#f43f5e"
-											fill="#f43f5e"
+											stroke={chartSeries.b}
+											fill={chartSeries.b}
 											fillOpacity={0.3}
 										/>
 										<Legend />

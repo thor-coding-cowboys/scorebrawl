@@ -17,7 +17,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -92,7 +92,10 @@ function CompareRow({
 	return (
 		<View style={[styles.compareRow, { borderBottomColor: theme.border }]}>
 			<ThemedText
-				style={[styles.compareValue, leftBetter && { color: "#22c55e", fontWeight: "700" }]}
+				style={[
+					styles.compareValue,
+					leftBetter && { color: SharedColors.formWin, fontWeight: "700" },
+				]}
 			>
 				{left}
 			</ThemedText>
@@ -103,7 +106,7 @@ function CompareRow({
 				style={[
 					styles.compareValue,
 					styles.compareValueRight,
-					rightBetter && { color: "#22c55e", fontWeight: "700" },
+					rightBetter && { color: SharedColors.formWin, fontWeight: "700" },
 				]}
 			>
 				{right}
@@ -260,10 +263,10 @@ export function PlayerCompare({ initialPlayer1Id }: { initialPlayer1Id?: string 
 													{
 														color:
 															m.result === "W"
-																? "#22c55e"
+																? SharedColors.formWin
 																: m.result === "L"
-																	? "#ef4444"
-																	: "#eab308",
+																	? SharedColors.formLoss
+																	: SharedColors.formDraw,
 													},
 												]}
 											>

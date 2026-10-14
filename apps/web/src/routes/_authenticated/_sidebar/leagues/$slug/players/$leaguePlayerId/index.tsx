@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { formColors } from "@/lib/theme-tokens";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { achievementCatalog } from "@coding-cowboys/scorebrawl-core/achievements";
 import { achievementIcons } from "@/lib/achievements";
@@ -54,15 +55,15 @@ const seasonHistoryConfig = {
 const matchResultsConfig = {
 	wins: {
 		label: "Wins",
-		color: "#22c55e",
+		color: formColors.W,
 	},
 	losses: {
 		label: "Losses",
-		color: "#ef4444",
+		color: formColors.L,
 	},
 	draws: {
 		label: "Draws",
-		color: "#6b7280",
+		color: formColors.D,
 	},
 } satisfies ChartConfig;
 

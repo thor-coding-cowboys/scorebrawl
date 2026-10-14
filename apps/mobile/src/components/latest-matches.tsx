@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SkeletonMatchRow } from "@/components/ui/skeleton-rows";
 import { StaticList } from "@/components/ui/static-list";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
 	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: "rgba(128,128,128,0.25)",
+		backgroundColor: SharedColors.divider,
 	},
 	matchRow: {
 		flexDirection: "row",

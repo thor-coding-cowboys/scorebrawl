@@ -25,7 +25,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Fonts, Spacing } from "@/constants/theme";
+import { Fonts, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import {
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
 	hint: { textAlign: "center" },
 	playersHeading: { fontSize: 14, lineHeight: 20, fontWeight: "400" },
 	alwaysSplit: { marginTop: Spacing.three, gap: 2 },
-	coinOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+	coinOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: SharedColors.overlaySoft },
 	coinSheet: {
 		paddingHorizontal: Spacing.four,
 		paddingTop: Spacing.four,

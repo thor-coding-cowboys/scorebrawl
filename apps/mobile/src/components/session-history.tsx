@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
 import { StaticList } from "@/components/ui/static-list";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import type { RouterOutput } from "@/lib/trpc";
 import { useTRPC } from "@/lib/trpc";
 import { formatDuration, rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
 	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: "rgba(128,128,128,0.25)",
+		backgroundColor: SharedColors.divider,
 	},
 	empty: {
 		textAlign: "center",

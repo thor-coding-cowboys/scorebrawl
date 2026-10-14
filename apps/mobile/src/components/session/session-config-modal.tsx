@@ -19,7 +19,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Fonts, Spacing } from "@/constants/theme";
+import { Fonts, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -269,7 +269,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 				>
 					<View style={styles.header}>
 						<View style={styles.titleRow}>
-							<View style={[styles.accent, { backgroundColor: "#10b981" }]} />
+							<View style={[styles.accent, { backgroundColor: SharedColors.scoreTypeEloText }]} />
 							<View style={styles.titleText}>
 								<ThemedText
 									type="subtitle"
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
 		borderTopWidth: StyleSheet.hairlineWidth,
 	},
 	submit: { flex: 1 },
-	pickOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+	pickOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: SharedColors.overlaySoft },
 	pickSheet: {
 		maxHeight: "70%",
 		paddingHorizontal: Spacing.four,

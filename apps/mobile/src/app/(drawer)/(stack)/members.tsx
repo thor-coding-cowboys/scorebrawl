@@ -10,10 +10,10 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, SharedColors, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { useResolvedThemeMode, useTheme } from "@/hooks/use-theme";
+import { useTheme } from "@/hooks/use-theme";
 import { authClient, getAuthCookie } from "@/lib/auth-client";
 
 type Member = {
@@ -34,11 +34,11 @@ type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
 
-const ROLE_COLORS: Record<string, { light: string; dark: string }> = {
-	owner: { light: "#b45309", dark: "#fbbf24" },
-	editor: { light: "#047857", dark: "#34d399" },
-	member: { light: "#1d4ed8", dark: "#60a5fa" },
-	viewer: { light: "#64748b", dark: "#94a3b8" },
+const ROLE_TOKEN_KEYS: Record<string, string> = {
+	owner: "roleOwner",
+	editor: "roleEditor",
+	member: "roleMember",
+	viewer: "roleViewer",
 };
 
 function formatRole(role: string) {
@@ -202,7 +202,7 @@ function MembersSkeleton() {
 }
 
 export default function MembersScreen() {
-	const mode = useResolvedThemeMode();
+	const theme = useTheme();
 	const { data: activeMember, isPending: isMemberPending } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canAccess = role === "owner" || role === "editor";
@@ -254,7 +254,7 @@ export default function MembersScreen() {
 						const email = item.user?.email || item.email || "";
 						const currentRole = item.role || "member";
 						const canEditThisRole = role === "owner" || (canAccess && currentRole !== "owner");
-						const roleColor = ROLE_COLORS[currentRole]?.[mode] ?? "#64748b";
+						const roleColor = theme[ROLE_TOKEN_KEYS[currentRole] ?? "roleMember"];
 						return (
 							<View style={styles.row}>
 								<View style={styles.rowMain}>
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
 		marginTop: "auto",
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 	safeArea: {
 		flex: 1,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	rowMain: {
 		flex: 1,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
 	},
 	rowRail: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: "rgba(128,128,128,0.25)",
+		borderLeftColor: SharedColors.divider,
 		paddingLeft: Spacing.three,
 		alignItems: "flex-end",
 		alignSelf: "stretch",

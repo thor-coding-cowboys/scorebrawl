@@ -3,6 +3,7 @@ import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ReloadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
+import { formDotStyle } from "@/lib/theme-tokens";
 import type { SessionPlayer, SessionMatch } from "../session-types";
 
 export function QueuePanel({
@@ -168,13 +169,8 @@ export function PlayerQueueRow({
 						title={`${player.consecutiveGames} consecutive games played`}
 					>
 						{recentResults.map((result, i) => {
-							const dotColor =
-								result === "win"
-									? "bg-green-500"
-									: result === "loss"
-										? "bg-red-500"
-										: "bg-yellow-500";
-							return <span key={i} className={cn("size-1.5 rounded-full", dotColor)} />;
+							const dotStyle = formDotStyle(result === "win" ? "W" : result === "loss" ? "L" : "D");
+							return <span key={i} className="size-1.5 rounded-full" style={dotStyle} />;
 						})}
 						{player.consecutiveGames > 8 && (
 							<span className="text-[0.6rem] text-muted-foreground font-medium">

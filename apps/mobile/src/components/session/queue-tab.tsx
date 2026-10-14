@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { useSessionTheme } from "@/components/session/theme";
 import type { GameSession, SessionMatch, SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -25,7 +25,11 @@ function getPlayerResultForMatch(
 	return won ? "win" : "loss";
 }
 
-const DOT_COLORS = { win: "#22c55e", loss: "#ef4444", draw: "#eab308" } as const;
+const DOT_COLORS = {
+	win: SharedColors.formWin,
+	loss: SharedColors.formLoss,
+	draw: SharedColors.formDraw,
+} as const;
 
 function StreakDots({ player, matches }: { player: SessionPlayer; matches: SessionMatch[] }) {
 	if (player.consecutiveGames <= 0) return null;

@@ -86,6 +86,8 @@ const chromeLight = {
 	segmentThumb: "oklch(1 0 0)",
 	segmentThumbBorder: "oklch(0 0 0 / 8%)",
 	splashBackground: "oklch(98.817% 0.0041 271.37)",
+	sessionBorder: "oklch(0.92 0.004 286.32)",
+	sessionSurface: "oklch(0.967 0.001 286.375)",
 };
 
 const chromeDark: typeof chromeLight = {
@@ -95,6 +97,8 @@ const chromeDark: typeof chromeLight = {
 	segmentThumb: "oklch(1 0 0 / 9%)",
 	segmentThumbBorder: "oklch(1 0 0 / 6%)",
 	splashBackground: "oklch(21.426% 0.0702 261.842)",
+	sessionBorder: "oklch(1 0 0 / 8%)",
+	sessionSurface: "oklch(1 0 0 / 3.5%)",
 };
 
 const roleLight = {
@@ -151,6 +155,7 @@ const glowDark: typeof glowLight = {
 const domain = {
 	divider: "oklch(60% 0 0 / 25%)",
 	dividerBorder: "oklch(60% 0 0 / 30%)",
+	dividerStrong: "oklch(60% 0 0 / 50%)",
 	overlay: "oklch(0 0 0 / 50%)",
 	overlaySoft: "oklch(0 0 0 / 40%)",
 	faint: "oklch(71.366% 0.0192 261.325)",
@@ -185,6 +190,15 @@ const domain = {
 		a: "oklch(62.308% 0.188 259.815)",
 		b: "oklch(64.503% 0.2154 16.439)",
 	},
+	confetti: [
+		palette.orange[500],
+		palette.green[500],
+		palette.blue[500],
+		palette.yellow[500],
+		palette.purple[500],
+		palette.pink[500],
+		palette.cyan[500],
+	],
 	streak: {
 		fire: [
 			"oklch(86.521% 0.1768 90.382)",
@@ -265,10 +279,13 @@ export interface ThemeTokens {
 	segmentThumb: string;
 	segmentThumbBorder: string;
 	splashBackground: string;
+	sessionBorder: string;
+	sessionSurface: string;
 	glow: typeof glowLight;
 	role: typeof roleLight;
 	divider: string;
 	dividerBorder: string;
+	dividerStrong: string;
 	overlay: string;
 	overlaySoft: string;
 	faint: string;
@@ -281,6 +298,7 @@ export interface ThemeTokens {
 	invitationStatus: typeof domain.invitationStatus;
 	scoreType: typeof domain.scoreType;
 	chartSeries: typeof domain.chartSeries;
+	confetti: typeof domain.confetti;
 	streak: typeof domain.streak;
 	avatar: typeof avatar;
 }

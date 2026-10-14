@@ -8,7 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { StaticList } from "@/components/ui/static-list";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 import { sortStandings } from "@coding-cowboys/scorebrawl-core/presentation";
@@ -81,7 +81,7 @@ export function SeasonStandings({ seasonSlug }: { seasonSlug: string }) {
 const styles = StyleSheet.create({
 	separator: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: "rgba(128,128,128,0.25)",
+		backgroundColor: SharedColors.divider,
 		marginLeft: 44,
 	},
 	empty: {

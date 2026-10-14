@@ -8,7 +8,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
 import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
@@ -221,6 +221,6 @@ const styles = StyleSheet.create({
 	actions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

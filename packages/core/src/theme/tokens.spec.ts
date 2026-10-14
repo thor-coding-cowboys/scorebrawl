@@ -57,4 +57,28 @@ describe("themes", () => {
 	it("exposes twelve avatar tones", () => {
 		expect(themes.light.avatar).toHaveLength(12);
 	});
+
+	it("keeps every domain token mode-invariant (mobile uses them at module scope)", () => {
+		for (const key of [
+			"divider",
+			"dividerBorder",
+			"dividerStrong",
+			"overlay",
+			"overlaySoft",
+			"faint",
+			"warning",
+			"link",
+			"brandFrom",
+			"brandTo",
+		] as const) {
+			expect(themes.light[key], key).toBe(themes.dark[key]);
+		}
+		expect(themes.light.form).toEqual(themes.dark.form);
+		expect(themes.light.seasonStatus).toEqual(themes.dark.seasonStatus);
+		expect(themes.light.scoreType).toEqual(themes.dark.scoreType);
+		expect(themes.light.invitationStatus).toEqual(themes.dark.invitationStatus);
+		expect(themes.light.avatar).toEqual(themes.dark.avatar);
+		expect(themes.light.streak).toEqual(themes.dark.streak);
+		expect(themes.light.chartSeries).toEqual(themes.dark.chartSeries);
+	});
 });
