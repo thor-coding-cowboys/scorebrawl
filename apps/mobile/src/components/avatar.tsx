@@ -1,3 +1,4 @@
+import { avatarTones, selectAvatarIndex } from "@coding-cowboys/scorebrawl-core/theme";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -9,35 +10,6 @@ function getInitials(name: string) {
 	const parts = name.split(/\s+/).filter(Boolean);
 	const letters = parts.map((p) => p[0]?.toUpperCase()).filter(Boolean);
 	return letters.slice(0, 2).join("") || "?";
-}
-
-const NAME_COLORS: { bg: string; text: string; border: string }[] = [
-	{ bg: "#10b9811a", text: "#059669", border: "#10b98133" },
-	{ bg: "#3b82f61a", text: "#2563eb", border: "#3b82f633" },
-	{ bg: "#f59e0b1a", text: "#d97706", border: "#f59e0b33" },
-	{ bg: "#a855f71a", text: "#9333ea", border: "#a855f733" },
-	{ bg: "#f43f5e1a", text: "#e11d48", border: "#f43f5e33" },
-	{ bg: "#06b6d41a", text: "#0891b2", border: "#06b6d433" },
-	{ bg: "#f973161a", text: "#ea580c", border: "#f9731633" },
-	{ bg: "#6366f11a", text: "#4f46e5", border: "#6366f133" },
-	{ bg: "#ec48991a", text: "#db2777", border: "#ec489933" },
-	{ bg: "#14b8a61a", text: "#0d9488", border: "#14b8a633" },
-	{ bg: "#84cc161a", text: "#65a30d", border: "#84cc1633" },
-	{ bg: "#8b5cf61a", text: "#7c3aed", border: "#8b5cf633" },
-];
-
-const GRAY = { bg: "#6b72801a", text: "#4b5563", border: "#6b728033" };
-
-function getNameColor(name: string) {
-	if (!name) return GRAY;
-	const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
-	let hash = 0;
-	for (let i = 0; i < normalized.length; i++) {
-		hash = (hash << 5) - hash + normalized.charCodeAt(i);
-		hash = hash & hash;
-	}
-	const index = Math.abs(hash) % NAME_COLORS.length;
-	return NAME_COLORS[index] ?? GRAY;
 }
 
 function initialsFontSize(size: number) {
@@ -84,7 +56,11 @@ export function Avatar({
 		);
 	}
 
-	const color = getNameColor(name);
+	const index = selectAvatarIndex(name);
+	const tone = index < 0 ? undefined : avatarTones("light")[index];
+	const background = tone?.background ?? theme.divider;
+	const text = tone?.text ?? theme.mutedForeground;
+	const border = tone?.border ?? theme.border;
 	const fontSize = initialsFontSize(size);
 
 	return (
@@ -93,16 +69,14 @@ export function Avatar({
 				width: size,
 				height: size,
 				borderRadius,
-				backgroundColor: color.bg,
+				backgroundColor: background,
 				borderWidth: 1,
-				borderColor: color.border,
+				borderColor: border,
 				alignItems: "center",
 				justifyContent: "center",
 			}}
 		>
-			<ThemedText
-				style={{ color: color.text, fontSize, lineHeight: fontSize * 1.2, fontWeight: "400" }}
-			>
+			<ThemedText style={{ color: text, fontSize, lineHeight: fontSize * 1.2, fontWeight: "400" }}>
 				{initials}
 			</ThemedText>
 		</View>
