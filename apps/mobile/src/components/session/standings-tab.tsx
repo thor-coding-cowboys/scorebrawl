@@ -11,6 +11,7 @@ import { Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
+import { sortStandings } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -43,13 +44,8 @@ export function SessionPlayerStandings({
 	);
 
 	const query = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const standings: (StandingItem & { dimmed: boolean })[] = [...(query.data ?? [])]
-		.sort((a, b) => {
-			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-			if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-			return b.score - a.score;
-		})
-		.map((item) => ({
+	const standings: (StandingItem & { dimmed: boolean })[] = sortStandings(query.data ?? []).map(
+		(item) => ({
 			id: item.id,
 			name: item.name,
 			image: item.image,
@@ -59,7 +55,8 @@ export function SessionPlayerStandings({
 			pointDiff: item.pointDiff,
 			form: item.form,
 			dimmed: !highlight.has(item.id),
-		}));
+		})
+	);
 
 	return (
 		<StaticList
@@ -106,23 +103,19 @@ export function SessionTeamStandings({
 		return ids;
 	}, [playersQuery.data, sessionPlayers]);
 
-	const standings: (StandingItem & { dimmed: boolean })[] = [...(teamsQuery.data ?? [])]
-		.sort((a, b) => {
-			if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-			if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-			return b.score - a.score;
-		})
-		.map((item) => ({
-			id: item.id,
-			name: item.name,
-			image: getAvatarUri(item.logo) ?? null,
-			score: item.score,
-			matchCount: item.matchCount,
-			winCount: item.winCount,
-			pointDiff: item.pointDiff,
-			form: item.form,
-			dimmed: !item.players.every((p) => highlightLeaguePlayerIds.has(p.id)),
-		}));
+	const standings: (StandingItem & { dimmed: boolean })[] = sortStandings(
+		teamsQuery.data ?? []
+	).map((item) => ({
+		id: item.id,
+		name: item.name,
+		image: getAvatarUri(item.logo) ?? null,
+		score: item.score,
+		matchCount: item.matchCount,
+		winCount: item.winCount,
+		pointDiff: item.pointDiff,
+		form: item.form,
+		dimmed: !item.players.every((p) => highlightLeaguePlayerIds.has(p.id)),
+	}));
 
 	return (
 		<StaticList

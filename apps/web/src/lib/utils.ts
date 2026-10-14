@@ -15,8 +15,10 @@ export function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
 		timeoutId = setTimeout(() => fn(...args), delay);
 	};
 	debounced.cancel = () => {
-		if (timeoutId) clearTimeout(timeoutId);
-		timeoutId = null;
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
 	};
 	return debounced;
 }

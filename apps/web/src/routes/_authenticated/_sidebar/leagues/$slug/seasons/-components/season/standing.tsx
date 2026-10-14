@@ -9,7 +9,11 @@ import {
 } from "@/components/ui/table";
 import { StreakAvatar } from "@/components/streak-avatar";
 import { FormDots } from "@/components/ui/form-dots";
-import { calculateStreak, winPct } from "@coding-cowboys/scorebrawl-core/presentation";
+import {
+	calculateStreak,
+	sortStandings,
+	winPct,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 import { FormBar } from "./form-bar";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -105,11 +109,7 @@ export function Standing({ seasonSlug, leagueSlug, highlightPlayerIds }: Standin
 		);
 	}
 
-	const sortedData = [...standings].sort((a, b) => {
-		if (a.matchCount === 0 && b.matchCount !== 0) return 1;
-		if (a.matchCount !== 0 && b.matchCount === 0) return -1;
-		return b.score - a.score;
-	});
+	const sortedData = sortStandings(standings);
 
 	return (
 		<div className="rounded-md" data-testid="standings-table">
