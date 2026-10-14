@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diversityShuffleWithHistory } from "../../src/lib/shuffle";
+import { diversityShuffleWithHistory } from "./rotation";
 
 describe("diversityShuffleWithHistory - 2v2 scenarios", () => {
 	it("should avoid putting players on same team after they played together", () => {
