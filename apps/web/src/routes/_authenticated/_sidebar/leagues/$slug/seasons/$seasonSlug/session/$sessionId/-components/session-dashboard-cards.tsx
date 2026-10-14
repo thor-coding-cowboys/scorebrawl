@@ -4,7 +4,7 @@ import { DashboardCard } from "../../../../-components/season/dashboard-card";
 import { useCarousel } from "@/hooks/use-carousel";
 import { cn } from "@/lib/utils";
 import { FireIcon, Crown02Icon, Award01Icon, BarChartIcon } from "@hugeicons/core-free-icons";
-import { computeWinStreaks } from "./session-utils";
+import { computeWinStreaks } from "@coding-cowboys/scorebrawl-core/session";
 import type { GameSession, SessionMatch, SessionPlayer } from "./session-types";
 
 export function SessionDashboardCards({ session }: { session: GameSession }) {
@@ -156,10 +156,10 @@ function LatestResultCard({
 
 	const homePlayers = match.homePlayerIds
 		.map((sid) => session.players.find((p) => p.seasonPlayerId === sid))
-		.filter((p): p is SessionPlayer => !!p);
+		.filter((p) => p !== undefined);
 	const awayPlayers = match.awayPlayerIds
 		.map((sid) => session.players.find((p) => p.seasonPlayerId === sid))
-		.filter((p): p is SessionPlayer => !!p);
+		.filter((p) => p !== undefined);
 
 	const homeLabel = homePlayers.map((p) => p.displayName.split(" ")[0]).join(" & ");
 	const awayLabel = awayPlayers.map((p) => p.displayName.split(" ")[0]).join(" & ");
