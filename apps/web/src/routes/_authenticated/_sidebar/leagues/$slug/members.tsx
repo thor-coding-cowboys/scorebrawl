@@ -31,7 +31,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { RowCard } from "@/components/ui/row-card";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/members")({
 	component: MembersPage,

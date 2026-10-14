@@ -29,7 +29,8 @@ import {
 	DrawerTitle,
 } from "@/components/ui/drawer";
 import { useTRPC } from "@/lib/trpc";
-import { truncateSlug, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	ActivityIcon,

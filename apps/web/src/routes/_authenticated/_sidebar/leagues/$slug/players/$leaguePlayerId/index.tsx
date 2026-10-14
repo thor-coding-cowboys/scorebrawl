@@ -6,7 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
-import { cn, truncateSlug } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { achievementCatalog } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {

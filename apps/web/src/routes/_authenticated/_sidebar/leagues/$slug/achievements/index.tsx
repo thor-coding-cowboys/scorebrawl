@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC } from "@/lib/trpc";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { achievementCatalog, type AchievementType } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";

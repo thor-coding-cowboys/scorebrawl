@@ -21,7 +21,7 @@ import {
 	Settings02Icon,
 	UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { toast } from "sonner";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";

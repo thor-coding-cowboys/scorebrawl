@@ -21,7 +21,12 @@ import {
 import { DashboardCard } from "../../../-components/season/dashboard-card";
 import { OverviewCard } from "../../../-components/season/overview-card";
 import { useCarousel } from "@/hooks/use-carousel";
-import { cn, formatDuration, rotationLabel, truncateSlug } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import {
+	formatDuration,
+	rotationLabel,
+	truncateSlug,
+} from "@coding-cowboys/scorebrawl-core/presentation";
 
 export const Route = createFileRoute(
 	"/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary"

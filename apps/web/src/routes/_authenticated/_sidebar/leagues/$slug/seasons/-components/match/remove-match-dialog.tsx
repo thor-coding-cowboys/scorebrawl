@@ -8,7 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { MatchScoreDisplay } from "./match-score-display";
-import type { MatchDisplayPlayer } from "@/lib/match-names";
+import type { MatchDisplayPlayer } from "@coding-cowboys/scorebrawl-core/presentation";
 
 interface MatchInfo {
 	id: string;

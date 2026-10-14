@@ -1,9 +1,8 @@
 import "./streak-animations.css";
 import { cn } from "@/lib/utils";
+import { getStreakType } from "@coding-cowboys/scorebrawl-core/presentation";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { useId } from "react";
-
-type StreakType = "fire" | "ice" | "none";
 
 interface StreakAvatarProps {
 	src?: string | null;
@@ -11,12 +10,6 @@ interface StreakAvatarProps {
 	streak: number;
 	className?: string;
 	size?: number;
-}
-
-function getStreakType(streak: number): StreakType {
-	if (streak >= 5) return "fire";
-	if (streak <= -5) return "ice";
-	return "none";
 }
 
 /**

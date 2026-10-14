@@ -21,7 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
-import { truncateSlug } from "@/lib/utils";
+import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { useQuery } from "@tanstack/react-query";
 import { CreateSeasonForm } from "./-components/seasons/create-season-form";
 import { EditSeasonForm } from "./-components/seasons/edit-season-form";
