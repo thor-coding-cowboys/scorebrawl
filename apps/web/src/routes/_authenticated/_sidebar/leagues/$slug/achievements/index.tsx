@@ -5,7 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC } from "@/lib/trpc";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
-import { achievementCatalog, type AchievementType } from "@/lib/achievements";
+import {
+	achievementCatalog,
+	type AchievementType,
+} from "@coding-cowboys/scorebrawl-core/achievements";
+import { achievementIcons } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 
@@ -149,7 +153,7 @@ function LeagueAchievementsPage() {
 															: "text-muted-foreground/40 grayscale"
 													}
 												>
-													<HugeiconsIcon icon={meta.icon} className="size-6" />
+													<HugeiconsIcon icon={achievementIcons[meta.iconKey]} className="size-6" />
 												</div>
 												<div>
 													<p className="text-sm font-medium">{meta.name}</p>

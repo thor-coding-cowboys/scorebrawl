@@ -6,7 +6,7 @@ import {
 	buildMatchResultToast,
 	type MatchDisplayPlayer,
 } from "@coding-cowboys/scorebrawl-core/presentation";
-import { achievementCatalog } from "@/lib/achievements";
+import { achievementCatalog } from "@coding-cowboys/scorebrawl-core/achievements";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import "@/lib/event-types";
 

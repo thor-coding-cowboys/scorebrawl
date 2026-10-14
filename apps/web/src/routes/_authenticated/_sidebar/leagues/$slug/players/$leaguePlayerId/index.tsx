@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, trpcClient } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
-import { achievementCatalog } from "@/lib/achievements";
+import { achievementCatalog } from "@coding-cowboys/scorebrawl-core/achievements";
+import { achievementIcons } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	Target01Icon,
@@ -522,7 +523,7 @@ function PlayerProfilePage() {
 														: "bg-muted/30 border-border/50 text-muted-foreground/40 grayscale"
 												)}
 											>
-												<HugeiconsIcon icon={meta.icon} className="size-8" />
+												<HugeiconsIcon icon={achievementIcons[meta.iconKey]} className="size-8" />
 											</div>
 											<div className="space-y-0.5">
 												<p
