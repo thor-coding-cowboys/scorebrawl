@@ -13,8 +13,7 @@ import {
 	player,
 	guest,
 } from "../../db/schema/league-schema";
-import { enforceAlwaysSplit } from "../../services/session/strategies/winner-stays";
-import { fisherYatesShuffle } from "../../lib/shuffle";
+import { enforceAlwaysSplit, fisherYatesShuffle } from "@coding-cowboys/scorebrawl-core/session";
 
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
