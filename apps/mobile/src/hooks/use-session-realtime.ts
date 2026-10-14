@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import {
+	getSessionInvalidations,
+	type SessionScoreUpdate,
+} from "@coding-cowboys/scorebrawl-client/realtime";
+
 import { AUTH_BASE_URL } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
@@ -29,11 +34,7 @@ export function useSessionRealtime({
 	seasonSlug: string;
 	sessionId: string;
 	onSessionEnd?: () => void;
-	onScoreUpdate?: (input: {
-		sessionMatchId?: string;
-		homeScore: number;
-		awayScore: number;
-	}) => void;
+	onScoreUpdate?: (input: SessionScoreUpdate) => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -53,18 +54,9 @@ export function useSessionRealtime({
 		let attempts = 0;
 
 		const reconcile = () => {
-			queryClient.invalidateQueries({
-				queryKey: trpc.session.getById.queryKey({ sessionId }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.session.getActive.queryKey({ seasonSlug }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
-			});
+			for (const queryKey of getSessionInvalidations(trpc, { sessionId, seasonSlug })) {
+				queryClient.invalidateQueries({ queryKey });
+			}
 		};
 
 		const connect = () => {
@@ -120,18 +112,9 @@ export function useSessionRealtime({
 					return;
 				}
 
-				queryClient.invalidateQueries({
-					queryKey: trpc.session.getById.queryKey({ sessionId }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.session.getActive.queryKey({ seasonSlug }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.seasonTeam.getStanding.queryKey({ seasonSlug }),
-				});
+				for (const queryKey of getSessionInvalidations(trpc, { sessionId, seasonSlug })) {
+					queryClient.invalidateQueries({ queryKey });
+				}
 			};
 
 			ws.onclose = () => {

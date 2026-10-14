@@ -1,12 +1,12 @@
+import type { RouterOutputOf, TRPCClientOf } from "@coding-cowboys/scorebrawl-client/trpc";
 import type { TRPCRouter } from "@coding-cowboys/scorebrawl-worker/trpc";
 import { createTRPCClient, httpLink, httpSubscriptionLink, splitLink } from "@trpc/client";
-import type { inferRouterOutputs } from "@trpc/server";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import superjson from "superjson";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<TRPCRouter>();
 
-export type RouterOutput = inferRouterOutputs<TRPCRouter>;
+export type RouterOutput = RouterOutputOf<TRPCRouter>;
 
 export const trpcClient = createTRPCClient<TRPCRouter>({
 	links: [
@@ -24,7 +24,7 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 	],
 });
 
-export type TRPCClient = typeof trpcClient;
+export type TRPCClient = TRPCClientOf<TRPCRouter>;
 
 export type SessionRouter = TRPCRouter["session"];
 

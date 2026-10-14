@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
+import { getSessionInvalidations } from "@coding-cowboys/scorebrawl-client/realtime";
 import {
 	buildMatchResultToast,
 	type MatchDisplayPlayer,
@@ -247,24 +248,36 @@ export function useSeasonSSE({
 							})
 						);
 
-						if (sessionId) {
-							qc.invalidateQueries({
-								queryKey: t.session.getById.queryKey({ sessionId }),
-							});
-						}
-						qc.invalidateQueries({
-							queryKey: t.session.getActive.queryKey({ seasonSlug }),
-						});
-
 						if (parsed.type === "session:update" || parsed.type === "session:end") {
+							if (sessionId) {
+								for (const queryKey of getSessionInvalidations(t, { sessionId, seasonSlug })) {
+									qc.invalidateQueries({ queryKey });
+								}
+								qc.invalidateQueries({
+									queryKey: t.match.getLatest.queryKey({ seasonSlug }),
+								});
+							} else {
+								qc.invalidateQueries({
+									queryKey: t.session.getActive.queryKey({ seasonSlug }),
+								});
+								qc.invalidateQueries({
+									queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
+								});
+								qc.invalidateQueries({
+									queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
+								});
+								qc.invalidateQueries({
+									queryKey: t.match.getLatest.queryKey({ seasonSlug }),
+								});
+							}
+						} else {
+							if (sessionId) {
+								qc.invalidateQueries({
+									queryKey: t.session.getById.queryKey({ sessionId }),
+								});
+							}
 							qc.invalidateQueries({
-								queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-							});
-							qc.invalidateQueries({
-								queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
-							});
-							qc.invalidateQueries({
-								queryKey: t.match.getLatest.queryKey({ seasonSlug }),
+								queryKey: t.session.getActive.queryKey({ seasonSlug }),
 							});
 						}
 

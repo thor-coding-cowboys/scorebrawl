@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpcClient } from "@/lib/trpc";
 import { useSession } from "@/hooks/useSession";
 import { useSessionMutations } from "@/hooks/use-session-mutations";
-import { useScoreSync } from "@/hooks/use-score-sync";
+import {
+	useScoreSync,
+	type UpdateMatchScoreInput,
+} from "@coding-cowboys/scorebrawl-client/score-sync";
 import { useSessionSSE } from "@/hooks/use-session-sse";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -154,7 +157,15 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		setAwayScore(nextAway);
 	}
 
-	const { debouncedUpdateScore } = useScoreSync(sessionId, currentMatchRef);
+	const updateMatchScore = useMutation({
+		mutationFn: (input: UpdateMatchScoreInput) => trpcClient.session.updateMatchScore.mutate(input),
+	});
+
+	const { debouncedUpdateScore } = useScoreSync({
+		sessionId,
+		currentMatchRef,
+		updateMatchScore: updateMatchScore.mutate,
+	});
 
 	const updateHomeScore = (updater: (prev: number) => number) => {
 		lastLocalScoreChangeRef.current = Date.now();
