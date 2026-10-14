@@ -20,7 +20,7 @@ import {
 	enforceAlwaysSplit,
 	fisherYatesShuffle,
 	getPlayerBySeasonId,
-} from "@/components/session/utils";
+} from "@coding-cowboys/scorebrawl-core/session";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";

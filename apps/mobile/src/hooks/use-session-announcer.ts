@@ -5,7 +5,7 @@ import {
 	buildAnnouncement,
 	getNextLineup,
 	lineupSignature,
-} from "@/components/session/announcement";
+} from "@coding-cowboys/scorebrawl-core/session";
 import type { GameSession } from "@/components/session/types";
 
 export function useSessionAnnouncer({
