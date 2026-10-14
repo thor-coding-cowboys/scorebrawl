@@ -55,6 +55,23 @@ describe("enforceAlwaysSplit", () => {
 		const result = enforceAlwaysSplit(["a"], ["b"], [["sp-a", "sp-missing"]], players);
 		expect(result).toEqual({ homeIds: ["a"], awayIds: ["b"] });
 	});
+
+	it("terminates when the constraints cannot all be satisfied", () => {
+		const players = [player("a", 0), player("b", 1), player("c", 2), player("d", 3)];
+		const result = enforceAlwaysSplit(
+			["d", "b"],
+			["c", "a"],
+			[
+				["sp-a", "sp-d"],
+				["sp-b", "sp-d"],
+				["sp-a", "sp-b"],
+			],
+			players
+		);
+		expect([...result.homeIds, ...result.awayIds].sort()).toEqual(["a", "b", "c", "d"]);
+		expect(result.homeIds).toHaveLength(2);
+		expect(result.awayIds).toHaveLength(2);
+	});
 });
 
 describe("diversityShuffle", () => {

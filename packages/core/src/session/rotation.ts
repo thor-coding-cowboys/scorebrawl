@@ -184,6 +184,7 @@ export function enforceAlwaysSplit(
 		constraintPairs.some(([x, y]) => (x === idA && y === idB) || (x === idB && y === idA));
 
 	let changed = true;
+	const seen = new Set<string>();
 	while (changed) {
 		changed = false;
 		for (const [idA, idB] of constraintPairs) {
@@ -210,6 +211,11 @@ export function enforceAlwaysSplit(
 				changed = true;
 			}
 		}
+
+		// Constraints that cannot all be satisfied cycle forever; stop on a repeat.
+		const signature = `${[...home].sort().join(",")}|${[...away].sort().join(",")}`;
+		if (seen.has(signature)) break;
+		seen.add(signature);
 	}
 
 	return { homeIds: [...home], awayIds: [...away] };
