@@ -211,3 +211,19 @@ Each commit keeps `bun check && bun run test` green.
 Typography (`Fonts`), spacing (`Spacing`), radii (`--radius-*`), `MaxContentWidth`. Worker colour usage (it has none today).
 
 Note: renaming mobile keys was originally floated as a deferrable follow-up, but is included in this branch by explicit decision.
+
+## Implementation status
+
+Landed (branch `feat/shared-theme-tokens`):
+
+- `core/theme`: `palette`, `themes`, `glowIntensity`, `oklchToHex`, `withAlpha`, `themeCssVars`, `paletteVars`, `toMobileColors`, `mobileColorKeys`, `selectAvatarIndex`, `avatarTones` — with tests for the converter, light/dark key parity, domain mode-invariance, the CSS-var walker, the shaper (hex-only), and the avatar selector.
+- `client/theme`: `themeDeclarations`, `themeCssRules`, `applyThemeTokens` (one-shot `<style id="scorebrawl-theme">`).
+- Web: `index.css` is a consumer (no literal colours; palette `@theme inline` mappings for every hue/step used); `main.tsx` applies the tokens before first render; the deliberately-unified values are in place; card glows, halos and the vignette are `@utility` classes reading the glow tokens.
+- Mobile: `constants/theme.ts` is a shaper over the tokens with keys renamed to core names and an explicit resolved mode via `useResolvedThemeMode()`; `MobileColors` keys are typed from the token tree, so a stale key fails to compile; both colour-string dark-mode checks are gone.
+
+Deferred, not landed: **streak avatar surfaces**. `apps/web/src/routes/-components/streak-avatar.tsx` (39 literals), `apps/web/src/routes/-components/streak-flyout.tsx` (4) and `apps/mobile/src/components/streak-avatar.tsx` (21) still author their own values, so the "`core/theme` is the only place colour values are authored" acceptance criterion and the "streak `fire` = web's 4-stop ramp" canon are **not** fully met by this branch. The shared `streak.fire` / `streak.ice` tokens exist but are unconsumed. Reason: those two files are intricate animated SVGs whose remaining shades (comet heads, sweep stops, rim strokes, glass fills, glow shadows) are ~50 distinct values, ~32 of them alpha-baked and mobile-only, and they could not be screenshot-verified in this session.
+
+Two further documented exceptions, both excluded from the mechanical literal sweep:
+
+- `apps/web/src/routes/-components/ui/chart.tsx` — `#ccc`/`#fff` occur inside CSS _attribute selectors_ matching recharts' internal default stroke values, not as authored colours.
+- `apps/mobile/src/components/animated-icon.module.css` — the Expo web build has no theme adapter, so custom properties would not resolve there.
