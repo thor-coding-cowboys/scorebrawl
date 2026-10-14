@@ -10,7 +10,8 @@
 		"./league": "./src/league/index.ts",
 		"./presentation": "./src/presentation/index.ts",
 		"./session": "./src/session/index.ts",
-		"./slug": "./src/slug/index.ts"
+		"./slug": "./src/slug/index.ts",
+		"./theme": "./src/theme/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
