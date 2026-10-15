@@ -32,12 +32,13 @@ The server is already mobile-compatible. rpID is derived per-request from the `O
 ## Acceptance criteria
 
 - `expoPasskeyClient()` is in the mobile auth client; the mobile web build is unaffected (the package delegates to the stock browser client when `Platform.OS === "web"`).
+- `apps/mobile/app.json` declares `ios.associatedDomains: ["webcredentials:scorebrawl.com"]`, and the entitlement survives `expo prebuild`.
 - On a physical device, the sign-in button authenticates with a passkey registered in the web app.
 - Profile lists passkeys with name / `deviceType` / backed-up, and add, rename and delete all work.
 - `GET https://scorebrawl.com/.well-known/apple-app-site-association` → `{"webcredentials":{"apps":["VWB9AT6XKY.com.scorebrawl"]}}` with `content-type: application/json`, no redirect.
 - `GET https://scorebrawl.com/.well-known/assetlinks.json` → a single `android_app` target for `com.scorebrawl` whose `sha256_cert_fingerprints` come from config; a documented marker while unset.
 - Both paths 404 on `api.scorebrawl.com`.
-- The passkey plugin's `origin` is an array that includes an `android:apk-key-hash:<hash>` entry per configured fingerprint.
+- `buildPasskeyConfig` is exported and unit-tested: the `origin` array includes an `android:apk-key-hash:<hash>` entry per configured fingerprint, and honours the rpID override.
 - `bun check && bun run test` pass.
 
 ## Design
@@ -53,24 +54,32 @@ Rejected:
 
 The swap to `react-native-passkeys` later is contained to `auth-client.ts` and the sign-in handler, because the component-level API is identical.
 
-### 1. rpID and origins — `better-auth.ts`, `context.ts`, `wrangler.jsonc`
+### 1. rpID and origins — new `lib/passkey-config.ts`, `better-auth.ts`, `context.ts`, `wrangler.jsonc`
 
-- `origin` becomes an **array** (`PasskeyOptions.origin?: string | string[] | null` — confirmed): `[passkeyOrigin, ...hashes.map((h) => \`android:apk-key-hash:${h}\`)]`.
-- New vars: `PASSKEY_RP_ID` (prod: `scorebrawl.com` — identical to the value derived today, so no existing passkey breaks) and `PASSKEY_ANDROID_APK_KEY_HASHES` (comma-separated).
-- Rationale: native sends no `Origin` header, so today rpID is inferred from the request host. Making it explicit removes an implicit dependency and allows a preview domain to be configured for on-device testing.
+`origin` becomes an **array** (`PasskeyOptions.origin?: string | string[] | null` — confirmed): `[passkeyOrigin, ...hashes.map((h) => \`android:apk-key-hash:${h}\`)]`.
+
+The derivation is currently inline inside `createAuth()` (`better-auth.ts:76-91`) and the plugin instance's options are not inspectable, so it cannot be tested as written. It moves to an exported pure function — `buildPasskeyConfig({ requestOrigin, rpIdOverride, androidKeyHashes })` in a new `apps/worker/src/lib/passkey-config.ts` — returning `{ rpID, origin }`, the two values the `passkey()` plugin takes. The existing `localhost` / `127.0.0.1` → `http://localhost:5173` special case (`better-auth.ts:88-90`) moves inside the helper and stays covered by a test.
+
+- `PASSKEY_ANDROID_APK_KEY_HASHES` (new, comma-separated) goes in the shared `vars` in `wrangler.jsonc`. It only _adds_ allowed origins, so previews and local are unaffected.
+- `PASSKEY_RP_ID` is an **optional override and is deliberately left unset in `wrangler.jsonc`**. There are no `env` blocks, so a value in the shared `vars` would also apply to previews; pinning `scorebrawl.com` there would make every preview's rpID a non-suffix of its `*.workers.dev` origin and break passkey sign-in on previews. Left unset, previews and local keep deriving their own host as today, and prod keeps deriving `scorebrawl.com` (only the app host serves `/api/*`, so that value is stable). The override exists so a preview or tunnel domain can be pinned for on-device testing.
+- Because it is unset, the var produces no generated `Env` key. Read it the way `BETTER_AUTH_URL` already is (`context.ts:62`): optional field plus a cast. It must **not** be added to shared `vars` to satisfy typecheck — that is the change that breaks previews.
+- Net effect on prod: no behaviour change, no existing passkey breaks.
 
 ### 2. `.well-known` files — `wrangler.jsonc`, new `routes/well-known.ts`
 
 - Add `/.well-known/*` to `assets.run_worker_first`.
-- Apple route: `{"webcredentials":{"apps":["VWB9AT6XKY.com.scorebrawl"]}}`, `application/json`, no redirect (Apple rejects both redirects and non-JSON here).
+- Apple route: `{"webcredentials":{"apps":["VWB9AT6XKY.com.scorebrawl"]}}`, `application/json`, no redirect (Apple rejects both redirects and non-JSON here). `applinks` is deliberately omitted — only `webcredentials` is needed for passkeys.
 - Android route: one `android_app` target, `relation: ["delegate_permission/common.get_login_creds"]`, `sha256_cert_fingerprints` rendered as colon-separated uppercase hex decoded from the base64url entries in `PASSKEY_ANDROID_APK_KEY_HASHES`.
+- While that var is unset, `assetlinks.json` returns `200` with `application/json` and an **empty** `sha256_cert_fingerprints`, plus a `// TODO` in the route. Pinned by a test so doc and behaviour agree. This empty body ships to production until the fingerprints are supplied — Android passkey sign-in stays broken until then, iOS is unaffected.
+- Register both routes **before** the catch-all `.use("*", enforceAuthMiddleware)` at `apps/worker/src/index.ts:60` — same placement as `/api/version` (line 45). Registered after it, they would 401 instead of returning association JSON.
 - Serve from the worker rather than a file in `apps/web/public/.well-known/`: that path is not in `run_worker_first`, so the `single-page-application` fallback would answer with HTML.
 - `enforceHostScope` already 404s these on `api.scorebrawl.com`, which is correct — the rpID domain is `scorebrawl.com`.
 
-### 3. Mobile client wiring
+### 3. Mobile wiring
 
-- `apps/mobile/package.json`: add `expo-better-auth-passkey` inline (single consumer) and declare the peers it needs explicitly: `@simplewebauthn/browser`, `@better-fetch/fetch`, `nanostores`.
-- `@better-auth/passkey` gains a second consumer (worker + mobile) → move to the root catalog and point the worker at `catalog:`.
+- `apps/mobile/app.json`: add `ios.associatedDomains: ["webcredentials:scorebrawl.com"]`. **Required for a working device login.** `apps/mobile/ios` is gitignored and regenerated (`apps/mobile/.gitignore: /ios`), so the entitlement cannot be hand-edited or committed — it has to come from config and be regenerated via `expo prebuild`. Without it `ASAuthorizationController` rejects the request on device. Android needs no manifest change; the association is server-side.
+- `apps/mobile/package.json`: add `expo-better-auth-passkey` inline (single consumer) and declare the peers it actually has at 1.6.1: `better-auth`, `@better-auth/passkey`, `@better-fetch/fetch`, `@simplewebauthn/browser`.
+- `@better-auth/passkey` gets a catalog entry — its consumers are worker and mobile, and `apps/web/src/lib/auth-client.ts:1` imports it today while declaring it nowhere. Add it to the root catalog and point worker, mobile and web at `catalog:`.
 - `apps/mobile/src/lib/auth-client.ts`: add `expoPasskeyClient()` alongside `expoClient` and `organizationClient`.
 - `apps/mobile/src/lib/auth-options.ts`: add `isPasskeyEnabled` kill-switch.
 
@@ -90,14 +99,20 @@ Mirrors web (`profile.tsx:327-430`, `edit-passkey-dialog.tsx`) per the mobile-we
 
 ## Testing
 
-- **Worker** (`apps/worker/src/test/`): both `.well-known` routes return valid JSON with `application/json`; both 404 on the API host; the passkey `origin` array includes an `android:apk-key-hash:` entry per configured fingerprint.
-- **Mobile**: typecheck only — the repo has no React Native test infrastructure.
+Worker tests live in `apps/worker/test/**/*.spec.ts` — **not** `apps/worker/src/test/`, which does not exist (AGENTS.md is stale on this). `apps/worker/test/public-api/host-scope.spec.ts` is the model: mount the route or middleware into a bare `new Hono<HonoEnv>()` and drive it with `.request(url, {}, env)`, supplying the env by hand. These route tests inject their own env, so they do not depend on the values in `wrangler.jsonc` (which the worker runtime test config sources and strips assets from).
+
+- `passkey-config.spec.ts` — `buildPasskeyConfig` composes the origin array: request-derived origin first, one `android:apk-key-hash:` entry per fingerprint, `rpIdOverride` respected when set, host-derived rpID when not.
+- `well-known.spec.ts` — both routes return valid JSON with `application/json`; `assetlinks.json` carries a single `android_app` target for `com.scorebrawl`; with the hash var unset `sha256_cert_fingerprints` is `[]`.
+- Host scope — both paths 404 on `api.scorebrawl.com` and 200 on `scorebrawl.com`. Covered by extending the existing `host-scope.spec.ts`-style request test.
+- **Mobile** — typecheck only; the repo has no React Native test infrastructure.
 
 ## Verification
 
 - `bun check && bun run test` green.
+- `bun cf-typegen` after adding `PASSKEY_ANDROID_APK_KEY_HASHES` to `vars`, so the generated `Env` type includes it. `PASSKEY_RP_ID` is read as an optional field (see §1) and intentionally does not appear in the generated type.
+- Automated assertions cover status, `content-type` and body. The **no-redirect** requirement is only meaningful against the deployed host and stays in the manual check below.
 - Manual, on a physical device: register a passkey in the web app, then sign in with that same passkey in the mobile app. This is what proves the shared-rpID design.
-- `curl -i https://scorebrawl.com/.well-known/apple-app-site-association` and `.../assetlinks.json` — status, `content-type`, body.
+- `curl -i https://scorebrawl.com/.well-known/apple-app-site-association` and `.../assetlinks.json` — status, `content-type`, body, and that neither redirects.
 
 ## Risks
 
