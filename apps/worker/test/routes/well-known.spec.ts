@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { enforceHostScope } from "../../src/public-api/host-scope";
-import { sha256Base64ToHex, wellKnownRouter } from "../../src/routes/well-known";
+import { fingerprintToHex, sha256Base64ToHex, wellKnownRouter } from "../../src/routes/well-known";
 import type { HonoEnv } from "../../src/middleware/context";
 
 // A real SHA-256 fingerprint in both encodings, to pin url-safe decoding.
@@ -14,7 +14,12 @@ const hostEnv = {
 	PROD_PUBLIC_API_URL: "https://api.scorebrawl.com",
 };
 
-const app = new Hono<HonoEnv>().use("*", enforceHostScope).route("/.well-known", wellKnownRouter);
+// Mirrors the worker: unmatched paths after the mounted router fall through to
+// the auth catch-all, so the router's own 404 has to answer first.
+const app = new Hono<HonoEnv>()
+	.use("*", enforceHostScope)
+	.route("/.well-known", wellKnownRouter)
+	.all("*", (c) => c.text("unauthorised", 401));
 
 const call = (path: string, env: Record<string, string> = {}) =>
 	app.request(`https://scorebrawl.com/.well-known/${path}`, {}, {
@@ -25,6 +30,20 @@ const call = (path: string, env: Record<string, string> = {}) =>
 describe("sha256Base64ToHex", () => {
 	it("decodes base64url into colon-separated uppercase hex", () => {
 		expect(sha256Base64ToHex(FINGERPRINT_BASE64URL)).toBe(FINGERPRINT_HEX);
+	});
+});
+
+describe("fingerprintToHex", () => {
+	it("normalises base64url, colon hex and plain hex to the same value", () => {
+		expect(fingerprintToHex(FINGERPRINT_BASE64URL)).toBe(FINGERPRINT_HEX);
+		expect(fingerprintToHex(FINGERPRINT_HEX)).toBe(FINGERPRINT_HEX);
+		expect(fingerprintToHex(FINGERPRINT_HEX.replace(/:/g, "").toLowerCase())).toBe(FINGERPRINT_HEX);
+	});
+
+	it("returns null for values that are not exactly 32 bytes", () => {
+		expect(fingerprintToHex("short")).toBeNull();
+		expect(fingerprintToHex("AAAA")).toBeNull();
+		expect(fingerprintToHex("not!base64!")).toBeNull();
 	});
 });
 
@@ -67,12 +86,44 @@ describe("assetlinks.json", () => {
 		expect(body[0].target.sha256_cert_fingerprints).toEqual([FINGERPRINT_HEX]);
 	});
 
+	it("accepts a colon-separated hex fingerprint", async () => {
+		const res = await call("assetlinks.json", {
+			PASSKEY_ANDROID_APK_KEY_HASHES: FINGERPRINT_HEX,
+		});
+		const body = (await res.json()) as Array<{ target: { sha256_cert_fingerprints: string[] } }>;
+		expect(body[0].target.sha256_cert_fingerprints).toEqual([FINGERPRINT_HEX]);
+	});
+
+	it("drops entries that are not 32-byte fingerprints, keeping valid siblings", async () => {
+		const res = await call("assetlinks.json", {
+			PASSKEY_ANDROID_APK_KEY_HASHES: `AAAA, short, not!base64!, ${FINGERPRINT_BASE64URL}, ${FINGERPRINT_HEX}`,
+		});
+		const body = (await res.json()) as Array<{ target: { sha256_cert_fingerprints: string[] } }>;
+		expect(body[0].target.sha256_cert_fingerprints).toEqual([FINGERPRINT_HEX, FINGERPRINT_HEX]);
+	});
+
 	it("is not reachable on the API host", async () => {
 		const res = await app.request(
 			"https://api.scorebrawl.com/.well-known/assetlinks.json",
 			{},
 			hostEnv as unknown as Env
 		);
+		expect(res.status).toBe(404);
+	});
+});
+
+describe("well-known content type", () => {
+	it("serves a bare application/json content type on both routes", async () => {
+		const apple = await call("apple-app-site-association");
+		const android = await call("assetlinks.json");
+		expect(apple.headers.get("content-type")).toBe("application/json");
+		expect(android.headers.get("content-type")).toBe("application/json");
+	});
+});
+
+describe("unmatched well-known paths", () => {
+	it("returns 404 instead of falling through to the auth catch-all", async () => {
+		const res = await call("does-not-exist");
 		expect(res.status).toBe(404);
 	});
 });

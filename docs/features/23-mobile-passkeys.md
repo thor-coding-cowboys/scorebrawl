@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial — Tasks 1–10 of the plan landed on `feat/mobile-passkeys` (commits `bf93f365..39a42b74`). Forced typecheck, lint, format and the full test suite pass. Outstanding:
+Partial — Tasks 1–10 of the plan landed on `feat/mobile-passkeys` (first commit `bf93f365`, last `39a42b74`). Forced typecheck, lint, format and the full test suite pass. Outstanding:
 
 - **Android does not work.** `PASSKEY_ANDROID_APK_KEY_HASHES` is empty in `apps/worker/wrangler.jsonc`, so `assetlinks.json` ships with an empty `sha256_cert_fingerprints` and Android passkey sign-in fails until a human supplies the debug + Play App Signing SHA-256 fingerprints (base64url). iOS is unaffected.
 - **No device verification.** The manual steps in the plan's Task 11 have not been run: they need a physical iOS/Android device and a deployed host.
@@ -65,7 +65,7 @@ The swap to `react-native-passkeys` later is contained to `auth-client.ts` and t
 The derivation is currently inline inside `createAuth()` (`better-auth.ts:76-91`) and the plugin instance's options are not inspectable, so it cannot be tested as written. It moves to an exported pure function — `buildPasskeyConfig({ requestOrigin, rpIdOverride, androidKeyHashes })` in a new `apps/worker/src/lib/passkey-config.ts` — returning `{ rpID, origin }`, the two values the `passkey()` plugin takes. The existing `localhost` / `127.0.0.1` → `http://localhost:5173` special case (`better-auth.ts:88-90`) moves inside the helper and stays covered by a test.
 
 - `PASSKEY_ANDROID_APK_KEY_HASHES` (new, comma-separated) goes in the shared `vars` in `wrangler.jsonc`. It only _adds_ allowed origins, so previews and local are unaffected.
-- `PASSKEY_RP_ID` is an **optional override and is deliberately left unset in `wrangler.jsonc`**. There are no `env` blocks, so a value in the shared `vars` would also apply to previews; pinning `scorebrawl.com` there would make every preview's rpID a non-suffix of its `*.workers.dev` origin and break passkey sign-in on previews. Left unset, previews and local keep deriving their own host as today, and prod keeps deriving `scorebrawl.com` (only the app host serves `/api/*`, so that value is stable). The override exists so a preview or tunnel domain can be pinned for on-device testing.
+- `PASSKEY_RP_ID` is an **optional override and is deliberately left unset in `wrangler.jsonc`**. There are no `env` blocks, so a value in the shared `vars` would also apply to previews; pinning `scorebrawl.com` there would make every preview's rpID a non-suffix of its `*.workers.dev` origin and break passkey sign-in on previews. Left unset, previews and local keep deriving their own host as today, and prod keeps deriving `scorebrawl.com` (only the app host serves `/api/*`, so that value is stable). The override exists so a preview or tunnel domain can be pinned for on-device testing — but not through `wrangler.jsonc`: `.github/scripts/preview/prepare-wrangler-config.ts` replaces `vars` wholesale, so both `PASSKEY_RP_ID` and `PASSKEY_ANDROID_APK_KEY_HASHES` are dropped on previews. A preview that needs either must supply it as a dashboard/secret-supplied var instead.
 - Because it is unset, the var produces no generated `Env` key. Read it the way `BETTER_AUTH_URL` already is (`context.ts:62`): optional field plus a cast. It must **not** be added to shared `vars` to satisfy typecheck — that is the change that breaks previews.
 - Net effect on prod: no behaviour change, no existing passkey breaks.
 
@@ -83,7 +83,7 @@ The derivation is currently inline inside `createAuth()` (`better-auth.ts:76-91`
 
 - `apps/mobile/app.json`: add `ios.associatedDomains: ["webcredentials:scorebrawl.com"]`. **Required for a working device login.** `apps/mobile/ios` is gitignored and regenerated (`apps/mobile/.gitignore: /ios`), so the entitlement cannot be hand-edited or committed — it has to come from config and be regenerated via `expo prebuild`. Without it `ASAuthorizationController` rejects the request on device. Android needs no manifest change; the association is server-side.
 - `apps/mobile/package.json`: add `expo-better-auth-passkey` inline (single consumer) and declare the peers it actually has at 1.6.1: `better-auth`, `@better-auth/passkey`, `@better-fetch/fetch`, `@simplewebauthn/browser`.
-- `@better-auth/passkey` gets a catalog entry — its consumers are worker and mobile, and `apps/web/src/lib/auth-client.ts:1` imports it today while declaring it nowhere. Add it to the root catalog and point worker, mobile and web at `catalog:`.
+- `@better-auth/passkey` gets a catalog entry — its consumers are worker and mobile, and `apps/web/src/lib/auth-client.ts:1` imports it today while declaring it nowhere. Add it to the root catalog and point worker and mobile at `catalog:`. Web is deliberately left undeclared: adding the dependency re-hosts `zod` and breaks `bun check`.
 - `apps/mobile/src/lib/auth-client.ts`: add `expoPasskeyClient()` alongside `expoClient` and `organizationClient`.
 - `apps/mobile/src/lib/auth-options.ts`: add `isPasskeyEnabled` kill-switch.
 

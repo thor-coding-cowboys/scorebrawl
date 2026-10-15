@@ -103,6 +103,7 @@ export default function ProfileScreen() {
 
 	const passkeysQuery = useQuery({
 		queryKey: ["passkeys"],
+		enabled: isPasskeyEnabled,
 		queryFn: async () => {
 			const { data, error } = await authClient.passkey.listUserPasskeys({});
 			if (error) throw new Error(error.message || "Failed to load passkeys");

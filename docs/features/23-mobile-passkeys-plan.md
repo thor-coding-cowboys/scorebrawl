@@ -337,6 +337,8 @@ Then replace the `passkey({ ... })` plugin options with:
 			}),
 ```
 
+> Superseded: the `passkey` parameter (Step 2) shadows the `passkey` plugin import, so the landed implementation aliases the import (`import { passkey as passkeyPlugin }`) and calls `passkeyPlugin({ ... })`.
+
 - [ ] **Step 4: Build the config in the middleware**
 
 In `apps/worker/src/middleware/context.ts`, add the import:
