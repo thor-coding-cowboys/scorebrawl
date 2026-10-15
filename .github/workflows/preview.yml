@@ -3,15 +3,15 @@ name: Preview Environment
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: Branch to deploy a preview for (must have an open PR)
+      pr:
+        description: Pull request number to deploy a preview for (must be open)
         required: true
-        type: string
+        type: number
   pull_request:
     types: [closed]
 
 concurrency:
-  group: preview-${{ github.event.inputs.branch || github.event.pull_request.number }}
+  group: preview-${{ github.event.inputs.pr || github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
@@ -23,36 +23,37 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
-        with:
-          ref: ${{ inputs.branch }}
-
-      - name: 🔎 Validate branch has an open PR
+      - name: 🔎 Validate PR is open
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ inputs.branch }}
+          REPO: ${{ github.repository }}
+          PR_INPUT: ${{ inputs.pr }}
         run: |
-          pr_json=$(gh pr list --head "$BRANCH" --state all --json number,state,isDraft --jq 'sort_by(.number) | last // empty')
-
-          if [ -z "$pr_json" ]; then
-            echo "::error::No pull request exists for branch '$BRANCH'. Create a PR (draft or ready for review) before creating a preview."
+          if ! pr_json=$(gh pr view "$PR_INPUT" --repo "$REPO" --json number,state,isDraft,headRefName 2>/dev/null); then
+            echo "::error::Pull request #$PR_INPUT was not found in $REPO."
             exit 1
           fi
 
           pr_number=$(echo "$pr_json" | jq -r '.number')
           pr_state=$(echo "$pr_json" | jq -r '.state')
           pr_draft=$(echo "$pr_json" | jq -r '.isDraft')
+          pr_branch=$(echo "$pr_json" | jq -r '.headRefName')
 
           if [ "$pr_state" != "OPEN" ]; then
-            echo "::error::PR #$pr_number for branch '$BRANCH' is $pr_state. A preview can only be created for an open PR (draft or ready for review)."
+            echo "::error::PR #$pr_number is $pr_state. A preview can only be created for an open PR (draft or ready for review)."
             exit 1
           fi
 
           echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
           echo "is_draft=$pr_draft" >> "$GITHUB_OUTPUT"
-          echo "Detected open PR #$pr_number (draft: $pr_draft) for branch '$BRANCH'"
+          echo "branch=$pr_branch" >> "$GITHUB_OUTPUT"
+          echo "Validated open PR #$pr_number (branch: $pr_branch, draft: $pr_draft)"
+
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.pr_number }}/head
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -156,7 +157,7 @@ jobs:
           {
             echo "## 🚀 Preview Environment Deployed"
             echo ""
-            echo "- **Branch:** \`${{ inputs.branch }}\`"
+            echo "- **Branch:** \`${{ steps.pr.outputs.branch }}\`"
             echo "- **PR:** #${{ steps.pr.outputs.pr_number }}"
             echo "- **Preview URL:** https://${{ steps.prepare-config.outputs.worker_name }}.coding-cowboys.workers.dev"
             echo "- **Database:** \`${{ steps.get-db.outputs.database_name }}\`"
