@@ -19,7 +19,6 @@
 		"fmt": "oxfmt . *.md",
 		"fmt:check": "oxfmt --check . *.md",
 		"check": "bun typecheck && bun lint:check && bun fmt:check",
-		"oxc": "oxlint --fix . && oxfmt . *.md",
 		"prepare": "bun scripts/git-hooks/install.ts",
 		"wrangler-typecheck": "turbo run wrangler-typecheck",
 		"db:generate": "bun --cwd apps/worker db:generate",
