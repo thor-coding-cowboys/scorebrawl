@@ -124,24 +124,28 @@ export async function sendSessionPush({
 }): Promise<void> {
 	if (events.length === 0) return;
 
-	const recipients = await db
-		.selectDistinct({ userId: player.userId })
-		.from(sessionPlayer)
-		.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
-		.innerJoin(player, eq(seasonPlayer.playerId, player.id))
-		.where(
-			and(
-				eq(sessionPlayer.sessionId, sessionId),
-				ne(sessionPlayer.status, "out"),
-				isNotNull(player.userId)
-			)
-		);
+	try {
+		const recipients = await db
+			.selectDistinct({ userId: player.userId })
+			.from(sessionPlayer)
+			.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					ne(sessionPlayer.status, "out"),
+					isNotNull(player.userId)
+				)
+			);
 
-	await sendPushToUserIds({
-		db,
-		userIds: recipients
-			.map((recipient) => recipient.userId)
-			.filter((userId): userId is string => userId !== null),
-		events,
-	});
+		await sendPushToUserIds({
+			db,
+			userIds: recipients
+				.map((recipient) => recipient.userId)
+				.filter((userId): userId is string => userId !== null),
+			events,
+		});
+	} catch (error) {
+		console.error("[Push] sendSessionPush failed", error);
+	}
 }
