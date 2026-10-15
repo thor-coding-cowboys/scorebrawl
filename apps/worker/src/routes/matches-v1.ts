@@ -22,7 +22,7 @@ const memberRoles = ["owner", "editor", "member"];
 const participantSchema = z
 	.object({
 		externalUserId: z.string().min(1).optional(),
-		email: z.string().email().optional(),
+		email: z.email().optional(),
 		name: z.string().min(1).optional(),
 	})
 	.refine((p) => p.externalUserId || p.email, {
@@ -32,7 +32,7 @@ const participantSchema = z
 const createMatchSchema = z.object({
 	gameId: z.string().min(1),
 	gameType: z.literal("1-v-n").default("1-v-n"),
-	playedAt: z.string().datetime().optional(),
+	playedAt: z.iso.datetime().optional(),
 	winner: participantSchema,
 	losers: z.array(participantSchema).min(1),
 });
@@ -69,6 +69,9 @@ async function resolveTarget(c: MatchContext, params: z.infer<typeof routeParams
 	const db = c.get("db");
 	const { leagueId, seasonId } = params;
 	const userId = c.get("oauthToken")?.sub;
+	if (!leagueId || !seasonId) {
+		throw new HTTPException(404, { message: "Not found" });
+	}
 	if (!userId) {
 		throw new HTTPException(401, { message: "Invalid token" });
 	}
