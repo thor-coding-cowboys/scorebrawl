@@ -73,6 +73,8 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
 bun run dev              # Start development servers
 bun run build           # Build for production
 bun oxc                 # Format and lint code with auto-fix
+bun fmt / bun fmt:check # Format / verify formatting
+bun lint / bun lint:check # Lint with auto-fix / verify lint
 bun check               # Run typecheck, lint, and format checks
 
 # Database

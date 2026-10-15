@@ -160,6 +160,22 @@ Use **agent-browser** skill for UI verification. App uses **portless** — alway
 - Well-typed code throughout
 - Oxc (oxlint + oxfmt) for lint/format
 
+## Lint & Format Scripts
+
+- `bun fmt` / `bun fmt:check` - format (write) / verify formatting (oxfmt)
+- `bun lint` / `bun lint:check` - lint + auto-fix (write) / verify (oxlint)
+- `bun oxc` - lint + format, auto-fixing (run after editing)
+- `bun check` - typecheck + `lint:check` + `fmt:check`
+
+## Git Hooks
+
+Native git `pre-commit` hook (no husky). Runs `fmt:check` and `lint:check` on **staged files only**; any failure blocks the commit.
+
+- Script: `scripts/git-hooks/pre-commit.ts`
+- Installer: `scripts/git-hooks/install.ts`, wired to the root `prepare` script (runs on `bun install`); reinstall with `bun scripts/git-hooks/install.ts`
+- Installed to `.git/hooks/pre-commit` (symlink); does not use `core.hooksPath`
+- Fix failures with `bun fmt` / `bun lint`; bypass with `git commit --no-verify`
+
 ## Deployment
 
 - Production: `bun run deploy`
