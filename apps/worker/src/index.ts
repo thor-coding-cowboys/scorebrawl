@@ -107,5 +107,3 @@ export default {
 		}
 	},
 };
-
-// cache-bust probe for ARM runner benchmark (removed after measurement)

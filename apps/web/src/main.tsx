@@ -52,5 +52,3 @@ if (rootElement && !rootElement.innerHTML) {
 		</StrictMode>
 	);
 }
-
-// cache-bust probe for ARM runner benchmark (removed after measurement)
