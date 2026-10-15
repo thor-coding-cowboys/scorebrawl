@@ -17,7 +17,7 @@ concurrency:
 jobs:
   deploy-preview:
     if: github.event_name == 'workflow_dispatch'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     timeout-minutes: 15
     permissions:
       contents: read
@@ -171,7 +171,7 @@ jobs:
 
   cleanup-preview:
     if: github.event_name == 'pull_request'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     timeout-minutes: 15
     permissions:
       contents: read

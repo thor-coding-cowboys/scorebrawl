@@ -5,7 +5,7 @@ on:
 
 jobs:
   ci:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 20
     env:
       VITE_GITHUB_CLIENT_ID: Ov23liEHPLUdBgTj5Cxu # https://github.com/organizations/thor-coding-cowboys/settings/applications/3369260
