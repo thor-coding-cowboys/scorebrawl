@@ -1,0 +1,1 @@
+ALTER TABLE `user_preference` ADD `notify_teams_formed` integer DEFAULT true NOT NULL;

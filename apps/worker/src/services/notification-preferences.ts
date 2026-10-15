@@ -9,6 +9,7 @@ export const NOTIFICATION_PREFERENCE_COLUMNS = {
 	notifyMatchRecorded: userPreference.notifyMatchRecorded,
 	notifyAchievementUnlocked: userPreference.notifyAchievementUnlocked,
 	notifyStreakReached: userPreference.notifyStreakReached,
+	notifyTeamsFormed: userPreference.notifyTeamsFormed,
 } as const;
 
 export type NotificationPreferenceKey = keyof typeof NOTIFICATION_PREFERENCE_COLUMNS;

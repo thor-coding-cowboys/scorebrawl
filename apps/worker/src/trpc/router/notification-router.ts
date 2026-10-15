@@ -78,6 +78,7 @@ export const notificationRouter = {
 				notifyMatchRecorded: z.boolean().optional(),
 				notifyAchievementUnlocked: z.boolean().optional(),
 				notifyStreakReached: z.boolean().optional(),
+				notifyTeamsFormed: z.boolean().optional(),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {

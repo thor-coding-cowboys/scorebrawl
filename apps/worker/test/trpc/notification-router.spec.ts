@@ -128,6 +128,7 @@ describe("notification router", () => {
 				notifyMatchRecorded: true,
 				notifyAchievementUnlocked: true,
 				notifyStreakReached: true,
+				notifyTeamsFormed: true,
 			});
 		});
 	});
@@ -139,6 +140,13 @@ describe("notification router", () => {
 			const settings = await client.notification.getSettings.query();
 			expect(settings.notifySessionStarted).toBe(false);
 			expect(settings.notifyMatchRecorded).toBe(true);
+		});
+
+		it("persists notifyTeamsFormed", async () => {
+			const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+			await client.notification.updateSettings.mutate({ notifyTeamsFormed: false });
+			const settings = await client.notification.getSettings.query();
+			expect(settings.notifyTeamsFormed).toBe(false);
 		});
 	});
 });
