@@ -47,7 +47,7 @@ const semanticLight = {
 const semanticDark: typeof semanticLight = {
 	background: "oklch(0.141 0.005 285.823)",
 	foreground: "oklch(0.985 0 0)",
-	card: "oklch(0.21 0.006 285.885)",
+	card: "oklch(15.527% 0.0042 285.899)",
 	cardForeground: "oklch(0.985 0 0)",
 	popover: "oklch(0.21 0.006 285.885)",
 	popoverForeground: "oklch(0.985 0 0)",
