@@ -118,7 +118,7 @@ Expected: `apps/worker/worker-configuration.d.ts` updated (`wrangler types` runs
 - [ ] **Step 3: Verify the binding is typed**
 
 Run: `grep -n "PASSKEY_ANDROID_APK_KEY_HASHES" apps/worker/worker-configuration.d.ts`
-Expected: one match. Vars from `wrangler.jsonc` are emitted as literal types, so expect `PASSKEY_ANDROID_APK_KEY_HASHES: "";` (like `VERSION: "local";`), not `string`
+Expected: two matches. Vars from `wrangler.jsonc` are emitted as literal types, so expect `PASSKEY_ANDROID_APK_KEY_HASHES: "";` (like `VERSION: "local";`), plus a second occurrence as a key in the `NodeJS.ProcessEnv` `Pick<Cloudflare.Env, …>` list — the same duplication `VERSION` already has
 
 - [ ] **Step 4: Commit**
 
@@ -296,17 +296,26 @@ Add the import at the top of `apps/worker/src/lib/better-auth.ts`:
 import { buildPasskeyConfig, type PasskeyConfig } from "./passkey-config";
 ```
 
-Add `passkey` to the `createAuth` parameter type, after `oauthResource`, as **optional**:
+Add `passkey` to the `createAuth` signature in **both** places it appears — the destructured binding list and the inline parameter type. Miss the first and Step 3's `passkey ?? …` will not compile (`Cannot find name 'passkey'`).
+
+In the destructure list, after `oauthResource,`:
+
+```ts
+	oauthResource,
+	passkey,
+	baseURL,
+}: {
+```
+
+In the inline type, after `oauthResource?: string;` (optional):
 
 ```ts
 	oauthResource?: string;
 	passkey?: PasskeyConfig;
- 	baseURL?: string;
+	baseURL?: string;
 ```
 
-(Keep the existing field order; only the new line is added.)
-
-It must be optional. `createAuth` has eight call sites and only the request middleware supplies a config. `apps/worker/src/middleware/context.ts:91` (the better-auth CLI export) and six test helpers — `apps/worker/test/setup/auth-context-util.ts:72,138,167`, `apps/worker/test/setup/oauth-util.ts:55`, `apps/worker/test/lib/sign-in.spec.ts:10`, `apps/worker/test/trpc/player-router.spec.ts:173` — call it without one, and the plugin options object is evaluated eagerly when `betterAuth()` is constructed, so a required field would throw `Cannot read properties of undefined (reading 'rpID')` in those tests. (`apps/worker/test/` is outside the worker tsconfig `include`, so typecheck would not catch it — only the test run would.)
+It must be optional. `createAuth` has eight call sites and only the request middleware supplies a config. `apps/worker/src/middleware/context.ts:91` (the better-auth CLI export) and six test helpers — `apps/worker/test/setup/auth-context-util.ts:72,138,167`, `apps/worker/test/setup/oauth-util.ts:55`, `apps/worker/test/lib/sign-in.spec.ts:10`, `apps/worker/test/trpc/player-router.spec.ts:173` — call it without one, and the plugin options object is evaluated eagerly when `betterAuth()` is constructed, so a required field would throw `Cannot read properties of undefined (reading 'rpID')` in those tests. (`apps/worker/test/` is outside the worker tsconfig `include`, so typecheck would not catch that — only the test run would.)
 
 - [ ] **Step 3: Default it and pass it to the plugin**
 
@@ -782,7 +791,7 @@ function passkeyErrorMessage(message?: string) {
 }
 ```
 
-Read `error.message` only. The declared return type is `ReturnType<typeof passkeyClient>` (`expo-better-auth-passkey/dist/plugin.d.ts`), whose error union contains members both with and without `code`, so `error.code` is a TS2339 error. Pattern-matching the message is also what the web implementation does (`sign-in-form.tsx:162-184`).
+Read `error.message` only. The declared return type is `ReturnType<typeof passkeyClient>` (`expo-better-auth-passkey/build/index.d.ts` → `build/plugin.d.ts`), whose error union contains members both with and without `code`, so `error.code` is a TS2339 error. Pattern-matching the message is also what the web implementation does (`sign-in-form.tsx:162-184`).
 
 - [ ] **Step 3: Update the gate and render the button**
 
@@ -793,43 +802,56 @@ const hasPasskeyOption = isPasskeyEnabled;
 const hasAlternateOptions = hasPasskeyOption || isGithubEnabled || isGoogleEnabled;
 ```
 
-Then rename the `{hasSocialOptions && (` block's condition to `{hasAlternateOptions && (`, and inside it, render the passkey button **before** the GitHub button:
+Then replace the whole `{hasSocialOptions && ( ... )}` block with the following. Note two changes beyond adding the passkey button: the outer condition becomes `hasAlternateOptions`, and the two social buttons gain their own guards. Those guards are required — today they render unconditionally inside a block whose condition is `isGithubEnabled || isGoogleEnabled`, so widening the condition to include passkeys (enabled by default) would show non-functional GitHub and Google buttons in environments where those env vars are unset.
 
 ```tsx
 {
-	hasPasskeyOption && (
-		<Button
-			variant="outline"
-			fullWidth
-			icon={{ ios: "key.fill", android: "key", web: "key" }}
-			loading={isPasskeyLoading}
-			disabled={isSubmitting}
-			onPress={handlePasskeySignIn}
-		>
-			{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
-		</Button>
+	hasAlternateOptions && (
+		<>
+			{isEmailPasswordEnabled && <Separator label="Or continue with" />}
+			{!isEmailPasswordEnabled && apiError ? (
+				<ThemedText style={[styles.error, { color: theme.destructive }]}>{apiError}</ThemedText>
+			) : null}
+			{hasPasskeyOption && (
+				<Button
+					variant="outline"
+					fullWidth
+					icon={{ ios: "key.fill", android: "key", web: "key" }}
+					loading={isPasskeyLoading}
+					disabled={isSubmitting}
+					onPress={handlePasskeySignIn}
+				>
+					{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
+				</Button>
+			)}
+			{isGithubEnabled && (
+				<Button
+					variant="outline"
+					fullWidth
+					loading={isGithubLoading}
+					disabled={isSubmitting}
+					onPress={() => handleSocialSignIn("github")}
+				>
+					{isGithubLoading ? "Signing in..." : "Sign in with GitHub"}
+				</Button>
+			)}
+			{isGoogleEnabled && (
+				<Button
+					variant="outline"
+					fullWidth
+					loading={isGoogleLoading}
+					disabled={isSubmitting}
+					onPress={() => handleSocialSignIn("google")}
+				>
+					{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
+				</Button>
+			)}
+		</>
 	);
 }
 ```
 
-The trailing `;` above belongs to the surrounding markdown, not the code — inside a JSX expression container the value must be `{hasPasskeyOption && (<Button … />)}` with no semicolon. Write it exactly as:
-
-```tsx
-{
-	hasPasskeyOption && (
-		<Button
-			variant="outline"
-			fullWidth
-			icon={{ ios: "key.fill", android: "key", web: "key" }}
-			loading={isPasskeyLoading}
-			disabled={isSubmitting}
-			onPress={handlePasskeySignIn}
-		>
-			{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
-		</Button>
-	);
-}
-```
+The `theme` and `styles.error` references already exist in this file (the email/password branch uses them).
 
 - [ ] **Step 4: Typecheck**
 
@@ -1027,7 +1049,7 @@ const passkeys = passkeysQuery.data ?? [];
 Add the confirm helper next to `revokeOther`:
 
 ```ts
-const confirmDeletePasskey = (passkey: { id: string; name: string | null }) => {
+const confirmDeletePasskey = (passkey: { id: string; name?: string | null }) => {
 	Alert.alert(
 		"Delete passkey?",
 		`"${passkey.name || "Unnamed passkey"}" will be removed. This cannot be undone.`,
