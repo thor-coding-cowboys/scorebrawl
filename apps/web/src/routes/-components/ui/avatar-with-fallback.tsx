@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  */
 function getAssetUrl(assetKey: string | null | undefined): string | undefined {
 	if (!assetKey || assetKey === "null") return undefined;
-	if (assetKey.startsWith("http")) return assetKey;
+	if (assetKey.startsWith("http") || assetKey.startsWith("/")) return assetKey;
 	return `/api/user-assets/${assetKey}`;
 }
 
