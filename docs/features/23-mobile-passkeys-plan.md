@@ -35,7 +35,7 @@ Three packages end up importing it: worker (server), web (client, currently impo
 
 - Modify: `package.json`
 - Modify: `apps/worker/package.json:32`
-- Modify: `apps/web/package.json:31`
+- Modify: `apps/web/package.json:15`
 
 - [ ] **Step 1: Add the catalog entry**
 
@@ -84,7 +84,7 @@ git commit -m "chore(deps): move @better-auth/passkey to the workspace catalog"
 **Files:**
 
 - Modify: `apps/worker/wrangler.jsonc:66-74`
-- Modify: `worker-configuration.d.ts` (generated)
+- Modify: `apps/worker/worker-configuration.d.ts` (generated)
 
 - [ ] **Step 1: Add the var**
 
@@ -113,17 +113,17 @@ Do **not** add `PASSKEY_RP_ID` here. There are no `env` blocks, so a shared valu
 - [ ] **Step 2: Regenerate types**
 
 Run: `bun cf-typegen`
-Expected: `worker-configuration.d.ts` updated
+Expected: `apps/worker/worker-configuration.d.ts` updated (`wrangler types` runs with cwd `apps/worker`; the identical-looking root `worker-configuration.d.ts` is stale and unreferenced by either tsconfig)
 
 - [ ] **Step 3: Verify the binding is typed**
 
-Run: `grep -n "PASSKEY_ANDROID_APK_KEY_HASHES" worker-configuration.d.ts`
-Expected: one match, typed as `string`
+Run: `grep -n "PASSKEY_ANDROID_APK_KEY_HASHES" apps/worker/worker-configuration.d.ts`
+Expected: one match. Vars from `wrangler.jsonc` are emitted as literal types, so expect `PASSKEY_ANDROID_APK_KEY_HASHES: "";` (like `VERSION: "local";`), not `string`
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/worker/wrangler.jsonc worker-configuration.d.ts
+git add apps/worker/wrangler.jsonc apps/worker/worker-configuration.d.ts
 git commit -m "feat(worker): add PASSKEY_ANDROID_APK_KEY_HASHES var"
 ```
 
@@ -293,28 +293,38 @@ In `apps/worker/src/lib/better-auth.ts`, delete the `getRpID` function and the `
 Add the import at the top of `apps/worker/src/lib/better-auth.ts`:
 
 ```ts
-import type { PasskeyConfig } from "./passkey-config";
+import { buildPasskeyConfig, type PasskeyConfig } from "./passkey-config";
 ```
 
-Add `passkey` to the destructured `createAuth` parameters, after `oauthResource`:
+Add `passkey` to the `createAuth` parameter type, after `oauthResource`, as **optional**:
 
 ```ts
 	oauthResource?: string;
-	passkey: PasskeyConfig;
+	passkey?: PasskeyConfig;
  	baseURL?: string;
 ```
 
 (Keep the existing field order; only the new line is added.)
 
-- [ ] **Step 3: Pass it to the plugin**
+It must be optional. `createAuth` has eight call sites and only the request middleware supplies a config. `apps/worker/src/middleware/context.ts:91` (the better-auth CLI export) and six test helpers — `apps/worker/test/setup/auth-context-util.ts:72,138,167`, `apps/worker/test/setup/oauth-util.ts:55`, `apps/worker/test/lib/sign-in.spec.ts:10`, `apps/worker/test/trpc/player-router.spec.ts:173` — call it without one, and the plugin options object is evaluated eagerly when `betterAuth()` is constructed, so a required field would throw `Cannot read properties of undefined (reading 'rpID')` in those tests. (`apps/worker/test/` is outside the worker tsconfig `include`, so typecheck would not catch it — only the test run would.)
 
-In `apps/worker/src/lib/better-auth.ts`, replace the `passkey({ ... })` plugin options with:
+- [ ] **Step 3: Default it and pass it to the plugin**
+
+At the top of the `createAuth` body, before `return betterAuth({`, add:
+
+```ts
+// Only the request middleware supplies a config; tests and the better-auth
+// CLI export fall back to local dev values, matching previous behaviour.
+const passkeyConfig = passkey ?? buildPasskeyConfig({});
+```
+
+Then replace the `passkey({ ... })` plugin options with:
 
 ```ts
 			passkey({
-				rpID: passkey.rpID,
+				rpID: passkeyConfig.rpID,
 				rpName: "Scorebrawl",
-				origin: passkey.origin,
+				origin: passkeyConfig.origin,
 			}),
 ```
 
@@ -738,7 +748,7 @@ const handlePasskeySignIn = async () => {
 	try {
 		const { data, error } = await authClient.signIn.passkey();
 		if (error) {
-			setApiError(passkeyErrorMessage(error.code, error.message));
+			setApiError(passkeyErrorMessage(error.message));
 			return;
 		}
 		if (!data) {
@@ -760,16 +770,19 @@ const handlePasskeySignIn = async () => {
 And add the message mapper above the component (after the imports):
 
 ```ts
-function passkeyErrorMessage(code?: string, message?: string) {
-	if (code === "ERROR_CEREMONY_ABORTED" || code === "ERROR_AUTHENTICATOR_GENERAL_ERROR") {
+function passkeyErrorMessage(message?: string) {
+	const lower = (message ?? "").toLowerCase();
+	if (lower.includes("cancel") || lower.includes("abort")) {
 		return "Passkey sign-in was cancelled. If you have no passkey for this account, sign in another way, then add one from your profile.";
 	}
-	if (code === "AUTH_CANCELLED") {
-		return "Passkey sign-in was cancelled. Please try again.";
+	if (lower.includes("not allowed")) {
+		return "Passkey sign-in was not allowed. Please try again or use another sign-in method.";
 	}
 	return message || "Failed to sign in with passkey. Please try again.";
 }
 ```
+
+Read `error.message` only. The declared return type is `ReturnType<typeof passkeyClient>` (`expo-better-auth-passkey/dist/plugin.d.ts`), whose error union contains members both with and without `code`, so `error.code` is a TS2339 error. Pattern-matching the message is also what the web implementation does (`sign-in-form.tsx:162-184`).
 
 - [ ] **Step 3: Update the gate and render the button**
 
@@ -781,6 +794,25 @@ const hasAlternateOptions = hasPasskeyOption || isGithubEnabled || isGoogleEnabl
 ```
 
 Then rename the `{hasSocialOptions && (` block's condition to `{hasAlternateOptions && (`, and inside it, render the passkey button **before** the GitHub button:
+
+```tsx
+{
+	hasPasskeyOption && (
+		<Button
+			variant="outline"
+			fullWidth
+			icon={{ ios: "key.fill", android: "key", web: "key" }}
+			loading={isPasskeyLoading}
+			disabled={isSubmitting}
+			onPress={handlePasskeySignIn}
+		>
+			{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
+		</Button>
+	);
+}
+```
+
+The trailing `;` above belongs to the surrounding markdown, not the code — inside a JSX expression container the value must be `{hasPasskeyOption && (<Button … />)}` with no semicolon. Write it exactly as:
 
 ```tsx
 {
@@ -1026,7 +1058,7 @@ const { refreshing, onRefresh } = usePullToRefresh(() =>
 
 - [ ] **Step 3: Render the section**
 
-Insert between the Sessions section's closing `</View>` and the following `<Divider />`:
+Insert immediately after the Sessions section's closing `</View>`. The block begins with its own `<Divider />`, so the Passkeys section ends up between two dividers — the existing `<Divider />` that already followed Sessions now sits below Passkeys:
 
 ```tsx
 					<Divider />
