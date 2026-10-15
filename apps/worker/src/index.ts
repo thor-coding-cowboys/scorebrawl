@@ -17,6 +17,7 @@ import { v1Router } from "./routes/v1";
 import { sessionsV1Router } from "./routes/sessions-v1";
 import { sseRouter, broadcastSeasonEvent } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
+import { wellKnownRouter } from "./routes/well-known";
 import {
 	calculateAchievements,
 	buildAchievementUnlockEvents,
@@ -46,6 +47,7 @@ const app = new Hono<HonoEnv>()
 		const version = c.env.VERSION || "local";
 		return c.json({ version });
 	})
+	.route("/.well-known", wellKnownRouter)
 	.route("/api/auth", authRouter)
 	.route("/api/sse", sseRouter)
 	.route("/api/v1/leagues/:leagueId/seasons/:seasonId/matches", matchesV1Router)
