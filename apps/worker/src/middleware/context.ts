@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { getDb } from "../db";
 import * as schema from "../db/schema";
 import { createAuth } from "../lib/better-auth";
+import { buildPasskeyConfig } from "../lib/passkey-config";
 import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
@@ -54,10 +55,19 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 	const db = getDb(DB);
 
-	// Get origin from request for passkey configuration
+	// Native clients send no Origin header, so this falls back to the request
+	// host — in production `https://scorebrawl.com`, which keeps the passkey
+	// rpID identical to the web app's.
 	const origin =
 		c.req.header("origin") ||
 		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
+
+	// Unset in wrangler.jsonc by design (see docs/features/23-mobile-passkeys.md).
+	const passkey = buildPasskeyConfig({
+		requestOrigin: origin,
+		rpIdOverride: (c.env as { PASSKEY_RP_ID?: string }).PASSKEY_RP_ID,
+		androidKeyHashes: c.env.PASSKEY_ANDROID_APK_KEY_HASHES,
+	});
 
 	const betterAuthUrl = (c.env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL;
 
@@ -69,6 +79,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		googleClientId,
 		googleClientSecret,
 		origin,
+		passkey,
 		resendApiKey,
 		adminUserIds,
 		oauthResource,
