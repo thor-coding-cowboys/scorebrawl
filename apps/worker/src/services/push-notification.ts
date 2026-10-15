@@ -17,6 +17,7 @@ import {
 
 const EVENT_PREFERENCE: Record<NotificationEventType, NotificationPreferenceKey> = {
 	"session:start": "notifySessionStarted",
+	"session:teams": "notifyTeamsFormed",
 	"match:recorded": "notifyMatchRecorded",
 	"achievement:unlock": "notifyAchievementUnlocked",
 	streak: "notifyStreakReached",

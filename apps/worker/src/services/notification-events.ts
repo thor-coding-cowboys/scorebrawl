@@ -21,6 +21,18 @@ export function sessionStarted(
 	};
 }
 
+export function teamsFormed(
+	payload: Payload<"session:teams">,
+	context: { home: string[]; away: string[]; actorId: string }
+): PushEvent {
+	return {
+		title: "New teams",
+		body: `${context.home.join(" & ")} vs ${context.away.join(" & ")}`,
+		excludeUserId: context.actorId,
+		payload,
+	};
+}
+
 export function matchRecorded(
 	payload: Payload<"match:recorded">,
 	context: { actorId: string; actorName: string; summary: string | null }
