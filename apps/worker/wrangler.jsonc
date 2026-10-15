@@ -60,6 +60,13 @@
 			"bucket_name": "scorebrawl-user-assets"
 		}
 	],
+	"ratelimits": [
+		{
+			"name": "PUBLIC_API_RATE_LIMITER",
+			"namespace_id": "1002",
+			"simple": { "limit": 600, "period": 60 }
+		}
+	],
 	"observability": {
 		"enabled": true
 	},

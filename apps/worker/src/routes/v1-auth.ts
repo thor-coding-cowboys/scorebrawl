@@ -1,25 +1,12 @@
 import { createMiddleware } from "hono/factory";
 import { requestToResourceInput, verifyAccessTokenRequest } from "better-auth/oauth2";
-import type { JSONWebKeySet } from "jose";
 import type { HonoEnv } from "../middleware/context";
-import { jwks as jwksTable } from "../db/schema/auth-schema";
+import { createInProcessJwks } from "../lib/jwks";
 
 export type OAuthTokenPayload = {
 	sub?: string | undefined;
 	scope?: string | undefined;
 };
-
-export async function getJwksSet(db: HonoEnv["Variables"]["db"]): Promise<JSONWebKeySet> {
-	const keys = await db
-		.select({ id: jwksTable.id, publicKey: jwksTable.publicKey })
-		.from(jwksTable);
-	return {
-		keys: keys.map((k) => ({
-			kid: k.id,
-			...JSON.parse(k.publicKey),
-		})),
-	};
-}
 
 export function requireScope(requiredScope: string) {
 	return createMiddleware<HonoEnv>(async (c, next) => {
@@ -37,7 +24,7 @@ export function requireScope(requiredScope: string) {
 					audience: c.env.OAUTH_RESOURCE,
 				},
 				requiredScopes: [requiredScope],
-				jwksUrl: (() => getJwksSet(c.get("db"))) as unknown as string,
+				jwksUrl: createInProcessJwks(c.get("db")) as unknown as string,
 			})) as OAuthTokenPayload;
 			c.set("oauthToken", payload);
 			await next();
