@@ -802,56 +802,42 @@ const hasPasskeyOption = isPasskeyEnabled;
 const hasAlternateOptions = hasPasskeyOption || isGithubEnabled || isGoogleEnabled;
 ```
 
-Then replace the whole `{hasSocialOptions && ( ... )}` block with the following. Note two changes beyond adding the passkey button: the outer condition becomes `hasAlternateOptions`, and the two social buttons gain their own guards. Those guards are required — today they render unconditionally inside a block whose condition is `isGithubEnabled || isGoogleEnabled`, so widening the condition to include passkeys (enabled by default) would show non-functional GitHub and Google buttons in environments where those env vars are unset.
+Then rename the `{hasSocialOptions && (` condition to `{hasAlternateOptions && (` and make two changes inside that fragment.
+
+First, insert the passkey button before the GitHub button:
 
 ```tsx
-{
-	hasAlternateOptions && (
-		<>
-			{isEmailPasswordEnabled && <Separator label="Or continue with" />}
-			{!isEmailPasswordEnabled && apiError ? (
-				<ThemedText style={[styles.error, { color: theme.destructive }]}>{apiError}</ThemedText>
-			) : null}
-			{hasPasskeyOption && (
-				<Button
-					variant="outline"
-					fullWidth
-					icon={{ ios: "key.fill", android: "key", web: "key" }}
-					loading={isPasskeyLoading}
-					disabled={isSubmitting}
-					onPress={handlePasskeySignIn}
-				>
-					{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
-				</Button>
-			)}
-			{isGithubEnabled && (
-				<Button
-					variant="outline"
-					fullWidth
-					loading={isGithubLoading}
-					disabled={isSubmitting}
-					onPress={() => handleSocialSignIn("github")}
-				>
-					{isGithubLoading ? "Signing in..." : "Sign in with GitHub"}
-				</Button>
-			)}
-			{isGoogleEnabled && (
-				<Button
-					variant="outline"
-					fullWidth
-					loading={isGoogleLoading}
-					disabled={isSubmitting}
-					onPress={() => handleSocialSignIn("google")}
-				>
-					{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
-				</Button>
-			)}
-		</>
-	);
-}
+<Button
+	variant="outline"
+	fullWidth
+	icon={{ ios: "key.fill", android: "key", web: "key" }}
+	loading={isPasskeyLoading}
+	disabled={isSubmitting}
+	onPress={handlePasskeySignIn}
+>
+	{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
+</Button>
 ```
 
-The `theme` and `styles.error` references already exist in this file (the email/password branch uses them).
+Second, guard the two existing social buttons. Today they render unconditionally inside a block gated on `isGithubEnabled || isGoogleEnabled`; widening that gate to include passkeys (on by default) would show non-functional GitHub and Google buttons wherever those env vars are unset. So the GitHub button's condition becomes:
+
+```tsx
+isGithubEnabled && (
+	<Button
+		variant="outline"
+		fullWidth
+		loading={isGithubLoading}
+		disabled={isSubmitting}
+		onPress={() => handleSocialSignIn("github")}
+	>
+		{isGithubLoading ? "Signing in..." : "Sign in with GitHub"}
+	</Button>
+);
+```
+
+and the Google button's condition becomes the same shape with `isGoogleEnabled`, `isGoogleLoading` and `handleSocialSignIn("google")`.
+
+Each condition lives inside a JSX expression container, so it must be written as `{isGithubEnabled && ( … )}` with no trailing semicolon. The `theme` and `styles.error` references used above already exist in this file (the email/password branch uses them).
 
 - [ ] **Step 4: Typecheck**
 
