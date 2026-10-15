@@ -12,7 +12,30 @@ import { Separator } from "@/components/ui/separator";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
-import { isEmailPasswordEnabled, isGithubEnabled, isGoogleEnabled } from "@/lib/auth-options";
+import {
+	isEmailPasswordEnabled,
+	isGithubEnabled,
+	isGoogleEnabled,
+	isPasskeyEnabled,
+} from "@/lib/auth-options";
+
+function passkeyErrorMessage(message?: string) {
+	const lower = (message ?? "").toLowerCase();
+	if (lower.includes("cancel") || lower.includes("abort")) {
+		return "Passkey sign-in was cancelled. If you have no passkey for this account, sign in another way, then add one from your profile.";
+	}
+	if (lower.includes("not allowed")) {
+		return "Passkey sign-in was not allowed. Please try again or use another sign-in method.";
+	}
+	if (
+		lower.includes("not found") ||
+		lower.includes("no passkey") ||
+		lower.includes("no credential")
+	) {
+		return "No passkey found for this account. Sign in another way, then add one from your profile.";
+	}
+	return message || "Failed to sign in with passkey. Please try again.";
+}
 
 export default function SignInScreen() {
 	const theme = useTheme();
@@ -22,6 +45,7 @@ export default function SignInScreen() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isGithubLoading, setIsGithubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
 	const onSubmit = async () => {
 		setApiError("");
@@ -68,7 +92,32 @@ export default function SignInScreen() {
 		}
 	};
 
-	const hasSocialOptions = isGithubEnabled || isGoogleEnabled;
+	const handlePasskeySignIn = async () => {
+		setApiError("");
+		setIsPasskeyLoading(true);
+		try {
+			const { data, error } = await authClient.signIn.passkey();
+			if (error) {
+				setApiError(passkeyErrorMessage(error.message));
+				return;
+			}
+			if (!data) {
+				setApiError("Failed to sign in with passkey. Please try again.");
+				return;
+			}
+			await authClient.getSession();
+			router.replace("/");
+		} catch (err) {
+			setApiError(
+				err instanceof Error ? err.message : "Failed to sign in with passkey. Please try again."
+			);
+		} finally {
+			setIsPasskeyLoading(false);
+		}
+	};
+
+	const hasPasskeyOption = isPasskeyEnabled;
+	const hasAlternateOptions = hasPasskeyOption || isGithubEnabled || isGoogleEnabled;
 
 	return (
 		<AuthScreen>
@@ -121,7 +170,7 @@ export default function SignInScreen() {
 						</>
 					)}
 
-					{hasSocialOptions && (
+					{hasAlternateOptions && (
 						<>
 							{isEmailPasswordEnabled && <Separator label="Or continue with" />}
 							{!isEmailPasswordEnabled && apiError ? (
@@ -129,24 +178,40 @@ export default function SignInScreen() {
 									{apiError}
 								</ThemedText>
 							) : null}
-							<Button
-								variant="outline"
-								fullWidth
-								loading={isGithubLoading}
-								disabled={isSubmitting}
-								onPress={() => handleSocialSignIn("github")}
-							>
-								{isGithubLoading ? "Signing in..." : "Sign in with GitHub"}
-							</Button>
-							<Button
-								variant="outline"
-								fullWidth
-								loading={isGoogleLoading}
-								disabled={isSubmitting}
-								onPress={() => handleSocialSignIn("google")}
-							>
-								{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
-							</Button>
+							{hasPasskeyOption && (
+								<Button
+									variant="outline"
+									fullWidth
+									icon={{ ios: "key.fill", android: "key", web: "key" }}
+									loading={isPasskeyLoading}
+									disabled={isSubmitting}
+									onPress={handlePasskeySignIn}
+								>
+									{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
+								</Button>
+							)}
+							{isGithubEnabled && (
+								<Button
+									variant="outline"
+									fullWidth
+									loading={isGithubLoading}
+									disabled={isSubmitting}
+									onPress={() => handleSocialSignIn("github")}
+								>
+									{isGithubLoading ? "Signing in..." : "Sign in with GitHub"}
+								</Button>
+							)}
+							{isGoogleEnabled && (
+								<Button
+									variant="outline"
+									fullWidth
+									loading={isGoogleLoading}
+									disabled={isSubmitting}
+									onPress={() => handleSocialSignIn("google")}
+								>
+									{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
+								</Button>
+							)}
 						</>
 					)}
 
