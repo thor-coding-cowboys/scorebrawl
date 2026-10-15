@@ -24,7 +24,7 @@ Status reflects merged PRs as of 2026-09-10. **Done** = shipped in product; **Pa
 | 19  | [BullsAI integration](19-bullsai-integration.md)                   | Not started — push BullsAI match results into ScoreBrawl; start with 1-v-n games                                                           |                                                                      |
 | 20  | [MCP server OAuth](20-mcp-oauth-provider.md)                       | Not started — replace MCP session auth with better-auth `mcp()`; builds on 19; supports DCR                                                |                                                                      |
 | 22  | [Shared colour + glow tokens](22-shared-theme-tokens.md)           | In progress — one authored `core/theme` token tree for web + mobile ([#705](https://github.com/thor-coding-cowboys/scorebrawl/issues/705)) | [#705](https://github.com/thor-coding-cowboys/scorebrawl/issues/705) |
-| 23  | [Mobile passkeys](23-mobile-passkeys.md)                           | Not started — web has passkey sign-in + management; mobile has neither                                                                     |                                                                      |
+| 23  | [Mobile passkeys](23-mobile-passkeys.md)                           | Partial — server + app wiring landed; blocked on Android fingerprints and device verification                                              |                                                                      |
 
 ## Done
 
