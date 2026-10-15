@@ -12,10 +12,11 @@ function parseNotificationPayload(value: unknown): NotificationPayload | null {
 	const seasonSlug = typeof record.seasonSlug === "string" ? record.seasonSlug : null;
 
 	switch (record.type) {
-		case "session:start": {
+		case "session:start":
+		case "session:teams": {
 			const sessionId = typeof record.sessionId === "string" ? record.sessionId : null;
 			if (!leagueSlug || !seasonSlug || !sessionId) return null;
-			return { type: "session:start", leagueSlug, seasonSlug, sessionId };
+			return { type: record.type, leagueSlug, seasonSlug, sessionId };
 		}
 		case "match:recorded": {
 			const matchId = typeof record.matchId === "string" ? record.matchId : null;
@@ -52,6 +53,7 @@ export async function routeNotificationResponse(
 
 		switch (payload.type) {
 			case "session:start":
+			case "session:teams":
 				router.push({
 					pathname: "/seasons/[seasonSlug]/session/[sessionId]",
 					params: { seasonSlug: payload.seasonSlug, sessionId: payload.sessionId },
