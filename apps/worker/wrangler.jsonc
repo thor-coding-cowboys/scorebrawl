@@ -70,7 +70,11 @@
 		"SEED_ALLOWED": "true",
 		"OAUTH_RESOURCE": "https://scorebrawl.com/api/v1",
 		"PROD_URL": "https://scorebrawl.com",
-		"PROD_PUBLIC_API_URL": "https://api.scorebrawl.com"
+		"PROD_PUBLIC_API_URL": "https://api.scorebrawl.com",
+		// Comma-separated base64url SHA-256 signing-certificate fingerprints
+		// (debug + Play App Signing). Empty until supplied — Android passkey
+		// sign-in fails until then. iOS is unaffected.
+		"PASSKEY_ANDROID_APK_KEY_HASHES": ""
 	},
 	"routes": [
 		{
