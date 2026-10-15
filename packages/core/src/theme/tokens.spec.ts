@@ -54,6 +54,13 @@ describe("themes", () => {
 		expect(themes.dark.destructive).toBe("oklch(0.704 0.191 22.216)");
 	});
 
+	it("uses the glow blue for the primary family", () => {
+		expect(themes.light.primary).toBe("oklch(0.546 0.245 262.881)");
+		expect(themes.dark.primary).toBe("oklch(0.623 0.214 259.815)");
+		expect(themes.light.sidebarPrimary).toBe(themes.light.primary);
+		expect(themes.dark.sidebarPrimary).toBe(themes.dark.primary);
+	});
+
 	it("exposes twelve avatar tones", () => {
 		expect(themes.light.avatar).toHaveLength(12);
 	});
