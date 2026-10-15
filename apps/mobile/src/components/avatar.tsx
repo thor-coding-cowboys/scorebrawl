@@ -6,6 +6,8 @@ import { View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 
+const AVATAR_TONES = avatarTones("light");
+
 function getInitials(name: string) {
 	const parts = name.split(/\s+/).filter(Boolean);
 	const letters = parts.map((p) => p[0]?.toUpperCase()).filter(Boolean);
@@ -57,7 +59,7 @@ export function Avatar({
 	}
 
 	const index = selectAvatarIndex(name);
-	const tone = index < 0 ? undefined : avatarTones("light")[index];
+	const tone = index < 0 ? undefined : AVATAR_TONES[index];
 	const background = tone?.background ?? theme.divider;
 	const text = tone?.text ?? theme.mutedForeground;
 	const border = tone?.border ?? theme.border;
