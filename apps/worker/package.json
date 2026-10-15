@@ -26,24 +26,27 @@
 		"db:studio": "DATABASE_URL=file:$(ls ../../.db/local/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1) bun run --bun drizzle-kit studio"
 	},
 	"dependencies": {
-		"@better-auth/api-key": "1.7.3",
+		"@better-auth/api-key": "1.7.10",
 		"@better-auth/expo": "catalog:",
-		"@better-auth/oauth-provider": "1.7.3",
-		"@better-auth/passkey": "1.7.3",
+		"@better-auth/mcp": "^1.7.10",
+		"@better-auth/oauth-provider": "1.7.10",
+		"@better-auth/passkey": "1.7.10",
 		"@coding-cowboys/scorebrawl-core": "workspace:*",
 		"@coding-cowboys/scorebrawl-util": "workspace:*",
 		"@hono/trpc-server": "^0.4.1",
-		"@hono/zod-validator": "^0.4.3",
+		"@hono/zod-validator": "^0.9.1",
 		"@ihs7/ts-elo": "catalog:",
+		"@modelcontextprotocol/server": "^2.3.1",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
 		"cloudflare": "^5.2.0",
 		"date-fns": "catalog:",
 		"drizzle-orm": "1.0.0-rc.5-169397b",
-		"hono": "4.10.7",
+		"hono": "^4.12.34",
 		"nanoid": "^5.1.6",
 		"resend": "^6.9.1",
-		"superjson": "catalog:"
+		"superjson": "catalog:",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.11.1",
