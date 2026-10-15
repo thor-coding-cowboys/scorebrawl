@@ -14,29 +14,27 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useSession } from "@/hooks/useSession";
 
 const GetStartedButton = ({
-	variant = "default",
 	size = "default",
 	className,
 }: {
-	variant?: "default" | "secondary" | "outline";
 	size?: "default" | "lg";
 	className?: string;
 }) => {
 	const navigate = useNavigate();
 	return (
-		<Button
-			variant={variant}
+		<GlowButton
+			glowColor={glowColors.blue}
 			size={size}
 			className={className}
 			onClick={() => navigate({ to: "/auth/sign-in" })}
 		>
 			Get Started
-		</Button>
+		</GlowButton>
 	);
 };
 
@@ -69,13 +67,14 @@ const Landing = () => {
 							<ThemeSwitcher />
 							{!isPending && !session && <GetStartedButton />}
 							{!isPending && session && (
-								<Button
-									onClick={async () => {
+								<GlowButton
+									glowColor={glowColors.blue}
+									onClick={() => {
 										navigate({ to: "/" });
 									}}
 								>
 									Dashboard
-								</Button>
+								</GlowButton>
 							)}
 						</div>
 					</div>
