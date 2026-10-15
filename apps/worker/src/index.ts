@@ -12,7 +12,6 @@ import { authRouter } from "./routes/auth-router";
 import { leaguesV1Router } from "./routes/leagues-v1";
 import { enforceHostScope } from "./public-api/host-scope";
 import { generatePublicApiSpec } from "./public-api/openapi";
-import { mcpRouter } from "./routes/mcp-router";
 import { matchesV1Router } from "./routes/matches-v1";
 import { v1Router } from "./routes/v1";
 import { sessionsV1Router } from "./routes/sessions-v1";
@@ -61,7 +60,6 @@ const app = new Hono<HonoEnv>()
 	.route("/api/v1/leagues", leaguesV1Router)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
-	.route("/api/mcp", mcpRouter)
 	.use("/api/trpc/*", trpcServer)
 	.use("*", async (c, next) => {
 		return enforceAuthMiddleware(c, next);
