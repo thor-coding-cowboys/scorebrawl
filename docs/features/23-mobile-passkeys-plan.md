@@ -1091,96 +1091,89 @@ Add the import next to the other `@/lib` imports:
 import { isPasskeyEnabled } from "@/lib/auth-options";
 ```
 
-Insert immediately after the Sessions section's closing `</View>`, wrapped in the kill switch so `EXPO_PUBLIC_DISABLE_PASSKEY=true` hides this section as well as the sign-in button. The block begins with its own `<Divider />`, so the Passkeys section ends up between two dividers — the existing `<Divider />` that already followed Sessions now sits below Passkeys:
+Insert immediately after the Sessions section's closing `</View>`, wrapped in the kill switch so `EXPO_PUBLIC_DISABLE_PASSKEY=true` hides this section as well as the sign-in button: the guard is `{isPasskeyEnabled && ( … )}`, and the fragment inside it is exactly:
 
 ```tsx
-{
-	isPasskeyEnabled && (
-		<>
-			<Divider />
+<>
+	<Divider />
 
-			<View>
-				<View style={styles.sectionHeader}>
-					<SectionLabel>Passkeys</SectionLabel>
-					<Pressable
-						accessibilityRole="button"
-						hitSlop={8}
-						disabled={addPasskey.isPending}
-						onPress={() => addPasskey.mutate()}
-					>
-						<ThemedText
-							type="small"
-							themeColor={addPasskey.isPending ? "mutedForeground" : "primary"}
-						>
-							{addPasskey.isPending ? "Adding…" : "Add passkey"}
+	<View>
+		<View style={styles.sectionHeader}>
+			<SectionLabel>Passkeys</SectionLabel>
+			<Pressable
+				accessibilityRole="button"
+				hitSlop={8}
+				disabled={addPasskey.isPending}
+				onPress={() => addPasskey.mutate()}
+			>
+				<ThemedText type="small" themeColor={addPasskey.isPending ? "mutedForeground" : "primary"}>
+					{addPasskey.isPending ? "Adding…" : "Add passkey"}
+				</ThemedText>
+			</Pressable>
+		</View>
+
+		{passkeyError ? (
+			<ThemedText type="small" style={{ color: theme.destructive }}>
+				{passkeyError}
+			</ThemedText>
+		) : null}
+
+		{passkeysQuery.isPending ? (
+			<ThemedText type="small" themeColor="mutedForeground">
+				Loading passkeys…
+			</ThemedText>
+		) : passkeysQuery.isError ? (
+			<ThemedText type="small" themeColor="mutedForeground">
+				Couldn't load passkeys
+			</ThemedText>
+		) : passkeys.length === 0 ? (
+			<ThemedText type="small" themeColor="mutedForeground">
+				No passkeys yet. Add one to sign in without a password.
+			</ThemedText>
+		) : (
+			passkeys.map((passkey, index) => (
+				<View
+					key={passkey.id}
+					style={[
+						styles.sessionRow,
+						index < passkeys.length - 1 && {
+							borderBottomWidth: StyleSheet.hairlineWidth,
+							borderBottomColor: theme.border,
+						},
+					]}
+				>
+					<View style={styles.sessionInfo}>
+						<ThemedText numberOfLines={1}>{passkey.name || "Unnamed passkey"}</ThemedText>
+						<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
+							{passkey.deviceType}
+							{passkey.backedUp ? " · Backed up" : ""}
 						</ThemedText>
-					</Pressable>
-				</View>
-
-				{passkeyError ? (
-					<ThemedText type="small" style={{ color: theme.destructive }}>
-						{passkeyError}
-					</ThemedText>
-				) : null}
-
-				{passkeysQuery.isPending ? (
-					<ThemedText type="small" themeColor="mutedForeground">
-						Loading passkeys…
-					</ThemedText>
-				) : passkeysQuery.isError ? (
-					<ThemedText type="small" themeColor="mutedForeground">
-						Couldn't load passkeys
-					</ThemedText>
-				) : passkeys.length === 0 ? (
-					<ThemedText type="small" themeColor="mutedForeground">
-						No passkeys yet. Add one to sign in without a password.
-					</ThemedText>
-				) : (
-					passkeys.map((passkey, index) => (
-						<View
-							key={passkey.id}
-							style={[
-								styles.sessionRow,
-								index < passkeys.length - 1 && {
-									borderBottomWidth: StyleSheet.hairlineWidth,
-									borderBottomColor: theme.border,
-								},
-							]}
+					</View>
+					<View style={styles.sectionActions}>
+						<Pressable
+							accessibilityRole="button"
+							hitSlop={8}
+							onPress={() => setEditingPasskey({ id: passkey.id, name: passkey.name || "" })}
 						>
-							<View style={styles.sessionInfo}>
-								<ThemedText numberOfLines={1}>{passkey.name || "Unnamed passkey"}</ThemedText>
-								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
-									{passkey.deviceType}
-									{passkey.backedUp ? " · Backed up" : ""}
-								</ThemedText>
-							</View>
-							<View style={styles.sectionActions}>
-								<Pressable
-									accessibilityRole="button"
-									hitSlop={8}
-									onPress={() => setEditingPasskey({ id: passkey.id, name: passkey.name || "" })}
-								>
-									<ThemedText type="small" themeColor="mutedForeground">
-										Rename
-									</ThemedText>
-								</Pressable>
-								<Pressable
-									accessibilityRole="button"
-									hitSlop={8}
-									onPress={() => confirmDeletePasskey(passkey)}
-								>
-									<ThemedText type="small" style={{ color: theme.destructive }}>
-										Delete
-									</ThemedText>
-								</Pressable>
-							</View>
-						</View>
-					))
-				)}
-			</View>
-		</>
-	);
-}
+							<ThemedText type="small" themeColor="mutedForeground">
+								Rename
+							</ThemedText>
+						</Pressable>
+						<Pressable
+							accessibilityRole="button"
+							hitSlop={8}
+							onPress={() => confirmDeletePasskey(passkey)}
+						>
+							<ThemedText type="small" style={{ color: theme.destructive }}>
+								Delete
+							</ThemedText>
+						</Pressable>
+					</View>
+				</View>
+			))
+		)}
+	</View>
+</>
 ```
 
 - [ ] **Step 4: Render the modal**
