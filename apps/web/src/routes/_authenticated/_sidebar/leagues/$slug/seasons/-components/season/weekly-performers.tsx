@@ -76,10 +76,7 @@ function PerformerCard({
 	variant,
 }: PerformerCardProps) {
 	const isPositive = pointChange >= 0;
-	const glowColor =
-		variant === "top"
-			? "bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.1),transparent_70%)]"
-			: "bg-[radial-gradient(circle_at_top,_rgba(239,68,68,0.1),transparent_70%)]";
+	const glowColor = variant === "top" ? "col-glow-win" : "col-glow-loss";
 
 	return (
 		<div className="relative overflow-hidden rounded-lg border bg-card p-3">

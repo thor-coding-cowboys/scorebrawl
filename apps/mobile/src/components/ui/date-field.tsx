@@ -72,7 +72,7 @@ export function DateField({
 
 	return (
 		<View ref={containerRef} style={styles.container}>
-			<Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+			<Text style={[styles.label, { color: theme.foreground }]}>{label}</Text>
 			<Pressable
 				disabled={!editable}
 				onPress={() => onOpenChange?.(!open)}
@@ -87,7 +87,7 @@ export function DateField({
 				]}
 			>
 				<Text
-					style={[styles.value, { color: value ? theme.text : theme.mutedForeground }]}
+					style={[styles.value, { color: value ? theme.foreground : theme.mutedForeground }]}
 					numberOfLines={1}
 				>
 					{value ? formatDisplay(value) : placeholder || "Select a date"}

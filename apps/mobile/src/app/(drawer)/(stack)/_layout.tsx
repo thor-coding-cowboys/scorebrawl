@@ -19,7 +19,7 @@ export default function StackLayout() {
 			screenOptions={({ navigation, route }) => ({
 				headerShown: true,
 				headerBackButtonDisplayMode: "minimal",
-				headerTintColor: theme.text,
+				headerTintColor: theme.foreground,
 				headerStyle: { backgroundColor: theme.background },
 				headerTitleStyle: { fontFamily: Fonts.sans, fontSize: 16, fontWeight: "700" },
 				contentStyle: { backgroundColor: theme.background },

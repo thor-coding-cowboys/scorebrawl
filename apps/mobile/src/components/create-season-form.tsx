@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { slugify } from "@coding-cowboys/scorebrawl-core/slug";
 import { trpcClient } from "@/lib/trpc";
@@ -377,6 +377,6 @@ const styles = StyleSheet.create({
 	actions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

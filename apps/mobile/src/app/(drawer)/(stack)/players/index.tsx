@@ -24,7 +24,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -42,12 +42,12 @@ function GuestBadge() {
 			style={[
 				styles.badge,
 				{
-					backgroundColor: `${theme.textSecondary}1a`,
-					borderColor: `${theme.textSecondary}40`,
+					backgroundColor: `${theme.mutedForeground}1a`,
+					borderColor: `${theme.mutedForeground}40`,
 				},
 			]}
 		>
-			<ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 10 }}>
+			<ThemedText type="small" style={{ color: theme.mutedForeground, fontSize: 10 }}>
 				Guest
 			</ThemedText>
 		</View>
@@ -333,7 +333,7 @@ export default function PlayersScreen() {
 									</ThemedText>
 									{item.isGuest ? <GuestBadge /> : null}
 								</View>
-								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 									{item.email ?? "No email"}
 								</ThemedText>
 							</View>
@@ -362,7 +362,7 @@ export default function PlayersScreen() {
 							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load players
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -370,7 +370,7 @@ export default function PlayersScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No players yet
 							</ThemedText>
 						)
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	rowInfo: {
 		flex: 1,
@@ -485,6 +485,6 @@ const styles = StyleSheet.create({
 	modalActions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

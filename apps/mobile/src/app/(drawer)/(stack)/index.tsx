@@ -96,7 +96,7 @@ export default function HomeScreen() {
 				<ThemedText type="title" style={styles.centerText}>
 					No league yet
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary" style={styles.centerText}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.centerText}>
 					Create a league on scorebrawl.com to get started.
 				</ThemedText>
 				<View style={styles.centerButton}>
@@ -114,7 +114,7 @@ export default function HomeScreen() {
 	if (activeSeasonsQuery.isError && activeSeasonsQuery.data === undefined) {
 		return (
 			<ThemedView style={styles.center}>
-				<ThemedText type="small" themeColor="textSecondary" style={styles.centerText}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.centerText}>
 					Couldn't load the active season
 				</ThemedText>
 				<View style={styles.centerButton}>

@@ -7,7 +7,7 @@ export function Card({ style, ...props }: ViewProps) {
 	const theme = useTheme();
 	return (
 		<View
-			style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, style]}
+			style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }, style]}
 			{...props}
 		/>
 	);
@@ -19,7 +19,7 @@ export function CardHeader({ style, ...props }: ViewProps) {
 
 export function CardTitle({ style, ...props }: TextProps) {
 	const theme = useTheme();
-	return <Text style={[styles.title, { color: theme.text }, style]} {...props} />;
+	return <Text style={[styles.title, { color: theme.foreground }, style]} {...props} />;
 }
 
 export function CardDescription({ style, ...props }: TextProps) {

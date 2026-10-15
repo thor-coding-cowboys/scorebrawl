@@ -42,26 +42,30 @@ export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 			}
 			style={({ pressed }) => [
 				styles.banner,
-				{ backgroundColor: theme.amberBg, borderBottomColor: theme.amberBorder },
+				{ backgroundColor: theme.glowAmberBackground, borderBottomColor: theme.glowAmberBorder },
 				pressed && { opacity: 0.85 },
 			]}
 		>
-			<Animated.View style={[styles.liveDot, { backgroundColor: theme.amberText }, dotStyle]} />
+			<Animated.View style={[styles.liveDot, { backgroundColor: theme.glowAmberText }, dotStyle]} />
 			<View style={styles.info}>
-				<ThemedText type="smallBold" style={[styles.title, { color: theme.amberText }]}>
+				<ThemedText type="smallBold" style={[styles.title, { color: theme.glowAmberText }]}>
 					Session in progress
 				</ThemedText>
-				<ThemedText type="small" style={[styles.sub, { color: theme.amberText }]} numberOfLines={1}>
+				<ThemedText
+					type="small"
+					style={[styles.sub, { color: theme.glowAmberText }]}
+					numberOfLines={1}
+				>
 					{rotationLabel(session.rotationMode)} · {session.players.length} players
 				</ThemedText>
 			</View>
-			<View style={[styles.cta, { borderColor: theme.amberBorder }]}>
+			<View style={[styles.cta, { borderColor: theme.glowAmberBorder }]}>
 				<SymbolView
 					name={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
 					size={11}
-					tintColor={theme.amberText}
+					tintColor={theme.glowAmberText}
 				/>
-				<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.amberText }]}>
+				<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.glowAmberText }]}>
 					Go to Session
 				</ThemedText>
 			</View>

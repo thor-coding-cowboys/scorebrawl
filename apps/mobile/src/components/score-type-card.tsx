@@ -2,7 +2,7 @@ import { SymbolView } from "expo-symbols";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 export const SCORE_TYPES = ["elo", "3-1-0", "1-v-n-elo"] as const;
@@ -20,19 +20,19 @@ export const SCORE_TYPE_CONFIG: Record<
 	elo: {
 		label: "ELO Standard",
 		description: "Dynamic skill-based rating system",
-		color: "#10b981",
+		color: SharedColors.scoreTypeEloText,
 		icon: { ios: "trophy.fill", android: "emoji_events", web: "emoji_events" },
 	},
 	"1-v-n-elo": {
 		label: "ELO 1-v-N",
 		description: "One winner, everyone else loses",
-		color: "#a855f7",
+		color: SharedColors.scoreTypeOneVnEloText,
 		icon: { ios: "person.3.fill", android: "groups", web: "groups" },
 	},
 	"3-1-0": {
 		label: "Points (3-1-0)",
 		description: "Win 3 • Draw 1 • Loss 0",
-		color: "#3b82f6",
+		color: SharedColors.scoreTypeThreeOneZeroText,
 		icon: { ios: "target", android: "track_changes", web: "track_changes" },
 	},
 };
@@ -71,10 +71,10 @@ export function ScoreTypeCard({
 				<SymbolView name={config.icon} size={20} tintColor={config.color} />
 			</View>
 			<View style={styles.scoreText}>
-				<ThemedText type="smallBold" style={{ color: selected ? config.color : theme.text }}>
+				<ThemedText type="smallBold" style={{ color: selected ? config.color : theme.foreground }}>
 					{config.label}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{config.description}
 				</ThemedText>
 			</View>

@@ -20,7 +20,7 @@ import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonListRow } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -214,7 +214,7 @@ export default function TeamsScreen() {
 								<ThemedText style={styles.rowName} numberOfLines={1}>
 									{item.name}
 								</ThemedText>
-								<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+								<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 									{memberSummary(item.players)}
 								</ThemedText>
 							</View>
@@ -242,7 +242,7 @@ export default function TeamsScreen() {
 							</View>
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load teams
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -250,7 +250,7 @@ export default function TeamsScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No teams yet
 							</ThemedText>
 						)
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	rowInfo: {
 		flex: 1,
@@ -344,6 +344,6 @@ const styles = StyleSheet.create({
 	modalActions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

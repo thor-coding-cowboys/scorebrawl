@@ -60,7 +60,7 @@ function Divider() {
 
 function SectionLabel({ children }: { children: string }) {
 	return (
-		<ThemedText style={styles.sectionLabel} themeColor="textSecondary">
+		<ThemedText style={styles.sectionLabel} themeColor="mutedForeground">
 			{children.toUpperCase()}
 		</ThemedText>
 	);
@@ -70,7 +70,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 	return (
 		<View style={styles.stat}>
 			<ThemedText style={styles.statValue}>{value}</ThemedText>
-			<ThemedText style={styles.statLabel} themeColor="textSecondary">
+			<ThemedText style={styles.statLabel} themeColor="mutedForeground">
 				{label.toUpperCase()}
 			</ThemedText>
 		</View>
@@ -159,7 +159,7 @@ export default function ProfileScreen() {
 						</ThemedText>
 						<ThemedText
 							type="small"
-							themeColor="textSecondary"
+							themeColor="mutedForeground"
 							numberOfLines={1}
 							style={styles.heroName}
 						>
@@ -188,7 +188,7 @@ export default function ProfileScreen() {
 							<SectionLabel>Sessions</SectionLabel>
 							<View style={styles.sectionActions}>
 								<Pressable accessibilityRole="button" onPress={revokeOther} hitSlop={8}>
-									<ThemedText type="small" themeColor="textSecondary">
+									<ThemedText type="small" themeColor="mutedForeground">
 										Revoke others
 									</ThemedText>
 								</Pressable>
@@ -211,11 +211,11 @@ export default function ProfileScreen() {
 								))}
 							</View>
 						) : sessionsQuery.isError ? (
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								Couldn't load sessions
 							</ThemedText>
 						) : sessions.length === 0 ? (
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								No active sessions
 							</ThemedText>
 						) : (
@@ -236,7 +236,7 @@ export default function ProfileScreen() {
 											<ThemedText numberOfLines={1}>
 												{isCurrent ? "This device" : parseUserAgent(s.userAgent)}
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+											<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 												{isCurrent ? "Current session · " : ""}
 												{formatSessionDate(s.createdAt)}
 											</ThemedText>
@@ -261,7 +261,7 @@ export default function ProfileScreen() {
 					>
 						<View style={styles.linkInfo}>
 							<SectionLabel>Notifications</SectionLabel>
-							<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+							<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 								Sessions, matches, achievements, streaks
 							</ThemedText>
 						</View>

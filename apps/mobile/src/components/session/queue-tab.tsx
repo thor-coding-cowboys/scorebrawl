@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { useSessionTheme } from "@/components/session/theme";
 import type { GameSession, SessionMatch, SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -25,7 +25,11 @@ function getPlayerResultForMatch(
 	return won ? "win" : "loss";
 }
 
-const DOT_COLORS = { win: "#22c55e", loss: "#ef4444", draw: "#eab308" } as const;
+const DOT_COLORS = {
+	win: SharedColors.formWin,
+	loss: SharedColors.formLoss,
+	draw: SharedColors.formDraw,
+} as const;
 
 function StreakDots({ player, matches }: { player: SessionPlayer; matches: SessionMatch[] }) {
 	if (player.consecutiveGames <= 0) return null;
@@ -43,7 +47,7 @@ function StreakDots({ player, matches }: { player: SessionPlayer; matches: Sessi
 				return <View key={m.id} style={[styles.dot, { backgroundColor: DOT_COLORS[result] }]} />;
 			})}
 			{player.consecutiveGames > 8 ? (
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					+{player.consecutiveGames - 8}
 				</ThemedText>
 			) : null}
@@ -70,7 +74,7 @@ function PlayerRow({
 	return (
 		<View style={[styles.playerRow, { borderBottomColor: theme.border }]}>
 			{rank !== undefined ? (
-				<ThemedText type="small" themeColor="textSecondary" style={styles.rank}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.rank}>
 					{rank}
 				</ThemedText>
 			) : (
@@ -84,7 +88,7 @@ function PlayerRow({
 			</View>
 			<View style={styles.playerMeta}>
 				<StreakDots player={player} matches={matches} />
-				<ThemedText themeColor="textSecondary" style={styles.games}>
+				<ThemedText themeColor="mutedForeground" style={styles.games}>
 					{player.gamesPlayedThisSession}g
 				</ThemedText>
 				<ThemedText style={styles.score}>{player.score}</ThemedText>
@@ -93,7 +97,7 @@ function PlayerRow({
 						<SymbolView
 							name={{ ios: "arrow.clockwise", android: "refresh", web: "refresh" }}
 							size={14}
-							tintColor={theme.textSecondary}
+							tintColor={theme.mutedForeground}
 						/>
 					</Pressable>
 				) : null}
@@ -102,7 +106,7 @@ function PlayerRow({
 						<SymbolView
 							name={{ ios: "xmark", android: "close", web: "close" }}
 							size={14}
-							tintColor={theme.textSecondary}
+							tintColor={theme.mutedForeground}
 						/>
 					</Pressable>
 				) : null}
@@ -116,7 +120,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 	return (
 		<View>
 			<View style={[styles.sectionHeader, { backgroundColor: sessionTheme.mutedBg }]}>
-				<ThemedText themeColor="textSecondary" style={styles.sectionTitle}>
+				<ThemedText themeColor="mutedForeground" style={styles.sectionTitle}>
 					{title}
 				</ThemedText>
 			</View>
@@ -163,7 +167,7 @@ export function QueueList({ session, sessionId }: { session: GameSession; sessio
 
 	if (session.players.length === 0) {
 		return (
-			<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+			<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 				No players
 			</ThemedText>
 		);

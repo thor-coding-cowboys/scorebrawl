@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { formDotStyle } from "@/lib/theme-tokens";
 
 interface FormDotsProps {
 	form: ("W" | "D" | "L")[] | undefined;
@@ -16,14 +16,13 @@ export function FormDots({ form }: FormDotsProps) {
 	return (
 		<div className="flex gap-1 justify-center">
 			{[...form].reverse().map((result, index) => {
-				const baseClasses = "w-2 h-2 rounded-full";
-				const colorClasses = {
-					W: "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]",
-					D: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]",
-					L: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]",
-				}[result];
-
-				return <div key={`form-${index}-${result}`} className={cn(baseClasses, colorClasses)} />;
+				return (
+					<div
+						key={`form-${index}-${result}`}
+						className="w-2 h-2 rounded-full"
+						style={formDotStyle(result, true)}
+					/>
+				);
 			})}
 		</div>
 	);

@@ -12,7 +12,7 @@ import {
 	useRotation,
 } from "@/components/ui/animated-collapse";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -62,7 +62,7 @@ export function UserCard() {
 					<ThemedText type="smallBold" numberOfLines={1}>
 						{user?.name}
 					</ThemedText>
-					<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+					<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 						{user?.email}
 					</ThemedText>
 				</View>
@@ -70,7 +70,7 @@ export function UserCard() {
 					<SymbolView
 						name={{ ios: "chevron.up", android: "expand_less", web: "expand_less" }}
 						size={16}
-						tintColor={theme.textSecondary}
+						tintColor={theme.mutedForeground}
 					/>
 				</Animated.View>
 			</Pressable>
@@ -87,7 +87,7 @@ export function UserCard() {
 					<SymbolView
 						name={{ ios: "person.crop.circle", android: "person", web: "person" }}
 						size={18}
-						tintColor={theme.text}
+						tintColor={theme.foreground}
 					/>
 					<ThemedText type="small">Profile</ThemedText>
 				</Pressable>
@@ -96,7 +96,7 @@ export function UserCard() {
 					onPress={cycleThemeMode}
 					style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
 				>
-					<SymbolView name={themeIconName(themeMode)} size={18} tintColor={theme.text} />
+					<SymbolView name={themeIconName(themeMode)} size={18} tintColor={theme.foreground} />
 					<ThemedText type="small">{themeLabel(themeMode)}</ThemedText>
 				</Pressable>
 				<Pressable
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
 	actions: {
 		marginTop: Spacing.two,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 		paddingTop: Spacing.two,
 	},
 	actionRow: {

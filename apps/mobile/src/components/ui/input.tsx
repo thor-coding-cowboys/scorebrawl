@@ -15,7 +15,7 @@ export function Input({ label, error, style, onFocus, onBlur, ...props }: InputP
 
 	return (
 		<View style={styles.container}>
-			<Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+			<Text style={[styles.label, { color: theme.foreground }]}>{label}</Text>
 			<TextInput
 				placeholderTextColor={theme.mutedForeground}
 				onFocus={(e) => {
@@ -31,7 +31,7 @@ export function Input({ label, error, style, onFocus, onBlur, ...props }: InputP
 					{
 						backgroundColor: theme.background,
 						borderColor: error ? theme.destructive : focused ? theme.primary : theme.border,
-						color: theme.text,
+						color: theme.foreground,
 					},
 					style,
 				]}

@@ -2,6 +2,7 @@ import { Drawer } from "expo-router/drawer";
 
 import { LeagueDrawerContent } from "@/components/league-drawer";
 import { useTheme } from "@/hooks/use-theme";
+import { SharedColors } from "@/constants/theme";
 
 export default function DrawerLayout() {
 	const colors = useTheme();
@@ -12,7 +13,7 @@ export default function DrawerLayout() {
 				headerShown: false,
 				drawerType: "slide",
 				drawerStyle: { backgroundColor: colors.background, width: 300 },
-				overlayColor: "rgba(0,0,0,0.5)",
+				overlayColor: SharedColors.overlay,
 				swipeEdgeWidth: 48,
 			}}
 			drawerContent={(props) => <LeagueDrawerContent {...props} />}

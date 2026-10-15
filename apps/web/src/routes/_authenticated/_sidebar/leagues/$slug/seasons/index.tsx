@@ -197,7 +197,7 @@ function SeasonsPage() {
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="grid gap-3 md:grid-cols-3">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-emerald" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Active Seasons</CardTitle>
 							<HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-emerald-600" />
@@ -208,7 +208,7 @@ function SeasonsPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-blue" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Upcoming</CardTitle>
 							<HugeiconsIcon icon={Clock01Icon} className="size-4 text-blue-600" />
@@ -219,7 +219,7 @@ function SeasonsPage() {
 						</CardContent>
 					</Card>
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-amber" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Total Seasons</CardTitle>
 							<HugeiconsIcon icon={AwardIcon} className="size-4 text-amber-600" />

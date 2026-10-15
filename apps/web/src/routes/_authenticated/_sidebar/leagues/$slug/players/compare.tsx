@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/drawer";
 import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { chartSeries } from "@/lib/theme-tokens";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -381,7 +382,7 @@ function PlayerComparisonPage() {
 						{/* Player 1 Card */}
 						{p1 ? (
 							<Card className="relative overflow-hidden border-l-4 border-l-blue-500">
-								<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+								<div className="absolute inset-0 card-glow-blue" />
 								<CardContent className="relative p-6">
 									<div className="flex items-center gap-4">
 										<Avatar className="h-20 w-20 rounded-xl ring-4 ring-blue-500/20">
@@ -437,7 +438,7 @@ function PlayerComparisonPage() {
 						{/* Player 2 Card - Empty State or Data */}
 						{p2 ? (
 							<Card className="relative overflow-hidden border-l-4 border-l-rose-500">
-								<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(244,63,94,0.1),transparent_60%)]" />
+								<div className="absolute inset-0 card-glow-pink" />
 								<CardContent className="relative p-6">
 									<div className="flex items-center gap-4">
 										<Avatar className="h-20 w-20 rounded-xl ring-4 ring-rose-500/20">
@@ -669,8 +670,8 @@ function PlayerComparisonPage() {
 							<CardContent>
 								<ChartContainer
 									config={{
-										[p1.name]: { label: p1.name, color: "#3b82f6" },
-										[p2.name]: { label: p2.name, color: "#f43f5e" },
+										[p1.name]: { label: p1.name, color: chartSeries.a },
+										[p2.name]: { label: p2.name, color: chartSeries.b },
 									}}
 									className="h-[300px]"
 								>
@@ -683,16 +684,16 @@ function PlayerComparisonPage() {
 										<Line
 											type="monotone"
 											dataKey={p1.name}
-											stroke="#3b82f6"
+											stroke={chartSeries.a}
 											strokeWidth={2}
-											dot={{ fill: "#3b82f6" }}
+											dot={{ fill: chartSeries.a }}
 										/>
 										<Line
 											type="monotone"
 											dataKey={p2.name}
-											stroke="#f43f5e"
+											stroke={chartSeries.b}
 											strokeWidth={2}
-											dot={{ fill: "#f43f5e" }}
+											dot={{ fill: chartSeries.b }}
 										/>
 									</LineChart>
 								</ChartContainer>
@@ -717,15 +718,15 @@ function PlayerComparisonPage() {
 										<Radar
 											name={p1.name}
 											dataKey="p1"
-											stroke="#3b82f6"
-											fill="#3b82f6"
+											stroke={chartSeries.a}
+											fill={chartSeries.a}
 											fillOpacity={0.3}
 										/>
 										<Radar
 											name={p2.name}
 											dataKey="p2"
-											stroke="#f43f5e"
-											fill="#f43f5e"
+											stroke={chartSeries.b}
+											fill={chartSeries.b}
 											fillOpacity={0.3}
 										/>
 										<Legend />

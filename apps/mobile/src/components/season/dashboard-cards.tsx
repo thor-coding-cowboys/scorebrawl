@@ -35,7 +35,7 @@ function DashboardCard({
 }) {
 	const theme = useTheme();
 	return (
-		<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+		<View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
 			<CardGlow color={accent} />
 			<View style={styles.cardHeader}>
 				<ThemedText type="smallBold">{title}</ThemedText>
@@ -75,7 +75,7 @@ function PlayerStat({
 	if (loading) return <Skeleton width="100%" height={40} />;
 	if (!player) {
 		return (
-			<ThemedText type="small" themeColor="textSecondary">
+			<ThemedText type="small" themeColor="mutedForeground">
 				{empty}
 			</ThemedText>
 		);
@@ -87,7 +87,7 @@ function PlayerStat({
 				<ThemedText type="smallBold" numberOfLines={1}>
 					{player.name}
 				</ThemedText>
-				<ThemedText type="small" themeColor="textSecondary" style={styles.caption}>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
 					{player.score} points
 				</ThemedText>
 			</View>
@@ -98,12 +98,13 @@ function PlayerStat({
 
 function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const { data, isPending } = useQuery(trpc.seasonPlayer.getTop.queryOptions({ seasonSlug }));
 	return (
 		<DashboardCard
 			title="On Fire"
 			icon={{ ios: "flame.fill", android: "local_fire_department", web: "local_fire_department" }}
-			accent="#ef4444"
+			accent={theme.glowRedSolid}
 		>
 			<PlayerStat player={data} loading={isPending} empty="No matches yet" />
 		</DashboardCard>
@@ -112,6 +113,7 @@ function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 
 function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const { data: standings, isPending } = useQuery(
 		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug })
 	);
@@ -122,7 +124,7 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 		<DashboardCard
 			title="Struggling"
 			icon={{ ios: "snowflake", android: "ac_unit", web: "ac_unit" }}
-			accent="#3b82f6"
+			accent={theme.glowBlueSolid}
 		>
 			<PlayerStat player={player} loading={isPending} empty="No players with 3+ matches" />
 		</DashboardCard>
@@ -131,12 +133,13 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 
 function InfoCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const { data, isPending } = useQuery(trpc.season.getCountInfo.queryOptions({ seasonSlug }));
 	return (
 		<DashboardCard
 			title="General Info"
 			icon={{ ios: "chart.bar.fill", android: "bar_chart", web: "bar_chart" }}
-			accent="#10b981"
+			accent={theme.glowEmeraldSolid}
 		>
 			{isPending ? (
 				<Skeleton width="100%" height={40} />
@@ -149,7 +152,7 @@ function InfoCard({ seasonSlug }: { seasonSlug: string }) {
 					].map(({ value, label }) => (
 						<View key={label} style={styles.infoCell}>
 							<ThemedText style={styles.infoValue}>{value}</ThemedText>
-							<ThemedText type="small" themeColor="textSecondary" style={styles.caption}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
 								{label}
 							</ThemedText>
 						</View>
@@ -198,7 +201,7 @@ function MatchSide({
 			<Avatar name={avatar.name} image={avatar.image} headers={headers} size={24} />
 			<ThemedText
 				type={isWinner ? "smallBold" : "small"}
-				themeColor={isLoser ? "textSecondary" : "text"}
+				themeColor={isLoser ? "mutedForeground" : "foreground"}
 				numberOfLines={1}
 				style={styles.sideLabel}
 			>
@@ -212,7 +215,7 @@ function MatchSide({
 			>
 				<ThemedText
 					type={isWinner ? "smallBold" : "small"}
-					themeColor={isLoser ? "textSecondary" : "text"}
+					themeColor={isLoser ? "mutedForeground" : "foreground"}
 				>
 					{score}
 				</ThemedText>
@@ -223,6 +226,7 @@ function MatchSide({
 
 function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const { data: match, isPending } = useQuery(trpc.match.getLatest.queryOptions({ seasonSlug }));
 	const players = (match?.players ?? []) as LatestPlayer[];
 	const home = players.filter((p) => p.homeTeam);
@@ -234,7 +238,7 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 		<DashboardCard
 			title="Latest Match"
 			icon={{ ios: "trophy", android: "emoji_events", web: "emoji_events" }}
-			accent="#f59e0b"
+			accent={theme.glowAmberSolid}
 		>
 			{isPending ? (
 				<Skeleton width="100%" height={56} />
@@ -254,7 +258,7 @@ function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
 					/>
 				</View>
 			) : (
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					No matches yet
 				</ThemedText>
 			)}
@@ -300,8 +304,8 @@ export function DashboardCards({ seasonSlug }: { seasonSlug: string }) {
 						style={[
 							styles.dot,
 							i === active
-								? { width: 16, backgroundColor: theme.text }
-								: { backgroundColor: `${theme.textSecondary}55` },
+								? { width: 16, backgroundColor: theme.foreground }
+								: { backgroundColor: `${theme.mutedForeground}55` },
 						]}
 					/>
 				))}

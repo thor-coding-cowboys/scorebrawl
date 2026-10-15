@@ -25,7 +25,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Fonts, Spacing } from "@/constants/theme";
+import { Fonts, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import {
@@ -405,12 +405,12 @@ export function NextMatchTab({
 					<View style={styles.headerRight}>
 						{currentMatch ? (
 							<View style={[styles.badge, { borderColor: sessionTheme.border }]}>
-								<ThemedText themeColor="textSecondary" style={styles.headerMeta}>
+								<ThemedText themeColor="mutedForeground" style={styles.headerMeta}>
 									In Progress
 								</ThemedText>
 							</View>
 						) : (
-							<ThemedText themeColor="textSecondary" style={styles.headerMeta}>
+							<ThemedText themeColor="mutedForeground" style={styles.headerMeta}>
 								{completedCount} played
 							</ThemedText>
 						)}
@@ -507,7 +507,7 @@ export function NextMatchTab({
 									Start Match
 								</Button>
 								{session.players.filter((p) => p.status !== "out").length < session.teamSize * 2 ? (
-									<ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+									<ThemedText type="small" themeColor="mutedForeground" style={styles.hint}>
 										Need at least {session.teamSize * 2} players in the session to start a match
 									</ThemedText>
 								) : null}
@@ -547,7 +547,7 @@ export function NextMatchTab({
 							const pB = session.players.find((p) => p.seasonPlayerId === b);
 							if (!pA || !pB) return null;
 							return (
-								<ThemedText key={`${a}-${b}`} type="small" themeColor="textSecondary">
+								<ThemedText key={`${a}-${b}`} type="small" themeColor="mutedForeground">
 									{pA.displayName} / {pB.displayName}
 								</ThemedText>
 							);
@@ -603,7 +603,7 @@ function ScoreStepper({
 }) {
 	return (
 		<View style={[styles.stepper, disabled && styles.disabled]}>
-			<ThemedText themeColor="textSecondary" style={styles.stepperLabel}>
+			<ThemedText themeColor="mutedForeground" style={styles.stepperLabel}>
 				{label}
 			</ThemedText>
 			<View style={styles.stepperControls}>
@@ -645,17 +645,17 @@ function TeamRosterCard({
 					{ borderBottomColor: sessionTheme.border, backgroundColor: sessionTheme.mutedBg },
 				]}
 			>
-				<ThemedText themeColor="textSecondary" style={styles.rosterLabel}>
+				<ThemedText themeColor="mutedForeground" style={styles.rosterLabel}>
 					{label}
 				</ThemedText>
-				<ThemedText themeColor="textSecondary" style={styles.rosterCount}>
+				<ThemedText themeColor="mutedForeground" style={styles.rosterCount}>
 					{players.length}p
 				</ThemedText>
 			</View>
 			<View style={styles.rosterBody}>
 				{players.length === 0 ? (
 					<View style={styles.rosterEmpty}>
-						<ThemedText type="small" themeColor="textSecondary">
+						<ThemedText type="small" themeColor="mutedForeground">
 							{emptyHint ?? "No players"}
 						</ThemedText>
 					</View>
@@ -667,7 +667,7 @@ function TeamRosterCard({
 								<ThemedText style={styles.rosterName} numberOfLines={1}>
 									{p.displayName}
 								</ThemedText>
-								<ThemedText themeColor="textSecondary" style={styles.rosterScore}>
+								<ThemedText themeColor="mutedForeground" style={styles.rosterScore}>
 									{p.score}
 								</ThemedText>
 							</View>
@@ -735,7 +735,7 @@ function CoinTossModal({
 					</View>
 					{phase === "pick" ? (
 						<View style={styles.coinBody}>
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								{picker?.displayName ?? "Player"} calls it
 							</ThemedText>
 							<View style={styles.coinChoices}>
@@ -762,13 +762,13 @@ function CoinTossModal({
 							<ThemedText type="smallBold" style={{ color: theme.primary }}>
 								You chose {choice}
 							</ThemedText>
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								Flipping…
 							</ThemedText>
 						</View>
 					) : (
 						<View style={styles.coinBody}>
-							<ThemedText type="small" themeColor="textSecondary">
+							<ThemedText type="small" themeColor="mutedForeground">
 								Winner
 							</ThemedText>
 							<View style={styles.coinWinner}>
@@ -923,7 +923,7 @@ function EditorColumn({
 			]}
 		>
 			<View style={[styles.columnHeader, { borderBottomColor: theme.border }]}>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{label.toUpperCase()} ({onThisTeam.length}/{teamSize})
 				</ThemedText>
 			</View>
@@ -937,7 +937,7 @@ function EditorColumn({
 							style={[
 								styles.editorRow,
 								{ borderBottomColor: theme.border },
-								assigned && { backgroundColor: theme.backgroundElement },
+								assigned && { backgroundColor: theme.muted },
 							]}
 						>
 							<Avatar
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
 	hint: { textAlign: "center" },
 	playersHeading: { fontSize: 14, lineHeight: 20, fontWeight: "400" },
 	alwaysSplit: { marginTop: Spacing.three, gap: 2 },
-	coinOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+	coinOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: SharedColors.overlaySoft },
 	coinSheet: {
 		paddingHorizontal: Spacing.four,
 		paddingTop: Spacing.four,

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { MobileColorKey } from "@coding-cowboys/scorebrawl-core/theme";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
@@ -10,7 +11,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, SharedColors, Spacing } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -34,11 +35,11 @@ type MembersData = { members: Member[]; total: number } | Member[];
 
 const ROLE_OPTIONS = ["owner", "editor", "member", "viewer"] as const;
 
-const ROLE_COLORS: Record<string, { light: string; dark: string }> = {
-	owner: { light: "#b45309", dark: "#fbbf24" },
-	editor: { light: "#047857", dark: "#34d399" },
-	member: { light: "#1d4ed8", dark: "#60a5fa" },
-	viewer: { light: "#64748b", dark: "#94a3b8" },
+const ROLE_TOKEN_KEYS: Record<string, MobileColorKey> = {
+	owner: "roleOwner",
+	editor: "roleEditor",
+	member: "roleMember",
+	viewer: "roleViewer",
 };
 
 function formatRole(role: string) {
@@ -116,7 +117,7 @@ function ChangeRoleModal({
 							{name}
 						</ThemedText>
 						{email ? (
-							<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+							<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 								{email}
 							</ThemedText>
 						) : null}
@@ -148,7 +149,7 @@ function ChangeRoleModal({
 								>
 									<ThemedText
 										type="smallBold"
-										style={{ color: selected ? theme.primary : theme.text }}
+										style={{ color: selected ? theme.primary : theme.foreground }}
 									>
 										{formatRole(role)}
 									</ThemedText>
@@ -254,8 +255,7 @@ export default function MembersScreen() {
 						const email = item.user?.email || item.email || "";
 						const currentRole = item.role || "member";
 						const canEditThisRole = role === "owner" || (canAccess && currentRole !== "owner");
-						const roleColor =
-							ROLE_COLORS[currentRole]?.[theme.text === "#ffffff" ? "dark" : "light"] ?? "#64748b";
+						const roleColor = theme[ROLE_TOKEN_KEYS[currentRole] ?? "roleMember"];
 						return (
 							<View style={styles.row}>
 								<View style={styles.rowMain}>
@@ -271,7 +271,7 @@ export default function MembersScreen() {
 										</ThemedText>
 										<ThemedText
 											type="small"
-											themeColor="textSecondary"
+											themeColor="mutedForeground"
 											numberOfLines={1}
 											style={styles.rowEmail}
 										>
@@ -314,14 +314,14 @@ export default function MembersScreen() {
 						isMemberPending ? (
 							<MembersSkeleton />
 						) : !canAccess ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								You don’t have access to manage members.
 							</ThemedText>
 						) : isLoading ? (
 							<MembersSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load members
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -329,7 +329,7 @@ export default function MembersScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No members yet
 							</ThemedText>
 						)
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
 		marginTop: "auto",
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 	safeArea: {
 		flex: 1,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	rowMain: {
 		flex: 1,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
 	},
 	rowRail: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: "rgba(128,128,128,0.25)",
+		borderLeftColor: SharedColors.divider,
 		paddingLeft: Spacing.three,
 		alignItems: "flex-end",
 		alignSelf: "stretch",

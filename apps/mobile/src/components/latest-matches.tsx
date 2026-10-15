@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SkeletonMatchRow } from "@/components/ui/skeleton-rows";
 import { StaticList } from "@/components/ui/static-list";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -89,7 +89,7 @@ function ScoreLine({
 			</View>
 			<ThemedText
 				numberOfLines={1}
-				themeColor={isMuted ? "textSecondary" : "text"}
+				themeColor={isMuted ? "mutedForeground" : "foreground"}
 				style={[styles.label, isWinner && styles.winner]}
 			>
 				{getSideLabel(players)}
@@ -101,7 +101,7 @@ function ScoreLine({
 				]}
 			>
 				<ThemedText
-					themeColor={isMuted ? "textSecondary" : "text"}
+					themeColor={isMuted ? "mutedForeground" : "foreground"}
 					style={[styles.score, isWinner && styles.winner]}
 				>
 					{score}
@@ -144,11 +144,11 @@ function MatchRow({
 	return (
 		<View style={styles.matchRow}>
 			<View style={styles.dateCol}>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					{timestamp.primary}
 				</ThemedText>
 				{timestamp.secondary ? (
-					<ThemedText type="small" themeColor="textSecondary">
+					<ThemedText type="small" themeColor="mutedForeground">
 						{timestamp.secondary}
 					</ThemedText>
 				) : null}
@@ -255,7 +255,7 @@ export function LatestMatches({
 		</View>
 	) : matchesQuery.isError && matchesQuery.data === undefined ? (
 		<View style={styles.emptyBox}>
-			<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+			<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 				Couldn't load matches
 			</ThemedText>
 			<Button variant="outline" onPress={() => matchesQuery.refetch()}>
@@ -263,7 +263,7 @@ export function LatestMatches({
 			</Button>
 		</View>
 	) : (
-		<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+		<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 			No registered matches
 		</ThemedText>
 	);
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
 	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: "rgba(128,128,128,0.25)",
+		backgroundColor: SharedColors.divider,
 	},
 	matchRow: {
 		flexDirection: "row",

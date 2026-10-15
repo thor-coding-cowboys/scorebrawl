@@ -54,7 +54,7 @@ export function SegmentedControl<T extends string>({
 					>
 						<ThemedText
 							type="small"
-							themeColor={selected ? "text" : "textSecondary"}
+							themeColor={selected ? "foreground" : "mutedForeground"}
 							numberOfLines={1}
 							style={styles.label}
 						>

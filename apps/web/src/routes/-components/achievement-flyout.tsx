@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { confettiColors } from "@/lib/theme-tokens";
 import { achievementCatalog, getAchievement } from "@coding-cowboys/scorebrawl-core/achievements";
 import { achievementIcons } from "@/lib/achievements";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -14,15 +15,7 @@ export interface AchievementFlyoutEvent {
 	timestamp: number;
 }
 
-const CONFETTI_COLORS = [
-	"#f97316",
-	"#22c55e",
-	"#3b82f6",
-	"#eab308",
-	"#a855f7",
-	"#ec4899",
-	"#06b6d4",
-];
+const CONFETTI_COLORS = confettiColors;
 
 const CONFETTI_COUNT = 120;
 
@@ -237,7 +230,7 @@ export function AchievementFlyout() {
 			<div className="absolute inset-0 bg-gradient-to-b from-black via-fuchsia-950/80 to-black" />
 
 			{/* Vignette */}
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,black_80%)]" />
+			<div className="absolute inset-0 flyout-vignette" />
 
 			{/* Radial burst lines */}
 			{phase !== "exiting" && <RadialBurst />}
@@ -248,7 +241,7 @@ export function AchievementFlyout() {
 			{/* Ring pulse behind icon */}
 			<div
 				className={cn(
-					"absolute rounded-full bg-fuchsia-500/10 shadow-[0_0_120px_60px_rgba(217,70,239,0.15)]",
+					"absolute rounded-full bg-fuchsia-500/10 card-halo-purple",
 					"transition-all duration-700",
 					phase === "entering" && "scale-0 opacity-0",
 					phase === "visible" && "scale-100 opacity-100",
@@ -284,7 +277,8 @@ export function AchievementFlyout() {
 					)}
 					style={{
 						transitionDelay: phase === "visible" ? "250ms" : "0ms",
-						textShadow: "0 0 40px rgba(217,70,239,0.5), 0 0 80px rgba(139,92,246,0.3)",
+						textShadow:
+							"0 0 40px color-mix(in oklab, var(--glow-purple-solid) 50%, transparent), 0 0 80px color-mix(in oklab, var(--glow-purple-solid) 30%, transparent)",
 					}}
 				>
 					ACHIEVEMENT UNLOCKED

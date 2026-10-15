@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
@@ -102,7 +102,7 @@ export default function NotificationSettingsScreen() {
 							{settingsQuery.isPending ? (
 								<NotificationSettingsSkeleton />
 							) : settingsQuery.isError ? (
-								<ThemedText type="small" themeColor="textSecondary">
+								<ThemedText type="small" themeColor="mutedForeground">
 									Unable to load notification settings.
 								</ThemedText>
 							) : (
@@ -110,7 +110,7 @@ export default function NotificationSettingsScreen() {
 									<View style={[styles.row, { borderBottomColor: theme.border }]}>
 										<View style={styles.rowInfo}>
 											<ThemedText type="smallBold">Push notifications</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												Master switch for all push notifications
 											</ThemedText>
 										</View>
@@ -126,7 +126,7 @@ export default function NotificationSettingsScreen() {
 										<View key={key} style={[styles.row, { borderBottomColor: theme.border }]}>
 											<View style={styles.rowInfo}>
 												<ThemedText type="smallBold">{label}</ThemedText>
-												<ThemedText type="small" themeColor="textSecondary">
+												<ThemedText type="small" themeColor="mutedForeground">
 													{description}
 												</ThemedText>
 											</View>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		padding: Spacing.four,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	skeletonCol: {
 		flex: 1,

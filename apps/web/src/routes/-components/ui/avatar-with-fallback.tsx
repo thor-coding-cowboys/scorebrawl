@@ -1,5 +1,7 @@
 "use client";
 
+import { selectAvatarIndex } from "@coding-cowboys/scorebrawl-core/theme";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,45 +29,30 @@ function getInitials(name?: string | null): string {
 }
 
 /**
- * Generate consistent color classes for a given name
- * Returns background, text, and border color classes that will always be the same for the same name
+ * Background, ink and border for a name's avatar tone. Falls back to the
+ * neutral surface when there is no name to hash.
  */
-function getNameColor(name?: string | null): string {
-	if (!name) return "bg-gray-500/10 text-gray-600 border-gray-500/20";
-
-	// Normalize the name: trim whitespace, convert to lowercase, remove extra spaces
-	const normalizedName = name.trim().toLowerCase().replace(/\s+/g, " ");
-
-	// Create a simple hash from the normalized name using a better hash function
-	let hash = 0;
-	for (let i = 0; i < normalizedName.length; i++) {
-		const char = normalizedName.charCodeAt(i);
-		hash = (hash << 5) - hash + char;
-		hash = hash & hash; // Convert to 32-bit integer
+function nameTone(name?: string | null): { classes: string; style: React.CSSProperties } {
+	const index = selectAvatarIndex(name ?? "");
+	if (index < 0) {
+		return {
+			classes: "",
+			style: {
+				backgroundColor: "var(--divider)",
+				color: "var(--muted-foreground)",
+				borderColor: "var(--border)",
+			},
+		};
 	}
 
-	// Make hash positive
-	hash = Math.abs(hash);
-
-	// Define color options following the existing palette pattern with borders
-	const colors = [
-		"bg-emerald-500/10 text-emerald-600 border-emerald-500/20", // Green
-		"bg-blue-500/10 text-blue-600 border-blue-500/20", // Blue
-		"bg-amber-500/10 text-amber-600 border-amber-500/20", // Amber
-		"bg-purple-500/10 text-purple-600 border-purple-500/20", // Purple
-		"bg-rose-500/10 text-rose-600 border-rose-500/20", // Rose
-		"bg-cyan-500/10 text-cyan-600 border-cyan-500/20", // Cyan
-		"bg-orange-500/10 text-orange-600 border-orange-500/20", // Orange
-		"bg-indigo-500/10 text-indigo-600 border-indigo-500/20", // Indigo
-		"bg-pink-500/10 text-pink-600 border-pink-500/20", // Pink
-		"bg-teal-500/10 text-teal-600 border-teal-500/20", // Teal
-		"bg-lime-500/10 text-lime-600 border-lime-500/20", // Lime
-		"bg-violet-500/10 text-violet-600 border-violet-500/20", // Violet
-	];
-
-	// Use modulo to select a color consistently
-	const colorIndex = hash % colors.length;
-	return colors[colorIndex] ?? "bg-gray-500/10 text-gray-600 border-gray-500/20";
+	return {
+		classes: "",
+		style: {
+			backgroundColor: `var(--avatar-${index}-background)`,
+			color: `var(--avatar-${index}-text)`,
+			borderColor: `var(--avatar-${index}-border)`,
+		},
+	};
 }
 
 interface AvatarWithFallbackProps {
@@ -107,17 +94,17 @@ export function AvatarWithFallback({
 	const imageUrl = getAssetUrl(src);
 	const initials = getInitials(name);
 	const displayAlt = alt || name || "Avatar";
-	const nameColorClasses = getNameColor(name);
+	const tone = nameTone(name);
 
 	return (
 		<div
 			className={cn(
 				"relative flex shrink-0 select-none items-center justify-center rounded-lg overflow-hidden border",
 				sizeMap[size],
-				!imageUrl ? nameColorClasses : "bg-muted border-border",
+				!imageUrl ? tone.classes : "bg-muted border-border",
 				className
 			)}
-			style={style}
+			style={{ ...(imageUrl ? undefined : tone.style), ...style }}
 		>
 			{imageUrl ? (
 				<img
@@ -131,9 +118,8 @@ export function AvatarWithFallback({
 						// Update parent background to use name colors when image fails
 						const parent = target.parentElement;
 						if (parent) {
-							parent.className = parent.className
-								.replace("bg-muted", "")
-								.concat(` ${nameColorClasses}`);
+							parent.classList.remove("bg-muted");
+							Object.assign(parent.style, tone.style);
 						}
 					}}
 				/>
@@ -144,11 +130,7 @@ export function AvatarWithFallback({
 				className={cn(
 					"absolute inset-0 flex items-center justify-center font-medium",
 					textSizeMap[size],
-					imageUrl && "opacity-0", // Hidden when image is available
-					// Use consistent colors for text - extract text color from nameColorClasses
-					!imageUrl && nameColorClasses.includes("text-")
-						? nameColorClasses.split(" ").find((cls) => cls.startsWith("text-"))
-						: "text-muted-foreground"
+					imageUrl && "opacity-0" // Hidden when image is available
 				)}
 			>
 				{initials}

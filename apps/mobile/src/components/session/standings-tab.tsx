@@ -7,7 +7,7 @@ import type { SessionPlayer } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { StaticList } from "@/components/ui/static-list";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
@@ -72,7 +72,7 @@ export function SessionPlayerStandings({
 						))}
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No standings
 					</ThemedText>
 				)
@@ -131,7 +131,7 @@ export function SessionTeamStandings({
 						))}
 					</View>
 				) : (
-					<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+					<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 						No team standings
 					</ThemedText>
 				)
@@ -143,7 +143,7 @@ export function SessionTeamStandings({
 const styles = StyleSheet.create({
 	separator: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: "rgba(128,128,128,0.25)",
+		backgroundColor: SharedColors.divider,
 		marginLeft: 44,
 	},
 	empty: { textAlign: "center", marginVertical: Spacing.three },

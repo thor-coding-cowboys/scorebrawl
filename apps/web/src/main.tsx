@@ -9,8 +9,12 @@ import ReactDOM from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 
 import "./index.css";
+import { applyThemeTokens } from "@coding-cowboys/scorebrawl-client/theme";
 import { TRPCProvider, trpcClient } from "./lib/trpc";
 import { queryClient } from "./lib/query-client";
+
+// Install the shared colour tokens before the first render.
+applyThemeTokens();
 
 // Create a new router instance
 const router = createRouter({

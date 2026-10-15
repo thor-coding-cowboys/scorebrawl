@@ -1,66 +1,76 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Colours are authored once in @coding-cowboys/scorebrawl-core/theme (oklch).
+ * This module only shapes them for React Native: flat camelCase keys, hex,
+ * and an explicit `mode`. Do not add literal colour values here.
  */
 
 import "@/global.css";
 
+import { toMobileColors } from "@coding-cowboys/scorebrawl-core/theme";
+import type { MobileColors } from "@coding-cowboys/scorebrawl-core/theme";
 import { Platform } from "react-native";
 
-export const Colors = {
-	light: {
-		text: "#000000",
-		background: "#ffffff",
-		backgroundElement: "#F0F0F3",
-		backgroundSelected: "#E0E1E6",
-		textSecondary: "#60646C",
-		primary: "#7c3aed",
-		buttonPrimary: "#3704fd",
-		primaryForeground: "#ffffff",
-		glowBlueBg: "rgba(59, 130, 246, 0.10)",
-		glowBlueText: "#2563eb",
-		glowBlueBorder: "rgba(59, 130, 246, 0.20)",
-		amberBg: "rgba(245, 158, 11, 0.10)",
-		amberText: "#b45309",
-		amberBorder: "rgba(245, 158, 11, 0.30)",
-		border: "#E4E4E7",
-		destructive: "#dc2626",
-		card: "#ffffff",
-		surface: "#ffffff",
-		segmentTrack: "#F4F4F5",
-		segmentThumb: "#ffffff",
-		segmentThumbBorder: "rgba(0, 0, 0, 0.08)",
-		mutedForeground: "#71717a",
-		splashBackground: "#FAFBFE",
-	},
-	dark: {
-		text: "#ffffff",
-		background: "#000000",
-		backgroundElement: "#212225",
-		backgroundSelected: "#2E3135",
-		textSecondary: "#B0B4BA",
-		primary: "#8b5cf6",
-		buttonPrimary: "#4515ff",
-		primaryForeground: "#ffffff",
-		glowBlueBg: "rgba(37, 99, 235, 0.20)",
-		glowBlueText: "#93c5fd",
-		glowBlueBorder: "rgba(37, 99, 235, 0.30)",
-		amberBg: "rgba(245, 158, 11, 0.10)",
-		amberText: "#fbbf24",
-		amberBorder: "rgba(245, 158, 11, 0.30)",
-		border: "rgba(255, 255, 255, 0.1)",
-		destructive: "#f87171",
-		card: "#202023",
-		surface: "#0c0c0e",
-		segmentTrack: "rgba(255, 255, 255, 0.04)",
-		segmentThumb: "rgba(255, 255, 255, 0.09)",
-		segmentThumbBorder: "rgba(255, 255, 255, 0.06)",
-		mutedForeground: "#a1a1aa",
-		splashBackground: "#061739",
-	},
-} as const;
+export type { MobileColors };
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export const Colors: { light: MobileColors; dark: MobileColors } = {
+	light: toMobileColors("light"),
+	dark: toMobileColors("dark"),
+};
+
+const shared = Colors.light;
+
+/**
+ * Mode-invariant utility colours — safe to reference at module scope (e.g.
+ * `StyleSheet.create`). `packages/core` tests assert light and dark agree.
+ * Mode-dependent families (`glow`, `role`, the semantic tokens) must be read
+ * from `useTheme()` instead.
+ */
+export const SharedColors = {
+	divider: shared.divider,
+	dividerBorder: shared.dividerBorder,
+	dividerStrong: shared.dividerStrong,
+	overlay: shared.overlay,
+	overlaySoft: shared.overlaySoft,
+	faint: shared.faint,
+	warning: shared.warning,
+	link: shared.link,
+	brandFrom: shared.brandFrom,
+	brandTo: shared.brandTo,
+	formWin: shared.formWin,
+	formDraw: shared.formDraw,
+	formLoss: shared.formLoss,
+	seasonStatusActiveText: shared.seasonStatusActiveText,
+	seasonStatusUpcomingText: shared.seasonStatusUpcomingText,
+	seasonStatusEndedText: shared.seasonStatusEndedText,
+	seasonStatusLockedText: shared.seasonStatusLockedText,
+	seasonStatusArchivedText: shared.seasonStatusArchivedText,
+	invitationStatusPendingText: shared.invitationStatusPendingText,
+	invitationStatusAcceptedText: shared.invitationStatusAcceptedText,
+	invitationStatusRejectedText: shared.invitationStatusRejectedText,
+	invitationStatusCanceledText: shared.invitationStatusCanceledText,
+	scoreTypeEloText: shared.scoreTypeEloText,
+	scoreTypeThreeOneZeroText: shared.scoreTypeThreeOneZeroText,
+	scoreTypeOneVnEloText: shared.scoreTypeOneVnEloText,
+};
+
+/** Semantic surface/ink tokens addressable by `ThemedText`/`ThemedView`. */
+export type ThemeColor =
+	| "background"
+	| "foreground"
+	| "card"
+	| "muted"
+	| "mutedForeground"
+	| "backgroundSelected"
+	| "primary"
+	| "primaryForeground"
+	| "secondary"
+	| "secondaryForeground"
+	| "accent"
+	| "accentForeground"
+	| "border"
+	| "input"
+	| "ring"
+	| "destructive";
 
 const MONO_STACK =
 	"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";

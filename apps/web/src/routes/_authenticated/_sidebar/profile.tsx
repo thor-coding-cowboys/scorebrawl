@@ -300,7 +300,7 @@ function ProfilePage() {
 				{/* Stats Cards */}
 				<div className="grid gap-3 md:grid-cols-2">
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-purple" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Leagues</CardTitle>
 							<HugeiconsIcon icon={Award01Icon} className="size-4 text-purple-600" />
@@ -312,7 +312,7 @@ function ProfilePage() {
 					</Card>
 
 					<Card className="relative overflow-hidden">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]" />
+						<div className="absolute inset-0 card-glow-blue" />
 						<CardHeader className="relative flex flex-row items-center justify-between pb-2">
 							<CardTitle className="text-sm font-medium">Matches</CardTitle>
 							<HugeiconsIcon icon={Target01Icon} className="size-4 text-blue-600" />

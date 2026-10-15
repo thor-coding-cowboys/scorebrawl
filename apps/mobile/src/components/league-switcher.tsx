@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { CreateLeagueForm } from "@/components/create-league-form";
 import { ThemedText } from "@/components/themed-text";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
-import { Spacing } from "@/constants/theme";
+import { Spacing, SharedColors } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -84,14 +84,14 @@ export function LeagueSwitcher() {
 					<ThemedText type="smallBold" numberOfLines={1}>
 						{activeLeague.name}
 					</ThemedText>
-					<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+					<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 						/{activeLeague.slug}
 					</ThemedText>
 				</View>
 				<SymbolView
 					name={{ ios: "chevron.up.chevron.down", android: "unfold_more", web: "unfold_more" }}
 					size={16}
-					tintColor={theme.textSecondary}
+					tintColor={theme.mutedForeground}
 				/>
 			</Pressable>
 
@@ -111,7 +111,7 @@ export function LeagueSwitcher() {
 					>
 						<View style={styles.sheetHandle} />
 						<View style={styles.sheetHeader}>
-							<ThemedText type="smallBold" themeColor="textSecondary" style={styles.sheetLabel}>
+							<ThemedText type="smallBold" themeColor="mutedForeground" style={styles.sheetLabel}>
 								Leagues
 							</ThemedText>
 							<ModalCloseButton onPress={() => setIsOpen(false)} />
@@ -128,7 +128,7 @@ export function LeagueSwitcher() {
 										onPress={() => handleSelect(org.id)}
 										style={({ pressed }) => [
 											styles.leagueItem,
-											isActive && { backgroundColor: theme.backgroundElement },
+											isActive && { backgroundColor: theme.muted },
 											pressed && { opacity: 0.7 },
 										]}
 									>
@@ -155,7 +155,7 @@ export function LeagueSwitcher() {
 							<SymbolView
 								name={{ ios: "plus", android: "add", web: "add" }}
 								size={16}
-								tintColor={theme.text}
+								tintColor={theme.foreground}
 							/>
 							<ThemedText type="small">Create league</ThemedText>
 						</Pressable>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
 	},
 	backdrop: {
 		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
+		backgroundColor: SharedColors.overlay,
 		justifyContent: "flex-end",
 	},
 	sheet: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 4,
 		borderRadius: 0,
-		backgroundColor: "rgba(128,128,128,0.4)",
+		backgroundColor: SharedColors.dividerStrong,
 		marginBottom: Spacing.three,
 	},
 	sheetLabel: {
@@ -229,6 +229,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: Spacing.two,
 		marginTop: Spacing.two,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

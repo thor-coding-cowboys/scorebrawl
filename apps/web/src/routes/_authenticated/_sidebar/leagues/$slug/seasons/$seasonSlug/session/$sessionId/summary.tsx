@@ -22,6 +22,7 @@ import { DashboardCard } from "../../../-components/season/dashboard-card";
 import { OverviewCard } from "../../../-components/season/overview-card";
 import { useCarousel } from "@/hooks/use-carousel";
 import { cn } from "@/lib/utils";
+import { formColors } from "@/lib/theme-tokens";
 import {
 	formatDuration,
 	rotationLabel,
@@ -50,9 +51,9 @@ function formatDate(d: Date | null | undefined): string {
 }
 
 const matchResultsConfig = {
-	wins: { label: "Wins", color: "#22c55e" },
-	losses: { label: "Losses", color: "#ef4444" },
-	draws: { label: "Draws", color: "#6b7280" },
+	wins: { label: "Wins", color: formColors.W },
+	losses: { label: "Losses", color: formColors.L },
+	draws: { label: "Draws", color: formColors.D },
 } satisfies ChartConfig;
 
 function SessionSummaryPage() {
@@ -305,7 +306,7 @@ function SummaryDashboardCards({
 			key="session"
 			title="Session"
 			icon={Clock01Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.1),transparent_60%)]"
+			glowColor="card-glow-blue"
 			iconColor="text-blue-600"
 		>
 			<div className="text-lg font-bold">{formatDate(summary.createdAt)}</div>
@@ -317,7 +318,7 @@ function SummaryDashboardCards({
 			key="matches"
 			title="Matches"
 			icon={Target01Icon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),transparent_60%)]"
+			glowColor="card-glow-emerald"
 			iconColor="text-emerald-600"
 		>
 			<div className="text-2xl font-bold">{summary.totalMatches}</div>
@@ -328,7 +329,7 @@ function SummaryDashboardCards({
 				key="mvp"
 				title="MVP"
 				icon={Crown02Icon}
-				glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.12),transparent_60%)]"
+				glowColor="card-glow-amber"
 				iconColor="text-yellow-600"
 			>
 				<div className="flex items-center gap-2 min-w-0">
@@ -346,7 +347,7 @@ function SummaryDashboardCards({
 				key="mvp"
 				title="MVP"
 				icon={Crown02Icon}
-				glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.12),transparent_60%)]"
+				glowColor="card-glow-amber"
 				iconColor="text-yellow-600"
 			>
 				<div className="text-sm text-muted-foreground">No matches played</div>
@@ -356,7 +357,7 @@ function SummaryDashboardCards({
 			key="teams"
 			title="Teams"
 			icon={UserMultipleIcon}
-			glowColor="bg-[radial-gradient(circle_at_top_right,_rgba(168,85,247,0.1),transparent_60%)]"
+			glowColor="card-glow-purple"
 			iconColor="text-purple-600"
 		>
 			{bestCombo ? (

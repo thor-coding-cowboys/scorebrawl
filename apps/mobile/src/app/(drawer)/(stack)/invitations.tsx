@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { SkeletonListRow, SkeletonTrailing } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, SharedColors, Spacing } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
@@ -45,19 +45,19 @@ const STATUS_CONFIG: Record<
 	{ color: string; icon: Parameters<typeof SymbolView>[0]["name"] }
 > = {
 	pending: {
-		color: "#eab308",
+		color: SharedColors.invitationStatusPendingText,
 		icon: { ios: "clock.fill", android: "schedule", web: "schedule" },
 	},
 	accepted: {
-		color: "#16a34a",
+		color: SharedColors.invitationStatusAcceptedText,
 		icon: { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" },
 	},
 	rejected: {
-		color: "#dc2626",
+		color: SharedColors.invitationStatusRejectedText,
 		icon: { ios: "xmark.circle.fill", android: "cancel", web: "cancel" },
 	},
 	canceled: {
-		color: "#6b7280",
+		color: SharedColors.invitationStatusCanceledText,
 		icon: { ios: "minus.circle.fill", android: "remove_circle", web: "remove_circle" },
 	},
 };
@@ -184,7 +184,7 @@ function InviteMemberForm({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 										>
 											<ThemedText
 												type="smallBold"
-												style={{ color: selected ? theme.primary : theme.text }}
+												style={{ color: selected ? theme.primary : theme.foreground }}
 											>
 												{formatRole(option)}
 											</ThemedText>
@@ -386,7 +386,7 @@ export default function InvitationsScreen() {
 									<ThemedText style={styles.rowName} numberOfLines={1}>
 										{item.email}
 									</ThemedText>
-									<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+									<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 										{formatRole(item.role || "member")} • Sent {formatDate(item.createdAt)}
 									</ThemedText>
 								</View>
@@ -426,14 +426,14 @@ export default function InvitationsScreen() {
 						isMemberPending ? (
 							<InvitationsSkeleton />
 						) : !canAccess ? (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								You don’t have access to manage invitations.
 							</ThemedText>
 						) : isLoading ? (
 							<InvitationsSkeleton />
 						) : isError ? (
 							<View style={styles.emptyBox}>
-								<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+								<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 									Couldn’t load invitations
 								</ThemedText>
 								<Button variant="outline" onPress={() => refetch()}>
@@ -441,7 +441,7 @@ export default function InvitationsScreen() {
 								</Button>
 							</View>
 						) : (
-							<ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
+							<ThemedText type="small" themeColor="mutedForeground" style={styles.empty}>
 								No invitations sent yet
 							</ThemedText>
 						)
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
 		gap: Spacing.three,
 		paddingVertical: Spacing.three,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(128,128,128,0.25)",
+		borderBottomColor: SharedColors.divider,
 	},
 	iconTile: {
 		width: 44,
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
 	},
 	rowRail: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: "rgba(128,128,128,0.25)",
+		borderLeftColor: SharedColors.divider,
 		paddingLeft: Spacing.three,
 		alignItems: "flex-end",
 		alignSelf: "stretch",
@@ -570,6 +570,6 @@ const styles = StyleSheet.create({
 	modalActions: {
 		paddingTop: Spacing.three,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(128,128,128,0.3)",
+		borderTopColor: SharedColors.dividerBorder,
 	},
 });

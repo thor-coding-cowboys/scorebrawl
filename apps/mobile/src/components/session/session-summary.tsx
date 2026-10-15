@@ -13,7 +13,7 @@ import {
 	SkeletonStandingRow,
 	SkeletonStatGrid,
 } from "@/components/ui/skeleton-rows";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing, SharedColors } from "@/constants/theme";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -27,7 +27,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 	const theme = useTheme();
 	return (
 		<View style={[styles.section, { borderTopColor: theme.border }]}>
-			<ThemedText themeColor="textSecondary" style={styles.sectionTitle}>
+			<ThemedText themeColor="mutedForeground" style={styles.sectionTitle}>
 				{title}
 			</ThemedText>
 			{children}
@@ -38,14 +38,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
 	return (
 		<View style={styles.stat}>
-			<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+			<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 				{label}
 			</ThemedText>
 			<ThemedText style={styles.statValue} numberOfLines={1}>
 				{value}
 			</ThemedText>
 			{sub ? (
-				<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+				<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 					{sub}
 				</ThemedText>
 			) : null}
@@ -89,7 +89,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 					<SessionSummarySkeleton />
 				) : query.isError || !summary ? (
 					<View style={styles.emptyBox}>
-						<ThemedText type="small" themeColor="textSecondary">
+						<ThemedText type="small" themeColor="mutedForeground">
 							Couldn't load summary
 						</ThemedText>
 						<Button variant="outline" onPress={() => query.refetch()}>
@@ -142,7 +142,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 										key={p.seasonPlayerId}
 										style={[styles.row, { borderBottomColor: theme.border }]}
 									>
-										<ThemedText type="small" themeColor="textSecondary" style={styles.rank}>
+										<ThemedText type="small" themeColor="mutedForeground" style={styles.rank}>
 											{i + 1}
 										</ThemedText>
 										<Avatar name={p.displayName} image={getAvatarUri(p.playerImage)} size={32} />
@@ -150,13 +150,16 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 											<ThemedText style={styles.rowValue} numberOfLines={1}>
 												{p.displayName}
 											</ThemedText>
-											<ThemedText type="small" themeColor="textSecondary">
+											<ThemedText type="small" themeColor="mutedForeground">
 												{p.gamesPlayedThisSession}G · {p.wins}W · {p.losses}L
 											</ThemedText>
 										</View>
 										{delta != null ? (
 											<ThemedText
-												style={[styles.subValue, { color: delta >= 0 ? "#22c55e" : "#ef4444" }]}
+												style={[
+													styles.subValue,
+													{ color: delta >= 0 ? SharedColors.formWin : SharedColors.formLoss },
+												]}
 											>
 												{delta >= 0 ? `+${delta}` : delta}
 											</ThemedText>
@@ -176,14 +179,14 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 											key={m.matchNumber}
 											style={[styles.row, { borderBottomColor: theme.border }]}
 										>
-											<ThemedText type="small" themeColor="textSecondary" style={styles.matchNum}>
+											<ThemedText type="small" themeColor="mutedForeground" style={styles.matchNum}>
 												#{m.matchNumber}
 											</ThemedText>
 											<View style={styles.matchLines}>
 												<View style={styles.matchLine}>
 													<ThemedText
 														type="small"
-														themeColor={homeWon ? "text" : "textSecondary"}
+														themeColor={homeWon ? "foreground" : "mutedForeground"}
 														style={[styles.matchSide, homeWon && styles.matchWinner]}
 														numberOfLines={1}
 													>
@@ -194,7 +197,7 @@ export function SessionSummaryView({ sessionId }: { sessionId: string }) {
 												<View style={styles.matchLine}>
 													<ThemedText
 														type="small"
-														themeColor={awayWon ? "text" : "textSecondary"}
+														themeColor={awayWon ? "foreground" : "mutedForeground"}
 														style={[styles.matchSide, awayWon && styles.matchWinner]}
 														numberOfLines={1}
 													>

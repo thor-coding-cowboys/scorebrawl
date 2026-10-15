@@ -10,11 +10,15 @@
 		"./query-client": "./src/query-client/index.ts",
 		"./realtime": "./src/realtime/index.ts",
 		"./score-sync": "./src/score-sync/index.ts",
+		"./theme": "./src/theme/index.ts",
 		"./trpc": "./src/trpc/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run"
+	},
+	"dependencies": {
+		"@coding-cowboys/scorebrawl-core": "workspace:*"
 	},
 	"devDependencies": {
 		"@tanstack/react-query": "catalog:",

@@ -83,7 +83,7 @@ export function SeasonDashboard({ season }: { season: Season }) {
 												web: "play_circle",
 											}}
 											label={activeSession ? "Go to session" : "Start session"}
-											tint={activeSession ? theme.amberText : undefined}
+											tint={activeSession ? theme.glowAmberText : undefined}
 											onPress={openSession}
 										/>
 									) : null}
@@ -107,7 +107,7 @@ export function SeasonDashboard({ season }: { season: Season }) {
 				<View style={styles.body}>
 					<View style={styles.meta}>
 						<View style={[styles.metaDot, { backgroundColor: scoreConfig.color }]} />
-						<ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+						<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
 							{scoreConfig.label} · {dateRange}
 							{isLocked ? " · Locked" : ""}
 						</ThemedText>

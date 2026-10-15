@@ -31,7 +31,7 @@ export default function SeasonOverviewScreen() {
 	if (seasonQuery.isError) {
 		return (
 			<View style={styles.emptyBox}>
-				<ThemedText type="small" themeColor="textSecondary">
+				<ThemedText type="small" themeColor="mutedForeground">
 					Couldn't load season
 				</ThemedText>
 				<Button variant="outline" onPress={() => seasonQuery.refetch()}>

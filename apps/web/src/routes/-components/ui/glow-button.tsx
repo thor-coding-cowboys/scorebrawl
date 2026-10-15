@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { VariantProps } from "class-variance-authority";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -11,6 +11,7 @@ export interface GlowButtonProps extends VariantProps<typeof buttonVariants> {
 	glowColor?: { background: string; text: string; border: string } | string;
 	iconClassName?: string;
 	className?: string;
+	style?: CSSProperties;
 	children?: ReactNode;
 	onClick?: () => void;
 	disabled?: boolean;
@@ -22,6 +23,7 @@ export function GlowButton({
 	glowColor,
 	iconClassName,
 	className,
+	style,
 	children,
 	size = "default",
 	type = "button",
@@ -29,15 +31,13 @@ export function GlowButton({
 	onClick,
 	...props
 }: GlowButtonProps) {
-	// Use purple as default glow color for default variant
 	const finalGlowColor = glowColor || glowColors.blue;
 
-	// Handle both old string format and new object format
-	const backgroundClass =
+	// Handle both the object format and the legacy class-string format
+	const backgroundColor =
 		typeof finalGlowColor === "string" ? finalGlowColor : finalGlowColor.background;
-	const textClass = typeof finalGlowColor === "string" ? "text-foreground" : finalGlowColor.text;
-	const borderClass =
-		typeof finalGlowColor === "string" ? "border-foreground/10" : finalGlowColor.border;
+	const color = typeof finalGlowColor === "string" ? "var(--foreground)" : finalGlowColor.text;
+	const borderColor = typeof finalGlowColor === "string" ? "var(--border)" : finalGlowColor.border;
 
 	// With glow effect - create a button with filled background like status badges
 	return (
@@ -45,6 +45,7 @@ export function GlowButton({
 			type={type}
 			disabled={disabled}
 			onClick={onClick}
+			style={{ backgroundColor, color, borderColor, ...style }}
 			className={cn(
 				// Base button styles from buttonVariants
 				"focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-none border bg-clip-padding text-xs font-medium focus-visible:ring-1 aria-invalid:ring-1 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none group/button select-none",
@@ -55,10 +56,6 @@ export function GlowButton({
 					"h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
 				size === "lg" &&
 					"h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-				// Badge-like styling with filled background effect
-				backgroundClass,
-				textClass,
-				borderClass,
 				// Hover effect
 				"hover:opacity-80",
 				className
@@ -71,37 +68,36 @@ export function GlowButton({
 	);
 }
 
-// Predefined glow colors matching the status badge patterns with filled backgrounds
-// Includes dark mode variants for better contrast
+// Predefined glow colors sourced from packages/core/theme glow tones.
 export const glowColors = {
 	red: {
-		background: "bg-red-500/10 dark:bg-red-600/20",
-		text: "text-red-600 dark:text-red-300",
-		border: "border-red-500/20 dark:border-red-600/30",
+		background: "var(--glow-red-background)",
+		text: "var(--glow-red-text)",
+		border: "var(--glow-red-border)",
 	},
 	blue: {
-		background: "bg-blue-500/10 dark:bg-blue-600/20",
-		text: "text-blue-600 dark:text-blue-300",
-		border: "border-blue-500/20 dark:border-blue-600/30",
+		background: "var(--glow-blue-background)",
+		text: "var(--glow-blue-text)",
+		border: "var(--glow-blue-border)",
 	},
 	emerald: {
-		background: "bg-emerald-500/10 dark:bg-emerald-600/20",
-		text: "text-emerald-600 dark:text-emerald-300",
-		border: "border-emerald-500/20 dark:border-emerald-600/30",
+		background: "var(--glow-emerald-background)",
+		text: "var(--glow-emerald-text)",
+		border: "var(--glow-emerald-border)",
 	},
 	amber: {
-		background: "bg-amber-500/10 dark:bg-amber-600/20",
-		text: "text-amber-600 dark:text-amber-300",
-		border: "border-amber-500/20 dark:border-amber-600/30",
+		background: "var(--glow-amber-background)",
+		text: "var(--glow-amber-text)",
+		border: "var(--glow-amber-border)",
 	},
 	purple: {
-		background: "bg-purple-500/10 dark:bg-purple-600/20",
-		text: "text-purple-600 dark:text-purple-300",
-		border: "border-purple-500/20 dark:border-purple-600/30",
+		background: "var(--glow-purple-background)",
+		text: "var(--glow-purple-text)",
+		border: "var(--glow-purple-border)",
 	},
 	pink: {
-		background: "bg-pink-500/10 dark:bg-pink-600/20",
-		text: "text-pink-600 dark:text-pink-300",
-		border: "border-pink-500/20 dark:border-pink-600/30",
+		background: "var(--glow-pink-background)",
+		text: "var(--glow-pink-text)",
+		border: "var(--glow-pink-border)",
 	},
 } as const;
