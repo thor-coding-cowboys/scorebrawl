@@ -395,9 +395,10 @@ export default function ProfileScreen() {
 												<Pressable
 													accessibilityRole="button"
 													hitSlop={8}
-													onPress={() =>
-														setEditingPasskey({ id: passkey.id, name: passkey.name || "" })
-													}
+													onPress={() => {
+														renamePasskey.reset();
+														setEditingPasskey({ id: passkey.id, name: passkey.name || "" });
+													}}
 												>
 													<ThemedText type="small" themeColor="mutedForeground">
 														Rename
@@ -465,6 +466,7 @@ export default function ProfileScreen() {
 				isOpen={editingPasskey !== null}
 				currentName={editingPasskey?.name ?? ""}
 				isSaving={renamePasskey.isPending}
+				error={renamePasskey.error instanceof Error ? renamePasskey.error.message : undefined}
 				onClose={() => setEditingPasskey(null)}
 				onSave={(name) => {
 					if (editingPasskey) renamePasskey.mutate({ id: editingPasskey.id, name });

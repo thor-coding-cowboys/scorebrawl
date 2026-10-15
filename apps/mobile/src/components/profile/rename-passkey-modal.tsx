@@ -8,21 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 
 export function RenamePasskeyModal({
 	isOpen,
 	currentName,
 	isSaving,
+	error,
 	onClose,
 	onSave,
 }: {
 	isOpen: boolean;
 	currentName: string;
 	isSaving: boolean;
+	error?: string;
 	onClose: () => void;
 	onSave: (name: string) => void;
 }) {
 	const insets = useSafeAreaInsets();
+	const theme = useTheme();
 	const [name, setName] = useState(currentName);
 
 	useEffect(() => {
@@ -51,6 +55,12 @@ export function RenamePasskeyModal({
 						editable={!isSaving}
 						autoFocus
 					/>
+
+					{error ? (
+						<ThemedText type="small" style={{ color: theme.destructive }}>
+							{error}
+						</ThemedText>
+					) : null}
 
 					<View style={styles.actions}>
 						<Button variant="outline" onPress={onClose} disabled={isSaving}>
