@@ -143,7 +143,7 @@
         "@better-auth/api-key": "1.7.3",
         "@better-auth/expo": "catalog:",
         "@better-auth/oauth-provider": "1.7.3",
-        "@better-auth/passkey": "1.7.3",
+        "@better-auth/passkey": "catalog:",
         "@coding-cowboys/scorebrawl-core": "workspace:*",
         "@coding-cowboys/scorebrawl-util": "workspace:*",
         "@hono/trpc-server": "^0.4.1",
@@ -237,6 +237,7 @@
   ],
   "catalog": {
     "@better-auth/expo": "1.7.3",
+    "@better-auth/passkey": "1.7.3",
     "@cloudflare/workers-types": "^4.20251213.0",
     "@ihs7/ts-elo": "^2.0.0",
     "@tanstack/react-query": "^5.90.12",
