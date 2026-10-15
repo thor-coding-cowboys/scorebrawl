@@ -17,8 +17,6 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
-import { useAnnouncer } from "@/hooks/use-announcer";
-import { useSessionAnnouncer } from "@/hooks/use-session-announcer";
 import { useSessionRealtime } from "@/hooks/use-session-realtime";
 import { useTheme } from "@/hooks/use-theme";
 import { trpcClient, useTRPC } from "@/lib/trpc";
@@ -59,12 +57,9 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 	const queryClient = useQueryClient();
 	const { activeLeague } = useActiveLeague();
 	const theme = useTheme();
-	const { enabled: announcerEnabled, setEnabled: setAnnouncerEnabled } = useAnnouncer();
 
 	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
 	const session = sessionQuery.data as GameSession | undefined;
-
-	useSessionAnnouncer({ session, enabled: announcerEnabled });
 
 	const [showSettings, setShowSettings] = useState(false);
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -139,16 +134,6 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 						headerRight: session
 							? () => (
 									<HeaderActions>
-										<HeaderIconButton
-											icon={
-												announcerEnabled
-													? { ios: "speaker.wave.2.fill", android: "volume_up", web: "volume_up" }
-													: { ios: "speaker.slash.fill", android: "volume_off", web: "volume_off" }
-											}
-											label={announcerEnabled ? "Announcer on" : "Announcer off"}
-											tint={announcerEnabled ? theme.primary : theme.foreground}
-											onPress={() => setAnnouncerEnabled(!announcerEnabled)}
-										/>
 										<HeaderIconButton
 											icon={{ ios: "person.badge.plus", android: "person_add", web: "person_add" }}
 											label="Add player"
