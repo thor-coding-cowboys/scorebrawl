@@ -125,7 +125,7 @@ Other: `bun db:studio` (inspect), `bun db:reset` (clean + reapply)
 
 ## Post-Change Commands
 
-After making a change to TypeScript files always run `bun oxc` and `bun typecheck`
+After making a change to TypeScript files always run `bun lint && bun fmt` and `bun typecheck`
 
 When asked for full verification: `bun check && bun run test`
 
@@ -159,6 +159,21 @@ Use **agent-browser** skill for UI verification. App uses **portless** — alway
 - No `@ts-expect-error` or `@ts-ignore`
 - Well-typed code throughout
 - Oxc (oxlint + oxfmt) for lint/format
+
+## Lint & Format Scripts
+
+- `bun fmt` / `bun fmt:check` - format (write) / verify formatting (oxfmt)
+- `bun lint` / `bun lint:check` - lint + auto-fix (write) / verify (oxlint)
+- `bun check` - typecheck + `lint:check` + `fmt:check`
+
+## Git Hooks
+
+Native git `pre-commit` hook (no husky). Runs `fmt:check` and `lint:check` on **staged files only**; any failure blocks the commit.
+
+- Script: `scripts/git-hooks/pre-commit.ts`
+- Installer: `scripts/git-hooks/install.ts`, wired to the root `prepare` script (runs on `bun install`); reinstall with `bun scripts/git-hooks/install.ts`
+- Installed to `.git/hooks/pre-commit` (symlink); does not use `core.hooksPath`
+- Fix failures with `bun fmt` / `bun lint`; bypass with `git commit --no-verify`
 
 ## Deployment
 

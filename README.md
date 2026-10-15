@@ -72,7 +72,8 @@ This is a **Turborepo monorepo** managed with **Bun**, featuring a modern full-s
 # Development
 bun run dev              # Start development servers
 bun run build           # Build for production
-bun oxc                 # Format and lint code with auto-fix
+bun fmt / bun fmt:check # Format / verify formatting
+bun lint / bun lint:check # Lint with auto-fix / verify lint
 bun check               # Run typecheck, lint, and format checks
 
 # Database
@@ -88,7 +89,7 @@ bun run test           # Run all tests
 
 ## 🤝 Contributing
 
-1. Follow the existing code style and use `bun oxc` for formatting
+1. Follow the existing code style and use `bun fmt` (and `bun lint`) for formatting
 2. Create database migrations with `bun db:generate`
 3. Add tests for new features in `apps/worker/src/test/`
 4. Update documentation as needed

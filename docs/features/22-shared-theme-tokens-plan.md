@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Package manager: **bun** only. Never npm/yarn/pnpm. Never `bun test` — always `bun run test`. Never `bun deploy`.
-- After any TypeScript change: `bun oxc && bun typecheck`. Every commit ends with `bun check && bun run test` green.
+- After any TypeScript change: `bun lint && bun fmt && bun typecheck`. Every commit ends with `bun check && bun run test` green.
 - `packages/core` stays dependency-free and pure: no React, no DOM, no React Native. `packages/core/tsconfig.json` keeps `lib: ["ES2023"]`.
 - Worker never imports the theme.
 - Every colour is authored **in `oklch`**, including alpha (`oklch(… / 10%)`). No hex, no `rgba()` in core.
@@ -195,7 +195,7 @@ Export two pure functions: `themeCssVars(mode)` (tree only) and `paletteVars()` 
 
 - [ ] **Step 10: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 Expected: all green.
 
 ```bash
@@ -286,7 +286,7 @@ Add `"theme"` to `packages/client/package.json` `exports` (`"./theme": "./src/th
 
 - [ ] **Step 8: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add packages/client
@@ -355,7 +355,7 @@ Run: `bun dev`, open `https://scorebrawl.localhost:1355`, log in as `seed@exampl
 
 - [ ] **Step 7: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add apps/web packages/client
@@ -449,7 +449,7 @@ Apply these mechanical renames across `apps/mobile/src` (only `theme.` and `Colo
 
 - [ ] **Step 8: Verify (typecheck is the test) and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 Expected: green; the rename is proven complete because a missed key fails `tsgo`.
 
 ```bash
@@ -516,7 +516,7 @@ Expected: only hits inside `apps/web/src/routes/-components/ui/chart.tsx` (moved
 
 - [ ] **Step 6: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add apps/web apps/mobile packages/core
@@ -586,7 +586,7 @@ Run: `bun --cwd packages/core test avatar`
 
 - [ ] **Step 7: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add packages/core apps/web apps/mobile
@@ -631,7 +631,7 @@ Expected: no matches.
 
 - [ ] **Step 6: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add apps/web apps/mobile
@@ -662,7 +662,7 @@ Expected: no matches.
 
 - [ ] **Step 3: Verify and commit**
 
-Run: `bun oxc && bun typecheck && bun check && bun run test`
+Run: `bun lint && bun fmt && bun typecheck && bun check && bun run test`
 
 ```bash
 git add apps/web apps/mobile
