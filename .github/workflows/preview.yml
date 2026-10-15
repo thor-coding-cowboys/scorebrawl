@@ -1,20 +1,58 @@
 name: Preview Environment
 
 on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to deploy a preview for (must have an open PR)
+        required: true
+        type: string
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [closed]
+
+concurrency:
+  group: preview-${{ github.event.inputs.branch || github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   deploy-preview:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: write
+      pull-requests: read
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: 🔎 Validate branch has an open PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          pr_json=$(gh pr list --head "$BRANCH" --state all --json number,state,isDraft --jq 'sort_by(.number) | last // empty')
+
+          if [ -z "$pr_json" ]; then
+            echo "::error::No pull request exists for branch '$BRANCH'. Create a PR (draft or ready for review) before creating a preview."
+            exit 1
+          fi
+
+          pr_number=$(echo "$pr_json" | jq -r '.number')
+          pr_state=$(echo "$pr_json" | jq -r '.state')
+          pr_draft=$(echo "$pr_json" | jq -r '.isDraft')
+
+          if [ "$pr_state" != "OPEN" ]; then
+            echo "::error::PR #$pr_number for branch '$BRANCH' is $pr_state. A preview can only be created for an open PR (draft or ready for review)."
+            exit 1
+          fi
+
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "is_draft=$pr_draft" >> "$GITHUB_OUTPUT"
+          echo "Detected open PR #$pr_number (draft: $pr_draft) for branch '$BRANCH'"
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -36,7 +74,7 @@ jobs:
         id: create-db
         run: bun run .github/scripts/preview/create-d1-db.ts
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -44,7 +82,7 @@ jobs:
         id: get-db
         run: bun run .github/scripts/preview/get-d1-db-id.ts
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -52,7 +90,7 @@ jobs:
         id: create-r2
         run: bun run .github/scripts/preview/create-r2-bucket.ts
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -60,7 +98,7 @@ jobs:
         id: create-queue
         run: bun run .github/scripts/preview/create-queue.ts
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -68,7 +106,7 @@ jobs:
         id: prepare-config
         run: bun run .github/scripts/preview/prepare-wrangler-config.ts
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           DB_ID: ${{ steps.get-db.outputs.database_id }}
           DB_NAME: ${{ steps.get-db.outputs.database_name }}
           BUCKET_NAME: ${{ steps.create-r2.outputs.bucket_name }}
@@ -113,66 +151,25 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config wrangler.preview.jsonc --var VERSION:${{ github.sha }}
 
-      - name: 📋 Get preview URL
-        id: get-url
+      - name: 📋 Summarize preview
         run: |
-          PREVIEW_URL="https://${{ steps.prepare-config.outputs.worker_name }}.coding-cowboys.workers.dev"
-          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
-
-      - name: 💬 Comment on PR
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            const prNumber = context.issue.number;
-            const previewUrl = '${{ steps.get-url.outputs.preview_url }}';
-            const dbName = '${{ steps.get-db.outputs.database_name }}';
-
-            const bucketName = '${{ steps.create-r2.outputs.bucket_name }}';
-            const achievementQueueName = '${{ steps.create-queue.outputs.achievement_queue_name }}';
-            const seedQueueName = '${{ steps.create-queue.outputs.seed_queue_name }}';
-            const comment = `## 🚀 Preview Environment Deployed
-
-            **Preview URL:** <a href="${previewUrl}" target="_blank">${previewUrl}</a>
-            **Database:** \`${dbName}\`
-            **R2 Buckets:** \`${bucketName}\`
-            **Queues:** \`${achievementQueueName}\`, \`${seedQueueName}\`
-
-            **Test Account:**
-            - Email: \`seed@example.com\`
-            - Password: \`Test.1234\`
-
-            This preview environment will be automatically cleaned up when the PR is closed.`;
-
-            // Find existing comment
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-
-            const botComment = comments.find(comment =>
-              comment.user.type === 'Bot' &&
-              comment.body.includes('Preview Environment Deployed')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: comment
-              });
-            }
+          {
+            echo "## 🚀 Preview Environment Deployed"
+            echo ""
+            echo "- **Branch:** \`${{ inputs.branch }}\`"
+            echo "- **PR:** #${{ steps.pr.outputs.pr_number }}"
+            echo "- **Preview URL:** https://${{ steps.prepare-config.outputs.worker_name }}.coding-cowboys.workers.dev"
+            echo "- **Database:** \`${{ steps.get-db.outputs.database_name }}\`"
+            echo "- **R2 Bucket:** \`${{ steps.create-r2.outputs.bucket_name }}\`"
+            echo "- **Queues:** \`${{ steps.create-queue.outputs.achievement_queue_name }}\`, \`${{ steps.create-queue.outputs.seed_queue_name }}\`"
+            echo ""
+            echo "**Test account:** \`seed@example.com\` / \`Test.1234\`"
+            echo ""
+            echo "This preview is cleaned up automatically when PR #${{ steps.pr.outputs.pr_number }} is closed."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   cleanup-preview:
-    if: github.event.action == 'closed'
+    if: github.event_name == 'pull_request'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     permissions:
@@ -195,7 +192,16 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
+      - name: 🔎 Check whether a preview exists for this branch
+        id: check
+        run: bun run .github/scripts/preview/preview-exists.ts
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: 🗑️ Remove Worker as Queue Consumer
+        if: steps.check.outputs.exists == 'true'
         continue-on-error: true
         run: bun run .github/scripts/preview/remove-queue-consumer.ts
         env:
@@ -204,6 +210,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🗑️ Delete Worker
+        if: steps.check.outputs.exists == 'true'
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         continue-on-error: true
         with:
@@ -212,6 +219,7 @@ jobs:
           command: delete --name "scorebrawl-pr-${{ github.event.pull_request.number }}" --force
 
       - name: 🗑️ Delete Queue
+        if: steps.check.outputs.exists == 'true'
         continue-on-error: true
         run: bun run .github/scripts/preview/delete-queue.ts
         env:
@@ -220,6 +228,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🗑️ Delete D1 Database
+        if: steps.check.outputs.exists == 'true'
         continue-on-error: true
         run: bun run .github/scripts/preview/delete-d1-db.ts
         env:
@@ -228,6 +237,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 🗑️ Delete R2 Buckets
+        if: steps.check.outputs.exists == 'true'
         continue-on-error: true
         run: bun run .github/scripts/preview/delete-r2-bucket.ts
         env:
@@ -236,6 +246,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 💬 Comment on PR
+        if: steps.check.outputs.exists == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
