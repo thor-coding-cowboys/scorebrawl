@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -44,25 +45,35 @@ export function SessionPlayerStandings({
 	);
 
 	const query = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
-	const standings: (StandingItem & { dimmed: boolean })[] = sortStandings(query.data ?? []).map(
-		(item) => ({
-			id: item.id,
-			name: item.name,
-			image: item.image,
-			score: item.score,
-			matchCount: item.matchCount,
-			winCount: item.winCount,
-			pointDiff: item.pointDiff,
-			form: item.form,
-			dimmed: !highlight.has(item.id),
-		})
-	);
+	const standings: (StandingItem & { dimmed: boolean; playerId: string })[] = sortStandings(
+		query.data ?? []
+	).map((item) => ({
+		id: item.id,
+		playerId: item.playerId,
+		name: item.name,
+		image: item.image,
+		score: item.score,
+		matchCount: item.matchCount,
+		winCount: item.winCount,
+		pointDiff: item.pointDiff,
+		form: item.form,
+		dimmed: !highlight.has(item.id),
+	}));
 
 	return (
 		<StaticList
 			data={standings}
 			keyExtractor={(item) => item.id}
-			renderItem={({ item }) => <StandingRow item={item} headers={headers} dimmed={item.dimmed} />}
+			renderItem={({ item }) => (
+				<StandingRow
+					item={item}
+					headers={headers}
+					dimmed={item.dimmed}
+					onPress={() =>
+						router.push({ pathname: "/players/[playerId]", params: { playerId: item.playerId } })
+					}
+				/>
+			)}
 			ItemSeparatorComponent={Separator}
 			ListEmptyComponent={
 				query.isPending ? (
