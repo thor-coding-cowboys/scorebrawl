@@ -81,6 +81,7 @@ export async function sendPushToUserIds({
 				body: event.body,
 				data: event.payload,
 				sound: "default" as const,
+				threadId: event.payload.type,
 			}))
 		);
 

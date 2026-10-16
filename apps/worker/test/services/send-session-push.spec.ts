@@ -70,7 +70,12 @@ describe("sendSessionPush", () => {
 	function sentMessages(fetchMock: ReturnType<typeof vi.fn>) {
 		const calls = fetchMock.mock.calls as Array<[string, RequestInit]>;
 		return calls.flatMap(
-			([, init]) => JSON.parse(init.body as string) as Array<{ to: string; data: { type: string } }>
+			([, init]) =>
+				JSON.parse(init.body as string) as Array<{
+					to: string;
+					threadId: string;
+					data: { type: string };
+				}>
 		);
 	}
 
@@ -96,6 +101,7 @@ describe("sendSessionPush", () => {
 		expect(messages).toHaveLength(1);
 		// players[0] = actor (excluded), players[2] = out, players[1] = recipient
 		expect(messages[0].to).toBe("token-1");
+		expect(messages[0].threadId).toBe("session:teams");
 		expect(players[0].userId).toBe(ctx.user.id);
 	});
 

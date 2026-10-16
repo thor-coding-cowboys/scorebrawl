@@ -10,6 +10,7 @@ export type ExpoPushMessage = {
 	body: string;
 	data: NotificationPayload;
 	sound: "default";
+	threadId: string;
 };
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
