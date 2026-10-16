@@ -1,5 +1,5 @@
 import { expo } from "@better-auth/expo";
-import { passkey } from "@better-auth/passkey";
+import { passkey as passkeyPlugin } from "@better-auth/passkey";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
@@ -14,6 +14,7 @@ import { userPreference } from "../db/schema/user-preferences-schema";
 import { invitation, league, member as memberTable } from "../db/schema/auth-schema";
 import { guest, player } from "../db/schema/league-schema";
 import { createId } from "../utils/id-util";
+import { buildPasskeyConfig, type PasskeyConfig } from "./passkey-config";
 
 export const PERSONAL_API_KEY_CONFIG_ID = "personal";
 
@@ -55,6 +56,7 @@ export function createAuth({
 	resendApiKey,
 	adminUserIds,
 	oauthResource,
+	passkey,
 	baseURL,
 }: {
 	db: DB;
@@ -67,28 +69,15 @@ export function createAuth({
 	resendApiKey?: string;
 	adminUserIds?: string[];
 	oauthResource?: string;
+	passkey?: PasskeyConfig;
 	baseURL?: string;
 }) {
 	const hasAnySocialProviders =
 		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
 
-	// Determine rpID and origin for passkey
-	const getRpID = (originUrl?: string) => {
-		if (originUrl) {
-			try {
-				const url = new URL(originUrl);
-				return url.hostname;
-			} catch {
-				return "localhost";
-			}
-		}
-		return "localhost";
-	};
-
-	const passkeyOrigin = !(origin?.includes("127.0.0.1") || origin?.includes("localhost"))
-		? origin
-		: "http://localhost:5173";
-	const rpID = getRpID(passkeyOrigin);
+	// Only the request middleware supplies a config; tests and the better-auth
+	// CLI export fall back to local dev values, matching previous behaviour.
+	const passkeyConfig = passkey ?? buildPasskeyConfig({});
 
 	return betterAuth({
 		database: drizzleAdapter(db, {
@@ -329,10 +318,10 @@ export function createAuth({
 					console.log(`Invitation for organization ${organization.name} sent to ${email}`);
 				},
 			}),
-			passkey({
-				rpID,
+			passkeyPlugin({
+				rpID: passkeyConfig.rpID,
 				rpName: "Scorebrawl",
-				origin: passkeyOrigin,
+				origin: passkeyConfig.origin,
 			}),
 			bearer(),
 			apiKey([

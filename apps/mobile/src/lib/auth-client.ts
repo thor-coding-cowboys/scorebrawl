@@ -1,6 +1,7 @@
 import { expoClient } from "@better-auth/expo/client";
 import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
+import { expoPasskeyClient } from "expo-better-auth-passkey";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -15,6 +16,7 @@ export const authClient = createAuthClient({
 			storage: SecureStore,
 		}),
 		organizationClient({}),
+		expoPasskeyClient(),
 	],
 });
 

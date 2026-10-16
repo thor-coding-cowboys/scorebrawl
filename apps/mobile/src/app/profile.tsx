@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { EditProfileModal } from "@/components/profile/edit-profile-modal";
+import { RenamePasskeyModal } from "@/components/profile/rename-passkey-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { useUserAvatar } from "@/hooks/use-user-avatar";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { authClient } from "@/lib/auth-client";
+import { isPasskeyEnabled } from "@/lib/auth-options";
 import { signOut as performSignOut } from "@/lib/sign-out";
 import { useTRPC } from "@/lib/trpc";
 
@@ -86,6 +88,8 @@ export default function ProfileScreen() {
 	const currentSession = sessionData?.session;
 	const { uri, headers } = useUserAvatar(user?.image);
 	const [isEditOpen, setIsEditOpen] = useState(false);
+	const [editingPasskey, setEditingPasskey] = useState<{ id: string; name: string } | null>(null);
+	const [passkeyError, setPasskeyError] = useState("");
 
 	const leaguesQuery = useQuery(trpc.league.list.queryOptions());
 	const matchesQuery = useQuery(trpc.user.getTotalMatches.queryOptions());
@@ -96,8 +100,68 @@ export default function ProfileScreen() {
 			return res.data ?? [];
 		},
 	});
+
+	const passkeysQuery = useQuery({
+		queryKey: ["passkeys"],
+		enabled: isPasskeyEnabled,
+		queryFn: async () => {
+			const { data, error } = await authClient.passkey.listUserPasskeys({});
+			if (error) throw new Error(error.message || "Failed to load passkeys");
+			return data ?? [];
+		},
+	});
+
+	const addPasskey = useMutation({
+		mutationFn: async () => {
+			const { data, error } = await authClient.passkey.addPasskey();
+			if (error) throw new Error(error.message || "Failed to add passkey");
+			return data;
+		},
+		onSuccess: () => {
+			setPasskeyError("");
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+		},
+		onError: (err) => setPasskeyError(err instanceof Error ? err.message : "Failed to add passkey"),
+	});
+
+	const renamePasskey = useMutation({
+		mutationFn: async ({ id, name }: { id: string; name: string }) => {
+			const { data, error } = await authClient.passkey.updatePasskey({ id, name });
+			if (error) throw new Error(error.message || "Failed to update passkey");
+			return data;
+		},
+		onSuccess: () => {
+			setPasskeyError("");
+			setEditingPasskey(null);
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+		},
+		onError: (err) =>
+			setPasskeyError(err instanceof Error ? err.message : "Failed to update passkey"),
+	});
+
+	const deletePasskey = useMutation({
+		mutationFn: async (id: string) => {
+			const { data, error } = await authClient.passkey.deletePasskey({ id });
+			if (error) throw new Error(error.message || "Failed to delete passkey");
+			return data;
+		},
+		onSuccess: () => {
+			setPasskeyError("");
+			void queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+		},
+		onError: (err) =>
+			setPasskeyError(err instanceof Error ? err.message : "Failed to delete passkey"),
+	});
+
+	const passkeys = passkeysQuery.data ?? [];
+
 	const { refreshing, onRefresh } = usePullToRefresh(() =>
-		Promise.all([leaguesQuery.refetch(), matchesQuery.refetch(), sessionsQuery.refetch()])
+		Promise.all([
+			leaguesQuery.refetch(),
+			matchesQuery.refetch(),
+			sessionsQuery.refetch(),
+			passkeysQuery.refetch(),
+		])
 	);
 
 	const signOut = useCallback(async () => {
@@ -105,6 +169,21 @@ export default function ProfileScreen() {
 		queryClient.clear();
 		router.replace("/sign-in");
 	}, [queryClient]);
+
+	const confirmDeletePasskey = (passkey: { id: string; name?: string | null }) => {
+		Alert.alert(
+			"Delete passkey?",
+			`"${passkey.name || "Unnamed passkey"}" will be removed. This cannot be undone.`,
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () => deletePasskey.mutate(passkey.id),
+				},
+			]
+		);
+	};
 
 	const revokeOther = () => {
 		Alert.alert("Revoke Other Sessions", "Sign out of all other devices and browsers?", [
@@ -252,6 +331,97 @@ export default function ProfileScreen() {
 						)}
 					</View>
 
+					{isPasskeyEnabled && (
+						<>
+							<Divider />
+
+							<View>
+								<View style={styles.sectionHeader}>
+									<SectionLabel>Passkeys</SectionLabel>
+									<Pressable
+										accessibilityRole="button"
+										hitSlop={8}
+										disabled={addPasskey.isPending}
+										onPress={() => addPasskey.mutate()}
+									>
+										<ThemedText
+											type="small"
+											themeColor={addPasskey.isPending ? "mutedForeground" : "primary"}
+										>
+											{addPasskey.isPending ? "Adding…" : "Add passkey"}
+										</ThemedText>
+									</Pressable>
+								</View>
+
+								{passkeyError ? (
+									<ThemedText type="small" style={{ color: theme.destructive }}>
+										{passkeyError}
+									</ThemedText>
+								) : null}
+
+								{passkeysQuery.isPending ? (
+									<ThemedText type="small" themeColor="mutedForeground">
+										Loading passkeys…
+									</ThemedText>
+								) : passkeysQuery.isError ? (
+									<ThemedText type="small" themeColor="mutedForeground">
+										Couldn't load passkeys
+									</ThemedText>
+								) : passkeys.length === 0 ? (
+									<ThemedText type="small" themeColor="mutedForeground">
+										No passkeys yet. Add one to sign in without a password.
+									</ThemedText>
+								) : (
+									passkeys.map((passkey, index) => (
+										<View
+											key={passkey.id}
+											style={[
+												styles.sessionRow,
+												index < passkeys.length - 1 && {
+													borderBottomWidth: StyleSheet.hairlineWidth,
+													borderBottomColor: theme.border,
+												},
+											]}
+										>
+											<View style={styles.sessionInfo}>
+												<ThemedText numberOfLines={1}>
+													{passkey.name || "Unnamed passkey"}
+												</ThemedText>
+												<ThemedText type="small" themeColor="mutedForeground" numberOfLines={1}>
+													{passkey.deviceType}
+													{passkey.backedUp ? " · Backed up" : ""}
+												</ThemedText>
+											</View>
+											<View style={styles.sectionActions}>
+												<Pressable
+													accessibilityRole="button"
+													hitSlop={8}
+													onPress={() => {
+														renamePasskey.reset();
+														setEditingPasskey({ id: passkey.id, name: passkey.name || "" });
+													}}
+												>
+													<ThemedText type="small" themeColor="mutedForeground">
+														Rename
+													</ThemedText>
+												</Pressable>
+												<Pressable
+													accessibilityRole="button"
+													hitSlop={8}
+													onPress={() => confirmDeletePasskey(passkey)}
+												>
+													<ThemedText type="small" style={{ color: theme.destructive }}>
+														Delete
+													</ThemedText>
+												</Pressable>
+											</View>
+										</View>
+									))
+								)}
+							</View>
+						</>
+					)}
+
 					<Divider />
 
 					<Pressable
@@ -291,6 +461,17 @@ export default function ProfileScreen() {
 					void refetch();
 				}}
 				user={user ?? {}}
+			/>
+
+			<RenamePasskeyModal
+				isOpen={editingPasskey !== null}
+				currentName={editingPasskey?.name ?? ""}
+				isSaving={renamePasskey.isPending}
+				error={renamePasskey.error instanceof Error ? renamePasskey.error.message : undefined}
+				onClose={() => setEditingPasskey(null)}
+				onSave={(name) => {
+					if (editingPasskey) renamePasskey.mutate({ id: editingPasskey.id, name });
+				}}
 			/>
 		</ThemedView>
 	);
