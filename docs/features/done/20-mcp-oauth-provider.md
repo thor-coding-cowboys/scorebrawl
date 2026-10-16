@@ -2,7 +2,7 @@
 
 ## Status
 
-Not started.
+Done: the MCP server is an OAuth-protected remote MCP endpoint at `https://api.scorebrawl.com/mcp`, served by the better-auth `mcp()` plugin in place of the hand-rolled session-cookie `POST /api/mcp`. RFC 9728 protected-resource metadata + RFC 8414 authorization-server aliases, dynamic client registration, resource-bound access tokens, `mcp:tools` scope enforcement, and per-principal rate limiting are live; tools run through the MCP SDK with `whoami` + `list_leagues`. Deferred: `packages/mcp` CLI migration and CIMD.
 
 ## Summary
 
