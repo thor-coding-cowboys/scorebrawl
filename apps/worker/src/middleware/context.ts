@@ -1,9 +1,7 @@
 import { createMiddleware } from "hono/factory";
-import { defineRelations } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { getDb } from "../db";
-import * as schema from "../db/schema";
 import { createAuth } from "../lib/better-auth";
+import { resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
 import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
@@ -59,7 +57,8 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		c.req.header("origin") ||
 		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
 
-	const betterAuthUrl = (c.env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL;
+	const requestOrigin = new URL(c.req.url).origin;
+	const authBaseURL = resolveAuthBaseURL(c.env, requestOrigin);
 
 	const auth = createAuth({
 		db,
@@ -72,7 +71,8 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		resendApiKey,
 		adminUserIds,
 		oauthResource,
-		baseURL: betterAuthUrl ?? origin,
+		baseURL: authBaseURL,
+		mcpResource: resolveMcpResource(c.env, c.req.url),
 	});
 	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
 	// request so no storage work is left floating after the response.
@@ -87,14 +87,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	await next();
 });
 
-// for better auth cli
-export const auth = createAuth({
-	db: drizzle(undefined as unknown as D1Database, { relations: defineRelations(schema) }),
-	betterAuthSecret: "",
-	baseURL: "http://localhost",
-});
-
 export type AuthType = {
-	user: typeof auth.$Infer.Session.user;
-	session: typeof auth.$Infer.Session.session;
+	user: ReturnType<typeof createAuth>["$Infer"]["Session"]["user"];
+	session: ReturnType<typeof createAuth>["$Infer"]["Session"]["session"];
 };

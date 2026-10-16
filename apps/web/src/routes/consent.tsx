@@ -14,6 +14,7 @@ const scopeLabels: Record<string, string> = {
 	"read:matches": "Read match results from your leagues",
 	"read:leagues": "List the leagues you are a member of",
 	"read:seasons": "List the seasons in your leagues",
+	"mcp:tools": "Query your leagues through an AI assistant (MCP)",
 };
 
 export const Route = createFileRoute("/consent")({
