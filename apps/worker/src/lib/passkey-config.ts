@@ -1,3 +1,5 @@
+import { parseAndroidFingerprints, toBase64Url } from "./android-fingerprints";
+
 const LOCAL_DEV_ORIGIN = "http://localhost:5173";
 
 export interface PasskeyConfig {
@@ -28,12 +30,7 @@ function originHostname(origin: string): string {
 }
 
 function androidOrigins(raw?: string): string[] {
-	if (!raw) return [];
-	return raw
-		.split(",")
-		.map((hash) => hash.trim())
-		.filter(Boolean)
-		.map((hash) => `android:apk-key-hash:${hash}`);
+	return parseAndroidFingerprints(raw).map((bytes) => `android:apk-key-hash:${toBase64Url(bytes)}`);
 }
 
 /**

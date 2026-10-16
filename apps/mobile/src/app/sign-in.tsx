@@ -19,22 +19,19 @@ import {
 	isPasskeyEnabled,
 } from "@/lib/auth-options";
 
-function passkeyErrorMessage(message?: string) {
-	const lower = (message ?? "").toLowerCase();
-	if (lower.includes("cancel") || lower.includes("abort")) {
-		return "Passkey sign-in was cancelled. If you have no passkey for this account, sign in another way, then add one from your profile.";
+// Client-side ceremony failures all carry the message "Auth cancelled", so only
+// the error code tells a real cancel apart from a missing or refused credential.
+function passkeyErrorMessage(error: { code?: string; message?: string }) {
+	switch (error.code) {
+		case "ERROR_CEREMONY_ABORTED":
+			return "Passkey sign-in was cancelled. If you have no passkey for this account, sign in another way, then add one from your profile.";
+		case "PASSKEY_NOT_FOUND":
+			return "This passkey is no longer linked to an account. Sign in another way, then add a new one from your profile.";
+		case "AUTH_CANCELLED":
+			return "Passkey sign-in didn't complete. Try again, or sign in another way and add a passkey from your profile.";
+		default:
+			return error.message || "Failed to sign in with passkey. Please try again.";
 	}
-	if (lower.includes("not allowed")) {
-		return "Passkey sign-in was not allowed. Please try again or use another sign-in method.";
-	}
-	if (
-		lower.includes("not found") ||
-		lower.includes("no passkey") ||
-		lower.includes("no credential")
-	) {
-		return "No passkey found for this account. Sign in another way, then add one from your profile.";
-	}
-	return message || "Failed to sign in with passkey. Please try again.";
 }
 
 export default function SignInScreen() {
@@ -98,7 +95,7 @@ export default function SignInScreen() {
 		try {
 			const { data, error } = await authClient.signIn.passkey();
 			if (error) {
-				setApiError(passkeyErrorMessage(error.message));
+				setApiError(passkeyErrorMessage(error));
 				return;
 			}
 			if (!data) {

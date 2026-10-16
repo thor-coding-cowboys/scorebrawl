@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { enforceHostScope } from "../../src/public-api/host-scope";
-import { fingerprintToHex, sha256Base64ToHex, wellKnownRouter } from "../../src/routes/well-known";
+import { wellKnownRouter } from "../../src/routes/well-known";
 import type { HonoEnv } from "../../src/middleware/context";
 
-// A real SHA-256 fingerprint in both encodings, to pin url-safe decoding.
+// A real SHA-256 fingerprint in both encodings.
 const FINGERPRINT_BASE64URL = "FG3pg8VzBlDY7rmVLzT8ZBagg0LmHb6oigSWsj_PROU";
 const FINGERPRINT_HEX =
 	"14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64:16:A0:83:42:E6:1D:BE:A8:8A:04:96:B2:3F:CF:44:E5";
@@ -26,26 +26,6 @@ const call = (path: string, env: Record<string, string> = {}) =>
 		...hostEnv,
 		...env,
 	} as unknown as Env);
-
-describe("sha256Base64ToHex", () => {
-	it("decodes base64url into colon-separated uppercase hex", () => {
-		expect(sha256Base64ToHex(FINGERPRINT_BASE64URL)).toBe(FINGERPRINT_HEX);
-	});
-});
-
-describe("fingerprintToHex", () => {
-	it("normalises base64url, colon hex and plain hex to the same value", () => {
-		expect(fingerprintToHex(FINGERPRINT_BASE64URL)).toBe(FINGERPRINT_HEX);
-		expect(fingerprintToHex(FINGERPRINT_HEX)).toBe(FINGERPRINT_HEX);
-		expect(fingerprintToHex(FINGERPRINT_HEX.replace(/:/g, "").toLowerCase())).toBe(FINGERPRINT_HEX);
-	});
-
-	it("returns null for values that are not exactly 32 bytes", () => {
-		expect(fingerprintToHex("short")).toBeNull();
-		expect(fingerprintToHex("AAAA")).toBeNull();
-		expect(fingerprintToHex("not!base64!")).toBeNull();
-	});
-});
 
 describe("apple-app-site-association", () => {
 	it("serves the webcredentials app id as JSON", async () => {

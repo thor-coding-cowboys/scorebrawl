@@ -4,7 +4,7 @@
 
 Partial — Tasks 1–10 of the plan landed on `feat/mobile-passkeys` (first commit `bf93f365`, last `39a42b74`). Forced typecheck, lint, format and the full test suite pass. Outstanding:
 
-- **Android does not work.** `PASSKEY_ANDROID_APK_KEY_HASHES` is empty in `apps/worker/wrangler.jsonc`, so `assetlinks.json` ships with an empty `sha256_cert_fingerprints` and Android passkey sign-in fails until a human supplies the debug + Play App Signing SHA-256 fingerprints (base64url). iOS is unaffected.
+- **Android does not work.** `PASSKEY_ANDROID_APK_KEY_HASHES` is empty in `apps/worker/wrangler.jsonc`, so `assetlinks.json` ships with an empty `sha256_cert_fingerprints` and Android passkey sign-in fails until a human supplies the debug + Play App Signing SHA-256 fingerprints (hex or base64url). iOS is unaffected.
 - **No device verification.** The manual steps in the plan's Task 11 have not been run: they need a physical iOS/Android device and a deployed host.
 - The feature is inert until a **native rebuild** — it adds a native module and an iOS entitlement, neither of which an OTA update can deliver.
 
@@ -73,7 +73,7 @@ The derivation is currently inline inside `createAuth()` (`better-auth.ts:76-91`
 
 - Add `/.well-known/*` to `assets.run_worker_first`.
 - Apple route: `{"webcredentials":{"apps":["VWB9AT6XKY.com.scorebrawl"]}}`, `application/json`, no redirect (Apple rejects both redirects and non-JSON here). `applinks` is deliberately omitted — only `webcredentials` is needed for passkeys.
-- Android route: one `android_app` target for `com.scorebrawl` with **both** relations — `delegate_permission/common.get_login_creds` (the credential-sharing relation) and `delegate_permission/common.handle_all_urls` (Android's own docs list both, and the passkey codelab requires `handle_all_urls` for cross-platform passkeys). `sha256_cert_fingerprints` is rendered as colon-separated uppercase hex decoded from the base64url entries in `PASSKEY_ANDROID_APK_KEY_HASHES`.
+- Android route: one `android_app` target for `com.scorebrawl` with **both** relations — `delegate_permission/common.get_login_creds` (the credential-sharing relation) and `delegate_permission/common.handle_all_urls` (Android's own docs list both, and the passkey codelab requires `handle_all_urls` for cross-platform passkeys). `PASSKEY_ANDROID_APK_KEY_HASHES` entries (hex or base64url) are decoded once in `lib/android-fingerprints.ts`: `sha256_cert_fingerprints` renders them as colon-separated uppercase hex, and the WebAuthn origin list as `android:apk-key-hash:<unpadded base64url>`.
 - While that var is unset, `assetlinks.json` returns `200` with `application/json` and an **empty** `sha256_cert_fingerprints`, plus a `// TODO` in the route. Pinned by a test so doc and behaviour agree. This empty body ships to production until the fingerprints are supplied — Android passkey sign-in stays broken until then, iOS is unaffected.
 - Register both routes **before** the catch-all `.use("*", enforceAuthMiddleware)` at `apps/worker/src/index.ts:60` — same placement as `/api/version` (line 45). Registered after it, they would 401 instead of returning association JSON.
 - Serve from the worker rather than a file in `apps/web/public/.well-known/`: that path is not in `run_worker_first`, so the `single-page-application` fallback would answer with HTML.

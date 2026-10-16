@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildPasskeyConfig } from "../../src/lib/passkey-config";
 
+const FINGERPRINT_BASE64URL = "FG3pg8VzBlDY7rmVLzT8ZBagg0LmHb6oigSWsj_PROU";
+const FINGERPRINT_HEX =
+	"14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64:16:A0:83:42:E6:1D:BE:A8:8A:04:96:B2:3F:CF:44:E5";
+
 describe("buildPasskeyConfig", () => {
 	it("derives rpID and origin from the request origin", () => {
 		expect(buildPasskeyConfig({ requestOrigin: "https://scorebrawl.com" })).toEqual({
@@ -26,15 +30,15 @@ describe("buildPasskeyConfig", () => {
 		});
 	});
 
-	it("appends one apk-key-hash origin per configured fingerprint", () => {
+	it("appends one unpadded base64url apk-key-hash origin per valid fingerprint", () => {
 		const config = buildPasskeyConfig({
 			requestOrigin: "https://scorebrawl.com",
-			androidKeyHashes: " AAA , ,BBB ",
+			androidKeyHashes: ` ${FINGERPRINT_HEX} , ,not-a-fingerprint, ${FINGERPRINT_BASE64URL}= `,
 		});
 		expect(config.origin).toEqual([
 			"https://scorebrawl.com",
-			"android:apk-key-hash:AAA",
-			"android:apk-key-hash:BBB",
+			`android:apk-key-hash:${FINGERPRINT_BASE64URL}`,
+			`android:apk-key-hash:${FINGERPRINT_BASE64URL}`,
 		]);
 		expect(config.rpID).toBe("scorebrawl.com");
 	});
