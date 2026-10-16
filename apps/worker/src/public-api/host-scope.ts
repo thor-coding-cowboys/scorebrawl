@@ -4,6 +4,8 @@ import type { HonoEnv } from "../middleware/context";
 export const PUBLIC_API_PREFIXES = ["/v1", "/leagues/v1"] as const;
 
 export function isPublicApiPath(pathname: string): boolean {
+	if (pathname === "/mcp" || pathname.startsWith("/mcp/")) return true;
+	if (pathname.startsWith("/.well-known/oauth-protected-resource")) return true;
 	return PUBLIC_API_PREFIXES.some(
 		(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 	);

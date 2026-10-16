@@ -87,6 +87,7 @@ config.d1_databases[0].database_name = dbName;
 config.d1_databases[0].migrations_dir = "./apps/worker/migrations";
 config.d1_databases[0].migrations_pattern = "./apps/worker/migrations/*/migration.sql";
 config.r2_buckets[0].bucket_name = bucketName;
+config.ratelimits[0].namespace_id = String(1000 + Number(prNumber));
 
 // Update queue names to PR-specific
 for (const producer of config.queues.producers) {
