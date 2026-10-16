@@ -8,6 +8,7 @@ export const defaultNotificationPreferences = {
 	notifyMatchRecorded: true,
 	notifyAchievementUnlocked: true,
 	notifyStreakReached: true,
+	notifyTeamsFormed: true,
 };
 
 export const userPreference = sqliteTable("user_preference", {
@@ -30,6 +31,7 @@ export const userPreference = sqliteTable("user_preference", {
 	notifyStreakReached: integer("notify_streak_reached", { mode: "boolean" })
 		.notNull()
 		.default(true),
+	notifyTeamsFormed: integer("notify_teams_formed", { mode: "boolean" }).notNull().default(true),
 	...timestampAuditFields,
 });
 

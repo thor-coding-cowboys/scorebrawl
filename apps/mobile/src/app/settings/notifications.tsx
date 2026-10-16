@@ -37,12 +37,17 @@ const TOGGLES: Array<{ key: ToggleKey; label: string; description: string }> = [
 		label: "Streak reached",
 		description: "When a player reaches a win streak",
 	},
+	{
+		key: "notifyTeamsFormed",
+		label: "New teams",
+		description: "When teams are formed for the next game in a session",
+	},
 ];
 
 function NotificationSettingsSkeleton() {
 	return (
 		<View>
-			{Array.from({ length: 5 }).map((_, i) => (
+			{Array.from({ length: 6 }).map((_, i) => (
 				<View key={i} style={styles.skeletonRow}>
 					<View style={styles.skeletonCol}>
 						<Skeleton width="48%" height={12} />

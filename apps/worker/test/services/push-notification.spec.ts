@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { defaultNotificationPreferences } from "../../src/db/schema/user-preferences-schema";
-import { buildStreakPushEvents, type PushEvent } from "../../src/services/notification-events";
+import {
+	buildStreakPushEvents,
+	teamsFormed,
+	type PushEvent,
+} from "../../src/services/notification-events";
 import { selectEligibleEventsByUser } from "../../src/services/push-notification";
 
 const enabledPrefs = defaultNotificationPreferences;
@@ -150,5 +154,64 @@ describe("buildStreakPushEvents", () => {
 
 	it("returns an empty array with no players", () => {
 		expect(buildStreakPushEvents([], { leagueSlug: "l", seasonSlug: "s" })).toEqual([]);
+	});
+});
+
+describe("teamsFormed", () => {
+	const payload = {
+		type: "session:teams",
+		leagueSlug: "league",
+		seasonSlug: "season",
+		sessionId: "session",
+	} as const;
+
+	it("renders team vs team with player names", () => {
+		const event = teamsFormed(payload, {
+			home: ["Ada", "Bob"],
+			away: ["Carol", "Dave"],
+			actorId: "actor",
+		});
+		expect(event.title).toBe("New teams");
+		expect(event.body).toBe("Ada & Bob vs Carol & Dave");
+		expect(event.payload).toEqual(payload);
+		expect(event.excludeUserId).toBe("actor");
+	});
+
+	it("renders single-player sides", () => {
+		const event = teamsFormed(payload, { home: ["Ada"], away: ["Bob"], actorId: "actor" });
+		expect(event.body).toBe("Ada vs Bob");
+	});
+
+	it("renders three-player sides", () => {
+		const event = teamsFormed(payload, {
+			home: ["Ada", "Bob", "Cy"],
+			away: ["Dee", "Eve", "Fay"],
+			actorId: "actor",
+		});
+		expect(event.body).toBe("Ada & Bob & Cy vs Dee & Eve & Fay");
+	});
+});
+
+describe("selectEligibleEventsByUser teams formed gating", () => {
+	it("excludes users with notifyTeamsFormed off", () => {
+		const event = teamsFormed(
+			{ type: "session:teams", leagueSlug: "league", seasonSlug: "season", sessionId: "session" },
+			{ home: ["Ada"], away: ["Bob"], actorId: "actor" }
+		);
+		const result = selectEligibleEventsByUser(
+			["u1"],
+			[{ userId: "u1", ...enabledPrefs, notifyTeamsFormed: false }],
+			[event]
+		);
+		expect(result.has("u1")).toBe(false);
+	});
+
+	it("includes users with notifyTeamsFormed on", () => {
+		const event = teamsFormed(
+			{ type: "session:teams", leagueSlug: "league", seasonSlug: "season", sessionId: "session" },
+			{ home: ["Ada"], away: ["Bob"], actorId: "actor" }
+		);
+		const result = selectEligibleEventsByUser(["u1"], [], [event]);
+		expect(result.get("u1")).toHaveLength(1);
 	});
 });

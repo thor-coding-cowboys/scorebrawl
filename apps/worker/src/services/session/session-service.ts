@@ -8,6 +8,26 @@ import { parseModeSettings, exhaustiveCheck } from "./strategies/types";
 import type { RandomizerType, WinnerStaysSettings } from "./strategies/types";
 import { logDbTiming } from "../../lib/timing";
 
+export type LineupNames = { home: string[]; away: string[] };
+
+export function resolveLineupNames(
+	players: Array<{ id: string; displayName: string }>,
+	lineup: { homePlayerIds: string[]; awayPlayerIds: string[] } | null
+): LineupNames | null {
+	if (!lineup) return null;
+
+	const nameById = new Map(players.map((p) => [p.id, p.displayName]));
+	const home = lineup.homePlayerIds
+		.map((id) => nameById.get(id))
+		.filter((name): name is string => Boolean(name));
+	const away = lineup.awayPlayerIds
+		.map((id) => nameById.get(id))
+		.filter((name): name is string => Boolean(name));
+
+	if (home.length === 0 || away.length === 0) return null;
+	return { home, away };
+}
+
 type FullSession = NonNullable<Awaited<ReturnType<typeof sessionRepository.getSessionById>>>;
 
 function buildWinnerStaysSettings(session: FullSession): WinnerStaysSettings {
@@ -256,10 +276,13 @@ export async function recordResult(
 	});
 	logDbTiming("recordResult.updateLineup", dbStart);
 
+	const lineupNames = resolveLineupNames(fullSession.players, proposedLineup);
+
 	return {
 		match: updatedMatch,
 		players: updatedPlayers,
 		proposedLineup,
+		lineupNames,
 		coinTossId,
 		autoResolvedCoinToss,
 		streakData: {
@@ -284,12 +307,13 @@ export async function resolveCoinToss(
 		? fullSession.matches.find((m) => m.id === resolved.sessionMatchId)
 		: null;
 
-	if (!triggeringMatch?.result) return { resolved, proposedLineup: null };
+	if (!triggeringMatch?.result) return { resolved, proposedLineup: null, lineupNames: null };
 
 	const modeSettings = parseModeSettings(fullSession.modeSettings);
 	const effectiveMode = modeSettings?.mode ?? fullSession.rotationMode;
 
-	if (effectiveMode !== "winner-stays") return { resolved, proposedLineup: null };
+	if (effectiveMode !== "winner-stays")
+		return { resolved, proposedLineup: null, lineupNames: null };
 
 	const settings = buildWinnerStaysSettings(fullSession);
 	const homeSeasonPlayerIds: string[] = triggeringMatch.homePlayerIds;
@@ -337,15 +361,22 @@ export async function resolveCoinToss(
 		},
 	});
 
-	return { resolved, proposedLineup };
+	return {
+		resolved,
+		proposedLineup,
+		lineupNames: resolveLineupNames(fullSession.players, proposedLineup),
+	};
 }
 
-export async function recomputeProposedLineup(db: DrizzleDB, sessionId: string) {
+export async function recomputeProposedLineup(
+	db: DrizzleDB,
+	sessionId: string
+): Promise<{ homePlayerIds: string[]; awayPlayerIds: string[] } | null> {
 	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
-	if (!fullSession || fullSession.status !== "active") return;
+	if (!fullSession || fullSession.status !== "active") return null;
 
 	const hasActiveMatch = fullSession.matches.some((m) => m.result === null);
-	if (hasActiveMatch) return;
+	if (hasActiveMatch) return null;
 
 	if (fullSession.rotationMode === "winner-stays") {
 		const lastMatch = fullSession.matches[fullSession.matches.length - 1];
@@ -389,6 +420,11 @@ export async function recomputeProposedLineup(db: DrizzleDB, sessionId: string) 
 				selectedAwayPlayerIds: proposedLineup.awayPlayerIds,
 			},
 		});
+
+		return {
+			homePlayerIds: proposedLineup.homePlayerIds,
+			awayPlayerIds: proposedLineup.awayPlayerIds,
+		};
 	} else {
 		const playerStates = fullSession.players
 			.filter((p) => p.status !== "out")
@@ -415,27 +451,28 @@ export async function recomputeProposedLineup(db: DrizzleDB, sessionId: string) 
 				selectedAwayPlayerIds: constrained.awayIds,
 			},
 		});
+
+		return { homePlayerIds: constrained.homeIds, awayPlayerIds: constrained.awayIds };
 	}
 }
 
 export async function recomputeLineupAfterPlayerRemoval(
 	db: DrizzleDB,
 	{ sessionId, removedSessionPlayerId }: { sessionId: string; removedSessionPlayerId: string }
-) {
+): Promise<LineupNames | null> {
 	const fullSession = await sessionRepository.getSessionById({ db, sessionId });
-	if (!fullSession || fullSession.status !== "active") return;
+	if (!fullSession || fullSession.status !== "active") return null;
 
 	if (fullSession.rotationMode !== "winner-stays") {
-		await recomputeProposedLineup(db, sessionId);
-		return;
+		return resolveLineupNames(fullSession.players, await recomputeProposedLineup(db, sessionId));
 	}
 
 	const currentLineup = fullSession.proposedLineup;
-	if (!currentLineup) return;
+	if (!currentLineup) return null;
 
 	const inHome = currentLineup.homePlayerIds.includes(removedSessionPlayerId);
 	const inAway = currentLineup.awayPlayerIds.includes(removedSessionPlayerId);
-	if (!inHome && !inAway) return;
+	if (!inHome && !inAway) return null;
 
 	const waitingPlayers = fullSession.players
 		.filter((p) => p.status === "waiting")
@@ -446,8 +483,7 @@ export async function recomputeLineupAfterPlayerRemoval(
 			!currentLineup.homePlayerIds.includes(p.id) && !currentLineup.awayPlayerIds.includes(p.id)
 	);
 	if (!substitute) {
-		await recomputeProposedLineup(db, sessionId);
-		return;
+		return resolveLineupNames(fullSession.players, await recomputeProposedLineup(db, sessionId));
 	}
 
 	const newHomeIds = inHome
@@ -500,5 +536,10 @@ export async function recomputeLineupAfterPlayerRemoval(
 			selectedHomePlayerIds: finalHomeIds,
 			selectedAwayPlayerIds: finalAwayIds,
 		},
+	});
+
+	return resolveLineupNames(fullSession.players, {
+		homePlayerIds: finalHomeIds,
+		awayPlayerIds: finalAwayIds,
 	});
 }

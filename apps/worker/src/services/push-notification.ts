@@ -1,6 +1,7 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { member } from "../db/schema/auth-schema";
+import { player, seasonPlayer, sessionPlayer } from "../db/schema/league-schema";
 import {
 	defaultNotificationPreferences,
 	pushToken,
@@ -17,6 +18,7 @@ import {
 
 const EVENT_PREFERENCE: Record<NotificationEventType, NotificationPreferenceKey> = {
 	"session:start": "notifySessionStarted",
+	"session:teams": "notifyTeamsFormed",
 	"match:recorded": "notifyMatchRecorded",
 	"achievement:unlock": "notifyAchievementUnlocked",
 	streak: "notifyStreakReached",
@@ -42,26 +44,19 @@ export function selectEligibleEventsByUser(
 	return eligibleEventsByUser;
 }
 
-export async function sendLeaguePush({
+export async function sendPushToUserIds({
 	db,
-	organizationId,
+	userIds,
 	events,
 }: {
 	db: DrizzleDB;
-	organizationId: string;
+	userIds: string[];
 	events: PushEvent[];
 }): Promise<void> {
-	if (events.length === 0) return;
+	if (events.length === 0 || userIds.length === 0) return;
 
 	try {
-		const members = await db
-			.select({ userId: member.userId })
-			.from(member)
-			.where(eq(member.organizationId, organizationId));
-
-		const recipientIds = members.map((m) => m.userId);
-
-		if (recipientIds.length === 0) return;
+		const recipientIds = [...new Set(userIds)];
 
 		const prefs = await db
 			.select({ userId: userPreference.userId, ...NOTIFICATION_PREFERENCE_COLUMNS })
@@ -91,6 +86,66 @@ export async function sendLeaguePush({
 
 		await sendExpoPushMessages(db, messages);
 	} catch (error) {
+		console.error("[Push] sendPushToUserIds failed", error);
+	}
+}
+
+export async function sendLeaguePush({
+	db,
+	organizationId,
+	events,
+}: {
+	db: DrizzleDB;
+	organizationId: string;
+	events: PushEvent[];
+}): Promise<void> {
+	if (events.length === 0) return;
+
+	try {
+		const members = await db
+			.select({ userId: member.userId })
+			.from(member)
+			.where(eq(member.organizationId, organizationId));
+
+		await sendPushToUserIds({ db, userIds: members.map((m) => m.userId), events });
+	} catch (error) {
 		console.error("[Push] sendLeaguePush failed", error);
+	}
+}
+
+export async function sendSessionPush({
+	db,
+	sessionId,
+	events,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	events: PushEvent[];
+}): Promise<void> {
+	if (events.length === 0) return;
+
+	try {
+		const recipients = await db
+			.selectDistinct({ userId: player.userId })
+			.from(sessionPlayer)
+			.innerJoin(seasonPlayer, eq(sessionPlayer.seasonPlayerId, seasonPlayer.id))
+			.innerJoin(player, eq(seasonPlayer.playerId, player.id))
+			.where(
+				and(
+					eq(sessionPlayer.sessionId, sessionId),
+					ne(sessionPlayer.status, "out"),
+					isNotNull(player.userId)
+				)
+			);
+
+		await sendPushToUserIds({
+			db,
+			userIds: recipients
+				.map((recipient) => recipient.userId)
+				.filter((userId): userId is string => userId !== null),
+			events,
+		});
+	} catch (error) {
+		console.error("[Push] sendSessionPush failed", error);
 	}
 }

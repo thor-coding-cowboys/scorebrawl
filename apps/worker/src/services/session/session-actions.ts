@@ -20,8 +20,9 @@ import {
 	recomputeLineupAfterPlayerRemoval as recomputeLineupAfterPlayerRemovalService,
 } from "./session-service";
 import type { AchievementQueueMessage } from "../achievement-calculation";
-import { buildStreakPushEvents, sessionStarted } from "../notification-events";
-import { sendLeaguePush } from "../push-notification";
+import { buildStreakPushEvents, sessionStarted, teamsFormed } from "../notification-events";
+import { sendLeaguePush, sendSessionPush } from "../push-notification";
+import type { LineupNames } from "./session-service";
 
 export type SessionActionContext = {
 	db: DrizzleDB;
@@ -57,6 +58,33 @@ async function resolveSeasonBySlug(ctx: SessionActionContext, seasonSlug: string
 		}
 		throw error;
 	}
+}
+
+function sendTeamsFormedPush(
+	ctx: SessionActionContext,
+	session: { id: string; seasonSlug: string },
+	lineupNames: LineupNames | null,
+	actorId: string
+) {
+	if (!lineupNames) return;
+
+	ctx.waitUntil(
+		sendSessionPush({
+			db: ctx.db,
+			sessionId: session.id,
+			events: [
+				teamsFormed(
+					{
+						type: "session:teams",
+						leagueSlug: ctx.organization.slug,
+						seasonSlug: session.seasonSlug,
+						sessionId: session.id,
+					},
+					{ ...lineupNames, actorId }
+				),
+			],
+		})
+	);
 }
 
 function assertSessionsAllowed(session: { scoreType: string }) {
@@ -321,6 +349,7 @@ export async function logMatch(
 		seasonId: session.seasonId,
 		userId: ctx.user.id,
 	});
+	sendTeamsFormedPush(ctx, session, result.lineupNames, ctx.user.id);
 
 	ctx.waitUntil(
 		ctx.env.ACHIEVEMENT_QUEUE.send({
@@ -623,10 +652,11 @@ export async function removePlayer(
 	const hasActiveMatch = fullSession?.matches.some((m) => m.result === null) ?? false;
 
 	if (!hasActiveMatch) {
-		await recomputeLineupAfterPlayerRemovalService(ctx.db, {
+		const lineupNames = await recomputeLineupAfterPlayerRemovalService(ctx.db, {
 			sessionId: session.id,
 			removedSessionPlayerId: removedPlayer.id,
 		});
+		sendTeamsFormedPush(ctx, session, lineupNames, ctx.user.id);
 	}
 
 	ctx.waitUntil(
@@ -649,6 +679,7 @@ export async function resolveCoinToss(
 	});
 
 	const session = await resolveSession(ctx, leagueId, result.resolved.sessionId);
+	sendTeamsFormedPush(ctx, session, result.lineupNames, ctx.user.id);
 
 	ctx.waitUntil(
 		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
