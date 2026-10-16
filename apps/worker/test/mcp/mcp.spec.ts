@@ -148,6 +148,11 @@ describe("POST /mcp", () => {
 		expect(res.status).toBe(401);
 	});
 
+	it("returns 404 for unknown subpaths under /mcp", async () => {
+		const res = await SELF.fetch(`${MCP_URL}/foo`, initialize);
+		expect(res.status).toBe(404);
+	});
+
 	it("lists whoami, list_leagues and the data tools (no render_chart)", async () => {
 		const token = await signToken({
 			sub: "user_1",

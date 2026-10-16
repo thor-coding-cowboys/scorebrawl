@@ -37,35 +37,38 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 	}
 }
 
-export const mcpRouter = new Hono<HonoEnv>().use("*", MCP_CORS).all("/", async (c) => {
-	const baseURL = resolveAuthBaseURL(c.env, new URL(c.req.url).origin);
-	const resource = resolveMcpResource(c.env, c.req.url);
-	const db = c.get("db");
-	const parsedBody = await parseJsonBody(c.req.raw);
+export const mcpRouter = new Hono<HonoEnv>()
+	.use("*", MCP_CORS)
+	.all("/", async (c) => {
+		const baseURL = resolveAuthBaseURL(c.env, new URL(c.req.url).origin);
+		const resource = resolveMcpResource(c.env, c.req.url);
+		const db = c.get("db");
+		const parsedBody = await parseJsonBody(c.req.raw);
 
-	const protectedHandler = createMcpProtectedRequestHandler(
-		{
-			audience: resource,
-			issuer: authServerIssuer(baseURL),
-			jwksUrl: createInProcessJwks(db) as unknown as string,
-			requiredScopes: ["mcp:tools"],
-		},
-		async (request, tokenClaims) => {
-			const claims = tokenClaims as McpAccessTokenClaims;
-			const principalId = claims.sub ?? claims.client_id;
-			if (principalId && !(await principalWithinRateLimit(c.env, principalId))) {
-				return new Response(JSON.stringify({ message: PUBLIC_RATE_LIMIT_MESSAGE }), {
-					status: 429,
-					headers: { "content-type": "application/json", "retry-after": "60" },
+		const protectedHandler = createMcpProtectedRequestHandler(
+			{
+				audience: resource,
+				issuer: authServerIssuer(baseURL),
+				jwksUrl: createInProcessJwks(db) as unknown as string,
+				requiredScopes: ["mcp:tools"],
+			},
+			async (request, tokenClaims) => {
+				const claims = tokenClaims as McpAccessTokenClaims;
+				const principalId = claims.sub ?? claims.client_id;
+				if (principalId && !(await principalWithinRateLimit(c.env, principalId))) {
+					return new Response(JSON.stringify({ message: PUBLIC_RATE_LIMIT_MESSAGE }), {
+						status: 429,
+						headers: { "content-type": "application/json", "retry-after": "60" },
+					});
+				}
+				const handler = createMcpHandler(() => createMcpServer({ db, claims }), {
+					legacy: "stateless",
+					onerror: (error) => console.error("[MCP] request failed:", error),
 				});
+				return handler.fetch(request, parsedBody === undefined ? undefined : { parsedBody });
 			}
-			const handler = createMcpHandler(() => createMcpServer({ db, claims }), {
-				legacy: "stateless",
-				onerror: (error) => console.error("[MCP] request failed:", error),
-			});
-			return handler.fetch(request, parsedBody === undefined ? undefined : { parsedBody });
-		}
-	);
+		);
 
-	return protectedHandler(c.req.raw);
-});
+		return protectedHandler(c.req.raw);
+	})
+	.all("/*", (c) => c.json({ error: "not_found" }, 404));

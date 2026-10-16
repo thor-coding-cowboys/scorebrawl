@@ -22,7 +22,6 @@ Status reflects merged PRs as of 2026-09-10. **Done** = shipped in product; **Pa
 | 17  | [API key management UI](17-api-key-management.md)                  | Not started — API key feature removed in [#637](https://github.com/thor-coding-cowboys/scorebrawl/pull/637)                                |                                                                      |
 | 18  | [AI weekly recaps](18-ai-weekly-recaps.md)                         | Not started                                                                                                                                |                                                                      |
 | 19  | [BullsAI integration](19-bullsai-integration.md)                   | Not started — push BullsAI match results into ScoreBrawl; start with 1-v-n games                                                           |                                                                      |
-| 20  | [MCP server OAuth](done/20-mcp-oauth-provider.md)                  | Done — replace MCP session auth with better-auth `mcp()`; builds on 19; supports DCR                                                       |                                                                      |
 | 22  | [Shared colour + glow tokens](22-shared-theme-tokens.md)           | In progress — one authored `core/theme` token tree for web + mobile ([#705](https://github.com/thor-coding-cowboys/scorebrawl/issues/705)) | [#705](https://github.com/thor-coding-cowboys/scorebrawl/issues/705) |
 
 ## Done
@@ -37,6 +36,7 @@ Shipped stories, kept for reference in [`done/`](done/):
 | 07  | [Fixtures / 3-1-0 UX](done/07-fixtures-points-season-ux.md)             |                                                                                                                                        |
 | 11  | [Head-to-head rivalries](done/11-head-to-head-rivalries.md)             | [#630](https://github.com/thor-coding-cowboys/scorebrawl/pull/630)                                                                     |
 | 12  | [Guest player claiming](done/12-guest-player-claiming.md)               | [#589](https://github.com/thor-coding-cowboys/scorebrawl/pull/589), [#597](https://github.com/thor-coding-cowboys/scorebrawl/pull/597) |
+| 20  | [MCP server OAuth](done/20-mcp-oauth-provider.md)                       |                                                                                                                                        |
 | 21  | [Public API — leagues & seasons](done/21-public-api-leagues-seasons.md) |                                                                                                                                        |
 
 Suggested sequencing note: 01 → 02 → 03 form a coherent "engagement" slice and build on the same event/achievement plumbing (01 toasts and 02 showcase now shipped; 03 ceremony remains). 05 is independent and cheap. 15 depends on 01.
