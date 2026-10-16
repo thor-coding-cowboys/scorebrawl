@@ -37,7 +37,7 @@ Shipped stories, kept for reference in [`done/`](done/):
 | 07  | [Fixtures / 3-1-0 UX](done/07-fixtures-points-season-ux.md)             |                                                                                                                                        |
 | 11  | [Head-to-head rivalries](done/11-head-to-head-rivalries.md)             | [#630](https://github.com/thor-coding-cowboys/scorebrawl/pull/630)                                                                     |
 | 12  | [Guest player claiming](done/12-guest-player-claiming.md)               | [#589](https://github.com/thor-coding-cowboys/scorebrawl/pull/589), [#597](https://github.com/thor-coding-cowboys/scorebrawl/pull/597) |
-| 20  | [MCP server OAuth](done/20-mcp-oauth-provider.md)                       |                                                                                                                                        |
+| 20  | [MCP server OAuth](done/20-mcp-oauth-provider.md)                       | [#726](https://github.com/thor-coding-cowboys/scorebrawl/pull/726)                                                                     |
 | 21  | [Public API — leagues & seasons](done/21-public-api-leagues-seasons.md) |                                                                                                                                        |
 
 Suggested sequencing note: 01 → 02 → 03 form a coherent "engagement" slice and build on the same event/achievement plumbing (01 toasts and 02 showcase now shipped; 03 ceremony remains). 05 is independent and cheap. 15 depends on 01.
