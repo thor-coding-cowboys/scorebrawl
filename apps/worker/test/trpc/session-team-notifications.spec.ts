@@ -122,7 +122,7 @@ describe("session team notifications", () => {
 	});
 
 	it("pushes New teams after a player leaves and teams reform", async () => {
-		const { client, session, fetchMock } = await setup(4);
+		const { client, players, session, fetchMock } = await setup(4);
 
 		const full = await client.session.getById.query({ sessionId: session.id });
 		const playerToRemove = full.players.find((p) => p.status === "waiting")!;
@@ -133,6 +133,76 @@ describe("session team notifications", () => {
 		});
 
 		await vi.waitFor(() => expect(teamMessages(fetchMock).length).toBeGreaterThan(0));
-		expect(teamMessages(fetchMock).every((message) => message.title === "New teams")).toBe(true);
+
+		const after = await client.session.getById.query({ sessionId: session.id });
+		const nameById = new Map(after.players.map((p) => [p.id, p.displayName]));
+		const lineup = after.proposedLineup!;
+		const names = (ids: string[]) => ids.map((id) => nameById.get(id)).join(" & ");
+		const expectedBody = `${names(lineup.homePlayerIds)} vs ${names(lineup.awayPlayerIds)}`;
+
+		const tokenByUserId = new Map(players.map((p, i) => [p.userId, `token-${i}`]));
+		const expectedTokens = players
+			.filter((p, i) => i !== 0 && p.userId !== playerToRemove.userId)
+			.map((p) => tokenByUserId.get(p.userId)!);
+
+		const messages = teamMessages(fetchMock);
+		expect(messages.every((message) => message.title === "New teams")).toBe(true);
+		expect(messages.every((message) => message.body === expectedBody)).toBe(true);
+		expect(messages.map((message) => message.to).sort()).toEqual(expectedTokens.sort());
+		expect(messages.map((message) => message.to)).not.toContain(
+			tokenByUserId.get(playerToRemove.userId)
+		);
+	});
+
+	it("pushes New teams once when a coin toss is resolved", async () => {
+		const { client, players, seasonPlayers, session, fetchMock } = await setup(4, false);
+
+		await client.session.startNextMatch.mutate({
+			sessionId: session.id,
+			homeSeasonPlayerIds: [seasonPlayers[0].id, seasonPlayers[1].id],
+			awaySeasonPlayerIds: [seasonPlayers[2].id, seasonPlayers[3].id],
+		});
+		const withMatch = await client.session.getById.query({ sessionId: session.id });
+		const match = withMatch.matches.find((m) => m.result === null)!;
+
+		await client.session.recordResult.mutate({
+			sessionId: session.id,
+			sessionMatchId: match.id,
+			homeScore: 1,
+			awayScore: 1,
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(teamMessages(fetchMock)).toHaveLength(0);
+
+		const pending = await client.session.getById.query({ sessionId: session.id });
+		expect(pending.pendingCoinTosses).toHaveLength(1);
+		const homeSessionPlayerIds = pending.players
+			.filter((p) => match.homePlayerIds.includes(p.seasonPlayerId))
+			.map((p) => p.id);
+
+		const resolved = await client.session.resolveCoinToss.mutate({
+			coinTossId: pending.pendingCoinTosses[0]!.id,
+			resolvedWinnerIds: homeSessionPlayerIds,
+		});
+
+		await vi.waitFor(() => expect(teamMessages(fetchMock).length).toBeGreaterThan(0));
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		const nameById = new Map(pending.players.map((p) => [p.id, p.displayName]));
+		const lineup = resolved.proposedLineup!;
+		const names = (ids: string[]) => ids.map((id) => nameById.get(id)).join(" & ");
+		const expectedBody = `${names(lineup.homePlayerIds)} vs ${names(lineup.awayPlayerIds)}`;
+
+		const messages = teamMessages(fetchMock);
+		expect(messages).toHaveLength(3);
+		expect(messages.every((message) => message.title === "New teams")).toBe(true);
+		expect(messages.every((message) => message.body === expectedBody)).toBe(true);
+		expect(messages.map((message) => message.to).sort()).toEqual(
+			players
+				.slice(1)
+				.map((_, i) => `token-${i + 1}`)
+				.sort()
+		);
 	});
 });
