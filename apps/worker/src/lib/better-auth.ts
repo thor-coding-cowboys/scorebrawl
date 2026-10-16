@@ -1,6 +1,6 @@
 import { expo } from "@better-auth/expo";
 import { passkey as passkeyPlugin } from "@better-auth/passkey";
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { mcp } from "@better-auth/mcp";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -57,6 +57,7 @@ export function createAuth({
 	adminUserIds,
 	oauthResource,
 	passkey,
+	mcpResource,
 	baseURL,
 }: {
 	db: DB;
@@ -70,6 +71,7 @@ export function createAuth({
 	adminUserIds?: string[];
 	oauthResource?: string;
 	passkey?: PasskeyConfig;
+	mcpResource?: string;
 	baseURL?: string;
 }) {
 	const hasAnySocialProviders =
@@ -359,9 +361,11 @@ export function createAuth({
 					disablePrivateKeyEncryption: true,
 				},
 			}),
-			oauthProvider({
+			mcp({
 				loginPage: "/auth/sign-in",
 				consentPage: "/consent",
+				resource: mcpResource ?? `${baseURL ?? origin ?? "http://localhost"}/mcp`,
+				resources: oauthResource ? [oauthResource] : [],
 				scopes: [
 					"openid",
 					"profile",
@@ -371,9 +375,11 @@ export function createAuth({
 					"read:matches",
 					"read:leagues",
 					"read:seasons",
+					"mcp:tools",
 				],
-				resources: oauthResource ? [oauthResource] : [],
 				enforcePerClientResources: false,
+				allowDynamicClientRegistration: true,
+				allowUnauthenticatedClientRegistration: true,
 			}),
 		],
 	});
