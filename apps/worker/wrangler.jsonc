@@ -96,7 +96,10 @@
 		"run_worker_first": [
 			"/api/*",
 			"/v1/*",
-			"/leagues/v1/*"
+			"/leagues/v1/*",
+			"/mcp",
+			"/mcp/*",
+			"/.well-known/*"
 		]
 	}
 }
