@@ -4,7 +4,7 @@
 
 Partial — Tasks 1–10 of the plan landed on `feat/mobile-passkeys` (first commit `bf93f365`, last `39a42b74`). Forced typecheck, lint, format and the full test suite pass. Outstanding:
 
-- **Android does not work.** `PASSKEY_ANDROID_APK_KEY_HASHES` is empty in `apps/worker/wrangler.jsonc`, so `assetlinks.json` ships with an empty `sha256_cert_fingerprints` and Android passkey sign-in fails until a human supplies the debug + Play App Signing SHA-256 fingerprints (hex or base64url). iOS is unaffected.
+- **Android does not work, and the passkey UI is hidden there** (`isPasskeyEnabled` in `apps/mobile/src/lib/auth-options.ts`). `PASSKEY_ANDROID_APK_KEY_HASHES` is empty in `apps/worker/wrangler.jsonc`, so `assetlinks.json` ships with an empty `sha256_cert_fingerprints` and Android passkey sign-in fails until a human supplies the debug + Play App Signing SHA-256 fingerprints (hex or base64url). iOS is unaffected.
 - **No device verification.** The manual steps in the plan's Task 11 have not been run: they need a physical iOS/Android device and a deployed host.
 - The feature is inert until a **native rebuild** — it adds a native module and an iOS entitlement, neither of which an OTA update can deliver.
 
