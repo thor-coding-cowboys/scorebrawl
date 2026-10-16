@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { router, Stack } from "expo-router";
+import { router, Stack, useNavigation } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -57,6 +57,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 	const queryClient = useQueryClient();
 	const { activeLeague } = useActiveLeague();
 	const theme = useTheme();
+	const navigation = useNavigation();
 
 	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
 	const session = sessionQuery.data as GameSession | undefined;
@@ -77,22 +78,27 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 		[]
 	);
 
-	const handleRemoteEnd = useCallback(() => {
+	// Ending the session here also delivers the session:end broadcast to this device,
+	// so whichever arrives first navigates and the other finds the screen unfocused.
+	const showSummary = useCallback(() => {
+		if (!navigation.isFocused()) return;
 		queryClient.invalidateQueries({
 			queryKey: trpc.session.getActive.queryKey({ seasonSlug }),
 		});
 		queryClient.invalidateQueries({
 			queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
 		});
-		if (router.canGoBack()) router.back();
-		else router.replace({ pathname: "/seasons/[seasonSlug]", params: { seasonSlug } });
-	}, [queryClient, seasonSlug, trpc]);
+		router.replace({
+			pathname: "/seasons/[seasonSlug]/session/[sessionId]/summary",
+			params: { seasonSlug, sessionId },
+		});
+	}, [navigation, queryClient, seasonSlug, sessionId, trpc]);
 
 	const { connectionStatus, hasConnected } = useSessionRealtime({
 		leagueSlug: activeLeague?.slug,
 		seasonSlug,
 		sessionId,
-		onSessionEnd: handleRemoteEnd,
+		onSessionEnd: showSummary,
 		onScoreUpdate: handleScoreUpdate,
 	});
 
@@ -109,16 +115,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 					style: "destructive",
 					onPress: async () => {
 						await trpcClient.session.end.mutate({ sessionId });
-						queryClient.invalidateQueries({
-							queryKey: trpc.session.getActive.queryKey({ seasonSlug }),
-						});
-						queryClient.invalidateQueries({
-							queryKey: trpc.session.listEnded.queryKey({ seasonSlug, limit: 10 }),
-						});
-						router.replace({
-							pathname: "/seasons/[seasonSlug]/session/[sessionId]/summary",
-							params: { seasonSlug, sessionId },
-						});
+						showSummary();
 					},
 				},
 			]
