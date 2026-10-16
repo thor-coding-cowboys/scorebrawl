@@ -643,10 +643,11 @@ const Platforms = () => (
 				<div>
 					<div className="text-sm font-medium">Connect your AI assistant</div>
 					<div className="text-muted-foreground">
-						Sign in once and your assistant can read standings and log matches.
+						Add the remote MCP server in Claude or Cursor and sign in — your assistant can read
+						standings and log matches.
 					</div>
 				</div>
-				<code className="bg-muted px-3 py-2 text-xs">npx @scorebrawl/mcp login</code>
+				<code className="bg-muted px-3 py-2 text-xs">https://api.scorebrawl.com/mcp</code>
 			</CardContent>
 		</Card>
 	</section>
