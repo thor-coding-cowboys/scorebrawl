@@ -1,0 +1,80 @@
+name: Mobile Update
+
+# Publishes an over-the-air JS/asset update to the production channel. Run it
+# manually (like Mobile Release) when you want to ship JS/asset changes without
+# spending a build. It is deliberately not triggered on every merge, to keep CI
+# minutes and build credits down.
+#
+# The channel is guarded by `runtimeVersion` (policy: appVersion). Updates only
+# reach builds with the same expo.version, so bump `version` in app.json whenever
+# a change touches native code (new native dep, icon/splash, permissions, SDK
+# upgrade) and cut a Mobile Release build instead.
+#
+# Env vars come from the EAS `production` environment (--environment production),
+# not from eas.json. Requires the EXPO_TOKEN secret.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to publish (branch, tag, or SHA). Defaults to main.
+        required: false
+        type: string
+        default: main
+      message:
+        description: Update message. Defaults to the commit subject.
+        required: false
+        type: string
+
+concurrency:
+  group: mobile-update-production
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Publish OTA update
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.x
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🚀 Setup EAS
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9.0.0
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          # Blacksmith provides a transparent cache; the action's own CLI
+          # cache is redundant and intermittently fails (400 / cache outage).
+          eas-cache: false
+          expo-cache: false
+
+      - name: 📡 Publish update
+        working-directory: apps/mobile
+        env:
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          message="${MESSAGE:-$(git log -1 --pretty=%s)}"
+          eas update \
+            --channel production \
+            --environment production \
+            --platform ios \
+            --message "$message" \
+            --non-interactive
