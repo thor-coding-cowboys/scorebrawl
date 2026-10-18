@@ -3,6 +3,8 @@
 		"name": "Scorebrawl",
 		"slug": "scorebrawl",
 		"version": "1.0.0",
+		"runtimeVersion": { "policy": "appVersion" },
+		"updates": { "url": "https://u.expo.dev/e95f7664-3921-458f-b87b-03fba4b31293" },
 		"orientation": "portrait",
 		"icon": "./assets/images/icon.png",
 		"scheme": "scorebrawl",
