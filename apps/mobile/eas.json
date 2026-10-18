@@ -11,12 +11,7 @@
 		"production": {
 			"channel": "production",
 			"autoIncrement": true,
-			"env": {
-				"EXPO_PUBLIC_API_URL": "https://scorebrawl.com",
-				"EXPO_PUBLIC_DISABLE_EMAIL_PASSWORD": "true",
-				"EXPO_PUBLIC_GOOGLE_CLIENT_ID": "972190779505-s4spdfmqevsjaupupaut0iccpvq60jbo.apps.googleusercontent.com",
-				"EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liEHPLuD4BgTj5Cxu"
-			}
+			"environment": "production"
 		}
 	},
 	"submit": {
