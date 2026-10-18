@@ -21,8 +21,13 @@ Two manual GitHub workflows ship the iOS app. Nothing publishes automatically.
 ## Publishing an update
 
 ```bash
+# Publish main (the default ref)
 gh workflow run mobile-update.yml --ref main
-# or: Actions → Mobile Update → Run workflow (ref + optional message)
+
+# Publish another branch, tag, or SHA: set the `ref` input with -f.
+# --ref only picks the branch the workflow file runs from.
+gh workflow run mobile-update.yml --ref main -f ref=<branch> -f message="<message>"
+# or: Actions → Mobile Update → Run workflow (set ref + optional message)
 ```
 
 Publish only a ref whose CI and E2E runs are green — there is no gate inside the
