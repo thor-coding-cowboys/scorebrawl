@@ -36,8 +36,8 @@ workflow.
 ## The one rule: bump `version` for native changes
 
 `runtimeVersion` uses the `appVersion` policy, so an update only reaches builds whose
-`expo.version` matches. `autoIncrement` in `eas.json` moves `ios.buildNumber` only —
-never `version`.
+`expo.version` matches. `autoIncrement` in `eas.json` moves build numbers
+(`ios.buildNumber` / `android.versionCode`) only — never `version`.
 
 So: if a change touches native code, bump `version` in `app.json`, run **Mobile
 Release**, and then republish the update for the new runtime version. Otherwise the
@@ -61,7 +61,7 @@ If `channel:view` shows the channel is not linked to a branch, link it once:
 
 ```bash
 bunx eas-cli@latest update:republish --group <groupId>   # reinstate a previous update
-bunx eas-cli@latest update:rollback --channel production --runtime-version 1.0.0
+bunx eas-cli@latest update:rollback <latestGroupId>      # roll back the latest update on its branch
 ```
 
 ## When a release build fails
