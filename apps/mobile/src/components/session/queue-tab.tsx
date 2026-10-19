@@ -5,12 +5,12 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { Avatar } from "@/components/avatar";
 import { useSessionTheme } from "@/components/session/theme";
-import type { GameSession, SessionMatch, SessionPlayer } from "@/components/session/types";
+import type { SessionMatch, SessionPlayer } from "@coding-cowboys/scorebrawl-core/session";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient, useTRPC, type RouterOutput } from "@/lib/trpc";
 
 function getPlayerResultForMatch(
 	player: SessionPlayer,
@@ -129,7 +129,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 	);
 }
 
-export function QueueList({ session, sessionId }: { session: GameSession; sessionId: string }) {
+export function QueueList({
+	session,
+	sessionId,
+}: {
+	session: RouterOutput["session"]["getById"];
+	sessionId: string;
+}) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [busyId, setBusyId] = useState<string | null>(null);

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlayIcon } from "@hugeicons/core-free-icons";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
-import type { SessionEventDetail } from "@/lib/event-types";
+import type { SessionEventDetail } from "@coding-cowboys/scorebrawl-client/realtime";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug")({
 	component: SeasonLayout,

@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useTRPC, trpcClient, type AnyTRPC } from "@/lib/trpc";
+import { useTRPC, trpcClient, type AnyTRPC, type RouterOutput } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
@@ -17,7 +17,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { SettingsRow } from "@/routes/-components/ui/settings-row";
-import type { GameSession } from "@/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/-components/session-types";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	ArrowLeft01Icon,
@@ -29,6 +28,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type GameSession = RouterOutput["session"]["getById"];
 
 type RotationMode = "winner-stays" | "manual";
 type Randomizer = "off" | "fisher-yates" | "diversity";

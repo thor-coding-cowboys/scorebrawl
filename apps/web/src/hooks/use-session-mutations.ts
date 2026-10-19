@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { trpcClient, useTRPC } from "@/lib/trpc";
-import type { ProposedLineup } from "@/routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/-components/session-types";
+import type { ProposedLineup } from "@coding-cowboys/scorebrawl-core/session";
 
 export function useSessionMutations(
 	sessionId: string,

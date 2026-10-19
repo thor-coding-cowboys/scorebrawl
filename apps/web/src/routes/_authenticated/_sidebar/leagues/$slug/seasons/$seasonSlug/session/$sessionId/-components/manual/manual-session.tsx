@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { trpcClient } from "@/lib/trpc";
+import { trpcClient, type RouterOutput } from "@/lib/trpc";
 import { useSession } from "@/hooks/useSession";
 import { useSessionMutations } from "@/hooks/use-session-mutations";
 import {
@@ -32,11 +32,15 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { getPlayerBySeasonId } from "@coding-cowboys/scorebrawl-core/session";
+import {
+	getPlayerBySeasonId,
+	type PlayerWithTeam,
+	type SessionPlayer,
+	type TeamAssignment,
+} from "@coding-cowboys/scorebrawl-core/session";
 import { SessionDashboardCards } from "../session-dashboard-cards";
 import { ScoreStepper, TeamRosterCard } from "../score-stepper";
 import { SessionStandings } from "../session-standings";
-import type { GameSession, PlayerWithTeam, SessionPlayer, TeamAssignment } from "../session-types";
 import { TeamPicker } from "./team-picker";
 
 interface ManualSessionProps {
@@ -54,7 +58,9 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	const { data: session, isLoading } = useQuery({
 		queryKey: ["session", sessionId],
 		queryFn: () =>
-			trpcClient.session.getById.query({ sessionId }) as unknown as Promise<GameSession>,
+			trpcClient.session.getById.query({ sessionId }) as unknown as Promise<
+				RouterOutput["session"]["getById"]
+			>,
 	});
 
 	const currentMatchRef = useRef<{ id: string } | null>(null);

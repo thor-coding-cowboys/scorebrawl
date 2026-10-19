@@ -9,8 +9,6 @@ import {
 	type MatchDisplayPlayer,
 } from "@coding-cowboys/scorebrawl-core/presentation";
 
-export type { MatchDisplayPlayer } from "@coding-cowboys/scorebrawl-core/presentation";
-
 const getAssetUrl = (key: string | null | undefined): string | null => {
 	if (!key) return null;
 	if (key.startsWith("http://") || key.startsWith("https://")) return key;

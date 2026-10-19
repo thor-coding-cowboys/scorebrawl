@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Crown02Icon, FireIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
-import { getPlayerById } from "@coding-cowboys/scorebrawl-core/session";
-import type { GameSession, CoinTossPhase } from "./session-types";
+import { getPlayerById, type CoinTossPhase } from "@coding-cowboys/scorebrawl-core/session";
+import type { RouterOutput } from "@/lib/trpc";
 import "./coin-toss-dialog.css";
 
 export function CoinTossDialog({
@@ -15,7 +15,7 @@ export function CoinTossDialog({
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	candidates: string[];
-	session: GameSession;
+	session: RouterOutput["session"]["getById"];
 	onResolve: (winnerId: string) => void;
 }) {
 	const [phase, setPhase] = useState<CoinTossPhase>("pick");

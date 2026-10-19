@@ -8,8 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { trpcClient } from "@/lib/trpc";
-import type { AnyTRPC } from "@/lib/trpc";
-import type { GameSession } from "./session-types";
+import type { AnyTRPC, RouterOutput } from "@/lib/trpc";
 
 export function AddPlayerDialog({
 	open,
@@ -21,7 +20,7 @@ export function AddPlayerDialog({
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
-	session: GameSession;
+	session: RouterOutput["session"]["getById"];
 	seasonSlug: string;
 	onAdd: (seasonPlayerId: string) => void;
 	isAdding: boolean;

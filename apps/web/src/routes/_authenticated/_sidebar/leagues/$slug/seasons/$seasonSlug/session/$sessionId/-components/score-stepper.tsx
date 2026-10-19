@@ -5,7 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Remove01Icon, ReloadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { formDotStyle } from "@/lib/theme-tokens";
-import type { SessionPlayer, SessionMatch } from "./session-types";
+import type { SessionMatch, SessionPlayer } from "@coding-cowboys/scorebrawl-core/session";
 
 export function ScoreStepper({
 	label,
