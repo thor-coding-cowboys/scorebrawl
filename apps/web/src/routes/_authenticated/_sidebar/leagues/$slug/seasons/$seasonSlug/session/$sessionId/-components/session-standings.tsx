@@ -4,7 +4,7 @@ import { Standing } from "../../../../-components/season/standing";
 import { TeamStanding } from "../../../../-components/season/team-standing";
 import { useStandings, useTeamStandings } from "@/lib/collections";
 import { cn } from "@/lib/utils";
-import type { SessionPlayer } from "./session-types";
+import type { SessionPlayer } from "@coding-cowboys/scorebrawl-core/session";
 
 const STANDING_TABS = ["Standings", "Team Standings"] as const;
 

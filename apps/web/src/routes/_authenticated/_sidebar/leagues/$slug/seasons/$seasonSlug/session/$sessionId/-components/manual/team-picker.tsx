@@ -1,7 +1,7 @@
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PlayerWithTeam, TeamAssignment } from "../session-types";
+import type { PlayerWithTeam, TeamAssignment } from "@coding-cowboys/scorebrawl-core/session";
 
 interface TeamPickerProps {
 	players: PlayerWithTeam[];

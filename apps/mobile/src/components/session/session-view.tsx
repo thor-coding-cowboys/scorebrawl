@@ -9,7 +9,6 @@ import { AddPlayerModal } from "@/components/session/add-player-modal";
 import { NextMatchTab } from "@/components/session/next-match-tab";
 import { SessionConfigModal } from "@/components/session/session-config-modal";
 import { SessionPlayerStandings, SessionTeamStandings } from "@/components/session/standings-tab";
-import type { GameSession } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { SectionCard } from "@/components/ui/section-card";
@@ -19,7 +18,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
 import { useSessionRealtime } from "@/hooks/use-session-realtime";
 import { useTheme } from "@/hooks/use-theme";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient, useTRPC, type RouterOutput } from "@/lib/trpc";
 
 function SessionViewSkeleton() {
 	return (
@@ -60,7 +59,7 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 	const navigation = useNavigation();
 
 	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
-	const session = sessionQuery.data as GameSession | undefined;
+	const session = sessionQuery.data as RouterOutput["session"]["getById"] | undefined;
 
 	const [showSettings, setShowSettings] = useState(false);
 	const [showAddPlayer, setShowAddPlayer] = useState(false);

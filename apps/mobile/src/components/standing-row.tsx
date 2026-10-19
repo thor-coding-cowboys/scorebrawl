@@ -10,8 +10,6 @@ import {
 	winPct,
 } from "@coding-cowboys/scorebrawl-core/presentation";
 
-export type { StandingItem };
-
 function FormDots({
 	form,
 	pointDiff,

@@ -3,8 +3,6 @@ import type {
 	SessionScoreEventDetail,
 } from "@coding-cowboys/scorebrawl-client/realtime";
 
-export type { SessionEventDetail, SessionScoreEventDetail };
-
 export interface StreakEventDetail {
 	playerId?: string;
 	playerName?: string;

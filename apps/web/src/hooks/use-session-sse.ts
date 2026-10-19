@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { SessionEventDetail, SessionScoreEventDetail } from "@/lib/event-types";
+import type {
+	SessionEventDetail,
+	SessionScoreEventDetail,
+} from "@coding-cowboys/scorebrawl-client/realtime";
 
 interface UseSessionSSEOptions {
 	sessionId: string;

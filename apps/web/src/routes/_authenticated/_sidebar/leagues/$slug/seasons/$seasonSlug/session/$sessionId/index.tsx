@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, type AnyTRPC } from "@/lib/trpc";
+import { trpcClient, type AnyTRPC, type RouterOutput } from "@/lib/trpc";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +25,6 @@ import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
 import { toast } from "sonner";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";
-import type { GameSession } from "./-components/session-types";
 import { AddPlayerDialog } from "./-components/add-player-dialog";
 import { SessionConfigDialog } from "../../../-components/session/session-config-dialog";
 import { useState } from "react";
@@ -47,7 +46,8 @@ function SessionLivePage() {
 
 	const { data: session, isLoading } = useQuery({
 		queryKey: ["session", sessionId],
-		queryFn: () => client.session.getById.query({ sessionId }) as Promise<GameSession>,
+		queryFn: () =>
+			client.session.getById.query({ sessionId }) as Promise<RouterOutput["session"]["getById"]>,
 	});
 
 	const endSession = useMutation({

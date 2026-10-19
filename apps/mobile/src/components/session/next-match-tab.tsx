@@ -15,11 +15,12 @@ import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/ui/card";
 import { QueueList } from "@/components/session/queue-tab";
 import { useSessionTheme } from "@/components/session/theme";
-import type { GameSession, PlayerWithTeam, SessionPlayer } from "@/components/session/types";
 import {
 	enforceAlwaysSplit,
 	fisherYatesShuffle,
 	getPlayerBySeasonId,
+	type PlayerWithTeam,
+	type SessionPlayer,
 } from "@coding-cowboys/scorebrawl-core/session";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -33,7 +34,9 @@ import {
 	type UpdateMatchScoreInput,
 } from "@coding-cowboys/scorebrawl-client/score-sync";
 import { useTheme } from "@/hooks/use-theme";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient, useTRPC, type RouterOutput } from "@/lib/trpc";
+
+type GameSession = RouterOutput["session"]["getById"];
 
 type Team = "home" | "away";
 

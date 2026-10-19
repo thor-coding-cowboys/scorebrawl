@@ -14,7 +14,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import type { GameSession } from "@/components/session/types";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,9 @@ import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Fonts, Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { trpcClient, useTRPC, type RouterOutput } from "@/lib/trpc";
+
+type GameSession = RouterOutput["session"]["getById"];
 
 type RotationMode = "winner-stays" | "manual";
 type RandomizerType = "off" | "fisher-yates" | "diversity";

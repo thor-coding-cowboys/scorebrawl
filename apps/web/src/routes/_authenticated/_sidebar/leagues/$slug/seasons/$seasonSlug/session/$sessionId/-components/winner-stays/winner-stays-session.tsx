@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { trpcClient } from "@/lib/trpc";
+import { trpcClient, type RouterOutput } from "@/lib/trpc";
 import { useSession } from "@/hooks/useSession";
 import { useSessionMutations } from "@/hooks/use-session-mutations";
 import {
@@ -38,21 +38,20 @@ import {
 	enforceAlwaysSplit,
 	fisherYatesShuffle,
 	getPlayerBySeasonId,
+	type PlayerWithTeam,
+	type ProposedLineup,
+	type SessionMatch,
+	type SessionPlayer,
+	type TeamAssignment,
 } from "@coding-cowboys/scorebrawl-core/session";
 import { SessionDashboardCards } from "../session-dashboard-cards";
 import { ScoreStepper, TeamRosterCard } from "../score-stepper";
 import { SessionStandings } from "../session-standings";
-import type {
-	GameSession,
-	ProposedLineup,
-	TeamAssignment,
-	PlayerWithTeam,
-	SessionPlayer,
-	SessionMatch,
-} from "../session-types";
 import { QueuePanel } from "./queue-panel";
 import { CoinTossDialog } from "./coin-toss-dialog";
 import { PlayerSelectionDrawer } from "@/routes/-components/ui/player-selection-drawer";
+
+type GameSession = RouterOutput["session"]["getById"];
 
 interface WinnerStaysSessionProps {
 	sessionId: string;

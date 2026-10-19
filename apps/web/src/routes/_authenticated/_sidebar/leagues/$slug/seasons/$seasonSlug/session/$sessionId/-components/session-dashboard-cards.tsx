@@ -4,8 +4,14 @@ import { DashboardCard } from "../../../../-components/season/dashboard-card";
 import { useCarousel } from "@/hooks/use-carousel";
 import { cn } from "@/lib/utils";
 import { FireIcon, Crown02Icon, Award01Icon, BarChartIcon } from "@hugeicons/core-free-icons";
-import { computeWinStreaks } from "@coding-cowboys/scorebrawl-core/session";
-import type { GameSession, SessionMatch, SessionPlayer } from "./session-types";
+import {
+	computeWinStreaks,
+	type SessionMatch,
+	type SessionPlayer,
+} from "@coding-cowboys/scorebrawl-core/session";
+import type { RouterOutput } from "@/lib/trpc";
+
+type GameSession = RouterOutput["session"]["getById"];
 
 export function SessionDashboardCards({ session }: { session: GameSession }) {
 	const { scrollRef, activeIndex, onScroll, onTouchStart, onTouchEnd, containerStyle } =

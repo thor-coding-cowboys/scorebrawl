@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { StandingRow, type StandingItem } from "@/components/standing-row";
+import { StandingRow } from "@/components/standing-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { StaticList } from "@/components/ui/static-list";
@@ -11,7 +11,7 @@ import { Spacing, SharedColors } from "@/constants/theme";
 import { getAvatarUri } from "@/hooks/use-user-avatar";
 import { getAuthCookie } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
-import { sortStandings } from "@coding-cowboys/scorebrawl-core/presentation";
+import { sortStandings, type StandingItem } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const Separator = () => <View style={styles.separator} />;
 

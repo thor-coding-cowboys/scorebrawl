@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShuffleIcon } from "@hugeicons/core-free-icons";
-import type { PlayerWithTeam } from "../session-types";
+import type { PlayerWithTeam } from "@coding-cowboys/scorebrawl-core/session";
 
 interface RotationControlsProps {
 	teamAssignment: PlayerWithTeam[];
