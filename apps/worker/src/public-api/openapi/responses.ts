@@ -61,7 +61,10 @@ export function withResponseSchema(
 		const result = await validate(await handler(c));
 		if (result.issues) {
 			const details = result.issues.map((issue) => issue.message).join("; ");
-			throw new HTTPException(500, { message: `Response failed its schema: ${details}` });
+			console.error(
+				`[public-api] ${c.req.method} ${c.req.path} failed its response schema: ${details}`
+			);
+			throw new HTTPException(500, { res: c.json({ error: "internal_error" }, 500) });
 		}
 		return c.json(result.value as JSONObject);
 	};
