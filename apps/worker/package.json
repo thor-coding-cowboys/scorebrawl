@@ -40,10 +40,12 @@
 		"cloudflare": "^5.2.0",
 		"date-fns": "catalog:",
 		"drizzle-orm": "1.0.0-rc.5-169397b",
-		"hono": "4.10.7",
+		"hono": "4.13.13",
+		"hono-openapi": "^1.5.0",
 		"nanoid": "^5.1.6",
 		"resend": "^6.9.1",
-		"superjson": "catalog:"
+		"superjson": "catalog:",
+		"zod-openapi": "^4"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.11.1",
