@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SELF } from "cloudflare:test";
+import { listLeaguesResponseSchema, meResponseSchema } from "../../src/public-api/schemas/v1";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
 
@@ -53,6 +54,23 @@ describe("personal api keys /v1", () => {
 		expect(res.status).toBe(200);
 		const body = (await res.json()) as { leagues: { id: string }[] };
 		expect(body.leagues.map((l) => l.id)).toContain(ctx.league.id);
+	});
+
+	it("response bodies parse against the documented schemas", async () => {
+		const { client } = await setup();
+		const { key } = await client.personalApiKey.create.mutate({
+			name: "contract",
+			scopes: ["profile:read", "league:read"],
+			expiry: "never",
+		});
+
+		const me = await SELF.fetch(url("/v1/me"), { headers: { "x-api-key": key } });
+		const meBody = await me.json();
+		expect(meResponseSchema.safeParse(meBody).success).toBe(true);
+
+		const leagues = await SELF.fetch(url("/v1/leagues"), { headers: { "x-api-key": key } });
+		const leaguesBody = await leagues.json();
+		expect(listLeaguesResponseSchema.safeParse(leaguesBody).success).toBe(true);
 	});
 
 	it("401 without a key, 401 with a bogus key", async () => {
