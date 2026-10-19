@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 import { describeRoute, generateSpecs } from "hono-openapi";
 import { z } from "zod";
@@ -34,6 +34,21 @@ describe("withResponseSchema", () => {
 		);
 
 		expect((await app.request("/bad")).status).toBe(500);
+	});
+
+	it("returns the documented ApiError body and logs when the payload violates the schema", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const app = new Hono().get(
+			"/bad",
+			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: "nope" }) as never)
+		);
+
+		const res = await app.request("/bad");
+
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ error: "internal_error" });
+		expect(logged).toHaveBeenCalled();
+		logged.mockRestore();
 	});
 });
 

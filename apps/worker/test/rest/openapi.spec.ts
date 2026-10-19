@@ -10,7 +10,10 @@ type OpenApiDocument = {
 	openapi?: string;
 	info?: { title?: string; version?: string };
 	paths: Record<string, unknown>;
-	components?: { securitySchemes?: Record<string, unknown> };
+	components?: {
+		securitySchemes?: Record<string, unknown>;
+		schemas?: Record<string, Record<string, unknown>>;
+	};
 };
 
 async function fetchDocument() {
@@ -61,9 +64,9 @@ describe("GET /v1/openapi.json", () => {
 
 describe("personal endpoints", () => {
 	it.each([
-		["/v1/me", "MeResponse"],
-		["/v1/leagues", "ListLeaguesResponse"],
-	])("documents GET %s with api key security and its response ref", async (path, ref) => {
+		["/v1/me", "MeResponse", "user"],
+		["/v1/leagues", "ListLeaguesResponse", "leagues"],
+	])("documents GET %s with api key security and its response ref", async (path, ref, required) => {
 		const doc = await fetchDocument();
 		const op = operation(doc, String(path), "get");
 
@@ -72,16 +75,22 @@ describe("personal endpoints", () => {
 		expect(responseRef(doc, String(path), "get", "200")).toEqual({
 			$ref: `#/components/schemas/${ref}`,
 		});
-		expect(doc.components?.schemas).toHaveProperty(String(ref));
+		expect(doc.components?.schemas?.[String(ref)]).toMatchObject({
+			type: "object",
+			required: [required],
+		});
 	});
 
-	it("documents the shared error responses as ApiError refs", async () => {
-		const doc = await fetchDocument();
+	it.each(["/v1/me", "/v1/leagues"])(
+		"documents the shared error responses as ApiError refs for %s",
+		async (path) => {
+			const doc = await fetchDocument();
 
-		for (const status of ["400", "401", "403", "404", "429", "500"]) {
-			expect(responseRef(doc, "/v1/me", "get", status)).toEqual({
-				$ref: "#/components/schemas/ApiError",
-			});
+			for (const status of ["400", "401", "403", "404", "429", "500"]) {
+				expect(responseRef(doc, path, "get", status)).toEqual({
+					$ref: "#/components/schemas/ApiError",
+				});
+			}
 		}
-	});
+	);
 });
