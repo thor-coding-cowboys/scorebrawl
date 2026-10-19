@@ -11,6 +11,7 @@ import { contextMiddleware, type HonoEnv } from "./middleware/context";
 import { authRouter } from "./routes/auth-router";
 import { leaguesV1Router } from "./routes/leagues-v1";
 import { enforceHostScope } from "./public-api/host-scope";
+import { generatePublicApiSpec } from "./public-api/openapi";
 import { mcpRouter } from "./routes/mcp-router";
 import { matchesV1Router } from "./routes/matches-v1";
 import { v1Router } from "./routes/v1";
@@ -51,6 +52,9 @@ const app = new Hono<HonoEnv>()
 	.route("/api/auth", authRouter)
 	.route("/api/sse", sseRouter)
 	.route("/api/v1/leagues/:leagueId/seasons/:seasonId/matches", matchesV1Router)
+	.get("/v1/openapi.json", cors({ origin: "*" }), async (c) =>
+		c.json(await generatePublicApiSpec())
+	)
 	.route("/v1", v1Router)
 	.route("/leagues/v1/sessions", sessionsV1Router)
 	.route("/leagues/v1/:leagueId/sessions", sessionsV1Router)
