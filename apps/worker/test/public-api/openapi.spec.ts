@@ -32,6 +32,17 @@ describe("respond", () => {
 		expect((await app.request("/created", { method: "POST" })).status).toBe(201);
 	});
 
+	it("serializes service types (dates) to their JSON form", async () => {
+		const dated = z.object({ at: z.coerce.date() });
+		const app = new Hono().get("/dated", (c) =>
+			respond(c, dated, { at: new Date("2026-01-01T00:00:00.000Z") })
+		);
+
+		const res = await app.request("/dated");
+
+		expect(await res.json()).toEqual({ at: "2026-01-01T00:00:00.000Z" });
+	});
+
 	it("returns the documented ApiError body and logs when the payload violates the schema", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 		const app = new Hono().get("/bad", (c) => respond(c, schema, { ok: "nope" } as never));

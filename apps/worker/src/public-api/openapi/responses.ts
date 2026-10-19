@@ -1,6 +1,5 @@
 import type { Context, Env, Input } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { JSONObject } from "hono/utils/types";
 import { HTTPException } from "hono/http-exception";
 import { resolver, type ResponsesWithResolver } from "hono-openapi";
 import type { z } from "zod";
@@ -58,18 +57,17 @@ export function apiResponses(
 
 /**
  * Validates the payload against the documented response schema before it goes
- * over the wire, so the document and the payload cannot drift. The payload is
- * normalized through JSON first, so validation sees exactly what `c.json`
- * serializes (dates become their wire `date-time` strings).
+ * over the wire, so the document and the payload cannot drift. The parsed value
+ * is serialized explicitly because schemas model service types (e.g. `Date`),
+ * not their JSON form.
  */
-export function respond<
-	E extends Env,
-	P extends string,
-	I extends Input,
-	Schema extends z.ZodType<JSONObject>,
->(c: Context<E, P, I>, schema: Schema, payload: unknown, status: ContentfulStatusCode = 200) {
-	const wirePayload: unknown = JSON.parse(JSON.stringify(payload));
-	const result = schema.safeParse(wirePayload);
+export function respond<E extends Env, P extends string, I extends Input, Schema extends z.ZodType>(
+	c: Context<E, P, I>,
+	schema: Schema,
+	payload: z.input<Schema>,
+	status: ContentfulStatusCode = 200
+) {
+	const result = schema.safeParse(payload);
 	if (!result.success) {
 		const details = result.error.issues.map((issue) => issue.message).join("; ");
 		console.error(
@@ -77,5 +75,5 @@ export function respond<
 		);
 		throw new HTTPException(500, { res: c.json({ error: "internal_error" }, 500) });
 	}
-	return c.json(result.data, status);
+	return c.body(JSON.stringify(result.data), status, { "content-type": "application/json" });
 }
