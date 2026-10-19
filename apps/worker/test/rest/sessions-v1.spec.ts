@@ -8,6 +8,15 @@ import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
 import { MAX_MATCH_SCORE } from "../../src/lib/match-score";
+import {
+	cancelMatchResponseSchema,
+	endSessionResponseSchema,
+	lineupResponseSchema,
+	logMatchResponseSchema,
+	scoreResponseSchema,
+	startMatchResponseSchema,
+	startSessionResponseSchema,
+} from "../../src/public-api/schemas/sessions";
 
 type TestClient = ReturnType<typeof createTRPCTestClient>;
 
@@ -549,5 +558,66 @@ describe("sessions v1 rest routes", () => {
 			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[2].id),
 			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[3].id),
 		]);
+	});
+
+	it("response bodies parse against the documented schemas", async () => {
+		const { ctx, client, season, seasonPlayers } = await setupSeason(4);
+		const key = await createKey(client, [
+			"session:start",
+			"session:stop",
+			"match:start",
+			"match:log",
+			"match:lineup",
+			"match:score",
+			"match:cancel",
+		]);
+		const home = [seasonPlayers[0].id, seasonPlayers[1].id];
+		const away = [seasonPlayers[2].id, seasonPlayers[3].id];
+
+		const start = await jsonRequest(ctx.league.id, "", "POST", key.key, {
+			seasonSlug: season.slug,
+			teamSize: 2,
+		});
+		expect(start.status).toBe(201);
+		expect(startSessionResponseSchema.safeParse(await start.json()).success).toBe(true);
+
+		const matchStart = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {
+			home,
+			away,
+		});
+		expect(matchStart.status).toBe(201);
+		expect(startMatchResponseSchema.safeParse(await matchStart.json()).success).toBe(true);
+
+		const lineup = await jsonRequest(ctx.league.id, "/active/match/lineup", "PUT", key.key, {
+			home,
+			away,
+		});
+		expect(lineup.status).toBe(200);
+		expect(lineupResponseSchema.safeParse(await lineup.json()).success).toBe(true);
+
+		const score = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: 3,
+			away: 2,
+		});
+		expect(score.status).toBe(200);
+		expect(scoreResponseSchema.safeParse(await score.json()).success).toBe(true);
+
+		const log = await jsonRequest(ctx.league.id, "/active/match/log", "POST", key.key, {
+			home: 3,
+			away: 2,
+		});
+		expect(log.status).toBe(200);
+		expect(logMatchResponseSchema.safeParse(await log.json()).success).toBe(true);
+
+		const nextMatch = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {});
+		expect(nextMatch.status).toBe(201);
+
+		const cancel = await jsonRequest(ctx.league.id, "/active/match", "DELETE", key.key);
+		expect(cancel.status).toBe(200);
+		expect(cancelMatchResponseSchema.safeParse(await cancel.json()).success).toBe(true);
+
+		const end = await jsonRequest(ctx.league.id, "/active/end", "POST", key.key);
+		expect(end.status).toBe(200);
+		expect(endSessionResponseSchema.safeParse(await end.json()).success).toBe(true);
 	});
 });

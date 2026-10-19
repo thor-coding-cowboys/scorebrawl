@@ -1,4 +1,5 @@
-import type { Context, Handler } from "hono";
+import type { Context, Handler, Input } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { JSONObject } from "hono/utils/types";
 import { HTTPException } from "hono/http-exception";
 import { resolver, type ResponsesWithResolver } from "hono-openapi";
@@ -12,6 +13,13 @@ export const apiKeySecurity = [{ apiKey: [] }];
 export function jsonResponse(description: string, schema: ResolvableSchema) {
 	return {
 		description,
+		content: { "application/json": { schema: resolver(schema) } },
+	};
+}
+
+export function jsonRequest(schema: ResolvableSchema) {
+	return {
+		required: true,
 		content: { "application/json": { schema: resolver(schema) } },
 	};
 }
@@ -52,13 +60,14 @@ export function apiResponses(
  * Validates the handler payload against the documented response schema before it
  * goes over the wire, so the document and the payload cannot drift.
  */
-export function withResponseSchema(
+export function withResponseSchema<I extends Input = {}>(
 	schema: ResolvableSchema,
-	handler: (c: Context<HonoEnv>) => unknown
-): Handler<HonoEnv> {
+	handler: (c: Context<HonoEnv, string, I>) => unknown,
+	status: ContentfulStatusCode = 200
+): Handler<HonoEnv, string, I> {
 	const { validate } = resolver(schema);
 	return async (c) => {
-		const result = await validate(await handler(c));
+		const result = await validate(await handler(c as Context<HonoEnv, string, I>));
 		if (result.issues) {
 			const details = result.issues.map((issue) => issue.message).join("; ");
 			console.error(
@@ -66,6 +75,6 @@ export function withResponseSchema(
 			);
 			throw new HTTPException(500, { res: c.json({ error: "internal_error" }, 500) });
 		}
-		return c.json(result.value as JSONObject);
+		return c.json(result.value as JSONObject, status);
 	};
 }
