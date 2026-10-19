@@ -253,6 +253,18 @@ describe("MCP discovery + host scope", () => {
 		const res = await SELF.fetch("https://scorebrawl.com/mcp", initialize);
 		expect(res.status).toBe(404);
 	});
+
+	it("keeps authorization-server metadata reachable on the app host", async () => {
+		const res = await SELF.fetch(
+			"https://scorebrawl.com/.well-known/oauth-authorization-server/api/auth"
+		);
+		expect(res.status).toBe(200);
+	});
+
+	it("does not fall through to the auth handler for unknown well-known paths", async () => {
+		const res = await SELF.fetch("https://scorebrawl.com/.well-known/does-not-exist");
+		expect(res.status).toBe(404);
+	});
 });
 
 describe("MCP dynamic client registration", () => {
