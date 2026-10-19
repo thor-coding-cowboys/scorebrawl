@@ -13,7 +13,10 @@ type OpenApiDocument = {
 	paths: Record<string, unknown>;
 	components?: {
 		securitySchemes?: Record<string, unknown>;
-		schemas?: Record<string, Record<string, unknown>>;
+		schemas?: Record<
+			string,
+			{ type?: unknown; required?: unknown; properties?: Record<string, unknown> }
+		>;
 	};
 };
 
@@ -181,6 +184,17 @@ describe("league session endpoints", () => {
 			}
 		}
 	);
+
+	it("documents timestamps as date-time strings", async () => {
+		const doc = await fetchDocument();
+
+		expect(doc.components?.schemas?.Session?.properties).toMatchObject({
+			createdAt: { type: "string", format: "date-time" },
+			endedAt: {
+				anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+			},
+		});
+	});
 
 	it("states the required scope in every operation description", async () => {
 		const doc = await fetchDocument();

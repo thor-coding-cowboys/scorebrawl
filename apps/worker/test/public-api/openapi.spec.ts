@@ -33,7 +33,7 @@ describe("respond", () => {
 	});
 
 	it("serializes service types (dates) to their JSON form", async () => {
-		const dated = z.object({ at: z.coerce.date() });
+		const dated = z.object({ at: z.iso.datetime() });
 		const app = new Hono().get("/dated", (c) =>
 			respond(c, dated, { at: new Date("2026-01-01T00:00:00.000Z") })
 		);

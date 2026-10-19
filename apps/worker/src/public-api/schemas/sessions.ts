@@ -1,16 +1,7 @@
 import { z } from "zod";
 import { scorePairSchema } from "../../lib/match-score";
-import type {
-	cancelMatch,
-	endSession,
-	logMatch,
-	setLineup,
-	startNextMatch,
-	startSession,
-	updateLiveScore,
-} from "../../services/session/session-actions";
 
-const timestamp = z.coerce.date();
+const timestamp = z.iso.datetime();
 
 export const startSchema = z
 	.object({
@@ -112,21 +103,15 @@ export const proposedLineupSchema = z
 
 export const startSessionResponseSchema = z
 	.object({ session: sessionSchema.extend({ players: z.array(sessionPlayerSchema) }) })
-	.meta({ ref: "StartSessionResponse" }) satisfies z.ZodType<{
-	session: Awaited<ReturnType<typeof startSession>>;
-}>;
+	.meta({ ref: "StartSessionResponse" });
 
 export const endSessionResponseSchema = z
 	.object({ session: sessionSchema })
-	.meta({ ref: "EndSessionResponse" }) satisfies z.ZodType<{
-	session: Awaited<ReturnType<typeof endSession>>;
-}>;
+	.meta({ ref: "EndSessionResponse" });
 
 export const startMatchResponseSchema = z
 	.object({ match: matchSchema })
-	.meta({ ref: "StartMatchResponse" }) satisfies z.ZodType<{
-	match: Awaited<ReturnType<typeof startNextMatch>>;
-}>;
+	.meta({ ref: "StartMatchResponse" });
 
 export const logMatchResponseSchema = z
 	.object({
@@ -138,7 +123,7 @@ export const logMatchResponseSchema = z
 			.object({ winnerNames: z.array(z.string()), conflictType: z.string() })
 			.nullable(),
 	})
-	.meta({ ref: "LogMatchResponse" }) satisfies z.ZodType<Awaited<ReturnType<typeof logMatch>>>;
+	.meta({ ref: "LogMatchResponse" });
 
 export const lineupResponseSchema = z
 	.object({
@@ -148,9 +133,7 @@ export const lineupResponseSchema = z
 			selectedAwayPlayerIds: z.string().nullable(),
 		}),
 	})
-	.meta({ ref: "LineupResponse" }) satisfies z.ZodType<{
-	teamSelection: NonNullable<Awaited<ReturnType<typeof setLineup>>>;
-}>;
+	.meta({ ref: "LineupResponse" });
 
 export const scoreResponseSchema = z
 	.object({
@@ -160,9 +143,7 @@ export const scoreResponseSchema = z
 			awaySessionScore: z.number(),
 		}),
 	})
-	.meta({ ref: "ScoreResponse" }) satisfies z.ZodType<{
-	match: NonNullable<Awaited<ReturnType<typeof updateLiveScore>>>;
-}>;
+	.meta({ ref: "ScoreResponse" });
 
 export const cancelMatchResponseSchema = z
 	.object({
@@ -175,6 +156,4 @@ export const cancelMatchResponseSchema = z
 			coinTossNeeded: z.null(),
 		}),
 	})
-	.meta({ ref: "CancelMatchResponse" }) satisfies z.ZodType<
-	Awaited<ReturnType<typeof cancelMatch>>
->;
+	.meta({ ref: "CancelMatchResponse" });
