@@ -8,6 +8,7 @@ import { contextStorage } from "hono/context-storage";
 import { getDb } from "./db";
 import { enforceAuthMiddleware } from "./middleware/auth";
 import { contextMiddleware, type HonoEnv } from "./middleware/context";
+import { errorHandler } from "./middleware/error-handler";
 import { authRouter } from "./routes/auth-router";
 import { leaguesV1Router } from "./routes/leagues-v1";
 import { enforceHostScope } from "./public-api/host-scope";
@@ -31,6 +32,7 @@ import { seedLeague, type SeedInput } from "./services/seed";
 import { trpcServer } from "./trpc/server";
 
 const app = new Hono<HonoEnv>()
+	.onError(errorHandler)
 	.use("*", contextStorage())
 	.use("*", enforceHostScope)
 	.use("*", contextMiddleware)

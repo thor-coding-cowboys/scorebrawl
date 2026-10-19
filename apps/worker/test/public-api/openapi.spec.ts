@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { describeRoute, generateSpecs } from "hono-openapi";
 import { z } from "zod";
+import { errorHandler } from "../../src/middleware/error-handler";
 import {
 	apiResponses,
 	errorResponse,
@@ -12,6 +14,45 @@ import {
 type Operation = {
 	responses: Record<string, { content?: { "application/json": { schema: unknown } } }>;
 };
+
+describe("errorHandler", () => {
+	it("maps a response schema failure to a logged JSON 500", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const app = new Hono().onError(errorHandler).get("/bad", () => {
+			z.object({ ok: z.boolean() }).parse({ ok: "nope" });
+			return new Response("unreachable");
+		});
+
+		const res = await app.request("/bad");
+
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ error: "internal_error" });
+		expect(logged).toHaveBeenCalled();
+		logged.mockRestore();
+	});
+
+	it("preserves HTTPException responses", async () => {
+		const app = new Hono().onError(errorHandler).get("/teapot", () => {
+			throw new HTTPException(418, { message: "teapot" });
+		});
+
+		expect((await app.request("/teapot")).status).toBe(418);
+	});
+
+	it("logs and returns the default text 500 for other errors", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const app = new Hono().onError(errorHandler).get("/boom", () => {
+			throw new Error("boom");
+		});
+
+		const res = await app.request("/boom");
+
+		expect(res.status).toBe(500);
+		expect(await res.text()).toBe("Internal Server Error");
+		expect(logged).toHaveBeenCalled();
+		logged.mockRestore();
+	});
+});
 
 describe("apiResponses", () => {
 	it("documents the success response plus the default error set", () => {
