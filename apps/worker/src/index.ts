@@ -12,7 +12,8 @@ import { authRouter } from "./routes/auth-router";
 import { leaguesV1Router } from "./routes/leagues-v1";
 import { enforceHostScope } from "./public-api/host-scope";
 import { generatePublicApiSpec } from "./public-api/openapi";
-import { mcpRouter } from "./routes/mcp-router";
+import { mcpRouter } from "./public-api/mcp";
+import { mcpWellKnownRouter } from "./public-api/mcp/well-known";
 import { matchesV1Router } from "./routes/matches-v1";
 import { v1Router } from "./routes/v1";
 import { sessionsV1Router } from "./routes/sessions-v1";
@@ -48,6 +49,7 @@ const app = new Hono<HonoEnv>()
 		const version = c.env.VERSION || "local";
 		return c.json({ version });
 	})
+	.route("/.well-known", mcpWellKnownRouter)
 	.route("/.well-known", wellKnownRouter)
 	.route("/api/auth", authRouter)
 	.route("/api/sse", sseRouter)
@@ -59,9 +61,9 @@ const app = new Hono<HonoEnv>()
 	.route("/leagues/v1/sessions", sessionsV1Router)
 	.route("/leagues/v1/:leagueId/sessions", sessionsV1Router)
 	.route("/api/v1/leagues", leaguesV1Router)
+	.route("/mcp", mcpRouter)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
-	.route("/api/mcp", mcpRouter)
 	.use("/api/trpc/*", trpcServer)
 	.use("*", async (c, next) => {
 		return enforceAuthMiddleware(c, next);

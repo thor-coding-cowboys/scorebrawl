@@ -340,7 +340,7 @@ export const playerRouter = {
 	createGuestPlayer: leagueEditorProcedure
 		.input(
 			z.object({
-				email: z.string().email().toLowerCase(),
+				email: z.email().toLowerCase(),
 				displayName: z.string().min(1).max(100),
 			})
 		)
@@ -500,7 +500,7 @@ export const playerRouter = {
 		.input(
 			z.object({
 				playerId: z.string(),
-				email: z.string().email().toLowerCase(),
+				email: z.email().toLowerCase(),
 				displayName: z.string().min(1).max(100),
 			})
 		)

@@ -20,6 +20,11 @@ describe("isPublicApiPath", () => {
 		["/leagues/v10", false],
 		["/leagues/my-league", false],
 		["/api/trpc/x", false],
+		["/mcp", true],
+		["/mcp/foo", true],
+		["/.well-known/oauth-protected-resource/mcp", true],
+		["/.well-known/oauth-authorization-server", false],
+		["/.well-known/openid-configuration", false],
 	])("%s -> %s", (path, expected) => {
 		expect(isPublicApiPath(path)).toBe(expected);
 	});
@@ -29,6 +34,7 @@ describe("enforceHostScope", () => {
 	it("blocks public API paths on the app host", async () => {
 		expect((await call("https://scorebrawl.com/v1/me")).status).toBe(404);
 		expect((await call("https://scorebrawl.com/leagues/v1/x/sessions")).status).toBe(404);
+		expect((await call("https://scorebrawl.com/mcp")).status).toBe(404);
 	});
 
 	it("allows app paths on the app host", async () => {
@@ -37,6 +43,7 @@ describe("enforceHostScope", () => {
 
 	it("allows public API paths on the API host", async () => {
 		expect((await call("https://api.scorebrawl.com/leagues/v1/x/sessions")).status).toBe(200);
+		expect((await call("https://api.scorebrawl.com/mcp")).status).toBe(200);
 	});
 
 	it("blocks app paths on the API host", async () => {

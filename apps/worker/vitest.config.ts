@@ -111,6 +111,10 @@ export default defineWorkersConfig({
 						// Override BETTER_AUTH_URL from .env (https) so better-auth uses
 						// plain (non __Secure-) cookies matching the test auth helpers.
 						BETTER_AUTH_URL: "http://localhost",
+						// Pin the MCP protected-resource identifier; test requests use
+						// synthetic hosts (`http://example.com`) whose origin is not a
+						// valid MCP resource URL.
+						MCP_RESOURCE_URL: "http://localhost/mcp",
 					},
 					logLevel: "warn",
 				},
