@@ -11,7 +11,7 @@ import {
 	apiResponses,
 	jsonRequest,
 	jsonResponse,
-	withResponseSchema,
+	respond,
 } from "../public-api/openapi/responses";
 import {
 	cancelMatchResponseSchema,
@@ -25,10 +25,6 @@ import {
 	startMatchSchema,
 	startSchema,
 	startSessionResponseSchema,
-	type LineupInput,
-	type ScorePairInput,
-	type StartMatchInput,
-	type StartSessionInput,
 } from "../public-api/schemas/sessions";
 import {
 	startSession,
@@ -92,18 +88,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		}),
 		requireApiKeyScope({ session: ["start"] }),
 		zValidator("json", startSchema),
-		withResponseSchema(
-			startSessionResponseSchema,
-			async (c: Context<HonoEnv, string, { out: { json: StartSessionInput } }>) => {
-				try {
-					const session = await startSession(actionCtx(c), c.req.valid("json"));
-					return { session };
-				} catch (error) {
-					throw mapError(error);
-				}
-			},
-			201
-		)
+		async (c) => {
+			try {
+				const session = await startSession(actionCtx(c), c.req.valid("json"));
+				return respond(c, startSessionResponseSchema, { session }, 201);
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
 	)
 	.post(
 		"/active/end",
@@ -119,14 +111,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 			),
 		}),
 		requireApiKeyScope({ session: ["stop"] }),
-		withResponseSchema(endSessionResponseSchema, async (c) => {
+		async (c) => {
 			try {
 				const session = await endSession(actionCtx(c), leagueId(c));
-				return { session };
+				return respond(c, endSessionResponseSchema, { session });
 			} catch (error) {
 				throw mapError(error);
 			}
-		})
+		}
 	)
 	.post(
 		"/active/match/start",
@@ -144,18 +136,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		}),
 		requireApiKeyScope({ match: ["start"] }),
 		zValidator("json", startMatchSchema),
-		withResponseSchema(
-			startMatchResponseSchema,
-			async (c: Context<HonoEnv, string, { out: { json: StartMatchInput } }>) => {
-				try {
-					const match = await startNextMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
-					return { match };
-				} catch (error) {
-					throw mapError(error);
-				}
-			},
-			201
-		)
+		async (c) => {
+			try {
+				const match = await startNextMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return respond(c, startMatchResponseSchema, { match }, 201);
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
 	)
 	.post(
 		"/active/match/log",
@@ -173,16 +161,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		}),
 		requireApiKeyScope({ match: ["log"] }),
 		zValidator("json", scorePairRequestSchema),
-		withResponseSchema(
-			logMatchResponseSchema,
-			async (c: Context<HonoEnv, string, { out: { json: ScorePairInput } }>) => {
-				try {
-					return await logMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
-				} catch (error) {
-					throw mapError(error);
-				}
+		async (c) => {
+			try {
+				const result = await logMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return respond(c, logMatchResponseSchema, result);
+			} catch (error) {
+				throw mapError(error);
 			}
-		)
+		}
 	)
 	.put(
 		"/active/match/lineup",
@@ -200,17 +186,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		}),
 		requireApiKeyScope({ match: ["lineup"] }),
 		zValidator("json", lineupSchema),
-		withResponseSchema(
-			lineupResponseSchema,
-			async (c: Context<HonoEnv, string, { out: { json: LineupInput } }>) => {
-				try {
-					const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
-					return { teamSelection };
-				} catch (error) {
-					throw mapError(error);
-				}
+		async (c) => {
+			try {
+				const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return respond(c, lineupResponseSchema, { teamSelection });
+			} catch (error) {
+				throw mapError(error);
 			}
-		)
+		}
 	)
 	.put(
 		"/active/match/score",
@@ -228,17 +211,14 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		}),
 		requireApiKeyScope({ match: ["score"] }),
 		zValidator("json", scorePairRequestSchema),
-		withResponseSchema(
-			scoreResponseSchema,
-			async (c: Context<HonoEnv, string, { out: { json: ScorePairInput } }>) => {
-				try {
-					const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
-					return { match };
-				} catch (error) {
-					throw mapError(error);
-				}
+		async (c) => {
+			try {
+				const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return respond(c, scoreResponseSchema, { match });
+			} catch (error) {
+				throw mapError(error);
 			}
-		)
+		}
 	)
 	.delete(
 		"/active/match",
@@ -254,11 +234,12 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 			),
 		}),
 		requireApiKeyScope({ match: ["cancel"] }),
-		withResponseSchema(cancelMatchResponseSchema, async (c) => {
+		async (c) => {
 			try {
-				return await cancelMatch(actionCtx(c), leagueId(c));
+				const result = await cancelMatch(actionCtx(c), leagueId(c));
+				return respond(c, cancelMatchResponseSchema, result);
 			} catch (error) {
 				throw mapError(error);
 			}
-		})
+		}
 	);

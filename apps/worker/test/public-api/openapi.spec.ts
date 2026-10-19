@@ -7,19 +7,18 @@ import {
 	errorResponse,
 	jsonResponse,
 	publicApiSpecOptions,
-	withResponseSchema,
+	respond,
 } from "../../src/public-api/openapi";
 
 type Operation = {
 	responses: Record<string, { content?: { "application/json": { schema: unknown } } }>;
 };
 
-describe("withResponseSchema", () => {
-	it("returns the handler payload after validating it", async () => {
-		const app = new Hono().get(
-			"/ok",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: true }))
-		);
+describe("respond", () => {
+	const schema = z.object({ ok: z.boolean() });
+
+	it("returns the payload after validating it", async () => {
+		const app = new Hono().get("/ok", (c) => respond(c, schema, { ok: true }));
 
 		const res = await app.request("/ok");
 
@@ -27,21 +26,15 @@ describe("withResponseSchema", () => {
 		expect(await res.json()).toEqual({ ok: true });
 	});
 
-	it("fails the request when the payload violates the schema", async () => {
-		const app = new Hono().get(
-			"/bad",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: "nope" }) as never)
-		);
+	it("serializes a provided status", async () => {
+		const app = new Hono().post("/created", (c) => respond(c, schema, { ok: true }, 201));
 
-		expect((await app.request("/bad")).status).toBe(500);
+		expect((await app.request("/created", { method: "POST" })).status).toBe(201);
 	});
 
 	it("returns the documented ApiError body and logs when the payload violates the schema", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-		const app = new Hono().get(
-			"/bad",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: "nope" }) as never)
-		);
+		const app = new Hono().get("/bad", (c) => respond(c, schema, { ok: "nope" } as never));
 
 		const res = await app.request("/bad");
 
