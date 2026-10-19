@@ -65,92 +65,85 @@ function leagueId(c: Context<HonoEnv>): string {
 	return apiKey.organizationId;
 }
 
-export const sessionsV1Router = new Hono<HonoEnv>();
-
-sessionsV1Router.post(
-	"/",
-	requireApiKeyScope({ session: ["start"] }),
-	zValidator("json", startSchema),
-	async (c) => {
+export const sessionsV1Router = new Hono<HonoEnv>()
+	.post(
+		"/",
+		requireApiKeyScope({ session: ["start"] }),
+		zValidator("json", startSchema),
+		async (c) => {
+			try {
+				const session = await startSession(actionCtx(c), c.req.valid("json"));
+				return c.json({ session }, 201);
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
+	)
+	.post("/active/end", requireApiKeyScope({ session: ["stop"] }), async (c) => {
 		try {
-			const session = await startSession(actionCtx(c), c.req.valid("json"));
-			return c.json({ session }, 201);
+			const session = await endSession(actionCtx(c), leagueId(c));
+			return c.json({ session });
 		} catch (error) {
 			throw mapError(error);
 		}
-	}
-);
-
-sessionsV1Router.post("/active/end", requireApiKeyScope({ session: ["stop"] }), async (c) => {
-	try {
-		const session = await endSession(actionCtx(c), leagueId(c));
-		return c.json({ session });
-	} catch (error) {
-		throw mapError(error);
-	}
-});
-
-sessionsV1Router.post(
-	"/active/match/start",
-	requireApiKeyScope({ match: ["start"] }),
-	zValidator("json", startMatchSchema),
-	async (c) => {
-		try {
-			const match = await startNextMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
-			return c.json({ match }, 201);
-		} catch (error) {
-			throw mapError(error);
+	})
+	.post(
+		"/active/match/start",
+		requireApiKeyScope({ match: ["start"] }),
+		zValidator("json", startMatchSchema),
+		async (c) => {
+			try {
+				const match = await startNextMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return c.json({ match }, 201);
+			} catch (error) {
+				throw mapError(error);
+			}
 		}
-	}
-);
-
-sessionsV1Router.post(
-	"/active/match/log",
-	requireApiKeyScope({ match: ["log"] }),
-	zValidator("json", logSchema),
-	async (c) => {
+	)
+	.post(
+		"/active/match/log",
+		requireApiKeyScope({ match: ["log"] }),
+		zValidator("json", logSchema),
+		async (c) => {
+			try {
+				const result = await logMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return c.json(result);
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
+	)
+	.put(
+		"/active/match/lineup",
+		requireApiKeyScope({ match: ["lineup"] }),
+		zValidator("json", lineupSchema),
+		async (c) => {
+			try {
+				const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return c.json({ teamSelection });
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
+	)
+	.put(
+		"/active/match/score",
+		requireApiKeyScope({ match: ["score"] }),
+		zValidator("json", logSchema),
+		async (c) => {
+			try {
+				const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
+				return c.json({ match });
+			} catch (error) {
+				throw mapError(error);
+			}
+		}
+	)
+	.delete("/active/match", requireApiKeyScope({ match: ["cancel"] }), async (c) => {
 		try {
-			const result = await logMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
+			const result = await cancelMatch(actionCtx(c), leagueId(c));
 			return c.json(result);
 		} catch (error) {
 			throw mapError(error);
 		}
-	}
-);
-
-sessionsV1Router.put(
-	"/active/match/lineup",
-	requireApiKeyScope({ match: ["lineup"] }),
-	zValidator("json", lineupSchema),
-	async (c) => {
-		try {
-			const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
-			return c.json({ teamSelection });
-		} catch (error) {
-			throw mapError(error);
-		}
-	}
-);
-
-sessionsV1Router.put(
-	"/active/match/score",
-	requireApiKeyScope({ match: ["score"] }),
-	zValidator("json", logSchema),
-	async (c) => {
-		try {
-			const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
-			return c.json({ match });
-		} catch (error) {
-			throw mapError(error);
-		}
-	}
-);
-
-sessionsV1Router.delete("/active/match", requireApiKeyScope({ match: ["cancel"] }), async (c) => {
-	try {
-		const result = await cancelMatch(actionCtx(c), leagueId(c));
-		return c.json(result);
-	} catch (error) {
-		throw mapError(error);
-	}
-});
+	});

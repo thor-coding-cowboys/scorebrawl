@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { generateSpecs, type GenerateSpecOptions } from "hono-openapi";
 import type { HonoEnv } from "../../middleware/context";
-import { sessionsV1Router } from "../../routes/sessions-v1";
+import { leagueRouter } from "../../routes/league-router";
 import { v1Router } from "../../routes/v1";
 
 export * from "./responses";
@@ -37,8 +37,7 @@ export const publicApiSpecOptions: Partial<GenerateSpecOptions> = {
  */
 export const publicApiSpecApp = new Hono<HonoEnv>()
 	.route("/v1", v1Router)
-	.route("/leagues/v1/sessions", sessionsV1Router)
-	.route("/leagues/v1/:leagueId/sessions", sessionsV1Router);
+	.route("/leagues/v1", leagueRouter);
 
 export function generatePublicApiSpec() {
 	return generateSpecs(publicApiSpecApp, publicApiSpecOptions);

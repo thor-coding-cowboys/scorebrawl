@@ -15,7 +15,7 @@ import { generatePublicApiSpec } from "./public-api/openapi";
 import { mcpRouter } from "./routes/mcp-router";
 import { matchesV1Router } from "./routes/matches-v1";
 import { v1Router } from "./routes/v1";
-import { sessionsV1Router } from "./routes/sessions-v1";
+import { leagueRouter } from "./routes/league-router";
 import { sseRouter, broadcastSeasonEvent } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
 import { wellKnownRouter } from "./routes/well-known";
@@ -56,8 +56,7 @@ const app = new Hono<HonoEnv>()
 		c.json(await generatePublicApiSpec())
 	)
 	.route("/v1", v1Router)
-	.route("/leagues/v1/sessions", sessionsV1Router)
-	.route("/leagues/v1/:leagueId/sessions", sessionsV1Router)
+	.route("/leagues/v1", leagueRouter)
 	.route("/api/v1/leagues", leaguesV1Router)
 	.use("/api/user-assets/*", enforceAuthMiddleware)
 	.route("/api/user-assets", userAssetsRouter)
