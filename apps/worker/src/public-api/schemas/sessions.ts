@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { scorePairSchema } from "../../lib/match-score";
 
-const timestamp = z.iso.datetime();
+const timestamp = z.date();
 
 export const startSchema = z
 	.object({

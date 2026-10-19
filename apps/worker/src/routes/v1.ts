@@ -5,12 +5,7 @@ import { asc, eq } from "drizzle-orm";
 import type { HonoEnv } from "../middleware/context";
 import { league, member, user } from "../db/schema/auth-schema";
 import { requirePersonalApiKeyScope } from "./api-key-auth";
-import {
-	apiKeySecurity,
-	apiResponses,
-	jsonResponse,
-	respond,
-} from "../public-api/openapi/responses";
+import { apiKeySecurity, apiResponses, jsonResponse } from "../public-api/openapi/responses";
 import { listLeaguesResponseSchema, meResponseSchema } from "../public-api/schemas/v1";
 
 export const v1Router = new Hono<HonoEnv>()
@@ -42,7 +37,7 @@ export const v1Router = new Hono<HonoEnv>()
 			if (!me) {
 				throw new HTTPException(401, { res: c.json({ error: "invalid_api_key" }, 401) });
 			}
-			return respond(c, meResponseSchema, { user: me });
+			return c.json(meResponseSchema.parse({ user: me }));
 		}
 	)
 	.get(
@@ -71,6 +66,6 @@ export const v1Router = new Hono<HonoEnv>()
 				.innerJoin(league, eq(league.id, member.organizationId))
 				.where(eq(member.userId, userId))
 				.orderBy(asc(league.name));
-			return respond(c, listLeaguesResponseSchema, { leagues });
+			return c.json(listLeaguesResponseSchema.parse({ leagues }));
 		}
 	);

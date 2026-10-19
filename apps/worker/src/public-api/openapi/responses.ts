@@ -1,9 +1,4 @@
-import type { Context, Env, Input } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { JSONObject } from "hono/utils/types";
-import { HTTPException } from "hono/http-exception";
 import { resolver, type ResponsesWithResolver } from "hono-openapi";
-import type { z } from "zod";
 import { publicApiErrorSchema } from "../schemas/errors";
 
 type ResolvableSchema = Parameters<typeof resolver>[0];
@@ -54,28 +49,4 @@ export function apiResponses(
 		errors[409] = errorResponse("Request conflicts with the current session state");
 	}
 	return { ...errors, ...success, ...options.errors };
-}
-
-/**
- * Validates the payload against the documented response schema before it goes
- * over the wire, so the document and the payload cannot drift. The payload is
- * serialized first so validation sees exactly what `c.json` sends (dates become
- * their `date-time` strings).
- */
-export function respond<
-	E extends Env,
-	P extends string,
-	I extends Input,
-	Schema extends z.ZodType<JSONObject>,
->(c: Context<E, P, I>, schema: Schema, payload: unknown, status: ContentfulStatusCode = 200) {
-	const wirePayload: unknown = JSON.parse(JSON.stringify(payload));
-	const result = schema.safeParse(wirePayload);
-	if (!result.success) {
-		const details = result.error.issues.map((issue) => issue.message).join("; ");
-		console.error(
-			`[public-api] ${c.req.method} ${c.req.path} failed its response schema: ${details}`
-		);
-		throw new HTTPException(500, { res: c.json({ error: "internal_error" }, 500) });
-	}
-	return c.json(result.data, status);
 }

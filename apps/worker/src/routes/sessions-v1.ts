@@ -11,7 +11,6 @@ import {
 	apiResponses,
 	jsonRequest,
 	jsonResponse,
-	respond,
 } from "../public-api/openapi/responses";
 import {
 	cancelMatchResponseSchema,
@@ -91,7 +90,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const session = await startSession(actionCtx(c), c.req.valid("json"));
-				return respond(c, startSessionResponseSchema, { session }, 201);
+				return c.json(startSessionResponseSchema.parse({ session }), 201);
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -114,7 +113,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const session = await endSession(actionCtx(c), leagueId(c));
-				return respond(c, endSessionResponseSchema, { session });
+				return c.json(endSessionResponseSchema.parse({ session }));
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -139,7 +138,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const match = await startNextMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
-				return respond(c, startMatchResponseSchema, { match }, 201);
+				return c.json(startMatchResponseSchema.parse({ match }), 201);
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -164,7 +163,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const result = await logMatch(actionCtx(c), leagueId(c), c.req.valid("json"));
-				return respond(c, logMatchResponseSchema, result);
+				return c.json(logMatchResponseSchema.parse(result));
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -189,7 +188,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const teamSelection = await setLineup(actionCtx(c), leagueId(c), c.req.valid("json"));
-				return respond(c, lineupResponseSchema, { teamSelection });
+				return c.json(lineupResponseSchema.parse({ teamSelection }));
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -214,7 +213,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const match = await updateLiveScore(actionCtx(c), leagueId(c), c.req.valid("json"));
-				return respond(c, scoreResponseSchema, { match });
+				return c.json(scoreResponseSchema.parse({ match }));
 			} catch (error) {
 				throw mapError(error);
 			}
@@ -237,7 +236,7 @@ export const sessionsV1Router = new Hono<HonoEnv>()
 		async (c) => {
 			try {
 				const result = await cancelMatch(actionCtx(c), leagueId(c));
-				return respond(c, cancelMatchResponseSchema, result);
+				return c.json(cancelMatchResponseSchema.parse(result));
 			} catch (error) {
 				throw mapError(error);
 			}
