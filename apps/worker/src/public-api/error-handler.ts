@@ -7,7 +7,7 @@ import type { HonoEnv } from "./context";
  * Mirrors Hono's default error handler, except that response-schema failures
  * (`schema.parse`) are logged and returned as the documented `ApiError` body.
  */
-export const errorHandler: ErrorHandler<HonoEnv> = (err, c) => {
+export const publicApiErrorHandler: ErrorHandler<HonoEnv> = (err, c) => {
 	if (err instanceof HTTPException) {
 		const res = err.getResponse();
 		return c.newResponse(res.body, res);
@@ -20,5 +20,5 @@ export const errorHandler: ErrorHandler<HonoEnv> = (err, c) => {
 		return c.json({ error: "internal_error" }, 500);
 	}
 	console.error(err);
-	return c.text("Internal Server Error", 500);
+	return c.json({ error: "internal_error" }, 500);
 };

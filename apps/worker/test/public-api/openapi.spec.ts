@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { describeRoute, generateSpecs } from "hono-openapi";
 import { z } from "zod";
-import { errorHandler } from "../../src/middleware/error-handler";
+import { publicApiErrorHandler } from "../../src/public-api/error-handler";
 import {
 	apiResponses,
 	errorResponse,
@@ -15,10 +15,10 @@ type Operation = {
 	responses: Record<string, { content?: { "application/json": { schema: unknown } } }>;
 };
 
-describe("errorHandler", () => {
+describe("publicApiErrorHandler", () => {
 	it("maps a response schema failure to a logged JSON 500", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-		const app = new Hono().onError(errorHandler).get("/bad", () => {
+		const app = new Hono().onError(publicApiErrorHandler).get("/bad", () => {
 			z.object({ ok: z.boolean() }).parse({ ok: "nope" });
 			return new Response("unreachable");
 		});
@@ -32,23 +32,23 @@ describe("errorHandler", () => {
 	});
 
 	it("preserves HTTPException responses", async () => {
-		const app = new Hono().onError(errorHandler).get("/teapot", () => {
+		const app = new Hono().onError(publicApiErrorHandler).get("/teapot", () => {
 			throw new HTTPException(418, { message: "teapot" });
 		});
 
 		expect((await app.request("/teapot")).status).toBe(418);
 	});
 
-	it("logs and returns the default text 500 for other errors", async () => {
+	it("logs and returns a JSON 500 for other errors", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-		const app = new Hono().onError(errorHandler).get("/boom", () => {
+		const app = new Hono().onError(publicApiErrorHandler).get("/boom", () => {
 			throw new Error("boom");
 		});
 
 		const res = await app.request("/boom");
 
 		expect(res.status).toBe(500);
-		expect(await res.text()).toBe("Internal Server Error");
+		expect(await res.json()).toEqual({ error: "internal_error" });
 		expect(logged).toHaveBeenCalled();
 		logged.mockRestore();
 	});
