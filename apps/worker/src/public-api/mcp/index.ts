@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { createMcpProtectedRequestHandler } from "@better-auth/mcp";
 import type { HonoEnv } from "../../middleware/context";
-import { resolveAuthBaseURL, resolveMcpResource } from "../../lib/mcp";
+import { publicOrigin, resolveAuthBaseURL, resolveMcpResource } from "../../lib/mcp";
 import { PUBLIC_RATE_LIMIT_MESSAGE, principalWithinRateLimit } from "../rate-limit";
 import { createInProcessJwks } from "../../lib/jwks";
 import { createMcpServer } from "./server";
@@ -40,8 +40,8 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 export const mcpRouter = new Hono<HonoEnv>()
 	.use("*", MCP_CORS)
 	.all("/", async (c) => {
-		const baseURL = resolveAuthBaseURL(c.env, new URL(c.req.url).origin);
-		const resource = resolveMcpResource(c.env, c.req.url);
+		const baseURL = resolveAuthBaseURL(c.env, publicOrigin(c.req.raw));
+		const resource = resolveMcpResource(c.env, `${publicOrigin(c.req.raw)}/mcp`);
 		const db = c.get("db");
 		const parsedBody = await parseJsonBody(c.req.raw);
 

@@ -265,6 +265,18 @@ describe("MCP discovery + host scope", () => {
 		const res = await SELF.fetch("https://scorebrawl.com/.well-known/does-not-exist");
 		expect(res.status).toBe(404);
 	});
+
+	it("initialises behind a TLS-terminating proxy", async () => {
+		const res = await SELF.fetch(MCP_URL, {
+			...initialize,
+			headers: {
+				...initialize.headers,
+				"x-forwarded-proto": "https",
+				"x-forwarded-host": "scorebrawl.localhost:1355",
+			},
+		});
+		expect(res.status).toBe(401);
+	});
 });
 
 describe("MCP dynamic client registration", () => {

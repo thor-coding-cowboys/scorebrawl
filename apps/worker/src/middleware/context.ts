@@ -2,7 +2,7 @@ import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
 import { buildPasskeyConfig } from "../lib/passkey-config";
-import { resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
+import { publicOrigin, resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
 import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
@@ -67,8 +67,8 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		androidKeyHashes: c.env.PASSKEY_ANDROID_APK_KEY_HASHES,
 	});
 
-	const requestOrigin = new URL(c.req.url).origin;
-	const authBaseURL = resolveAuthBaseURL(c.env, requestOrigin);
+	const publicRequestOrigin = publicOrigin(c.req.raw);
+	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
 
 	const auth = createAuth({
 		db,
@@ -83,7 +83,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		adminUserIds,
 		oauthResource,
 		baseURL: authBaseURL,
-		mcpResource: resolveMcpResource(c.env, c.req.url),
+		mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
 	});
 	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
 	// request so no storage work is left floating after the response.

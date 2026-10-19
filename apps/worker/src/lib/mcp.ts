@@ -7,6 +7,18 @@ function hostnameOf(url: string | undefined): string | undefined {
 	}
 }
 
+/**
+ * Public origin the client used, not the internal one the Worker sees. Proxies
+ * (portless, Cloudflare) terminate TLS and forward plain HTTP, so honour the
+ * forwarded headers and fall back to the request URL.
+ */
+export function publicOrigin(request: Request): string {
+	const url = new URL(request.url);
+	const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+	const host = request.headers.get("x-forwarded-host") ?? url.host;
+	return `${proto}://${host}`;
+}
+
 /** True when the request host is one of the configured production hosts. */
 function isProdHost(
 	env: { PROD_URL?: string; PROD_PUBLIC_API_URL?: string },
@@ -41,9 +53,21 @@ export function resolveMcpResource(
 	requestURL: string
 ): string {
 	if (env.MCP_RESOURCE_URL) return env.MCP_RESOURCE_URL;
-	const { hostname, origin } = new URL(requestURL);
+	const { hostname, origin, protocol, host } = new URL(requestURL);
 	if (isProdHost(env, hostname) && env.PROD_PUBLIC_API_URL) {
 		return `${env.PROD_PUBLIC_API_URL}/mcp`;
 	}
+	// better-auth only accepts plain HTTP for literal loopback hosts; a
+	// `*.localhost` alias (portless in CI) must be advertised as HTTPS.
+	if (protocol === "http:" && !isLoopbackHostname(hostname)) return `https://${host}/mcp`;
 	return `${origin}/mcp`;
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+	return (
+		hostname === "localhost" ||
+		hostname === "127.0.0.1" ||
+		hostname === "::1" ||
+		hostname === "[::1]"
+	);
 }
