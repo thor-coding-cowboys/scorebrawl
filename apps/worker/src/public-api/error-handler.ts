@@ -1,7 +1,7 @@
 import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
-import type { HonoEnv } from "./context";
+import type { HonoEnv } from "../middleware/context";
 
 /**
  * Mirrors Hono's default error handler, except that response-schema failures
