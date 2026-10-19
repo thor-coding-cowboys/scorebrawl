@@ -64,6 +64,9 @@ async function resolveTarget(c: MatchContext) {
 	const db = c.get("db");
 	const leagueId = c.req.param("leagueId");
 	const seasonId = c.req.param("seasonId");
+	if (!leagueId || !seasonId) {
+		throw new HTTPException(400, { message: "Missing leagueId or seasonId" });
+	}
 	const userId = c.get("oauthToken")?.sub;
 	if (!userId) {
 		throw new HTTPException(401, { message: "Invalid token" });
