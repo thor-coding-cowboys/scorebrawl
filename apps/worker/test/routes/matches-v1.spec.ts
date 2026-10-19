@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb } from "../../src/db/index";
 import { guest } from "../../src/db/schema/league-schema";
+import { contextMiddleware, type HonoEnv } from "../../src/middleware/context";
+import { matchesV1Router } from "../../src/routes/matches-v1";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
@@ -345,6 +348,35 @@ describe("matches v1 authorization", () => {
 				losers: [{ name: "Anonymous" }],
 			},
 		});
+
+		expect(res.status).toBe(400);
+	});
+
+	it("returns 400 when the league and season params are missing", async () => {
+		const { ctx } = await createOneVnSeason();
+		const oauthClient = await registerOAuthClient({ sessionToken: ctx.sessionToken });
+		const { accessToken } = await getAccessToken({
+			sessionToken: ctx.sessionToken,
+			client: oauthClient,
+		});
+
+		const app = new Hono<HonoEnv>().use("*", contextMiddleware).route("/", matchesV1Router);
+		const res = await app.request(
+			"http://example.com/",
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					gameId: "game-noparams",
+					winner: { externalUserId: "a" },
+					losers: [{ externalUserId: "b" }],
+				}),
+			},
+			env
+		);
 
 		expect(res.status).toBe(400);
 	});

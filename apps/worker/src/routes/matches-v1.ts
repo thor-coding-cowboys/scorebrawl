@@ -58,12 +58,16 @@ function mapTrpcError(error: unknown): HTTPException {
 	return new HTTPException(500, { message: "Internal server error" });
 }
 
+const routeParamsSchema = z.object({
+	leagueId: z.string().min(1),
+	seasonId: z.string().min(1),
+});
+
 type MatchContext = Context<HonoEnv>;
 
-async function resolveTarget(c: MatchContext) {
+async function resolveTarget(c: MatchContext, params: z.infer<typeof routeParamsSchema>) {
 	const db = c.get("db");
-	const leagueId = c.req.param("leagueId");
-	const seasonId = c.req.param("seasonId");
+	const { leagueId, seasonId } = params;
 	const userId = c.get("oauthToken")?.sub;
 	if (!userId) {
 		throw new HTTPException(401, { message: "Invalid token" });
@@ -104,9 +108,10 @@ export const matchesV1Router = new Hono<HonoEnv>();
 matchesV1Router.post(
 	"/",
 	requireScope("create:matches"),
+	zValidator("param", routeParamsSchema),
 	zValidator("json", createMatchSchema),
 	async (c) => {
-		const target = await resolveTarget(c);
+		const target = await resolveTarget(c, c.req.valid("param"));
 		const { db, leagueId, seasonId, season } = target;
 		const input = c.req.valid("json");
 
@@ -152,17 +157,22 @@ matchesV1Router.post(
 	}
 );
 
-matchesV1Router.get("/", requireScope("read:matches"), async (c) => {
-	const target = await resolveTarget(c);
-	const limit = Number(c.req.query("limit") ?? 30);
-	const offset = Number(c.req.query("offset") ?? 0);
+matchesV1Router.get(
+	"/",
+	requireScope("read:matches"),
+	zValidator("param", routeParamsSchema),
+	async (c) => {
+		const target = await resolveTarget(c, c.req.valid("param"));
+		const limit = Number(c.req.query("limit") ?? 30);
+		const offset = Number(c.req.query("offset") ?? 0);
 
-	const result = await matchRepository.getBySeasonId({
-		db: target.db,
-		seasonId: target.seasonId,
-		limit: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 30,
-		offset: Number.isFinite(offset) && offset >= 0 ? offset : 0,
-	});
+		const result = await matchRepository.getBySeasonId({
+			db: target.db,
+			seasonId: target.seasonId,
+			limit: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 30,
+			offset: Number.isFinite(offset) && offset >= 0 ? offset : 0,
+		});
 
-	return c.json(result);
-});
+		return c.json(result);
+	}
+);
