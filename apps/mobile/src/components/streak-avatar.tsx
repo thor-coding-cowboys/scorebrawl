@@ -24,6 +24,8 @@ import {
 } from "react-native-reanimated";
 
 import { Avatar } from "@/components/avatar";
+import type { MobileColors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import { getStreakType, type StreakType } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const TAU = Math.PI * 2;
@@ -140,7 +142,21 @@ interface ClockProps {
 	clock: SharedValue<number>;
 }
 
-function Flame({ g, clock, angle, h, w, phase, speed }: ClockProps & (typeof FLAMES)[number]) {
+/** Skia's reconciler does not inherit React context, so tokens are passed down from StreakEffect. */
+interface ThemeProps {
+	theme: MobileColors;
+}
+
+function Flame({
+	g,
+	clock,
+	theme,
+	angle,
+	h,
+	w,
+	phase,
+	speed,
+}: ClockProps & ThemeProps & (typeof FLAMES)[number]) {
 	const rad = (angle * Math.PI) / 180;
 	const bx = g.c + Math.cos(rad) * g.r * 0.95;
 	const by = g.c + Math.sin(rad) * g.r * 0.95;
@@ -156,13 +172,13 @@ function Flame({ g, clock, angle, h, w, phase, speed }: ClockProps & (typeof FLA
 
 	return (
 		<Group blendMode="plus" origin={vec(bx, by)} opacity={opacity} transform={transform}>
-			<Path path={flamePath(bx, by, flameW, flameH)} color="#ff3d00">
+			<Path path={flamePath(bx, by, flameW, flameH)} color={theme.streakFireRamp3}>
 				<BlurMask blur={g.size * 0.09} {...BLUR_NORMAL} />
 			</Path>
-			<Path path={flamePath(bx, by, flameW * 0.62, flameH * 0.68)} color="#ff9500">
+			<Path path={flamePath(bx, by, flameW * 0.62, flameH * 0.68)} color={theme.streakFireRamp1}>
 				<BlurMask blur={g.size * 0.05} {...BLUR_NORMAL} />
 			</Path>
-			<Path path={flamePath(bx, by, flameW * 0.34, flameH * 0.42)} color="#ffd54f">
+			<Path path={flamePath(bx, by, flameW * 0.34, flameH * 0.42)} color={theme.streakFireRamp0}>
 				<BlurMask blur={g.size * 0.03} {...BLUR_NORMAL} />
 			</Path>
 		</Group>
@@ -172,12 +188,13 @@ function Flame({ g, clock, angle, h, w, phase, speed }: ClockProps & (typeof FLA
 function Ember({
 	g,
 	clock,
+	theme,
 	angle,
 	phase,
 	drift,
 	scale,
 	speed,
-}: ClockProps & (typeof EMBERS)[number]) {
+}: ClockProps & ThemeProps & (typeof EMBERS)[number]) {
 	const rad = (angle * Math.PI) / 180;
 	const sx = g.c + Math.cos(rad) * g.r;
 	const sy = g.c + Math.sin(rad) * g.r;
@@ -191,13 +208,13 @@ function Ember({
 	const r = useDerivedValue(() => g.size * 0.035 * scale * (1 - p.value * 0.5));
 
 	return (
-		<Circle cx={cx} cy={cy} r={r} color="#ffcc66" opacity={opacity} blendMode="plus">
+		<Circle cx={cx} cy={cy} r={r} color={theme.streakFireRamp0} opacity={opacity} blendMode="plus">
 			<BlurMask blur={g.size * 0.02} {...BLUR_NORMAL} />
 		</Circle>
 	);
 }
 
-function FireBack({ g, clock }: ClockProps) {
+function FireBack({ g, clock, theme }: ClockProps & ThemeProps) {
 	const glowOpacity = useDerivedValue(() => 0.7 + 0.3 * Math.sin(clock.value));
 	const glowTransform = useDerivedValue(() => [{ scale: 1 + 0.04 * Math.sin(clock.value) }]);
 
@@ -208,25 +225,30 @@ function FireBack({ g, clock }: ClockProps) {
 					<RadialGradient
 						c={vec(g.c, g.c)}
 						r={g.r * 1.7}
-						colors={["rgba(255,90,0,0.5)", "rgba(255,60,0,0.18)", "rgba(255,60,0,0)"]}
+						colors={[theme.streakFireHeat0, theme.streakFireHeat1, theme.streakFireHeat2]}
 					/>
 				</Circle>
 				<Circle cx={g.c} cy={g.c + g.r * 0.4} r={g.r * 1.1}>
 					<RadialGradient
 						c={vec(g.c, g.c + g.r * 0.4)}
 						r={g.r * 1.1}
-						colors={["rgba(255,140,0,0.55)", "rgba(255,80,0,0)"]}
+						colors={[theme.streakFireHeatInner0, theme.streakFireHeatInner1]}
 					/>
 				</Circle>
 			</Group>
 			{FLAMES.map((f) => (
-				<Flame key={f.angle} g={g} clock={clock} {...f} />
+				<Flame key={f.angle} g={g} clock={clock} theme={theme} {...f} />
 			))}
 		</>
 	);
 }
 
-function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedValue<number> }) {
+function FireFront({
+	g,
+	clock,
+	theme,
+	sweepClock,
+}: ClockProps & ThemeProps & { sweepClock: SharedValue<number> }) {
 	const clip = rrect(rect(g.ext, g.ext, g.size, g.size), g.radius, g.radius);
 
 	const sweepP = useDerivedValue(() => sweepClock.value / TAU);
@@ -250,7 +272,12 @@ function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedVa
 				<LinearGradient
 					start={vec(g.ext, g.ext)}
 					end={vec(g.ext + g.size, g.ext + g.size)}
-					colors={["#ffcc00", "#ff6a00", "#ff4500", "#ff8c00"]}
+					colors={[
+						theme.streakFireRamp0,
+						theme.streakFireRamp1,
+						theme.streakFireRamp3,
+						theme.streakFireRamp2,
+					]}
 				/>
 				<BlurMask blur={g.size * 0.04} {...BLUR_NORMAL} />
 			</RoundedRect>
@@ -262,11 +289,11 @@ function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedVa
 				r={g.radius}
 				{...STROKE}
 				strokeWidth={g.size * 0.02}
-				color="#ffb300"
+				color={theme.streakFireRamp2}
 				opacity={0.8}
 			/>
 			{EMBERS.map((e) => (
-				<Ember key={e.angle} g={g} clock={clock} {...e} />
+				<Ember key={e.angle} g={g} clock={clock} theme={theme} {...e} />
 			))}
 			<Group clip={clip} opacity={sweepOpacity}>
 				<Group origin={vec(g.c, g.c)} transform={sweepTransform}>
@@ -274,7 +301,7 @@ function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedVa
 						<LinearGradient
 							start={vec(-g.size * 0.2, 0)}
 							end={vec(g.size * 0.2, 0)}
-							colors={["rgba(255,255,255,0)", "rgba(255,255,235,0.9)", "rgba(255,255,255,0)"]}
+							colors={[theme.streakFireSweep0, theme.streakFireSweep1, theme.streakFireSweep2]}
 						/>
 					</Rect>
 				</Group>
@@ -283,7 +310,7 @@ function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedVa
 				cx={g.ext + g.size * 0.22}
 				cy={g.ext + g.size * 0.18}
 				r={g.size * 0.12}
-				color="#ffffff"
+				color={theme.streakWhite}
 				opacity={0.25}
 				blendMode="screen"
 			>
@@ -293,7 +320,15 @@ function FireFront({ g, clock, sweepClock }: ClockProps & { sweepClock: SharedVa
 	);
 }
 
-function Shard({ g, clock, angle, len, w, phase }: ClockProps & (typeof SHARDS)[number]) {
+function Shard({
+	g,
+	clock,
+	theme,
+	angle,
+	len,
+	w,
+	phase,
+}: ClockProps & ThemeProps & (typeof SHARDS)[number]) {
 	const rad = (angle * Math.PI) / 180;
 	const baseR = g.r * 0.98;
 	const length = g.size * len;
@@ -312,7 +347,7 @@ function Shard({ g, clock, angle, len, w, phase }: ClockProps & (typeof SHARDS)[
 				<LinearGradient
 					start={vec(bx, by)}
 					end={vec(tx, ty)}
-					colors={["rgba(240,252,255,1)", "rgba(160,220,245,0.78)", "rgba(60,200,255,0.2)"]}
+					colors={[theme.streakIceShard0, theme.streakIceShard1, theme.streakIceShard2]}
 				/>
 				<BlurMask blur={g.size * 0.02} {...BLUR_NORMAL} />
 			</Path>
@@ -320,7 +355,15 @@ function Shard({ g, clock, angle, len, w, phase }: ClockProps & (typeof SHARDS)[
 	);
 }
 
-function Glint({ g, clock, x, y, r, phase }: ClockProps & (typeof GLINTS)[number]) {
+function Glint({
+	g,
+	clock,
+	theme,
+	x,
+	y,
+	r,
+	phase,
+}: ClockProps & ThemeProps & (typeof GLINTS)[number]) {
 	const px = g.ext + x * g.size;
 	const py = g.ext + y * g.size;
 	const size = g.size * r;
@@ -331,14 +374,14 @@ function Glint({ g, clock, x, y, r, phase }: ClockProps & (typeof GLINTS)[number
 
 	return (
 		<Group origin={vec(px, py)} transform={transform} opacity={opacity} blendMode="screen">
-			<Path path={starPath(px, py, size)} color="#ffffff">
+			<Path path={starPath(px, py, size)} color={theme.streakWhite}>
 				<BlurMask blur={g.size * 0.012} {...BLUR_NORMAL} />
 			</Path>
 		</Group>
 	);
 }
 
-function IceBack({ g, clock }: ClockProps) {
+function IceBack({ g, clock, theme }: ClockProps & ThemeProps) {
 	const glowOpacity = useDerivedValue(() => 0.75 + 0.25 * Math.sin(clock.value));
 
 	return (
@@ -347,17 +390,17 @@ function IceBack({ g, clock }: ClockProps) {
 				<RadialGradient
 					c={vec(g.c, g.c)}
 					r={g.r * 1.75}
-					colors={["rgba(150,215,245,0.6)", "rgba(0,191,255,0.22)", "rgba(0,191,255,0)"]}
+					colors={[theme.streakIceGlow0, theme.streakIceGlow1, theme.streakIceGlow2]}
 				/>
 			</Circle>
 			{SHARDS.map((s) => (
-				<Shard key={s.angle} g={g} clock={clock} {...s} />
+				<Shard key={s.angle} g={g} clock={clock} theme={theme} {...s} />
 			))}
 		</>
 	);
 }
 
-function IceFront({ g, clock }: ClockProps) {
+function IceFront({ g, clock, theme }: ClockProps & ThemeProps) {
 	const frostOpacity = useDerivedValue(() => 0.9 + 0.1 * Math.sin(clock.value));
 	const sheenTransform = useDerivedValue(() => [{ rotate: clock.value * 0.5 }]);
 
@@ -375,10 +418,10 @@ function IceFront({ g, clock }: ClockProps) {
 					c={vec(g.c, g.c)}
 					r={g.size * 0.72}
 					colors={[
-						"rgba(255,255,255,0)",
-						"rgba(210,240,255,0)",
-						"rgba(190,230,255,0.5)",
-						"rgba(240,250,255,0.85)",
+						theme.streakIceGlass0,
+						theme.streakIceGlass1,
+						theme.streakIceGlass2,
+						theme.streakIceGlass3,
 					]}
 					positions={[0, 0.45, 0.78, 1]}
 				/>
@@ -390,7 +433,7 @@ function IceFront({ g, clock }: ClockProps) {
 				width={g.size}
 				height={g.size}
 				r={g.radius}
-				color="rgba(140,190,255,0.16)"
+				color={theme.streakIceFill}
 			/>
 			<RoundedRect
 				x={g.ext}
@@ -404,7 +447,12 @@ function IceFront({ g, clock }: ClockProps) {
 				<LinearGradient
 					start={vec(g.ext, g.ext)}
 					end={vec(g.ext + g.size, g.ext + g.size)}
-					colors={["#e0f7ff", "#87ceeb", "#00bfff", "#b0e0ff"]}
+					colors={[
+						theme.streakIceRamp0,
+						theme.streakIceRamp1,
+						theme.streakIceRamp2,
+						theme.streakIceRamp3,
+					]}
 				/>
 				<BlurMask blur={g.size * 0.04} {...BLUR_NORMAL} />
 			</RoundedRect>
@@ -416,7 +464,7 @@ function IceFront({ g, clock }: ClockProps) {
 				r={g.radius}
 				{...STROKE}
 				strokeWidth={g.size * 0.022}
-				color="#ddf2fd"
+				color={theme.streakIceFrost}
 				opacity={0.95}
 			/>
 			<Group origin={vec(g.c, g.c)} transform={sheenTransform} opacity={0.65}>
@@ -429,12 +477,12 @@ function IceFront({ g, clock }: ClockProps) {
 					<LinearGradient
 						start={vec(g.c - g.r, g.c - g.r)}
 						end={vec(g.c + g.r, g.c + g.r)}
-						colors={["rgba(255,255,255,0)", "rgba(230,248,255,0.9)", "rgba(255,255,255,0)"]}
+						colors={[theme.streakIceSheen0, theme.streakIceSheen1, theme.streakIceSheen2]}
 					/>
 				</Path>
 			</Group>
 			{GLINTS.map((gl) => (
-				<Glint key={`${gl.x}-${gl.y}`} g={g} clock={clock} {...gl} />
+				<Glint key={`${gl.x}-${gl.y}`} g={g} clock={clock} theme={theme} {...gl} />
 			))}
 		</>
 	);
@@ -461,6 +509,7 @@ function StreakEffect({
 	image?: string | null;
 	headers?: Record<string, string>;
 }) {
+	const theme = useTheme();
 	const clock = useClock(type === "fire" ? 1800 : 3200);
 	const sweepClock = useClock(5200);
 
@@ -476,16 +525,20 @@ function StreakEffect({
 		<View style={{ width: g.size, height: g.size }}>
 			<View style={canvasStyle} pointerEvents="none">
 				<Canvas style={StyleSheet.absoluteFill}>
-					{type === "fire" ? <FireBack g={g} clock={clock} /> : <IceBack g={g} clock={clock} />}
+					{type === "fire" ? (
+						<FireBack g={g} clock={clock} theme={theme} />
+					) : (
+						<IceBack g={g} clock={clock} theme={theme} />
+					)}
 				</Canvas>
 			</View>
 			<Avatar name={name} image={image} headers={headers} size={g.size} borderRadius={g.radius} />
 			<View style={canvasStyle} pointerEvents="none">
 				<Canvas style={StyleSheet.absoluteFill}>
 					{type === "fire" ? (
-						<FireFront g={g} clock={clock} sweepClock={sweepClock} />
+						<FireFront g={g} clock={clock} theme={theme} sweepClock={sweepClock} />
 					) : (
-						<IceFront g={g} clock={clock} />
+						<IceFront g={g} clock={clock} theme={theme} />
 					)}
 				</Canvas>
 			</View>

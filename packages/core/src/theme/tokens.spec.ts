@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { glowIntensity, themes } from "./tokens";
 import type { GlowTone } from "./tokens";
-import { withAlpha } from "./oklch";
+import { oklchToHex, withAlpha } from "./oklch";
 
 function leafPaths(value: unknown, prefix = ""): string[] {
 	if (typeof value === "string") return [prefix];
@@ -63,6 +63,21 @@ describe("themes", () => {
 
 	it("exposes twelve avatar tones", () => {
 		expect(themes.light.avatar).toHaveLength(12);
+	});
+
+	it("pins the canonical streak ramps", () => {
+		expect(themes.light.streak.fire.ramp.map(oklchToHex)).toEqual([
+			"#ffcc00",
+			"#ff6a00",
+			"#ff8c00",
+			"#ff4500",
+		]);
+		expect(themes.light.streak.ice.ramp.map(oklchToHex)).toEqual([
+			"#e0f7ff",
+			"#87ceeb",
+			"#00bfff",
+			"#b0e0ff",
+		]);
 	});
 
 	it("keeps every domain token mode-invariant (mobile uses them at module scope)", () => {

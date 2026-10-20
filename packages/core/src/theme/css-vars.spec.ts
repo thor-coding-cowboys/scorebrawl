@@ -25,7 +25,8 @@ describe("themeCssVars", () => {
 		expect(vars["--glow-blue-radial"]).toBe(themes.light.glow.blue.radial);
 		expect(vars["--score-type-three-one-zero-text"]).toBe(themes.light.scoreType.threeOneZero.text);
 		expect(vars["--season-status-active-solid"]).toBe(themes.light.seasonStatus.active.solid);
-		expect(vars["--streak-fire-0"]).toBe(themes.light.streak.fire[0]);
+		expect(vars["--streak-fire-ramp-0"]).toBe(themes.light.streak.fire.ramp[0]);
+		expect(vars["--streak-ice-ramp-2"]).toBe(themes.light.streak.ice.ramp[2]);
 		expect(vars["--card-foreground"]).toBe(themes.light.cardForeground);
 	});
 

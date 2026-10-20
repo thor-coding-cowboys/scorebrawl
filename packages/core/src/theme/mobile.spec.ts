@@ -24,7 +24,8 @@ describe("toMobileColors", () => {
 		expect(keys).toContain("seasonStatusActiveText");
 		expect(keys).toContain("scoreTypeThreeOneZeroSolid");
 		expect(keys).toContain("avatar0Background");
-		expect(keys).toContain("streakFire0");
+		expect(keys).toContain("streakFireRamp0");
+		expect(keys).toContain("streakIceRamp2");
 		expect(keys).toContain("formDraw");
 	});
 
