@@ -1,49 +1,51 @@
 import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { describeRoute, generateSpecs } from "hono-openapi";
 import { z } from "zod";
+import { publicApiErrorHandler } from "../../src/public-api/error-handler";
 import {
 	apiResponses,
 	errorResponse,
 	jsonResponse,
 	publicApiSpecOptions,
-	withResponseSchema,
 } from "../../src/public-api/openapi";
 
 type Operation = {
 	responses: Record<string, { content?: { "application/json": { schema: unknown } } }>;
 };
 
-describe("withResponseSchema", () => {
-	it("returns the handler payload after validating it", async () => {
-		const app = new Hono().get(
-			"/ok",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: true }))
-		);
-
-		const res = await app.request("/ok");
-
-		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({ ok: true });
-	});
-
-	it("fails the request when the payload violates the schema", async () => {
-		const app = new Hono().get(
-			"/bad",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: "nope" }) as never)
-		);
-
-		expect((await app.request("/bad")).status).toBe(500);
-	});
-
-	it("returns the documented ApiError body and logs when the payload violates the schema", async () => {
+describe("publicApiErrorHandler", () => {
+	it("maps a response schema failure to a logged JSON 500", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-		const app = new Hono().get(
-			"/bad",
-			withResponseSchema(z.object({ ok: z.boolean() }), () => ({ ok: "nope" }) as never)
-		);
+		const app = new Hono().onError(publicApiErrorHandler).get("/bad", () => {
+			z.object({ ok: z.boolean() }).parse({ ok: "nope" });
+			return new Response("unreachable");
+		});
 
 		const res = await app.request("/bad");
+
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ error: "internal_error" });
+		expect(logged).toHaveBeenCalled();
+		logged.mockRestore();
+	});
+
+	it("preserves HTTPException responses", async () => {
+		const app = new Hono().onError(publicApiErrorHandler).get("/teapot", () => {
+			throw new HTTPException(418, { message: "teapot" });
+		});
+
+		expect((await app.request("/teapot")).status).toBe(418);
+	});
+
+	it("logs and returns a JSON 500 for other errors", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const app = new Hono().onError(publicApiErrorHandler).get("/boom", () => {
+			throw new Error("boom");
+		});
+
+		const res = await app.request("/boom");
 
 		expect(res.status).toBe(500);
 		expect(await res.json()).toEqual({ error: "internal_error" });

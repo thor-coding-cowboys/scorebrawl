@@ -550,4 +550,58 @@ describe("sessions v1 rest routes", () => {
 			sessionPlayerIdBySeasonPlayerId.get(seasonPlayers[3].id),
 		]);
 	});
+
+	it("returns successful payloads for every session route", async () => {
+		const { ctx, client, season, seasonPlayers } = await setupSeason(4);
+		const key = await createKey(client, [
+			"session:start",
+			"session:stop",
+			"match:start",
+			"match:log",
+			"match:lineup",
+			"match:score",
+			"match:cancel",
+		]);
+		const home = [seasonPlayers[0].id, seasonPlayers[1].id];
+		const away = [seasonPlayers[2].id, seasonPlayers[3].id];
+
+		const start = await jsonRequest(ctx.league.id, "", "POST", key.key, {
+			seasonSlug: season.slug,
+			teamSize: 2,
+		});
+		expect(start.status).toBe(201);
+
+		const matchStart = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {
+			home,
+			away,
+		});
+		expect(matchStart.status).toBe(201);
+
+		const lineup = await jsonRequest(ctx.league.id, "/active/match/lineup", "PUT", key.key, {
+			home,
+			away,
+		});
+		expect(lineup.status).toBe(200);
+
+		const score = await jsonRequest(ctx.league.id, "/active/match/score", "PUT", key.key, {
+			home: 3,
+			away: 2,
+		});
+		expect(score.status).toBe(200);
+
+		const log = await jsonRequest(ctx.league.id, "/active/match/log", "POST", key.key, {
+			home: 3,
+			away: 2,
+		});
+		expect(log.status).toBe(200);
+
+		const nextMatch = await jsonRequest(ctx.league.id, "/active/match/start", "POST", key.key, {});
+		expect(nextMatch.status).toBe(201);
+
+		const cancel = await jsonRequest(ctx.league.id, "/active/match", "DELETE", key.key);
+		expect(cancel.status).toBe(200);
+
+		const end = await jsonRequest(ctx.league.id, "/active/end", "POST", key.key);
+		expect(end.status).toBe(200);
+	});
 });

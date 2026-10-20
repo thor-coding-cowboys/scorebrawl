@@ -1,8 +1,4 @@
-import type { Context, Handler } from "hono";
-import type { JSONObject } from "hono/utils/types";
-import { HTTPException } from "hono/http-exception";
 import { resolver, type ResponsesWithResolver } from "hono-openapi";
-import type { HonoEnv } from "../../middleware/context";
 import { publicApiErrorSchema } from "../schemas/errors";
 
 type ResolvableSchema = Parameters<typeof resolver>[0];
@@ -12,6 +8,13 @@ export const apiKeySecurity = [{ apiKey: [] }];
 export function jsonResponse(description: string, schema: ResolvableSchema) {
 	return {
 		description,
+		content: { "application/json": { schema: resolver(schema) } },
+	};
+}
+
+export function jsonRequest(schema: ResolvableSchema) {
+	return {
+		required: true,
 		content: { "application/json": { schema: resolver(schema) } },
 	};
 }
@@ -46,26 +49,4 @@ export function apiResponses(
 		errors[409] = errorResponse("Request conflicts with the current session state");
 	}
 	return { ...errors, ...success, ...options.errors };
-}
-
-/**
- * Validates the handler payload against the documented response schema before it
- * goes over the wire, so the document and the payload cannot drift.
- */
-export function withResponseSchema(
-	schema: ResolvableSchema,
-	handler: (c: Context<HonoEnv>) => unknown
-): Handler<HonoEnv> {
-	const { validate } = resolver(schema);
-	return async (c) => {
-		const result = await validate(await handler(c));
-		if (result.issues) {
-			const details = result.issues.map((issue) => issue.message).join("; ");
-			console.error(
-				`[public-api] ${c.req.method} ${c.req.path} failed its response schema: ${details}`
-			);
-			throw new HTTPException(500, { res: c.json({ error: "internal_error" }, 500) });
-		}
-		return c.json(result.value as JSONObject);
-	};
 }

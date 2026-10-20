@@ -5,18 +5,8 @@ import { asc, eq } from "drizzle-orm";
 import type { HonoEnv } from "../middleware/context";
 import { league, member, user } from "../db/schema/auth-schema";
 import { requirePersonalApiKeyScope } from "./api-key-auth";
-import {
-	apiKeySecurity,
-	apiResponses,
-	jsonResponse,
-	withResponseSchema,
-} from "../public-api/openapi/responses";
-import {
-	listLeaguesResponseSchema,
-	meResponseSchema,
-	type ListLeaguesResponse,
-	type MeResponse,
-} from "../public-api/schemas/v1";
+import { apiKeySecurity, apiResponses, jsonResponse } from "../public-api/openapi/responses";
+import { listLeaguesResponseSchema, meResponseSchema } from "../public-api/schemas/v1";
 
 export const v1Router = new Hono<HonoEnv>()
 	.get(
@@ -33,7 +23,7 @@ export const v1Router = new Hono<HonoEnv>()
 			),
 		}),
 		requirePersonalApiKeyScope({ profile: ["read"] }),
-		withResponseSchema(meResponseSchema, async (c) => {
+		async (c) => {
 			const userId = c.get("personalApiKey")?.userId;
 			if (!userId) {
 				throw new HTTPException(401, { res: c.json({ error: "invalid_api_key" }, 401) });
@@ -47,8 +37,8 @@ export const v1Router = new Hono<HonoEnv>()
 			if (!me) {
 				throw new HTTPException(401, { res: c.json({ error: "invalid_api_key" }, 401) });
 			}
-			return { user: me } satisfies MeResponse;
-		})
+			return c.json(meResponseSchema.parse({ user: me }));
+		}
 	)
 	.get(
 		"/leagues",
@@ -64,7 +54,7 @@ export const v1Router = new Hono<HonoEnv>()
 			),
 		}),
 		requirePersonalApiKeyScope({ league: ["read"] }),
-		withResponseSchema(listLeaguesResponseSchema, async (c) => {
+		async (c) => {
 			const userId = c.get("personalApiKey")?.userId;
 			if (!userId) {
 				throw new HTTPException(401, { res: c.json({ error: "invalid_api_key" }, 401) });
@@ -76,6 +66,6 @@ export const v1Router = new Hono<HonoEnv>()
 				.innerJoin(league, eq(league.id, member.organizationId))
 				.where(eq(member.userId, userId))
 				.orderBy(asc(league.name));
-			return { leagues } satisfies ListLeaguesResponse;
-		})
+			return c.json(listLeaguesResponseSchema.parse({ leagues }));
+		}
 	);
