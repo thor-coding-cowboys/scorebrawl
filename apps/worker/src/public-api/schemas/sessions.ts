@@ -62,6 +62,7 @@ export const sessionSchema = z
 		proposedLineup: z.string().nullable(),
 		modeSettings: z.string().nullable(),
 		endedAt: timestamp.nullable(),
+		autoEndsAt: timestamp.nullable(),
 		createdAt: timestamp,
 		updatedAt: timestamp,
 		deletedAt: timestamp.nullable(),

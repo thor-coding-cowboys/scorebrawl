@@ -293,6 +293,61 @@ export async function endSession(
 	return ended;
 }
 
+export async function closeExpiredSession(
+	ctx: SessionActionContext,
+	{ seasonId, seasonSlug }: { seasonId: string; seasonSlug: string }
+) {
+	const expired = await sessionRepository.findExpiredActiveSession({
+		db: ctx.db,
+		seasonId,
+		now: new Date(),
+	});
+
+	if (!expired) return null;
+
+	const ended = await sessionRepository.endSession({ db: ctx.db, sessionId: expired.id });
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
+			type: "session:end",
+			data: { session: ended },
+		})
+	);
+
+	return ended;
+}
+
+export async function extendSession(
+	ctx: SessionActionContext,
+	leagueId: string,
+	input: { sessionId: string }
+) {
+	const session = await resolveSession(ctx, leagueId, input.sessionId);
+
+	if (session.scoreType === "1-v-n-elo") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Sessions are not available for 1-v-n seasons",
+		});
+	}
+
+	const updated = await sessionRepository.extendSession({ db: ctx.db, sessionId: session.id });
+
+	if (!updated) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Active session not found" });
+	}
+
+	ctx.waitUntil(
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+			type: "session:update",
+			data: { sessionId: session.id, autoEndsAt: updated.autoEndsAt },
+			user: { id: ctx.user.id, name: ctx.user.name },
+		})
+	);
+
+	return updated;
+}
+
 export async function startNextMatch(
 	ctx: SessionActionContext,
 	leagueId: string,

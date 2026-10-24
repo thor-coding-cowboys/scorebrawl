@@ -1,0 +1,1 @@
+ALTER TABLE `game_session` ADD `auto_ends_at` integer;

@@ -28,6 +28,7 @@ import { ManualSession } from "./-components/manual/manual-session";
 import { AddPlayerDialog } from "./-components/add-player-dialog";
 import { SessionSummary } from "./-components/session-summary";
 import { SessionConfigDialog } from "../../../-components/session/session-config-dialog";
+import { SessionAutoCloseBanner } from "../../../-components/session/session-auto-close-banner";
 import { useState } from "react";
 
 export const Route = createFileRoute(
@@ -158,6 +159,12 @@ function SessionLivePage() {
 						</AlertDialog>
 					</div>
 				}
+			/>
+
+			<SessionAutoCloseBanner
+				sessionId={sessionId}
+				seasonSlug={seasonSlug}
+				autoEndsAt={session.autoEndsAt}
 			/>
 
 			{session.players.length === 0 ? (

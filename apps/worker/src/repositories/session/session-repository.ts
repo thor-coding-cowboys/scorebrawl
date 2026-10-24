@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, sql, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, asc, desc, lte, sql, inArray, isNotNull } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
 import type { DrizzleDB } from "../../db";
 import { withTransaction } from "../../db";
@@ -13,7 +13,11 @@ import {
 	player,
 	guest,
 } from "../../db/schema/league-schema";
-import { enforceAlwaysSplit, fisherYatesShuffle } from "@coding-cowboys/scorebrawl-core/session";
+import {
+	enforceAlwaysSplit,
+	fisherYatesShuffle,
+	getSessionAutoCloseDeadline,
+} from "@coding-cowboys/scorebrawl-core/session";
 
 export function parseStringArray(json: string | null | undefined): string[] {
 	if (!json) return [];
@@ -159,6 +163,7 @@ export const createSession = async ({
 			winnersTakePriority,
 			maxConsecutiveEnabled,
 			randomizerType,
+			autoEndsAt: getSessionAutoCloseDeadline(now.getTime()),
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -243,6 +248,31 @@ export const getActiveSession = async ({ db, seasonId }: { db: DrizzleDB; season
 		.orderBy(asc(sessionPlayer.queuePosition));
 
 	return { ...session, players };
+};
+
+export const findExpiredActiveSession = async ({
+	db,
+	seasonId,
+	now,
+}: {
+	db: DrizzleDB;
+	seasonId: string;
+	now: Date;
+}) => {
+	const [session] = await db
+		.select()
+		.from(gameSession)
+		.where(
+			and(
+				eq(gameSession.seasonId, seasonId),
+				eq(gameSession.status, "active"),
+				isNotNull(gameSession.autoEndsAt),
+				lte(gameSession.autoEndsAt, now)
+			)
+		)
+		.limit(1);
+
+	return session ?? null;
 };
 
 export const getActiveSessionsForLeague = async ({
@@ -441,6 +471,18 @@ export const endSession = async ({ db, sessionId }: { db: DrizzleDB; sessionId: 
 		.returning();
 
 	return updated;
+};
+
+export const extendSession = async ({ db, sessionId }: { db: DrizzleDB; sessionId: string }) => {
+	const now = new Date();
+
+	const [updated] = await db
+		.update(gameSession)
+		.set({ autoEndsAt: getSessionAutoCloseDeadline(now.getTime()), updatedAt: now })
+		.where(and(eq(gameSession.id, sessionId), eq(gameSession.status, "active")))
+		.returning();
+
+	return updated ?? null;
 };
 
 export const getSessionWithSeason = async ({

@@ -1,4 +1,11 @@
-import { createFileRoute, Outlet, redirect, Link, useMatchRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	redirect,
+	Link,
+	useMatchRoute,
+	useLocation,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchSessionForRoute, useSession } from "@/hooks/useSession";
@@ -7,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlayIcon } from "@hugeicons/core-free-icons";
 import { useSeasonSSE } from "@/hooks/use-season-sse";
+import { SessionAutoCloseBanner } from "../-components/session/session-auto-close-banner";
 import type { SessionEventDetail } from "@coding-cowboys/scorebrawl-client/realtime";
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug")({
@@ -27,6 +35,7 @@ function SeasonLayout() {
 	const queryClient = useQueryClient();
 	const trpc = useTRPC();
 	const matchRoute = useMatchRoute();
+	const location = useLocation();
 
 	const isSessionRoute = matchRoute({
 		to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
@@ -61,36 +70,47 @@ function SeasonLayout() {
 
 	const playerCount = Array.isArray(activeSession?.players) ? activeSession.players.length : 0;
 
+	useEffect(() => {
+		void queryClient.invalidateQueries(trpc.session.getActive.queryFilter({ seasonSlug }));
+	}, [location.pathname, seasonSlug, queryClient, trpc]);
+
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
 			{activeSession && !isSessionRoute && (
-				<div className="border-b bg-amber-500/10 border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3">
-					<div className="flex items-center gap-2 text-sm">
-						<div className="size-2 rounded-full bg-amber-500 animate-pulse" />
-						<span className="font-medium text-amber-700 dark:text-amber-400">
-							Session in progress
-						</span>
-						{playerCount > 0 && (
-							<span className="text-amber-600/80 dark:text-amber-500/80 text-xs">
-								· {playerCount} player{playerCount !== 1 ? "s" : ""}
+				<>
+					<div className="border-b bg-amber-500/10 border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3">
+						<div className="flex items-center gap-2 text-sm">
+							<div className="size-2 rounded-full bg-amber-500 animate-pulse" />
+							<span className="font-medium text-amber-700 dark:text-amber-400">
+								Session in progress
 							</span>
-						)}
+							{playerCount > 0 && (
+								<span className="text-amber-600/80 dark:text-amber-500/80 text-xs">
+									· {playerCount} player{playerCount !== 1 ? "s" : ""}
+								</span>
+							)}
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							className="gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+							render={
+								<Link
+									to="/leagues/$slug/seasons/$seasonSlug/session/$sessionId"
+									params={{ slug, seasonSlug, sessionId: activeSession.id }}
+								/>
+							}
+						>
+							<HugeiconsIcon icon={PlayIcon} className="size-3.5" />
+							Go to Session
+						</Button>
 					</div>
-					<Button
-						size="sm"
-						variant="outline"
-						className="gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-						render={
-							<Link
-								to="/leagues/$slug/seasons/$seasonSlug/session/$sessionId"
-								params={{ slug, seasonSlug, sessionId: activeSession.id }}
-							/>
-						}
-					>
-						<HugeiconsIcon icon={PlayIcon} className="size-3.5" />
-						Go to Session
-					</Button>
-				</div>
+					<SessionAutoCloseBanner
+						sessionId={activeSession.id}
+						seasonSlug={seasonSlug}
+						autoEndsAt={activeSession.autoEndsAt}
+					/>
+				</>
 			)}
 			<Outlet />
 			{reconnecting && (
