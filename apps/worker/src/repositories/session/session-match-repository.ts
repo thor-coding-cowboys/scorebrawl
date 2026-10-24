@@ -1,5 +1,6 @@
 import { eq, and, asc, desc, sql, inArray, not, gt, isNull, isNotNull } from "drizzle-orm";
 import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
+import { getSessionAutoCloseDeadline } from "@coding-cowboys/scorebrawl-core/session";
 import { TRPCError } from "@trpc/server";
 import type { DrizzleDB } from "../../db";
 import { withTransaction } from "../../db";
@@ -284,10 +285,14 @@ export const recordMatchResult = async ({
 					updatedAt: now,
 				})
 				.where(inArray(sessionPlayer.id, playingSessionPlayerIds)),
+			db
+				.update(gameSession)
+				.set({ autoEndsAt: getSessionAutoCloseDeadline(now.getTime()), updatedAt: now })
+				.where(eq(gameSession.id, sessionId)),
 			allPlayersQuery,
 		]);
 		logDbTiming("recordMatchResult.write", writeStart);
-		allPlayers = writeResults[2];
+		allPlayers = writeResults[3];
 	} else {
 		allPlayers = await allPlayersQuery;
 	}

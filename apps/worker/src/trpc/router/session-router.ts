@@ -76,6 +76,10 @@ export const sessionRouter = {
 		.input(z.object({ seasonSlug: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
+			await sessionActions.closeExpiredSession(toActionContext(ctx), {
+				seasonId: s.id,
+				seasonSlug: input.seasonSlug,
+			});
 			return sessionRepository.getActiveSession({ db: ctx.db, seasonId: s.id });
 		}),
 
@@ -158,6 +162,14 @@ export const sessionRouter = {
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			return sessionActions.endSession(toActionContext(ctx), ctx.organizationId, {
+				sessionId: input.sessionId,
+			});
+		}),
+
+	extend: leagueMemberProcedure
+		.input(z.object({ sessionId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			return sessionActions.extendSession(toActionContext(ctx), ctx.organizationId, {
 				sessionId: input.sessionId,
 			});
 		}),

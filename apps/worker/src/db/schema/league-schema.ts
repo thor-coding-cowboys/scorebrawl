@@ -282,6 +282,7 @@ export const gameSession = sqliteTable(
 		proposedLineup: text("proposed_lineup"),
 		modeSettings: text("mode_settings"),
 		endedAt: integer("ended_at", { mode: "timestamp" }),
+		autoEndsAt: integer("auto_ends_at", { mode: "timestamp" }),
 		...timestampAuditFields,
 	},
 	(table) => [
