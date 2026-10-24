@@ -43,6 +43,17 @@ function formatDate(d: Date | null | undefined): string {
 	});
 }
 
+function formatSessionLabel(d: Date | null | undefined): string {
+	if (!d) return "Session";
+	return new Date(d).toLocaleString(undefined, {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
+
 const matchResultsConfig = {
 	wins: { label: "Wins", color: formColors.W },
 	losses: { label: "Losses", color: formColors.L },
@@ -130,14 +141,13 @@ export function SessionSummary({
 		<>
 			<Header
 				breadcrumbs={[
-					{ name: "Leagues", href: "/leagues" },
-					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
 					{
 						name: truncateSlug(seasonSlug),
 						href: `/leagues/${slug}/seasons/${seasonSlug}`,
 					},
-					{ name: "Session Summary" },
+					{ name: "Sessions" },
+					{ name: formatSessionLabel(summary.createdAt) },
 				]}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">

@@ -98,10 +98,9 @@ function SessionLivePage() {
 		<>
 			<Header
 				breadcrumbs={[
-					{ name: "Leagues", href: "/leagues" },
-					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
 					{ name: truncateSlug(seasonSlug), href: `/leagues/${slug}/seasons/${seasonSlug}` },
+					{ name: "Sessions" },
 					{ name: "Session" },
 				]}
 				rightContent={
