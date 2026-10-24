@@ -147,6 +147,102 @@ const glowDark: typeof glowLight = {
 	pink: glowToken(palette.pink[300], palette.pink[600], palette.pink[500], 0.2, 0.3),
 };
 
+const streakWhite = "oklch(1 0 0)";
+
+/** Web's canonical fire stops: #ffcc00, #ff6a00, #ff8c00, #ff4500. */
+const streakFireRamp = [
+	"oklch(86.521% 0.1768 90.382)",
+	"oklch(70.092% 0.2012 44.767)",
+	"oklch(75.054% 0.1791 58.283)",
+	"oklch(66.02% 0.2294 35.403)",
+] as const;
+
+/** Web's canonical ice stops: #e0f7ff, #87ceeb, #00bfff, #b0e0ff. */
+const streakIceRamp = [
+	"oklch(96.173% 0.0264 220.63)",
+	"oklch(81.482% 0.0819 225.754)",
+	"oklch(75.535% 0.1534 231.639)",
+	"oklch(88.346% 0.0657 236.816)",
+] as const;
+
+const streakFireHead = "oklch(97.8514% 0.031 92.937)";
+
+const streakFire = {
+	ramp: streakFireRamp,
+	head: streakFireHead,
+	spark: [
+		streakFireHead,
+		"oklch(90.2323% 0.1534 94.799)",
+		streakFireRamp[2],
+		"oklch(96.2067% 0.0619 95.396)",
+		streakFireRamp[0],
+	],
+	ambient: [
+		withAlpha(streakFireRamp[1], 0.12),
+		withAlpha(streakFireRamp[3], 0.04),
+		withAlpha(streakFireRamp[3], 0),
+	],
+	heat: [
+		withAlpha(streakFireRamp[1], 0.5),
+		withAlpha(streakFireRamp[3], 0.18),
+		withAlpha(streakFireRamp[3], 0),
+	],
+	heatInner: [withAlpha(streakFireRamp[2], 0.55), withAlpha(streakFireRamp[1], 0)],
+	shadow: {
+		large: [
+			withAlpha(streakFireRamp[1], 0.45),
+			withAlpha(streakFireRamp[3], 0.2),
+			withAlpha(streakFireRamp[3], 0.08),
+		],
+		small: withAlpha(streakFireRamp[1], 0.35),
+	},
+	flyout: {
+		glow: withAlpha(streakFireRamp[1], 0.15),
+		title: [withAlpha(streakFireRamp[1], 0.5), withAlpha(streakFireRamp[3], 0.3)],
+	},
+	sweep: [withAlpha(streakWhite, 0), withAlpha(streakWhite, 0.9), withAlpha(streakWhite, 0)],
+};
+
+const streakIce = {
+	ramp: streakIceRamp,
+	frost: "oklch(94.9006% 0.0267 230.347)",
+	ambient: [
+		withAlpha(streakIceRamp[1], 0.2),
+		withAlpha(streakIceRamp[2], 0.08),
+		withAlpha(streakIceRamp[2], 0),
+	],
+	glow: [
+		withAlpha(streakIceRamp[1], 0.6),
+		withAlpha(streakIceRamp[2], 0.22),
+		withAlpha(streakIceRamp[2], 0),
+	],
+	shard: [
+		withAlpha(streakIceRamp[0], 0.9),
+		withAlpha(streakIceRamp[1], 0.65),
+		withAlpha(streakIceRamp[2], 0.05),
+	],
+	glass: [
+		withAlpha(streakIceRamp[0], 0),
+		withAlpha(streakIceRamp[0], 0),
+		withAlpha(streakIceRamp[3], 0.5),
+		withAlpha(streakIceRamp[0], 0.85),
+	],
+	fill: withAlpha(streakIceRamp[3], 0.16),
+	sheen: [withAlpha(streakWhite, 0), withAlpha(streakIceRamp[0], 0.9), withAlpha(streakWhite, 0)],
+	shadow: {
+		large: [
+			withAlpha(streakIceRamp[2], 0.4),
+			withAlpha(streakIceRamp[2], 0.18),
+			withAlpha(streakIceRamp[2], 0.06),
+		],
+		small: withAlpha(streakIceRamp[2], 0.3),
+	},
+	flyout: {
+		glow: withAlpha(streakIceRamp[2], 0.15),
+		title: [withAlpha(streakIceRamp[2], 0.5), withAlpha(streakIceRamp[2], 0.3)],
+	},
+};
+
 /**
  * Mode-invariant tokens, authored once and spread into both modes. Status
  * families adopt web's Tailwind values; `role` is the mobile-only exception
@@ -201,18 +297,9 @@ const domain = {
 		palette.cyan[500],
 	],
 	streak: {
-		fire: [
-			"oklch(86.521% 0.1768 90.382)",
-			"oklch(70.092% 0.2012 44.767)",
-			"oklch(75.054% 0.1791 58.283)",
-			"oklch(66.02% 0.2294 35.403)",
-		],
-		ice: [
-			"oklch(96.173% 0.0264 220.63)",
-			"oklch(81.482% 0.0819 225.754)",
-			"oklch(75.535% 0.1534 231.639)",
-			"oklch(88.346% 0.0657 236.816)",
-		],
+		white: streakWhite,
+		fire: streakFire,
+		ice: streakIce,
 	},
 };
 

@@ -404,15 +404,19 @@ export function StreakFlyout() {
 			<div
 				className={cn(
 					"absolute rounded-full",
-					isFire
-						? "bg-orange-500/10 shadow-[0_0_120px_60px_rgba(255,100,0,0.15)]"
-						: "bg-cyan-500/10 shadow-[0_0_120px_60px_rgba(0,180,255,0.15)]",
+					isFire ? "bg-orange-500/10" : "bg-cyan-500/10",
 					"transition-all duration-700",
 					phase === "entering" && "scale-0 opacity-0",
 					phase === "visible" && "scale-100 opacity-100",
 					phase === "exiting" && "scale-150 opacity-0"
 				)}
-				style={{ width: 280, height: 280 }}
+				style={{
+					width: 280,
+					height: 280,
+					boxShadow: isFire
+						? "0 0 120px 60px var(--streak-fire-flyout-glow)"
+						: "0 0 120px 60px var(--streak-ice-flyout-glow)",
+				}}
 			/>
 
 			{/* Content */}
@@ -450,8 +454,8 @@ export function StreakFlyout() {
 					style={{
 						transitionDelay: phase === "visible" ? "250ms" : "0ms",
 						textShadow: isFire
-							? "0 0 40px rgba(255,100,0,0.5), 0 0 80px rgba(255,50,0,0.3)"
-							: "0 0 40px rgba(0,150,255,0.5), 0 0 80px rgba(0,100,255,0.3)",
+							? "0 0 40px var(--streak-fire-flyout-title-0), 0 0 80px var(--streak-fire-flyout-title-1)"
+							: "0 0 40px var(--streak-ice-flyout-title-0), 0 0 80px var(--streak-ice-flyout-title-1)",
 					}}
 				>
 					{title}

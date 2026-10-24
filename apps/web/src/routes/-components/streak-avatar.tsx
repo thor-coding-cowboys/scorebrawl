@@ -41,18 +41,90 @@ const SPARKS = [
  * The trail tapers from thick (head) to nothing (tail) using a gradient along the path.
  */
 const COMETS = [
-	{ startAngle: 5, sweep: 42, headWidth: 1.0, anim: "animate-comet-1", color: "#ffcc00" },
-	{ startAngle: 35, sweep: 25, headWidth: 0.6, anim: "animate-comet-8", color: "#ff6a00" },
-	{ startAngle: 65, sweep: 30, headWidth: 0.7, anim: "animate-comet-2", color: "#ff8c00" },
-	{ startAngle: 95, sweep: 35, headWidth: 0.85, anim: "animate-comet-9", color: "#ffcc00" },
-	{ startAngle: 125, sweep: 38, headWidth: 0.9, anim: "animate-comet-3", color: "#ff6a00" },
-	{ startAngle: 155, sweep: 28, headWidth: 0.65, anim: "animate-comet-10", color: "#ff8c00" },
-	{ startAngle: 185, sweep: 34, headWidth: 0.75, anim: "animate-comet-4", color: "#ffcc00" },
-	{ startAngle: 215, sweep: 40, headWidth: 0.95, anim: "animate-comet-11", color: "#ff4500" },
-	{ startAngle: 245, sweep: 45, headWidth: 0.95, anim: "animate-comet-5", color: "#ff4500" },
-	{ startAngle: 275, sweep: 26, headWidth: 0.6, anim: "animate-comet-12", color: "#ffcc00" },
-	{ startAngle: 305, sweep: 28, headWidth: 0.65, anim: "animate-comet-6", color: "#ff8c00" },
-	{ startAngle: 335, sweep: 36, headWidth: 0.8, anim: "animate-comet-7", color: "#ffcc00" },
+	{
+		startAngle: 5,
+		sweep: 42,
+		headWidth: 1.0,
+		anim: "animate-comet-1",
+		color: "var(--streak-fire-ramp-0)",
+	},
+	{
+		startAngle: 35,
+		sweep: 25,
+		headWidth: 0.6,
+		anim: "animate-comet-8",
+		color: "var(--streak-fire-ramp-1)",
+	},
+	{
+		startAngle: 65,
+		sweep: 30,
+		headWidth: 0.7,
+		anim: "animate-comet-2",
+		color: "var(--streak-fire-ramp-2)",
+	},
+	{
+		startAngle: 95,
+		sweep: 35,
+		headWidth: 0.85,
+		anim: "animate-comet-9",
+		color: "var(--streak-fire-ramp-0)",
+	},
+	{
+		startAngle: 125,
+		sweep: 38,
+		headWidth: 0.9,
+		anim: "animate-comet-3",
+		color: "var(--streak-fire-ramp-1)",
+	},
+	{
+		startAngle: 155,
+		sweep: 28,
+		headWidth: 0.65,
+		anim: "animate-comet-10",
+		color: "var(--streak-fire-ramp-2)",
+	},
+	{
+		startAngle: 185,
+		sweep: 34,
+		headWidth: 0.75,
+		anim: "animate-comet-4",
+		color: "var(--streak-fire-ramp-0)",
+	},
+	{
+		startAngle: 215,
+		sweep: 40,
+		headWidth: 0.95,
+		anim: "animate-comet-11",
+		color: "var(--streak-fire-ramp-3)",
+	},
+	{
+		startAngle: 245,
+		sweep: 45,
+		headWidth: 0.95,
+		anim: "animate-comet-5",
+		color: "var(--streak-fire-ramp-3)",
+	},
+	{
+		startAngle: 275,
+		sweep: 26,
+		headWidth: 0.6,
+		anim: "animate-comet-12",
+		color: "var(--streak-fire-ramp-0)",
+	},
+	{
+		startAngle: 305,
+		sweep: 28,
+		headWidth: 0.65,
+		anim: "animate-comet-6",
+		color: "var(--streak-fire-ramp-2)",
+	},
+	{
+		startAngle: 335,
+		sweep: 36,
+		headWidth: 0.8,
+		anim: "animate-comet-7",
+		color: "var(--streak-fire-ramp-0)",
+	},
 ];
 
 /**
@@ -123,17 +195,17 @@ function FireEffect({ size }: { size: number }) {
 						x2={cx + rx}
 						y2={cy}
 					>
-						<stop offset="0%" stopColor="#ff4500" stopOpacity="0.7" />
-						<stop offset="30%" stopColor="#ff8c00" stopOpacity="0.5" />
-						<stop offset="60%" stopColor="#ffcc00" stopOpacity="0.7" />
-						<stop offset="100%" stopColor="#ff4500" stopOpacity="0.6" />
+						<stop offset="0%" stopColor="var(--streak-fire-ramp-3)" stopOpacity="0.7" />
+						<stop offset="30%" stopColor="var(--streak-fire-ramp-2)" stopOpacity="0.5" />
+						<stop offset="60%" stopColor="var(--streak-fire-ramp-0)" stopOpacity="0.7" />
+						<stop offset="100%" stopColor="var(--streak-fire-ramp-3)" stopOpacity="0.6" />
 					</linearGradient>
 
 					{/* Ambient warm glow */}
 					<radialGradient id={`${id}-glow`} cx="50%" cy="50%" r="50%">
-						<stop offset="0%" stopColor="#ff6a00" stopOpacity="0.12" />
-						<stop offset="60%" stopColor="#ff4500" stopOpacity="0.04" />
-						<stop offset="100%" stopColor="#ff4500" stopOpacity="0" />
+						<stop offset="0%" stopColor="var(--streak-fire-ambient-0)" />
+						<stop offset="60%" stopColor="var(--streak-fire-ambient-1)" />
+						<stop offset="100%" stopColor="var(--streak-fire-ambient-2)" />
 					</radialGradient>
 
 					{/* Spark glow filter */}
@@ -163,7 +235,7 @@ function FireEffect({ size }: { size: number }) {
 						>
 							<stop offset="0%" stopColor={comet.color} stopOpacity="0" />
 							<stop offset="70%" stopColor={comet.color} stopOpacity="0.6" />
-							<stop offset="100%" stopColor="#fff8e1" stopOpacity="0.95" />
+							<stop offset="100%" stopColor="var(--streak-fire-head)" stopOpacity="0.95" />
 						</linearGradient>
 					))}
 
@@ -217,8 +289,7 @@ function FireEffect({ size }: { size: number }) {
 					const sx = cx + rx * Math.cos(rad);
 					const sy = cy + ry * Math.sin(rad);
 					const r = sparkBaseR * spark.r;
-					const colors = ["#fff8e1", "#ffdd57", "#ff8c00", "#fff3c4", "#ffcc00"];
-					const color = colors[i % colors.length];
+					const color = `var(--streak-fire-spark-${i % 5})`;
 
 					return (
 						<g key={i} className={spark.anim} filter={`url(#${id}-sparkglow)`}>
@@ -240,7 +311,7 @@ function FireEffect({ size }: { size: number }) {
 								strokeWidth={r * 0.5}
 								strokeLinecap="round"
 							/>
-							<circle cx={sx} cy={sy} r={r * 0.4} fill="#ffffff" opacity="0.9" />
+							<circle cx={sx} cy={sy} r={r * 0.4} fill="var(--streak-white)" opacity="0.9" />
 						</g>
 					);
 				})}
@@ -276,7 +347,7 @@ function FireEffect({ size }: { size: number }) {
 							filter={`url(#${id}-cometglow)`}
 						/>
 						{/* Bright head dot */}
-						<circle cx={headX} cy={headY} r={headR} fill="#fff8e1" opacity="0.9" />
+						<circle cx={headX} cy={headY} r={headR} fill="var(--streak-fire-head)" opacity="0.9" />
 						<circle cx={headX} cy={headY} r={headR * 2} fill={comet.color} opacity="0.3" />
 					</svg>
 				);
@@ -326,14 +397,14 @@ function IceEffect({ size }: { size: number }) {
 			<svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} className="absolute inset-0">
 				<defs>
 					<radialGradient id={`${id}-glow`} cx="50%" cy="45%" r="50%">
-						<stop offset="0%" stopColor="#87ceeb" stopOpacity="0.2" />
-						<stop offset="50%" stopColor="#00bfff" stopOpacity="0.08" />
-						<stop offset="100%" stopColor="#00bfff" stopOpacity="0" />
+						<stop offset="0%" stopColor="var(--streak-ice-ambient-0)" />
+						<stop offset="50%" stopColor="var(--streak-ice-ambient-1)" />
+						<stop offset="100%" stopColor="var(--streak-ice-ambient-2)" />
 					</radialGradient>
 					<radialGradient id={`${id}-shard`} cx="30%" cy="30%" r="80%">
-						<stop offset="0%" stopColor="#e0f7ff" stopOpacity="0.9" />
-						<stop offset="40%" stopColor="#87ceeb" stopOpacity="0.65" />
-						<stop offset="100%" stopColor="#00bfff" stopOpacity="0.05" />
+						<stop offset="0%" stopColor="var(--streak-ice-shard-0)" />
+						<stop offset="40%" stopColor="var(--streak-ice-shard-1)" />
+						<stop offset="100%" stopColor="var(--streak-ice-shard-2)" />
 					</radialGradient>
 					<filter id={`${id}-blur`} x="-20%" y="-20%" width="140%" height="140%">
 						<feGaussianBlur stdDeviation="0.8" result="b" />
@@ -364,7 +435,7 @@ function IceEffect({ size }: { size: number }) {
 					rx={rx * 0.96}
 					ry={ry * 0.96}
 					fill="none"
-					stroke="#87ceeb"
+					stroke="var(--streak-ice-ramp-1)"
 					strokeWidth={size * 0.035}
 					strokeOpacity="0.3"
 					filter={`url(#${id}-gblur)`}
@@ -454,7 +525,7 @@ function IceEffect({ size }: { size: number }) {
 					cx={cx - rx * 0.5}
 					cy={cy - ry * 0.9}
 					r="1.8"
-					fill="#e0f7ff"
+					fill="var(--streak-ice-ramp-0)"
 					className="animate-ice-particle-1"
 					opacity="0.8"
 				/>
@@ -462,7 +533,7 @@ function IceEffect({ size }: { size: number }) {
 					cx={cx + rx * 0.5}
 					cy={cy - ry * 0.85}
 					r="1.8"
-					fill="#87ceeb"
+					fill="var(--streak-ice-ramp-1)"
 					className="animate-ice-particle-2"
 					opacity="0.7"
 				/>
@@ -470,7 +541,7 @@ function IceEffect({ size }: { size: number }) {
 					cx={cx}
 					cy={cy - ry * 1.05}
 					r="1.2"
-					fill="#e0f7ff"
+					fill="var(--streak-ice-ramp-0)"
 					className="animate-ice-particle-3"
 					opacity="0.6"
 				/>
@@ -478,7 +549,7 @@ function IceEffect({ size }: { size: number }) {
 					cx={cx - rx * 0.95}
 					cy={cy}
 					r="1.2"
-					fill="#b0e0ff"
+					fill="var(--streak-ice-ramp-3)"
 					className="animate-ice-particle-4"
 					opacity="0.5"
 				/>
@@ -486,7 +557,7 @@ function IceEffect({ size }: { size: number }) {
 					cx={cx + rx * 0.95}
 					cy={cy}
 					r="1.2"
-					fill="#b0e0ff"
+					fill="var(--streak-ice-ramp-3)"
 					className="animate-ice-particle-5"
 					opacity="0.5"
 				/>
@@ -500,6 +571,25 @@ export function StreakAvatar({ src, name, streak, className, size = 48 }: Streak
 
 	const avatarSize = size <= 24 ? "sm" : size <= 32 ? "md" : size <= 40 ? "lg" : "xl";
 	const isLarge = size >= 80;
+
+	const boxShadow =
+		streakType === "fire"
+			? isLarge
+				? "0 0 12px 6px var(--streak-fire-shadow-large-0), 0 0 28px 12px var(--streak-fire-shadow-large-1), 0 0 48px 20px var(--streak-fire-shadow-large-2)"
+				: "0 0 8px var(--streak-fire-shadow-small)"
+			: streakType === "ice"
+				? isLarge
+					? "0 0 12px 6px var(--streak-ice-shadow-large-0), 0 0 28px 12px var(--streak-ice-shadow-large-1), 0 0 48px 20px var(--streak-ice-shadow-large-2)"
+					: "0 0 8px var(--streak-ice-shadow-small)"
+				: undefined;
+
+	const avatarStyle =
+		isLarge || boxShadow
+			? {
+					...(isLarge ? { borderRadius: size * 0.22 } : {}),
+					...(boxShadow ? { boxShadow } : {}),
+				}
+			: undefined;
 
 	return (
 		<div
@@ -523,18 +613,12 @@ export function StreakAvatar({ src, name, streak, className, size = 48 }: Streak
 				className={cn(
 					"relative z-20 !size-full",
 					isLarge ? "ring-4" : "ring-2",
-					streakType === "fire" &&
-						(isLarge
-							? "ring-orange-500/50 shadow-[0_0_12px_6px_rgba(255,100,0,0.45),0_0_28px_12px_rgba(255,80,0,0.2),0_0_48px_20px_rgba(255,60,0,0.08)]"
-							: "ring-orange-500/60 shadow-[0_0_8px_rgba(255,100,0,0.35)]"),
-					streakType === "ice" &&
-						(isLarge
-							? "ring-sky-400/50 shadow-[0_0_12px_6px_rgba(0,180,255,0.4),0_0_28px_12px_rgba(0,150,255,0.18),0_0_48px_20px_rgba(0,120,255,0.06)]"
-							: "ring-sky-400/60 shadow-[0_0_8px_rgba(0,180,255,0.3)]"),
+					streakType === "fire" && (isLarge ? "ring-orange-500/50" : "ring-orange-500/60"),
+					streakType === "ice" && (isLarge ? "ring-sky-400/50" : "ring-sky-400/60"),
 					streakType === "none" && "ring-border",
 					className
 				)}
-				style={isLarge ? { borderRadius: size * 0.22 } : undefined}
+				style={avatarStyle}
 			/>
 		</div>
 	);
