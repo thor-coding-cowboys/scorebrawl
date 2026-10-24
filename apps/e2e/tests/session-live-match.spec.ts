@@ -84,5 +84,31 @@ test.describe("Session live match", () => {
 		} finally {
 			await secondContext.close();
 		}
+
+		// Ending the session swaps the live view for the summary in place. The
+		// session URL must keep resolving to the results, not the live view or the
+		// "start session" dialog.
+		await page.getByTestId("session-end").click();
+		await page.getByTestId("session-end-confirm").click();
+
+		await expect(page.getByText("Session Summary")).toBeVisible({ timeout: 15000 });
+		await expect(page).toHaveURL(sessionUrl);
+		await expect(page.getByTestId("session-end")).toHaveCount(0);
+
+		// Reloading the restored URL still shows the results.
+		await page.reload();
+		await expect(page.getByText("Session Summary")).toBeVisible({ timeout: 15000 });
+		await expect(page).toHaveURL(sessionUrl);
+
+		// Legacy summary links redirect to the session route.
+		await page.goto(`${sessionUrl}/summary`);
+		await expect(page).toHaveURL(sessionUrl);
+		await expect(page.getByText("Session Summary")).toBeVisible({ timeout: 15000 });
+
+		// The session entry route resolves to the most recent session, which is
+		// finished, so it shows the results instead of starting a new session.
+		await page.goto(sessionUrl.replace(/\/session\/.*$/, "/session"));
+		await expect(page).toHaveURL(sessionUrl);
+		await expect(page.getByText("Session Summary")).toBeVisible({ timeout: 15000 });
 	});
 });

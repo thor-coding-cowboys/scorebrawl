@@ -77,6 +77,7 @@ function SeasonDashboardPage() {
 		navigate({
 			to: ".",
 			search: open ? { addMatch: true } : {},
+			replace: !open,
 		});
 	};
 	const isStartSessionOpen = startSession === true;
@@ -84,6 +85,7 @@ function SeasonDashboardPage() {
 		navigate({
 			to: ".",
 			search: open ? { startSession: true } : {},
+			replace: !open,
 		});
 	};
 

@@ -14,27 +14,37 @@ function SessionIndexPage() {
 	const navigate = useNavigate();
 	const trpc = useTRPC();
 
-	const { data: activeSession, isLoading } = useQuery(
+	const { data: activeSession, isPending: isActivePending } = useQuery(
 		trpc.session.getActive.queryOptions({ seasonSlug })
 	);
 
+	const { data: recentSessions, isPending: isRecentPending } = useQuery({
+		...trpc.session.listEnded.queryOptions({ seasonSlug, limit: 1 }),
+		enabled: !isActivePending && !activeSession,
+	});
+
 	useEffect(() => {
-		if (isLoading) return;
-		if (activeSession) {
-			navigate({
-				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
-				params: { slug, seasonSlug, sessionId: activeSession.id },
-				replace: true,
-			});
-		} else {
+		if (isActivePending) return;
+		const sessionId = activeSession?.id;
+		if (!sessionId && isRecentPending) return;
+
+		const latestSessionId = sessionId ?? recentSessions?.[0]?.id;
+		if (!latestSessionId) {
 			navigate({
 				to: "/leagues/$slug/seasons/$seasonSlug",
 				params: { slug, seasonSlug },
 				search: { startSession: true },
 				replace: true,
 			});
+			return;
 		}
-	}, [activeSession, isLoading, navigate, slug, seasonSlug]);
+
+		navigate({
+			to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
+			params: { slug, seasonSlug, sessionId: latestSessionId },
+			replace: true,
+		});
+	}, [activeSession, isActivePending, isRecentPending, recentSessions, navigate, slug, seasonSlug]);
 
 	return null;
 }

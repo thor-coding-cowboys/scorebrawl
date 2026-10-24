@@ -56,7 +56,7 @@ export function SessionHistory({ seasonSlug, slug }: { seasonSlug: string; slug:
 				{sessions.map((s) => (
 					<Link
 						key={s.id}
-						to="/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary"
+						to="/leagues/$slug/seasons/$seasonSlug/session/$sessionId"
 						params={{ slug, seasonSlug, sessionId: s.id }}
 						className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 hover:bg-muted/50 -mx-1 px-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:rounded-sm"
 					>

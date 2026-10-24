@@ -33,7 +33,6 @@ import {
 	Delete02Icon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
 import {
 	enforceAlwaysSplit,
 	fisherYatesShuffle,
@@ -62,7 +61,6 @@ interface WinnerStaysSessionProps {
 const SSE_SCORE_DEBOUNCE_MS = 500;
 
 export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysSessionProps) {
-	const navigate = useNavigate();
 	const { data: authSession } = useSession();
 
 	const { data: session, isLoading } = useQuery({
@@ -77,11 +75,6 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		if (userName) {
 			toast.info(`Session ended by ${userName}`);
 		}
-		navigate({
-			to: "/leagues/$slug/seasons/$seasonSlug",
-			params: { slug, seasonSlug },
-			replace: true,
-		});
 	};
 
 	const handleSessionUpdate = (isOwnUpdate: boolean) => {
