@@ -266,6 +266,7 @@ export function SessionConfigDialog(props: SessionConfigDialogProps) {
 			navigate({
 				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
 				params: { slug: leagueSlug, seasonSlug, sessionId: created.id },
+				replace: true,
 			});
 		},
 		onError: () => {

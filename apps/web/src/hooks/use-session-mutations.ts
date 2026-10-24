@@ -142,8 +142,9 @@ export function useSessionMutations(
 		mutationFn: () => trpcClient.session.end.mutate({ sessionId }),
 		onSuccess: () => {
 			navigate({
-				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary",
+				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId",
 				params: { slug: params.slug, seasonSlug: params.seasonSlug, sessionId },
+				replace: true,
 			});
 		},
 		onError: () => toast.error("Failed to end session"),

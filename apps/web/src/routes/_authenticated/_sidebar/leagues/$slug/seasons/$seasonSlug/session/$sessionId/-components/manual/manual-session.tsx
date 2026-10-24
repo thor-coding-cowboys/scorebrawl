@@ -31,7 +31,6 @@ import {
 	Delete02Icon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
 import {
 	getPlayerBySeasonId,
 	type PlayerWithTeam,
@@ -52,7 +51,6 @@ interface ManualSessionProps {
 const SSE_SCORE_DEBOUNCE_MS = 500;
 
 export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProps) {
-	const navigate = useNavigate();
 	const { data: authSession } = useSession();
 
 	const { data: session, isLoading } = useQuery({
@@ -69,11 +67,6 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		if (userName) {
 			toast.info(`Session ended by ${userName}`);
 		}
-		navigate({
-			to: "/leagues/$slug/seasons/$seasonSlug",
-			params: { slug, seasonSlug },
-			replace: true,
-		});
 	};
 
 	const handleSessionUpdate = (isOwnUpdate: boolean) => {

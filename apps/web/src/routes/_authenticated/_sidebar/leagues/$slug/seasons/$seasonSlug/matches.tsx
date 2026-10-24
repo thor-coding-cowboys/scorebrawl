@@ -54,7 +54,7 @@ function MatchesPage() {
 
 	const isCreateMatchOpen = addMatch === true;
 	const setIsCreateMatchOpen = (open: boolean) => {
-		navigate({ search: open ? { addMatch: true } : {} });
+		navigate({ search: open ? { addMatch: true } : {}, replace: !open });
 	};
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 

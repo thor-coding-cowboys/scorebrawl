@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 import { Header } from "@/components/layout/header";
@@ -18,8 +17,8 @@ import {
 	UserMultipleIcon,
 	Crown02Icon,
 } from "@hugeicons/core-free-icons";
-import { DashboardCard } from "../../../-components/season/dashboard-card";
-import { OverviewCard } from "../../../-components/season/overview-card";
+import { DashboardCard } from "../../../../-components/season/dashboard-card";
+import { OverviewCard } from "../../../../-components/season/overview-card";
 import { useCarousel } from "@/hooks/use-carousel";
 import { cn } from "@/lib/utils";
 import { formColors } from "@/lib/theme-tokens";
@@ -29,16 +28,10 @@ import {
 	truncateSlug,
 } from "@coding-cowboys/scorebrawl-core/presentation";
 
-export const Route = createFileRoute(
-	"/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary"
-)({
-	component: SessionSummaryPage,
-});
-
-type SessionSummary = RouterOutput["session"]["getSummary"];
-type PlayerSummary = SessionSummary["playerStats"][number];
-type TeamCombo = SessionSummary["teamCombos"][number];
-type MatchFeedItem = SessionSummary["matchFeed"][number];
+type SessionSummaryData = RouterOutput["session"]["getSummary"];
+type PlayerSummary = SessionSummaryData["playerStats"][number];
+type TeamCombo = SessionSummaryData["teamCombos"][number];
+type MatchFeedItem = SessionSummaryData["matchFeed"][number];
 type MatchFeedPlayer = MatchFeedItem["homePlayers"][number];
 
 function formatDate(d: Date | null | undefined): string {
@@ -50,14 +43,32 @@ function formatDate(d: Date | null | undefined): string {
 	});
 }
 
+function formatSessionLabel(d: Date | null | undefined): string {
+	if (!d) return "Session";
+	return new Date(d).toLocaleString(undefined, {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
+
 const matchResultsConfig = {
 	wins: { label: "Wins", color: formColors.W },
 	losses: { label: "Losses", color: formColors.L },
 	draws: { label: "Draws", color: formColors.D },
 } satisfies ChartConfig;
 
-function SessionSummaryPage() {
-	const { slug, seasonSlug, sessionId } = Route.useParams();
+export function SessionSummary({
+	slug,
+	seasonSlug,
+	sessionId,
+}: {
+	slug: string;
+	seasonSlug: string;
+	sessionId: string;
+}) {
 	const trpc = useTRPC();
 
 	const {
@@ -130,14 +141,13 @@ function SessionSummaryPage() {
 		<>
 			<Header
 				breadcrumbs={[
-					{ name: "Leagues", href: "/leagues" },
-					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
 					{
 						name: truncateSlug(seasonSlug),
 						href: `/leagues/${slug}/seasons/${seasonSlug}`,
 					},
-					{ name: "Session Summary" },
+					{ name: "Sessions" },
+					{ name: formatSessionLabel(summary.createdAt) },
 				]}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -290,7 +300,7 @@ function SummaryDashboardCards({
 	bestCombo,
 	worstCombo,
 }: {
-	summary: SessionSummary;
+	summary: SessionSummaryData;
 	mvp: PlayerSummary | undefined;
 	bestCombo: TeamCombo | undefined;
 	worstCombo: TeamCombo | undefined;

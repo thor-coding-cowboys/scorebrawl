@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, type AnyTRPC, type RouterOutput } from "@/lib/trpc";
+import { trpcClient, useTRPC, type AnyTRPC } from "@/lib/trpc";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { WinnerStaysSession } from "./-components/winner-stays/winner-stays-session";
 import { ManualSession } from "./-components/manual/manual-session";
 import { AddPlayerDialog } from "./-components/add-player-dialog";
+import { SessionSummary } from "./-components/session-summary";
 import { SessionConfigDialog } from "../../../-components/session/session-config-dialog";
 import { useState } from "react";
 
@@ -37,26 +38,21 @@ export const Route = createFileRoute(
 
 function SessionLivePage() {
 	const { slug, seasonSlug, sessionId } = Route.useParams();
-	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const trpc = useTRPC();
 	const client = trpcClient as AnyTRPC;
 
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 
-	const { data: session, isLoading } = useQuery({
-		queryKey: ["session", sessionId],
-		queryFn: () =>
-			client.session.getById.query({ sessionId }) as Promise<RouterOutput["session"]["getById"]>,
-	});
+	const { data: session, isLoading } = useQuery(trpc.session.getById.queryOptions({ sessionId }));
 
 	const endSession = useMutation({
 		mutationFn: () => client.session.end.mutate({ sessionId }) as Promise<unknown>,
 		onSuccess: () => {
-			navigate({
-				to: "/leagues/$slug/seasons/$seasonSlug/session/$sessionId/summary",
-				params: { slug, seasonSlug, sessionId },
-			});
+			void queryClient.invalidateQueries(trpc.session.getById.queryFilter({ sessionId }));
+			void queryClient.invalidateQueries(trpc.session.getActive.queryFilter({ seasonSlug }));
+			void queryClient.invalidateQueries(trpc.session.listEnded.queryFilter({ seasonSlug }));
 		},
 		onError: () => toast.error("Failed to end session"),
 	});
@@ -65,7 +61,7 @@ function SessionLivePage() {
 		mutationFn: (input: { sessionId: string; seasonPlayerId: string }) =>
 			client.session.addPlayer.mutate(input) as Promise<unknown>,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+			void queryClient.invalidateQueries(trpc.session.getById.queryFilter({ sessionId }));
 			setShowAddPlayer(false);
 		},
 		onError: () => toast.error("Failed to add player"),
@@ -94,14 +90,17 @@ function SessionLivePage() {
 		);
 	}
 
+	if (session.endedAt) {
+		return <SessionSummary slug={slug} seasonSlug={seasonSlug} sessionId={sessionId} />;
+	}
+
 	return (
 		<>
 			<Header
 				breadcrumbs={[
-					{ name: "Leagues", href: "/leagues" },
-					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Seasons", href: `/leagues/${slug}/seasons` },
 					{ name: truncateSlug(seasonSlug), href: `/leagues/${slug}/seasons/${seasonSlug}` },
+					{ name: "Sessions" },
 					{ name: "Session" },
 				]}
 				rightContent={
@@ -127,7 +126,12 @@ function SessionLivePage() {
 						<AlertDialog>
 							<AlertDialogTrigger
 								render={
-									<Button variant="destructive" size="sm" className="gap-1.5">
+									<Button
+										variant="destructive"
+										size="sm"
+										className="gap-1.5"
+										data-testid="session-end"
+									>
 										<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
 										<span className="hidden sm:inline">End Session</span>
 									</Button>
@@ -145,6 +149,7 @@ function SessionLivePage() {
 									<AlertDialogAction
 										onClick={() => endSession.mutate()}
 										className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+										data-testid="session-end-confirm"
 									>
 										End Session
 									</AlertDialogAction>
