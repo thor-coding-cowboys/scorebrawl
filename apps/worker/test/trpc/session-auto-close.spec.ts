@@ -138,6 +138,21 @@ describe("session auto close", () => {
 		expect(ended.endedAt).toBeInstanceOf(Date);
 	});
 
+	it("lazily ends an expired session on getById", async () => {
+		const { client, season, seasonPlayers } = await setupSeasonWithPlayers();
+
+		const session = await createSession(
+			client,
+			season.slug,
+			seasonPlayers.map((p) => p.id)
+		);
+		await setAutoEndsAt(session.id, new Date(Date.now() - MINUTE_MS));
+
+		const ended = await client.session.getById.query({ sessionId: session.id });
+		expect(ended.status).toBe("ended");
+		expect(ended.endedAt).toBeInstanceOf(Date);
+	});
+
 	it("does not end a session that is not expired", async () => {
 		const { client, season, seasonPlayers } = await setupSeasonWithPlayers();
 
