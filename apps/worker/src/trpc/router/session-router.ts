@@ -77,7 +77,7 @@ export const sessionRouter = {
 		.input(z.object({ seasonSlug: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
-			await sessionActions.closeExpiredSession(toActionContext(ctx), {
+			await sessionActions.closeExpiredSessionsForSeason(toActionContext(ctx), {
 				seasonId: s.id,
 				seasonSlug: input.seasonSlug,
 			});
@@ -91,7 +91,7 @@ export const sessionRouter = {
 
 			let session = await sessionRepository.getSessionById({
 				db: ctx.db,
-				sessionId: input.sessionId,
+				sessionId: info.sessionId,
 			});
 
 			if (!session) {
@@ -99,14 +99,13 @@ export const sessionRouter = {
 			}
 
 			if (session.status === "active" && isSessionAutoCloseExpired(session.autoEndsAt)) {
-				await sessionActions.closeExpiredSession(toActionContext(ctx), {
-					seasonId: info.sessionSeasonId,
-					seasonSlug: info.seasonSlug,
+				await sessionActions.closeExpiredSession(toActionContext(ctx), ctx.organizationId, {
+					sessionId: info.sessionId,
 				});
 
 				session = await sessionRepository.getSessionById({
 					db: ctx.db,
-					sessionId: input.sessionId,
+					sessionId: info.sessionId,
 				});
 			}
 

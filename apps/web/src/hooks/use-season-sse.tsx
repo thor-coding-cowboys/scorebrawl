@@ -281,11 +281,13 @@ export function useSeasonSSE({
 							});
 						}
 
-						if (!isOwnEvent && parsed.user) {
-							if (parsed.type === "session:start") {
+						if (!isOwnEvent) {
+							if (parsed.type === "session:start" && parsed.user) {
 								toast.info(`${parsed.user.name} started a session`);
 							} else if (parsed.type === "session:end") {
-								toast.info(`${parsed.user.name} ended a session`);
+								toast.info(
+									parsed.user ? `${parsed.user.name} ended a session` : "Session auto-closed"
+								);
 							}
 						}
 						return;

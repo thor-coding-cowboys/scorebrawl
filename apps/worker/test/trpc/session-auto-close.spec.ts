@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { SESSION_AUTO_CLOSE_TTL_MS } from "@coding-cowboys/scorebrawl-core/session";
 import { getDb } from "../../src/db/index";
 import { gameSession } from "../../src/db/schema/league-schema";
+import { createId } from "../../src/utils/id-util";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "../trpc/trpc-test-client";
@@ -52,6 +53,35 @@ function expectCloseToHour(date: Date | null, reference = Date.now()) {
 async function setAutoEndsAt(sessionId: string, date: Date | null) {
 	const db = getDb(env.DB);
 	await db.update(gameSession).set({ autoEndsAt: date }).where(eq(gameSession.id, sessionId));
+}
+
+async function insertActiveSession({
+	seasonId,
+	createdBy,
+	autoEndsAt,
+}: {
+	seasonId: string;
+	createdBy: string;
+	autoEndsAt: Date;
+}) {
+	const db = getDb(env.DB);
+	const id = createId();
+	await db.insert(gameSession).values({
+		id,
+		seasonId,
+		createdBy,
+		status: "active",
+		rotationMode: "winner-stays",
+		teamSize: 2,
+		autoEndsAt,
+	});
+	return id;
+}
+
+async function readSession(sessionId: string) {
+	const db = getDb(env.DB);
+	const [session] = await db.select().from(gameSession).where(eq(gameSession.id, sessionId));
+	return session;
 }
 
 describe("session auto close", () => {
@@ -194,5 +224,81 @@ describe("session auto close", () => {
 		await expect(client.session.extend.mutate({ sessionId: session.id })).rejects.toThrow(
 			"Active session not found"
 		);
+	});
+
+	it("ends only the requested session when several expired sessions exist in the season", async () => {
+		const { ctx, client, season } = await setupSeasonWithPlayers();
+		const expiredAt = new Date(Date.now() - MINUTE_MS);
+		const otherId = await insertActiveSession({
+			seasonId: season.id,
+			createdBy: ctx.user.id,
+			autoEndsAt: expiredAt,
+		});
+		const targetId = await insertActiveSession({
+			seasonId: season.id,
+			createdBy: ctx.user.id,
+			autoEndsAt: expiredAt,
+		});
+
+		const returned = await client.session.getById.query({ sessionId: targetId });
+
+		expect(returned.status).toBe("ended");
+		expect((await readSession(otherId))?.status).toBe("active");
+	});
+
+	it("ends every expired session in the season on getActive", async () => {
+		const { ctx, client, season } = await setupSeasonWithPlayers();
+		const expiredAt = new Date(Date.now() - MINUTE_MS);
+		const firstId = await insertActiveSession({
+			seasonId: season.id,
+			createdBy: ctx.user.id,
+			autoEndsAt: expiredAt,
+		});
+		const secondId = await insertActiveSession({
+			seasonId: season.id,
+			createdBy: ctx.user.id,
+			autoEndsAt: expiredAt,
+		});
+
+		const active = await client.session.getActive.query({ seasonSlug: season.slug });
+
+		expect(active).toBeNull();
+		expect((await readSession(firstId))?.status).toBe("ended");
+		expect((await readSession(secondId))?.status).toBe("ended");
+	});
+
+	it("keeps the original ended time when ending an already ended session", async () => {
+		const { client, season, seasonPlayers } = await setupSeasonWithPlayers();
+
+		const session = await createSession(
+			client,
+			season.slug,
+			seasonPlayers.map((p) => p.id)
+		);
+		await client.session.end.mutate({ sessionId: session.id });
+		const originalEndedAt = new Date(Math.floor((Date.now() - 10 * MINUTE_MS) / 1000) * 1000);
+		const db = getDb(env.DB);
+		await db
+			.update(gameSession)
+			.set({ endedAt: originalEndedAt })
+			.where(eq(gameSession.id, session.id));
+
+		const reEnded = await client.session.end.mutate({ sessionId: session.id });
+
+		expect(reEnded.status).toBe("ended");
+		expect(reEnded.endedAt?.getTime()).toBe(originalEndedAt.getTime());
+	});
+
+	it("starts a new session over an expired one", async () => {
+		const { client, season, seasonPlayers } = await setupSeasonWithPlayers();
+		const playerIds = seasonPlayers.map((p) => p.id);
+		const expired = await createSession(client, season.slug, playerIds);
+		await setAutoEndsAt(expired.id, new Date(Date.now() - MINUTE_MS));
+
+		const started = await createSession(client, season.slug, playerIds);
+
+		expect(started.id).not.toBe(expired.id);
+		expect((await readSession(expired.id))?.status).toBe("ended");
+		expect((await readSession(started.id))?.status).toBe("active");
 	});
 });

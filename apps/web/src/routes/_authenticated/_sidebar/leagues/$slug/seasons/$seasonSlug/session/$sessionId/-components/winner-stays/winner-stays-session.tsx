@@ -72,9 +72,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 	const currentMatchRef = useRef<{ id: string } | null>(null);
 
 	const handleSessionEnd = (userName?: string) => {
-		if (userName) {
-			toast.info(`Session ended by ${userName}`);
-		}
+		toast.info(userName ? `Session ended by ${userName}` : "Session auto-closed");
 	};
 
 	const handleSessionUpdate = (isOwnUpdate: boolean) => {
