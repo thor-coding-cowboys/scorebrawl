@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
-import { broadcastSeasonEvent, broadcastStandingsUpdate } from "../../routes/sse-router";
+import { removeMatch } from "../../services/match-removal";
 import {
 	createOneVnMatch,
 	finalizeMatchCreation,
@@ -209,35 +209,22 @@ export const matchRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			await matchRepository.remove({
-				db: ctx.db,
-				matchId: input.matchId,
-				seasonId: ctx.season.id,
-			});
-
-			const user = {
-				id: ctx.authentication.user.id,
-				name: ctx.authentication.user.name,
-			};
-
-			ctx.waitUntil(
-				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
-					type: "match:delete",
-					data: {
-						matchId: input.matchId,
+			await removeMatch(
+				{
+					db: ctx.db,
+					env: ctx.env,
+					waitUntil: ctx.waitUntil,
+					organization: { slug: ctx.organization.slug },
+					user: {
+						id: ctx.authentication.user.id,
+						name: ctx.authentication.user.name,
 					},
-					user,
-				})
-			);
-
-			ctx.waitUntil(
-				broadcastStandingsUpdate(
-					ctx.env,
-					ctx.organization.slug,
-					input.seasonSlug,
-					{ reason: "match:remove", matchId: input.matchId },
-					user
-				)
+				},
+				{
+					seasonSlug: input.seasonSlug,
+					seasonId: ctx.season.id,
+					matchId: input.matchId,
+				}
 			);
 
 			return { success: true };
