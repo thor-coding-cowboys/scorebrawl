@@ -124,7 +124,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		};
 	}, [slug]);
 
-	const isElo = scoreType === "elo" || scoreType === "1-v-n-elo";
+	const isElo = scoreType !== "3-1-0";
 
 	const slugError = !submitted
 		? undefined

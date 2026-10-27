@@ -96,7 +96,7 @@ export const seasonRouter = {
 					.regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens")
 					.optional(),
 				initialScore: z.number().int(),
-				scoreType: z.enum(["elo", "3-1-0", "1-v-n-elo"]),
+				scoreType: z.enum(["elo", "3-1-0", "1-v-n-elo", "elo-individual-vs-team"]),
 				kFactor: z.number().int(),
 				startDate: z.date(),
 				endDate: z.date().optional(),

@@ -18,6 +18,7 @@ import {
 	Archive01Icon,
 	CheckmarkCircle02Icon,
 	PencilEdit01Icon,
+	UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
@@ -62,6 +63,8 @@ function getScoreTypeIcon(scoreType: string) {
 			return Target01Icon; // Dart for 3-1-0 Points System
 		case "1-v-n-elo":
 			return DartFreeIcons;
+		case "elo-individual-vs-team":
+			return UserGroupIcon;
 		default:
 			return AwardIcon; // Fallback
 	}
@@ -75,6 +78,8 @@ function getScoreTypeColor(scoreType: string) {
 			return "text-blue-500"; // Blue for 3-1-0 Points System
 		case "1-v-n-elo":
 			return "text-purple-500";
+		case "elo-individual-vs-team":
+			return "text-amber-500";
 		default:
 			return "text-primary"; // Fallback
 	}
@@ -88,6 +93,8 @@ function getScoreTypeBgColor(scoreType: string) {
 			return "bg-blue-500/10"; // Blue background for 3-1-0 Points System
 		case "1-v-n-elo":
 			return "bg-purple-500/10";
+		case "elo-individual-vs-team":
+			return "bg-amber-500/10";
 		default:
 			return "bg-primary/10"; // Fallback
 	}

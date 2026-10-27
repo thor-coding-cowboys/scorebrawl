@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing, SharedColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-export const SCORE_TYPES = ["elo", "3-1-0", "1-v-n-elo"] as const;
+export const SCORE_TYPES = ["elo", "elo-individual-vs-team", "3-1-0", "1-v-n-elo"] as const;
 export type ScoreType = (typeof SCORE_TYPES)[number];
 
 export const SCORE_TYPE_CONFIG: Record<
@@ -22,6 +22,12 @@ export const SCORE_TYPE_CONFIG: Record<
 		description: "Dynamic skill-based rating system",
 		color: SharedColors.scoreTypeEloText,
 		icon: { ios: "trophy.fill", android: "emoji_events", web: "emoji_events" },
+	},
+	"elo-individual-vs-team": {
+		label: "ELO Solo vs Team",
+		description: "Uneven sides allowed — team change split by rating",
+		color: SharedColors.scoreTypeIndividualVsTeamEloText,
+		icon: { ios: "person.2.fill", android: "group", web: "group" },
 	},
 	"1-v-n-elo": {
 		label: "ELO 1-v-N",
