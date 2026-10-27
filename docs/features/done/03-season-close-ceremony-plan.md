@@ -2,7 +2,7 @@
 
 **Goal:** On a closed season, show a champion banner, player/team podiums and "biggest moments", plus a "Start next season" CTA, on web and mobile.
 
-**Spec:** `docs/features/03-season-close-ceremony.md`
+**Spec:** `docs/features/done/03-season-close-ceremony.md`
 
 ## Decisions
 
@@ -25,8 +25,8 @@
 3. Done: web `season-ceremony.tsx` (banner, podiums, highlights, CTA) wired into the season page.
 4. Done: mobile `components/season/season-ceremony.tsx` wired into `SeasonDashboard`.
 5. Done: UI check with agent-browser (desktop 1440 px and phone 390 px) as `seed@example.com` after locking `season-1`.
-6. In progress: mobile web smoke suite, `bun check && bun run test`.
-7. Todo: move spec + plan to `docs/features/done/`, update README.
+6. Done: mobile web smoke suite, `bun check && bun run test`.
+7. Done: spec + plan moved to `docs/features/done/`, README updated.
 
 ## Key files
 
