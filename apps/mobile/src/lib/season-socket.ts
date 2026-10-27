@@ -59,6 +59,7 @@ function connect(conn: SeasonSocketConnection, leagueSlug: string, seasonSlug: s
 	conn.socket = socket;
 
 	socket.onopen = () => {
+		if (conn.socket !== socket) return;
 		conn.attempts = 0;
 		if (conn.stableTimer) clearTimeout(conn.stableTimer);
 		conn.stableTimer = setTimeout(() => {
@@ -75,6 +76,7 @@ function connect(conn: SeasonSocketConnection, leagueSlug: string, seasonSlug: s
 	};
 
 	socket.onmessage = (event) => {
+		if (conn.socket !== socket) return;
 		if (typeof event.data !== "string") return;
 
 		let parsed: SeasonRealtimeEvent;
@@ -90,6 +92,7 @@ function connect(conn: SeasonSocketConnection, leagueSlug: string, seasonSlug: s
 	};
 
 	socket.onclose = () => {
+		if (conn.socket !== socket) return;
 		conn.socket = null;
 		clearTimers(conn);
 		if (conn.disposed) return;
@@ -145,9 +148,27 @@ export function subscribeSeasonSocket({
 		connections.set(key, conn);
 		const created = conn;
 		created.appStateSubscription = AppState.addEventListener("change", (state) => {
-			if (state === "active" && !created.socket && !created.reconnectTimer) {
-				connect(created, leagueSlug, seasonSlug);
+			if (state !== "active") return;
+
+			if (created.reconnectTimer) {
+				clearTimeout(created.reconnectTimer);
+				created.reconnectTimer = null;
 			}
+			created.attempts = 0;
+
+			if (created.socket?.readyState === WebSocket.OPEN) {
+				for (const subscriber of created.subscribers) {
+					subscriber.onReconnected?.();
+				}
+				return;
+			}
+
+			if (created.socket?.readyState === WebSocket.CONNECTING) return;
+
+			const staleSocket = created.socket;
+			created.socket = null;
+			staleSocket?.close();
+			connect(created, leagueSlug, seasonSlug);
 		});
 	}
 
