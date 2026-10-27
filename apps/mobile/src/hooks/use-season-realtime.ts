@@ -30,7 +30,7 @@ export function useSeasonRealtime({
 				seasonSlug,
 				seasonId: seasonIdRef.current,
 			})) {
-				queryClient.invalidateQueries({ queryKey });
+				queryClient.invalidateQueries({ queryKey }, { cancelRefetch: false });
 			}
 		};
 
@@ -43,11 +43,7 @@ export function useSeasonRealtime({
 			},
 			onReconnected: invalidateSeason,
 			onEvent: (event) => {
-				if (
-					event.type === "standings:update" ||
-					event.type === "match:insert" ||
-					event.type === "match:delete"
-				) {
+				if (event.type === "standings:update") {
 					invalidateSeason();
 					return;
 				}

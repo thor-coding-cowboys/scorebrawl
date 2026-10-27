@@ -4,7 +4,7 @@ Candidate features from a full app walkthrough + codebase triage (browser sessio
 
 **Priority ordering** (01 = highest) reflects estimated ROI: closes an obvious product gap, leverages infrastructure that already exists, and/or drives engagement. Order is a discussion starting point, not final. Numbers are stable identifiers; shipped features move to [`done/`](done/) but keep their number for traceability.
 
-Status reflects merged PRs as of 2026-09-10. **Done** = shipped in product; **Partial** = core slice shipped but feature not complete per its acceptance criteria. Done stories live in [`done/`](done/).
+Status reflects merged PRs as of 2026-10-27. **Done** = shipped in product; **Partial** = core slice shipped but feature not complete per its acceptance criteria. Done stories live in [`done/`](done/).
 
 | #   | Feature                                                            | Status                                                                                                                                     | Resolved by                                                          |
 | --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
