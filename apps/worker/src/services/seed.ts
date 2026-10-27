@@ -2,7 +2,6 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { randEmail, randFullName } from "@ngneat/falso";
 import type { DrizzleDB } from "../db";
 import {
-	account,
 	league,
 	leagueTeam,
 	leagueTeamPlayer,
@@ -17,7 +16,6 @@ import {
 	user,
 } from "../db/schema";
 import { createId } from "../utils/id-util";
-import { hashPassword } from "../lib/password";
 import { calculateEloMatch, determineMatchResult } from "@coding-cowboys/scorebrawl-util/elo-util";
 
 const SEED_SEASON_DEFAULTS = {
@@ -238,17 +236,6 @@ export async function seedLeague(db: DrizzleDB, input: SeedInput): Promise<SeedR
 				name,
 				email,
 				emailVerified: true,
-				createdAt: now,
-				updatedAt: now,
-			});
-
-			const hashedPassword = await hashPassword("Test.1234");
-			await db.insert(account).values({
-				id: createId(),
-				accountId: newUserId,
-				providerId: "credential",
-				userId: newUserId,
-				password: hashedPassword,
 				createdAt: now,
 				updatedAt: now,
 			});

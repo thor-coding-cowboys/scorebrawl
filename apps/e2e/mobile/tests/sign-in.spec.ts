@@ -6,11 +6,9 @@ test.describe("Mobile sign in", () => {
 
 		// No session yet, so the root layout sends the app to the auth screen.
 		await expect(page).toHaveURL(/\/sign-in/, { timeout: 30_000 });
-		await expect(page.getByTestId("sign-in-email")).toBeVisible();
-		await expect(page.getByTestId("sign-in-password")).toBeVisible();
-		await expect(page.getByText("Enter your email below to login to your account")).toBeVisible();
+		await expect(page.getByText("Sign in to your account")).toBeVisible();
 
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 
 		// The dashboard only renders once the session and the league load.
 		await expect(page.locator('[data-testid^="standing-row-"]').first()).toBeVisible({
@@ -19,15 +17,27 @@ test.describe("Mobile sign in", () => {
 		await expect(page.getByText("General Info")).toBeVisible();
 	});
 
-	test("rejects bad credentials", async ({ page }) => {
+	test("offers provider sign-in only", async ({ page }) => {
 		await page.goto("/");
-		await expect(page.getByTestId("sign-in-email")).toBeVisible({ timeout: 30_000 });
+		await expect(page).toHaveURL(/\/sign-in/, { timeout: 30_000 });
 
-		await page.getByTestId("sign-in-email").fill(SEED_USER.email);
-		await page.getByTestId("sign-in-password").fill("not-the-password");
-		await page.getByTestId("sign-in-submit").click();
+		// Password authentication is gone, so the screen only exposes providers.
+		// React Native Web renders these as divs with cursor=pointer, not
+		// role=button, and the export boots slower than the default timeout.
+		const googleButton = page.getByText("Sign in with Google", { exact: true });
+		await expect(googleButton).toBeVisible({ timeout: 60_000 });
+		await expect(page.getByText("Sign in with GitHub", { exact: true })).toBeVisible();
+		await expect(page.getByText("Enter your email below to login to your account")).toBeHidden();
 
-		await expect(page.getByText(/invalid email or password/i)).toBeVisible({ timeout: 15_000 });
-		await expect(page).toHaveURL(/\/sign-in/);
+		// The social round trip leaves the export for the API origin; coming back
+		// with the shared `localhost` cookie authenticates the app.
+		await googleButton.click();
+		await page.getByRole("button", { name: new RegExp(SEED_USER.email) }).click();
+		await expect(page).toHaveURL(/localhost:5173/, { timeout: 30_000 });
+
+		await page.goto("/");
+		await expect(page.locator('[data-testid^="standing-row-"]').first()).toBeVisible({
+			timeout: 30_000,
+		});
 	});
 });

@@ -1,8 +1,8 @@
-import { expect, openSeason, SEED_SEASON, SEED_USER, signIn, test } from "./fixtures/auth";
+import { expect, openSeason, SEED_SEASON, signIn, test } from "./fixtures/auth";
 
 test.describe("Mobile session flow", () => {
 	test.beforeEach(async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	test("creates a session, starts a match and records the result", async ({ page }) => {

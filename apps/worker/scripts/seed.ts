@@ -9,7 +9,6 @@ import * as readline from "node:readline";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { randEmail, randFullName, randNumber } from "@ngneat/falso";
 import {
-	account,
 	league,
 	leagueTeam,
 	leagueTeamPlayer,
@@ -24,14 +23,12 @@ import {
 	user,
 } from "../src/db/schema";
 import { createId } from "../src/utils/id-util";
-import { hashPassword } from "../src/lib/password";
 import { calculateEloMatch, determineMatchResult } from "@coding-cowboys/scorebrawl-util/elo-util";
 
 // Seed configuration
 const SEED_USER = {
 	id: "seed-user-id",
 	email: "seed@example.com",
-	password: "Test.1234",
 	name: randFullName(),
 };
 
@@ -140,7 +137,7 @@ ${bold("Options:")}
   -h, --help           Show this help message
 
 ${bold("Seed Data:")}
-  User:   ${SEED_USER.email} / ${SEED_USER.password}
+  User:   ${SEED_USER.email}
   League: ${SEED_LEAGUE.name} (slug: ${SEED_LEAGUE.slug})
   Season: ${SEED_SEASON.name} (slug: ${SEED_SEASON.slug})
 
@@ -751,19 +748,6 @@ async function seedDatabase(
 			});
 			console.log(green(`  ✓ User created: ${SEED_USER.email} (${SEED_USER.name})`));
 
-			// Create account with hashed password
-			const hashedPassword = await hashPassword(SEED_USER.password);
-			const accountId = createId();
-			await db.insert(account).values({
-				id: accountId,
-				accountId: SEED_USER.id,
-				providerId: "credential",
-				userId: SEED_USER.id,
-				password: hashedPassword,
-				createdAt: now,
-				updatedAt: now,
-			});
-			console.log(green("  ✓ Account created with password"));
 			createdCount++;
 		}
 
@@ -935,18 +919,6 @@ async function seedDatabase(
 					name: name,
 					email: email,
 					emailVerified: true,
-					createdAt: now,
-					updatedAt: now,
-				});
-
-				// Create account with same password as seed user
-				const hashedPassword = await hashPassword(SEED_USER.password);
-				await db.insert(account).values({
-					id: createId(),
-					accountId: newUserId,
-					providerId: "credential",
-					userId: newUserId,
-					password: hashedPassword,
 					createdAt: now,
 					updatedAt: now,
 				});
@@ -1190,7 +1162,6 @@ async function seedDatabase(
 ${bold("Seed Data:")}
 ${"─".repeat(40)}
   ${bold("Email:")}          ${SEED_USER.email}
-  ${bold("Password:")}       ${SEED_USER.password}
   ${bold("League:")}         ${SEED_LEAGUE.name} (${SEED_LEAGUE.slug})
   ${bold("Season:")}         ${SEED_SEASON.name} (${SEED_SEASON.slug})
 

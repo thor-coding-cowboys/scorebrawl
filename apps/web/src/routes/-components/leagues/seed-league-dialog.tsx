@@ -173,7 +173,7 @@ export function SeedLeagueDialog({ isOpen, onClose }: SeedLeagueDialogProps) {
 									<p className="text-sm text-destructive">{errors.memberCount.message}</p>
 								)}
 								<p className="text-xs text-muted-foreground">
-									Fake users with accounts (password: Test.1234)
+									Fake users (sign in with Google to claim one)
 								</p>
 							</Field>
 

@@ -14,7 +14,6 @@ import {
 	jwt,
 } from "better-auth/plugins";
 import * as schema from "../db/schema";
-import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
 import { and, eq } from "drizzle-orm";
@@ -372,17 +371,9 @@ export function createAuth({
 				},
 			},
 		},
-		emailAndPassword: {
-			enabled: process.env.DISABLE_EMAIL_PASSWORD?.toLowerCase() !== "true",
-			password: {
-				hash: async (password) => {
-					return await hashPassword(password);
-				},
-				verify: async ({ password, hash }) => {
-					return await verifyPassword(hash, password);
-				},
-			},
-		},
+		// The e2e suites sign in for every spec from one IP, which trips the default
+		// per-IP rate limiter. Playwright sets this flag for its runs only.
+		rateLimit: process.env.DISABLE_RATE_LIMIT === "true" ? { enabled: false } : undefined,
 		socialProviders: hasAnySocialProviders
 			? {
 					github:
@@ -406,7 +397,7 @@ export function createAuth({
 		account: {
 			accountLinking: {
 				enabled: true,
-				trustedProviders: ["google", "email-password", "github"],
+				trustedProviders: ["google", "github"],
 			},
 		},
 		plugins: [

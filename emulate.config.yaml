@@ -9,6 +9,10 @@ google:
       name: Seed User
     - email: emulate-e2e@example.com
       name: Emulated E2E
+    - email: signup-e2e@example.com
+      name: Signup E2E
+    - email: invitee-e2e@example.com
+      name: Invited E2E
   # client_id matches VITE_GOOGLE_CLIENT_ID in apps/worker/wrangler.jsonc so the
   # frontend + worker need no extra client-id override when emulating.
   oauth_clients:
@@ -23,6 +27,7 @@ google:
         - http://scorebrawl.localhost:1355/api/auth/callback/google
         - http://scorebrawl.localhost/api/auth/callback/google
         - http://localhost:1355/api/auth/callback/google
+        - http://localhost:5173/api/auth/callback/google
 
 github:
   port: 4001
@@ -42,6 +47,7 @@ github:
         - http://scorebrawl.localhost:1355/api/auth/callback/github
         - http://scorebrawl.localhost/api/auth/callback/github
         - http://localhost:1355/api/auth/callback/github
+        - http://localhost:5173/api/auth/callback/github
 
 resend:
   port: 4008

@@ -1,13 +1,11 @@
 import { env } from "cloudflare:test";
 import { randCompanyName, randEmail, randFullName, randSlug } from "@ngneat/falso";
-import { eq } from "drizzle-orm";
+import { makeSignature } from "better-auth/crypto";
 import { getDb } from "../../src/db/index";
-import { user } from "../../src/db/schema/auth-schema";
 import { createAuth } from "../../src/lib/better-auth";
 
 export interface UserInput {
 	email?: string;
-	password?: string;
 	name?: string;
 }
 
@@ -18,7 +16,7 @@ export interface LeagueInput {
 
 export interface AuthContext {
 	sessionToken: string;
-	user: UserInput & { id: string; email: string; password: string; name: string };
+	user: UserInput & { id: string; email: string; name: string };
 	league: LeagueInput & { id: string; name: string; slug: string };
 }
 
@@ -27,12 +25,10 @@ export interface AuthContext {
  */
 export function aUser(overrides: UserInput = {}): UserInput & {
 	email: string;
-	password: string;
 	name: string;
 } {
 	return {
 		email: randEmail(),
-		password: "password123",
 		name: randFullName(),
 		...overrides,
 	};
@@ -63,6 +59,19 @@ export function authHeaders(sessionToken: string): Record<string, string> {
 }
 
 /**
+ * Create a user plus a signed session cookie the same way the test-utils plugin
+ * would. There is no password sign-up to lean on, and OAuth needs a provider
+ * round trip, so the session is created through better-auth's internal adapter.
+ */
+async function createSessionForUser(auth: ReturnType<typeof createAuth>, input: UserInput) {
+	const ctx = await auth.$context;
+	const createdUser = await ctx.internalAdapter.createUser({ ...input, emailVerified: true });
+	const session = await ctx.internalAdapter.createSession(createdUser.id, false, {}, true);
+	const signature = await makeSignature(session.token, env.BETTER_AUTH_SECRET);
+	return { user: createdUser, sessionToken: `${session.token}.${signature}` };
+}
+
+/**
  * Create an authenticated context with a user and league
  */
 export async function createAuthContext(
@@ -77,16 +86,11 @@ export async function createAuthContext(
 	const userInput = aUser(options.user);
 	const orgInput = aLeague(options.league);
 
-	// Sign up a test user
-	const { headers } = await auth.api.signUpEmail({
-		body: userInput,
-		returnHeaders: true,
-	});
-
-	const cookies = headers.get("set-cookie");
-	const token = cookies?.match(/better-auth\.session_token=([^;]+)/)?.[1];
-	if (!token) throw new Error("No session token in response");
-	let sessionToken = token;
+	const { user: createdUser, sessionToken: initialToken } = await createSessionForUser(
+		auth,
+		userInput
+	);
+	let sessionToken = initialToken;
 
 	// Create an organization
 	const org = await auth.api.createOrganization({
@@ -108,10 +112,6 @@ export async function createAuthContext(
 		const newToken = newCookies.match(/better-auth\.session_token=([^;]+)/)?.[1];
 		if (newToken) sessionToken = newToken;
 	}
-
-	// Fetch the created user to get their ID
-	const [createdUser] = await db.select().from(user).where(eq(user.email, userInput.email));
-	if (!createdUser) throw new Error("Failed to fetch created user");
 
 	return {
 		sessionToken,
@@ -161,7 +161,7 @@ export async function createLeague(
  */
 export async function createUser(overrides: UserInput = {}): Promise<{
 	sessionToken: string;
-	user: UserInput & { id: string; email: string; password: string; name: string };
+	user: UserInput & { id: string; email: string; name: string };
 }> {
 	const db = getDb(env.DB);
 	const auth = createAuth({
@@ -170,22 +170,10 @@ export async function createUser(overrides: UserInput = {}): Promise<{
 	});
 
 	const userInput = aUser(overrides);
-
-	const { headers } = await auth.api.signUpEmail({
-		body: userInput,
-		returnHeaders: true,
-	});
-
-	const cookies = headers.get("set-cookie");
-	const token = cookies?.match(/better-auth\.session_token=([^;]+)/)?.[1];
-	if (!token) throw new Error("No session token in response");
-
-	// Fetch the created user to get their ID
-	const [createdUser] = await db.select().from(user).where(eq(user.email, userInput.email));
-	if (!createdUser) throw new Error("Failed to fetch created user");
+	const { user: createdUser, sessionToken } = await createSessionForUser(auth, userInput);
 
 	return {
-		sessionToken: token,
+		sessionToken,
 		user: {
 			...userInput,
 			id: createdUser.id,

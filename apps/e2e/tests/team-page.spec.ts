@@ -1,9 +1,9 @@
-import { test, expect, signIn, SEED_USER, SEED_LEAGUE } from "./fixtures/auth";
+import { test, expect, signIn, SEED_LEAGUE } from "./fixtures/auth";
 
 test.describe("Team Page", () => {
 	test.beforeEach(async ({ page }) => {
 		// Sign in with seeded user before each test
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	test("should navigate to teams page and render correctly", async ({ page }) => {

@@ -22,9 +22,7 @@ import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedLeaguesIndexRouteImport } from './routes/_authenticated/leagues/index'
 import { Route as AuthenticatedOnboardingCreateLeagueRouteImport } from './routes/_authenticated/onboarding/create-league'
 import { Route as AuthenticatedSidebarProfileRouteImport } from './routes/_authenticated/_sidebar/profile'
-import { Route as AuthAuthSignUpRouteImport } from './routes/_auth/auth/sign-up'
 import { Route as AuthAuthSignInRouteImport } from './routes/_auth/auth/sign-in'
-import { Route as AuthAuthForgotPasswordRouteImport } from './routes/_auth/auth/forgot-password'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
 import { Route as AuthenticatedAdminOauthClientsIndexRouteImport } from './routes/_authenticated/admin/oauth-clients/index'
 import { Route as AuthenticatedAdminLeaguesIndexRouteImport } from './routes/_authenticated/admin/leagues/index'
@@ -115,19 +113,9 @@ const AuthenticatedSidebarProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedSidebarRouteRoute,
   } as any)
-const AuthAuthSignUpRoute = AuthAuthSignUpRouteImport.update({
-  id: '/auth/sign-up',
-  path: '/auth/sign-up',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
 const AuthAuthSignInRoute = AuthAuthSignInRouteImport.update({
   id: '/auth/sign-in',
   path: '/auth/sign-in',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthAuthForgotPasswordRoute = AuthAuthForgotPasswordRouteImport.update({
-  id: '/auth/forgot-password',
-  path: '/auth/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthenticatedAdminUsersIndexRoute =
@@ -272,9 +260,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/device': typeof DeviceIndexRoute
-  '/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
   '/auth/sign-in': typeof AuthAuthSignInRoute
-  '/auth/sign-up': typeof AuthAuthSignUpRoute
   '/profile': typeof AuthenticatedSidebarProfileRoute
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
@@ -308,9 +294,7 @@ export interface FileRoutesByTo {
   '/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/device': typeof DeviceIndexRoute
-  '/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
   '/auth/sign-in': typeof AuthAuthSignInRoute
-  '/auth/sign-up': typeof AuthAuthSignUpRoute
   '/profile': typeof AuthenticatedSidebarProfileRoute
   '/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/leagues': typeof AuthenticatedLeaguesIndexRoute
@@ -345,9 +329,7 @@ export interface FileRoutesById {
   '/_public/home': typeof PublicHomeRoute
   '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/device/': typeof DeviceIndexRoute
-  '/_auth/auth/forgot-password': typeof AuthAuthForgotPasswordRoute
   '/_auth/auth/sign-in': typeof AuthAuthSignInRoute
-  '/_auth/auth/sign-up': typeof AuthAuthSignUpRoute
   '/_authenticated/_sidebar/profile': typeof AuthenticatedSidebarProfileRoute
   '/_authenticated/onboarding/create-league': typeof AuthenticatedOnboardingCreateLeagueRoute
   '/_authenticated/leagues/': typeof AuthenticatedLeaguesIndexRoute
@@ -383,9 +365,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/accept-invitation/$invitationId'
     | '/device'
-    | '/auth/forgot-password'
     | '/auth/sign-in'
-    | '/auth/sign-up'
     | '/profile'
     | '/onboarding/create-league'
     | '/leagues'
@@ -419,9 +399,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/accept-invitation/$invitationId'
     | '/device'
-    | '/auth/forgot-password'
     | '/auth/sign-in'
-    | '/auth/sign-up'
     | '/profile'
     | '/onboarding/create-league'
     | '/leagues'
@@ -455,9 +433,7 @@ export interface FileRouteTypes {
     | '/_public/home'
     | '/accept-invitation/$invitationId'
     | '/device/'
-    | '/_auth/auth/forgot-password'
     | '/_auth/auth/sign-in'
-    | '/_auth/auth/sign-up'
     | '/_authenticated/_sidebar/profile'
     | '/_authenticated/onboarding/create-league'
     | '/_authenticated/leagues/'
@@ -588,25 +564,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSidebarProfileRouteImport
       parentRoute: typeof AuthenticatedSidebarRouteRoute
     }
-    '/_auth/auth/sign-up': {
-      id: '/_auth/auth/sign-up'
-      path: '/auth/sign-up'
-      fullPath: '/auth/sign-up'
-      preLoaderRoute: typeof AuthAuthSignUpRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
     '/_auth/auth/sign-in': {
       id: '/_auth/auth/sign-in'
       path: '/auth/sign-in'
       fullPath: '/auth/sign-in'
       preLoaderRoute: typeof AuthAuthSignInRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/auth/forgot-password': {
-      id: '/_auth/auth/forgot-password'
-      path: '/auth/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthAuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_authenticated/admin/users/': {
@@ -760,15 +722,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteRouteChildren {
-  AuthAuthForgotPasswordRoute: typeof AuthAuthForgotPasswordRoute
   AuthAuthSignInRoute: typeof AuthAuthSignInRoute
-  AuthAuthSignUpRoute: typeof AuthAuthSignUpRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
-  AuthAuthForgotPasswordRoute: AuthAuthForgotPasswordRoute,
   AuthAuthSignInRoute: AuthAuthSignInRoute,
-  AuthAuthSignUpRoute: AuthAuthSignUpRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(

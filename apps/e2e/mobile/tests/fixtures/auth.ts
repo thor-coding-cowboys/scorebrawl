@@ -1,9 +1,12 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { signInWithEmulatedProvider } from "../../../lib/emulated-sign-in";
+
+const API_BASE_URL = process.env.MOBILE_E2E_API_URL ?? "http://localhost:5173";
 
 // Mirrors the web suite fixtures - the same seeded league and users.
 export const SEED_USER = {
 	email: "seed@example.com",
-	password: "Test.1234",
+	name: "Seed User",
 };
 
 export const SEED_LEAGUE = {
@@ -21,15 +24,22 @@ export const SEED_ONE_VN_SEASON = {
 	slug: "1-v-n-1",
 };
 
-export async function signIn(page: Page, email: string, password: string) {
+/**
+ * Sign in through the emulated Google provider. Password sign-in is gone, so the
+ * specs complete the OAuth round trip against the API (cookies live on
+ * `localhost`, so they reach the Expo web export on the other port) and then
+ * load the app.
+ */
+export async function signIn(page: Page, email: string = SEED_USER.email) {
+	await signInWithEmulatedProvider(page.request, {
+		apiBaseURL: API_BASE_URL,
+		provider: "google",
+		email,
+	});
 	await page.goto("/");
-
-	await expect(page.getByTestId("sign-in-email")).toBeVisible({ timeout: 30_000 });
-	await page.getByTestId("sign-in-email").fill(email);
-	await page.getByTestId("sign-in-password").fill(password);
-	await page.getByTestId("sign-in-submit").click();
-
-	await expect(page.getByTestId("sign-in-submit")).toBeHidden({ timeout: 30_000 });
+	await expect(page.locator('[data-testid^="standing-row-"]').first()).toBeVisible({
+		timeout: 30_000,
+	});
 }
 
 /**

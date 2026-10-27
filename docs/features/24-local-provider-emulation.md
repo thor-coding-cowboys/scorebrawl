@@ -38,9 +38,9 @@ The emulators can also be run on their own:
 bun run emulate          # only the emulators
 ```
 
-Playwright starts the emulator itself (second `webServer` entry in
-`apps/e2e/playwright.config.ts`); `bun dev` detects that it is already running
-and skips its own copy, so `bun run test:e2e` needs no extra setup.
+Both Playwright configs start the emulator themselves (`webServer` entry);
+`bun dev` detects that it is already running and skips its own copy, so
+`bun run test:e2e` and `bun run test:e2e:mobile` need no extra setup.
 
 Inspect captured mail:
 
@@ -48,7 +48,8 @@ Inspect captured mail:
 curl http://localhost:4008/emails -H "Authorization: Bearer re_emulated_key"
 ```
 
-The emulator also serves an inspector at `/` on each service port.
+Each service serves an inspector on its own port; the Resend one is at
+`http://localhost:4008/inbox`.
 
 ## How the worker is wired
 
@@ -74,19 +75,34 @@ and the built-in ones are skipped.
 
 ## Environment
 
-`apps/worker/.env.e2e` (checked in) holds the e2e values; `bun dev` generates the
-equivalent `apps/worker/.env.local` for interactive work.
+Worker bindings come from wrangler dotenv files and those outrank the shell
+environment, so the scheme/port-dependent values cannot come from
+`webServer.env`. `bun dev` and both Playwright configs therefore write the
+gitignored `apps/worker/.env.local` (emulator URLs, matching dummy secrets,
+`BETTER_AUTH_URL`, `DISABLE_RATE_LIMIT` for e2e) before the app starts; each
+entry point overwrites the other's copy.
 
-The worker reads its bindings from wrangler dotenv files, not from the shell
-environment, which is why the dev script writes that file rather than exporting
-variables. `VITE_GITHUB_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` are the exception —
-vite reads those from the process environment, so the dev script sets them
+`VITE_GITHUB_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` are the exception: vite reads
+those from the process environment, so they are passed to the dev process
 directly (they are public ids, already committed in `wrangler.jsonc`).
 
 Portless strips the port from the `Host` header, so the same provider is reached
 with both `https://scorebrawl.localhost/...` and
 `https://scorebrawl.localhost:1355/...` callbacks; the seed config registers
 both.
+
+## E2E authentication
+
+Email/password is gone, so both suites sign in through the emulated Google
+provider. `apps/e2e/lib/emulated-sign-in.ts` completes the OAuth round trip
+against the API (better-auth authorize URL -> emulator callback -> app callback)
+and the session cookie lands in the shared request context; specs then load the
+app. Users that must not exist yet (signup, invitation accept) are seeded in
+`emulate.config.yaml` only, so signing in creates the D1 account.
+
+The mobile suite runs the Expo web export against the same API on
+`http://localhost:5173`, so the OAuth redirect URIs for that origin are seeded
+too, and the export ships the public client ids so the provider buttons render.
 
 ## Caveats
 
@@ -97,3 +113,5 @@ both.
   mocks outbound `fetch` by default — no test currently reaches the emulator.
 - Emulated users are separate from the D1 seed; `seed@example.com` exists in both
   so the GitHub spec can assert real account linking.
+- e2e signs in for every spec from one IP, which trips better-auth's per-IP rate
+  limiter, so the generated env sets `DISABLE_RATE_LIMIT=true`.

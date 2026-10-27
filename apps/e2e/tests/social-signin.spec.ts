@@ -32,9 +32,9 @@ test.describe("Emulated social sign-in", () => {
 	});
 
 	test("links the emulated GitHub account to the existing seed user", async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
-		const passwordUser = await sessionUserId(page);
-		expect(passwordUser?.email).toBe(SEED_USER.email);
+		await signIn(page);
+		const seedUser = await sessionUserId(page);
+		expect(seedUser?.email).toBe(SEED_USER.email);
 
 		await signOut(page);
 		await signInWithGitHub(page);
@@ -42,6 +42,6 @@ test.describe("Emulated social sign-in", () => {
 		await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 20000 });
 		const linkedUser = await sessionUserId(page);
 		expect(linkedUser?.email).toBe(SEED_USER.email);
-		expect(linkedUser?.id).toBe(passwordUser?.id);
+		expect(linkedUser?.id).toBe(seedUser?.id);
 	});
 });
