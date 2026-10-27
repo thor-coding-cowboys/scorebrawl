@@ -263,6 +263,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 		<Modal visible={isOpen} animationType="slide" onRequestClose={onClose}>
 			<ThemedView style={styles.flex}>
 				<View
+					testID="session-config-modal"
 					style={[
 						styles.content,
 						{ paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.two },
@@ -402,6 +403,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 												return (
 													<Pressable
 														key={p.id}
+														testID={`session-player-option-${p.id}`}
 														disabled={inMatch}
 														onPress={() => togglePlayer(p.id)}
 														style={[
@@ -511,7 +513,12 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 								<Button variant="outline" onPress={onClose} disabled={isSubmitting}>
 									Cancel
 								</Button>
-								<Button variant="glow" style={styles.submit} onPress={() => setStep(1)}>
+								<Button
+									testID="session-config-next"
+									variant="glow"
+									style={styles.submit}
+									onPress={() => setStep(1)}
+								>
 									Next
 								</Button>
 							</>
@@ -521,6 +528,7 @@ export function SessionConfigModal(props: SessionConfigModalProps) {
 									Back
 								</Button>
 								<Button
+									testID="session-config-submit"
 									variant="glow"
 									style={styles.submit}
 									onPress={submit}

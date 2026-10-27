@@ -90,6 +90,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 		<Modal visible={isOpen} animationType="slide" onRequestClose={onClose}>
 			<ThemedView style={styles.flex}>
 				<View
+					testID="record-game-modal"
 					style={[
 						styles.content,
 						{ paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.two },
@@ -114,6 +115,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 									return (
 										<Pressable
 											key={p.id}
+											testID={`record-game-player-${p.id}`}
 											onPress={() => togglePlayer(p.id)}
 											style={[
 												styles.chip,
@@ -146,6 +148,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 										return (
 											<Pressable
 												key={p.id}
+												testID={`record-game-winner-${p.id}`}
 												onPress={() => setWinnerId(p.id)}
 												style={[
 													styles.winnerRow,
@@ -203,6 +206,7 @@ export function RecordGameModal({ isOpen, onClose, seasonSlug }: RecordGameModal
 								Cancel
 							</Button>
 							<Button
+								testID="record-game-submit"
 								variant="glow"
 								style={styles.submit}
 								onPress={submit}

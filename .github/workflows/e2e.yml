@@ -4,7 +4,61 @@ on:
   pull_request:
 
 jobs:
+  # Decides which suites need to run. `web` covers everything that is not
+  # mobile-only; `mobile` also covers shared packages because the Expo app
+  # consumes them.
+  changes:
+    name: 🔎 Detect changed areas
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      web: ${{ steps.detect.outputs.web }}
+      mobile: ${{ steps.detect.outputs.mobile }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🔎 Detect changed areas
+        id: detect
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if ! files=$(git diff --name-only "origin/${BASE_REF}...HEAD" 2>/dev/null); then
+            echo "::warning::Could not diff against origin/${BASE_REF}; running every suite."
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mobile=false
+          web=false
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              apps/mobile/*|packages/*|bun.lock|bun.lockb|package.json|turbo.json|tsconfig*.json)
+                mobile=true ;;
+              apps/e2e/mobile/*|apps/e2e/scripts/*|apps/e2e/playwright.mobile.config.ts|apps/e2e/package.json)
+                mobile=true ;;
+            esac
+            case "$file" in
+              apps/mobile/*|docs/*|*.md) ;;
+              apps/e2e/mobile/*|apps/e2e/scripts/*|apps/e2e/playwright.mobile.config.ts) ;;
+              *) web=true ;;
+            esac
+          done <<< "$files"
+
+          echo "mobile=$mobile" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "Mobile changes: $mobile"
+          echo "Web changes: $web"
+
   e2e:
+    name: E2E
+    needs: changes
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     permissions:
@@ -16,6 +70,183 @@ jobs:
       VITE_GITHUB_CLIENT_ID: Ov23liEHPLUdBgTj5Cxu
       VITE_GOOGLE_CLIENT_ID: 972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com
 
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🥟 Setup Bun
+        if: needs.changes.outputs.web == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Setup Node.js 22.x
+        if: needs.changes.outputs.web == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.x
+
+      - name: 📦 Install dependencies
+        if: needs.changes.outputs.web == 'true'
+        run: bun install
+
+      - name: ⚡ Setup Turbo cache
+        if: needs.changes.outputs.web == 'true'
+        uses: rharkor/caching-for-turbo@2238fae6eb9a9936f92356f54cb3660200d105e7 # v2.5.1
+
+      - name: 🎭 Install Playwright
+        if: needs.changes.outputs.web == 'true'
+        run: bunx playwright install chromium --with-deps
+        working-directory: apps/e2e
+
+      - name: 🎭 E2E Tests
+        id: tests
+        if: needs.changes.outputs.web == 'true'
+        run: bun run test:e2e
+        working-directory: apps/e2e
+        continue-on-error: true
+
+      # The "E2E Test Results" check is required on main, so a skipped run still
+      # has to publish a green report instead of leaving the check pending.
+      - name: 📝 Record skip report
+        if: needs.changes.outputs.web != 'true'
+        run: |
+          mkdir -p apps/e2e/playwright-report
+          cat > apps/e2e/playwright-report/results.xml <<'EOF'
+          <testsuites>
+            <testsuite name="e2e-skipped" tests="1" failures="0" skipped="1" errors="0" time="0">
+              <testcase name="skipped: no web changes" classname="e2e-skipped" time="0">
+                <skipped />
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - name: 📊 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report/
+            apps/e2e/test-results/
+          retention-days: 1
+
+      - name: 📝 Annotate Test Results
+        if: always()
+        uses: mikepenz/action-junit-report@74626db7353a25a20a72816467ebf035f674c5f8 # v6.0.0
+        with:
+          report_paths: apps/e2e/playwright-report/results.xml
+          check_name: E2E Test Results
+          fail_on_failure: true
+          require_tests: true
+
+      - name: 💬 Post PR Comment
+        if: always()
+        env:
+          SKIPPED: ${{ needs.changes.outputs.web != 'true' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read JUnit results
+            const resultsPath = 'apps/e2e/playwright-report/results.xml';
+            let passed = 0, failed = 0, skipped = 0, time = 0;
+
+            if (fs.existsSync(resultsPath)) {
+              const content = fs.readFileSync(resultsPath, 'utf8');
+              const testsuites = content.match(/<testsuite[^>]*>/g) || [];
+              testsuites.forEach(suite => {
+                const tests = suite.match(/tests="(\d+)"/)?.[1] || 0;
+                const failures = suite.match(/failures="(\d+)"/)?.[1] || 0;
+                const skips = suite.match(/skipped="(\d+)"/)?.[1] || 0;
+                const t = suite.match(/time="([\d.]+)"/)?.[1] || 0;
+                passed += parseInt(tests) - parseInt(failures) - parseInt(skips);
+                failed += parseInt(failures);
+                skipped += parseInt(skips);
+                time += parseFloat(t);
+              });
+            }
+
+            const status = failed === 0 ? '✅' : '❌';
+            const runId = context.runId;
+            const repo = context.repo;
+            const skipNote = process.env.SKIPPED === 'true'
+              ? '\n> Skipped: this pull request only changes `apps/mobile` (or docs).\n'
+              : '';
+
+            const body = `## 🎭 E2E Test Results
+
+            ${status} **${passed} passed** | ❌ **${failed} failed** | ⏱️ **${time.toFixed(1)}s**
+            ${skipNote}
+            | Metric | Value |
+            |--------|-------|
+            | Passed | ${passed} |
+            | Failed | ${failed} |
+            | Skipped | ${skipped} |
+            | Duration | ${time.toFixed(1)}s |
+
+            📊 [View HTML Report](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId})
+            🎥 [View Traces](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId}#artifacts)
+
+            <sub>Last updated: ${new Date().toISOString()}</sub>
+            `;
+
+            try {
+              // Find existing comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: repo.owner,
+                repo: repo.repo,
+                issue_number: context.issue.number
+              });
+
+              const botComment = comments.find(c =>
+                c.user.type === 'Bot' &&
+                c.body.includes('🎭 E2E Test Results')
+              );
+
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  comment_id: botComment.id,
+                  body
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  issue_number: context.issue.number,
+                  body
+                });
+              }
+            } catch (error) {
+              console.log('Failed to post PR comment:', error.message);
+              // Don't fail the workflow if comment posting fails
+            }
+
+      - name: ❌ Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+
+  # Smoke tests the Expo app through its web export. Not a required check yet.
+  mobile-e2e:
+    name: Mobile E2E
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+    env:
+      MOBILE_E2E_API_URL: http://localhost:5173
+      MOBILE_E2E_WEB_PORT: "8081"
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
@@ -42,19 +273,19 @@ jobs:
         run: bunx playwright install chromium --with-deps
         working-directory: apps/e2e
 
-      - name: 🎭 E2E Tests
-        id: tests
-        run: bun run test:e2e
+      # Seeds the local D1 database, exports the Expo web build and runs the
+      # specs against it (see apps/e2e/package.json pretest hook).
+      - name: 📱 Mobile E2E Tests
+        run: bun run test:e2e:mobile
         working-directory: apps/e2e
-        continue-on-error: true
 
       - name: 📊 Upload Test Results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: playwright-report
+          name: mobile-playwright-report
           path: |
-            apps/e2e/playwright-report/
+            apps/e2e/mobile-playwright-report/
             apps/e2e/test-results/
           retention-days: 1
 
@@ -62,94 +293,7 @@ jobs:
         if: always()
         uses: mikepenz/action-junit-report@74626db7353a25a20a72816467ebf035f674c5f8 # v6.0.0
         with:
-          report_paths: apps/e2e/playwright-report/results.xml
-          check_name: E2E Test Results
+          report_paths: apps/e2e/mobile-playwright-report/results.xml
+          check_name: Mobile E2E Test Results
           fail_on_failure: true
           require_tests: true
-
-      - name: 💬 Post PR Comment
-        if: always()
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-
-            // Read JUnit results
-            const resultsPath = 'apps/e2e/playwright-report/results.xml';
-            let passed = 0, failed = 0, skipped = 0, time = 0;
-
-            if (fs.existsSync(resultsPath)) {
-              const content = fs.readFileSync(resultsPath, 'utf8');
-              const testsuites = content.match(/<testsuite[^>]*>/g) || [];
-              testsuites.forEach(suite => {
-                const tests = suite.match(/tests="(\d+)"/)?.[1] || 0;
-                const failures = suite.match(/failures="(\d+)"/)?.[1] || 0;
-                const skips = suite.match(/skipped="(\d+)"/)?.[1] || 0;
-                const t = suite.match(/time="([\d.]+)"/)?.[1] || 0;
-                passed += parseInt(tests) - parseInt(failures) - parseInt(skips);
-                failed += parseInt(failures);
-                skipped += parseInt(skips);
-                time += parseFloat(t);
-              });
-            }
-
-            const status = failed === 0 ? '✅' : '❌';
-            const runId = context.runId;
-            const repo = context.repo;
-
-            const body = `## 🎭 E2E Test Results
-
-            ${status} **${passed} passed** | ❌ **${failed} failed** | ⏱️ **${time.toFixed(1)}s**
-
-            | Metric | Value |
-            |--------|-------|
-            | Passed | ${passed} |
-            | Failed | ${failed} |
-            | Skipped | ${skipped} |
-            | Duration | ${time.toFixed(1)}s |
-
-            📊 [View HTML Report](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId})
-            🎥 [View Traces](https://github.com/${repo.owner}/${repo.repo}/actions/runs/${runId}#artifacts)
-
-            <sub>Last updated: ${new Date().toISOString()}</sub>
-            `;
-
-            try {
-              // Find existing comment
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: repo.owner,
-                repo: repo.repo,
-                issue_number: context.issue.number
-              });
-              
-              const botComment = comments.find(c => 
-                c.user.type === 'Bot' && 
-                c.body.includes('🎭 E2E Test Results')
-              );
-              
-              if (botComment) {
-                // Update existing comment
-                await github.rest.issues.updateComment({
-                  owner: repo.owner,
-                  repo: repo.repo,
-                  comment_id: botComment.id,
-                  body
-                });
-              } else {
-                // Create new comment
-                await github.rest.issues.createComment({
-                  owner: repo.owner,
-                  repo: repo.repo,
-                  issue_number: context.issue.number,
-                  body
-                });
-              }
-            } catch (error) {
-              console.log('Failed to post PR comment:', error.message);
-              // Don't fail the workflow if comment posting fails
-            }
-
-      - name: ❌ Fail if tests failed
-        if: steps.tests.outcome == 'failure'
-        run: exit 1

@@ -110,6 +110,10 @@ Use `@/components/` for shared UI. Use relative imports (`./-components/...`) fo
 Create integration tests for new tRPC routes. Reference `apps/worker/src/test/trpc/`.
 Pattern: `createTRPCTestClient({ sessionToken })` with helpers from `apps/worker/src/test/setup/`. Uses Vitest + Cloudflare framework. Migrations auto-apply.
 
+E2E: `bun --cwd apps/e2e test:e2e` (web). Mobile screens are smoke tested through the
+Expo web export with `bun --cwd apps/e2e test:e2e:mobile`, which reseeds the local D1
+database, exports to `apps/mobile/dist` and runs the dev stack on `localhost:5173`.
+
 ## Database
 
 Use Drizzle. Schema: `apps/worker/src/db/schema/`

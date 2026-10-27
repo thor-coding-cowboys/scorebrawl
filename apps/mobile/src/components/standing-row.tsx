@@ -92,7 +92,10 @@ export function StandingRow({
 					<FormDots form={item.form} pointDiff={item.pointDiff} />
 				</View>
 			</View>
-			<ThemedText style={[styles.score, item.matchCount === 0 && styles.scoreZero]}>
+			<ThemedText
+				testID={`standing-score-${item.id}`}
+				style={[styles.score, item.matchCount === 0 && styles.scoreZero]}
+			>
 				{item.score}
 			</ThemedText>
 		</>
@@ -101,6 +104,7 @@ export function StandingRow({
 	if (onPress) {
 		return (
 			<Pressable
+				testID={`standing-row-${item.id}`}
 				accessibilityRole="button"
 				onPress={onPress}
 				style={({ pressed }) => [styles.row, dimmed && styles.dimmed, pressed && { opacity: 0.7 }]}
@@ -110,7 +114,11 @@ export function StandingRow({
 		);
 	}
 
-	return <View style={[styles.row, dimmed && styles.dimmed]}>{content}</View>;
+	return (
+		<View testID={`standing-row-${item.id}`} style={[styles.row, dimmed && styles.dimmed]}>
+			{content}
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
