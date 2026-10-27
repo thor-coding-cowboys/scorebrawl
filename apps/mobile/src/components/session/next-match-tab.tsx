@@ -413,7 +413,11 @@ export function NextMatchTab({
 								</ThemedText>
 							</View>
 						) : (
-							<ThemedText themeColor="mutedForeground" style={styles.headerMeta}>
+							<ThemedText
+								testID="session-matches-played"
+								themeColor="mutedForeground"
+								style={styles.headerMeta}
+							>
 								{completedCount} played
 							</ThemedText>
 						)}
@@ -433,6 +437,7 @@ export function NextMatchTab({
 				<View style={styles.body}>
 					<View style={styles.scoreBoard}>
 						<ScoreStepper
+							testIDPrefix="session-home"
 							label="Home"
 							score={homeScore}
 							disabled={!currentMatch}
@@ -441,6 +446,7 @@ export function NextMatchTab({
 						/>
 						<View style={[styles.scoreDivider, { backgroundColor: sessionTheme.border }]} />
 						<ScoreStepper
+							testIDPrefix="session-away"
 							label="Away"
 							score={awayScore}
 							disabled={!currentMatch}
@@ -457,6 +463,7 @@ export function NextMatchTab({
 							</View>
 							<View style={styles.stack}>
 								<Button
+									testID="session-record-result"
 									variant="glow"
 									fullWidth
 									icon={{ ios: "checkmark.circle", android: "check_circle", web: "check_circle" }}
@@ -500,6 +507,7 @@ export function NextMatchTab({
 									Select Players
 								</Button>
 								<Button
+									testID="session-start-match"
 									variant="glow"
 									fullWidth
 									icon={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
@@ -592,12 +600,14 @@ export function NextMatchTab({
 }
 
 function ScoreStepper({
+	testIDPrefix,
 	label,
 	score,
 	disabled,
 	onIncrement,
 	onDecrement,
 }: {
+	testIDPrefix: string;
 	label: string;
 	score: number;
 	disabled?: boolean;
@@ -611,14 +621,18 @@ function ScoreStepper({
 			</ThemedText>
 			<View style={styles.stepperControls}>
 				<Button
+					testID={`${testIDPrefix}-decrement`}
 					variant="outline"
 					size="iconSm"
 					icon={{ ios: "minus", android: "remove", web: "remove" }}
 					onPress={onDecrement}
 					disabled={disabled || score <= 0}
 				/>
-				<ThemedText style={styles.stepperValue}>{score}</ThemedText>
+				<ThemedText testID={`${testIDPrefix}-score`} style={styles.stepperValue}>
+					{score}
+				</ThemedText>
 				<Button
+					testID={`${testIDPrefix}-increment`}
 					variant="outline"
 					size="iconSm"
 					icon={{ ios: "plus", android: "add", web: "add" }}

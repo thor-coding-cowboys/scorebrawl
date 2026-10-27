@@ -131,6 +131,7 @@ export default function SignInScreen() {
 					{isEmailPasswordEnabled && (
 						<>
 							<Input
+								testID="sign-in-email"
 								label="Email"
 								placeholder="m@example.com"
 								value={email}
@@ -145,6 +146,7 @@ export default function SignInScreen() {
 								editable={!isSubmitting}
 							/>
 							<Input
+								testID="sign-in-password"
 								label="Password"
 								placeholder="Password"
 								value={password}
@@ -161,7 +163,13 @@ export default function SignInScreen() {
 									{apiError}
 								</ThemedText>
 							) : null}
-							<Button variant="glow" fullWidth loading={isSubmitting} onPress={onSubmit}>
+							<Button
+								testID="sign-in-submit"
+								variant="glow"
+								fullWidth
+								loading={isSubmitting}
+								onPress={onSubmit}
+							>
 								{isSubmitting ? "Signing in..." : "Sign In"}
 							</Button>
 						</>

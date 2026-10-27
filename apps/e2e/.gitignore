@@ -1,4 +1,5 @@
 /test-results/
 /playwright-report/
+/mobile-playwright-report/
 /blob-report/
 /playwright/.cache/
