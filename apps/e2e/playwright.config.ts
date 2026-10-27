@@ -1,32 +1,9 @@
-import { writeFileSync } from "node:fs";
-import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 const scheme = process.env.CI ? "http" : "https";
 const port = process.env.PORTLESS_PORT || "1355";
 const baseURL = `${scheme}://scorebrawl.localhost:${port}`;
 
-// Worker vars come from wrangler dotenv, which outranks the shell environment,
-// and scheme/port differ between CI and a local run - so write them per run to
-// the gitignored apps/worker/.env.local (loaded after .env).
-writeFileSync(
-	path.resolve(__dirname, "../worker/.env.local"),
-	[
-		`BETTER_AUTH_URL=${baseURL}`,
-		"EMULATE_GITHUB_URL=http://localhost:4001",
-		"EMULATE_GOOGLE_URL=http://localhost:4002",
-		"GITHUB_CLIENT_SECRET=emulate-github-secret",
-		"GOOGLE_CLIENT_SECRET=emulate-google-secret",
-		"RESEND_API_KEY=re_emulated_key",
-		"RESEND_BASE_URL=http://localhost:4008",
-		"DISABLE_RATE_LIMIT=true",
-		"",
-	].join("\n")
-);
-
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
 	testDir: "./tests",
 	globalSetup: "./global-setup.ts",
@@ -83,6 +60,11 @@ export default defineConfig({
 			stderr: "pipe",
 			ignoreHTTPSErrors: true,
 			env: {
+				// `bun dev` writes apps/worker/.env.local from these: wrangler dotenv
+				// outranks the shell, so passing them here alone would not reach the
+				// Worker. Scheme/port differ between CI and local runs.
+				BETTER_AUTH_URL: baseURL,
+				DISABLE_RATE_LIMIT: "true",
 				// Public client ids (also in wrangler.jsonc) so the social buttons
 				// render in the built web app; the worker reads the same ids.
 				VITE_GITHUB_CLIENT_ID: "Ov23liEHPLUdBgTj5Cxu",
