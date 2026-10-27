@@ -10,7 +10,6 @@
       "devDependencies": {
         "@opencode-ai/sdk": "^1.3.1",
         "@typescript/native-preview": "^7.0.0-dev.20260112.1",
-        "emulate": "^0.12.3",
         "oxfmt": "0.34.0",
         "oxlint": "^1.49.0",
         "turbo": "^2.8.7",
@@ -1548,8 +1547,6 @@
     "embla-carousel-reactive-utils": ["embla-carousel-reactive-utils@8.6.0", "", { "peerDependencies": { "embla-carousel": "8.6.0" } }, "sha512-fMVUDUEx0/uIEDM0Mz3dHznDhfX+znCCDCeIophYb1QGVM7YThSWX+wz11zlYwWFOr74b4QLGg0hrGPJeG2s4A=="],
 
     "emoji-regex": ["emoji-regex@10.6.0", "", {}, "sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A=="],
-
-    "emulate": ["emulate@0.12.3", "", { "dependencies": { "commander": "^14", "picocolors": "^1.1.1", "yaml": "^2" }, "bin": { "emulate": "dist/index.js" } }, "sha512-kYESyCh3jTvcLAk7Do4g38AHZu7YyWvlRzDq8/V9o8DPGCHealCt5AmNHgntAI8yZSYm/JVJI+JZyr8zP7J6IQ=="],
 
     "encodeurl": ["encodeurl@2.0.0", "", {}, "sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg=="],
 

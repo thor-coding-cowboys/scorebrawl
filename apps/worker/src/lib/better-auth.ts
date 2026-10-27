@@ -58,9 +58,9 @@ export type EmulateProviders = {
 };
 
 /**
- * Social providers pointed at the local `emulate` services instead of the real
- * upstreams. Only used when `EMULATE_*_URL` is set (dev + e2e), so production
- * keeps the built-in providers.
+ * Social providers backed by the in-Worker emulator instead of the real
+ * upstreams. Only used when `EMULATE_*_URL` is set (dev, e2e, previews), so
+ * production keeps the built-in providers.
  */
 function emulatedSocialProviders({
 	emulate,
@@ -85,32 +85,33 @@ function emulatedSocialProviders({
 			clientId: googleClientId,
 			clientSecret: googleClientSecret,
 			authorizationUrl: `${googleUrl}/o/oauth2/v2/auth`,
-			tokenUrl: `${googleUrl}/oauth2/token`,
-			userInfoUrl: `${googleUrl}/oauth2/v2/userinfo`,
 			scopes: ["openid", "email", "profile"],
 			pkce: true,
-			// Mapped by hand because the profile is OIDC-shaped (`sub`) while the
-			// provider is registered as plain OAuth. Explicit endpoints instead of
-			// `discoveryUrl` keep auth init free of network calls: a stale
-			// EMULATE_GOOGLE_URL then logs nothing and only fails at sign-in.
-			getUserInfo: async (tokens) => {
-				const response = await fetch(`${googleUrl}/oauth2/v2/userinfo`, {
-					headers: { Authorization: `Bearer ${tokens.accessToken}` },
-				});
-				if (!response.ok) return null;
-				const profile = (await response.json()) as {
-					sub: string;
-					email: string;
-					email_verified?: boolean;
-					name?: string;
-					picture?: string | null;
-				};
+			// The emulator runs in this Worker (apps/worker/src/emulate), so the
+			// callback exchanges the code in-process. No Worker-to-itself fetch:
+			// that would depend on loop-back routing and local TLS trust, which is
+			// exactly what previews cannot guarantee.
+			getToken: async ({ code }) => {
+				const { exchangeEmulatedCode } = await import("../emulate");
+				const tokens = exchangeEmulatedCode("google", code);
+				if (!tokens) throw new Error("Invalid emulated Google authorization code");
 				return {
-					id: profile.sub,
+					accessToken: tokens.accessToken,
+					accessTokenExpiresAt: tokens.expiresAt,
+					scopes: tokens.scopes,
+					tokenType: "Bearer",
+				};
+			},
+			getUserInfo: async (tokens) => {
+				const { emulatedTokenProfile } = await import("../emulate");
+				const profile = emulatedTokenProfile(tokens.accessToken);
+				if (!profile) return null;
+				return {
+					id: profile.email,
 					email: profile.email,
-					emailVerified: profile.email_verified ?? false,
-					name: profile.name ?? profile.email,
-					image: profile.picture ?? undefined,
+					emailVerified: profile.emailVerified,
+					name: profile.name,
+					image: undefined,
 				};
 			},
 		});
@@ -123,43 +124,28 @@ function emulatedSocialProviders({
 			clientId: githubClientId,
 			clientSecret: githubClientSecret,
 			authorizationUrl: `${githubUrl}/login/oauth/authorize`,
-			tokenUrl: `${githubUrl}/login/oauth/access_token`,
-			userInfoUrl: `${githubUrl}/user`,
 			scopes: ["read:user", "user:email"],
-			getUserInfo: async (tokens) => {
-				const headers = {
-					Authorization: `Bearer ${tokens.accessToken}`,
-					Accept: "application/json",
-					"User-Agent": "better-auth",
-				};
-				const [profileResponse, emailsResponse] = await Promise.all([
-					fetch(`${githubUrl}/user`, { headers }),
-					fetch(`${githubUrl}/user/emails`, { headers }),
-				]);
-				if (!profileResponse.ok) return null;
-				const profile = (await profileResponse.json()) as {
-					id: number;
-					login: string;
-					name: string | null;
-					email: string | null;
-					avatar_url?: string;
-				};
-				const emails = emailsResponse.ok
-					? ((await emailsResponse.json()) as {
-							email: string;
-							primary: boolean;
-							verified: boolean;
-						}[])
-					: [];
-				const email =
-					profile.email ?? emails.find((entry) => entry.primary)?.email ?? emails[0]?.email;
-				if (!email) return null;
+			getToken: async ({ code }) => {
+				const { exchangeEmulatedCode } = await import("../emulate");
+				const tokens = exchangeEmulatedCode("github", code);
+				if (!tokens) throw new Error("Invalid emulated GitHub authorization code");
 				return {
-					id: String(profile.id),
-					email,
-					emailVerified: emails.find((entry) => entry.email === email)?.verified ?? false,
-					name: profile.name ?? profile.login,
-					image: profile.avatar_url,
+					accessToken: tokens.accessToken,
+					accessTokenExpiresAt: tokens.expiresAt,
+					scopes: tokens.scopes,
+					tokenType: "bearer",
+				};
+			},
+			getUserInfo: async (tokens) => {
+				const { emulatedTokenProfile } = await import("../emulate");
+				const profile = emulatedTokenProfile(tokens.accessToken);
+				if (!profile) return null;
+				return {
+					id: profile.id,
+					email: profile.email,
+					emailVerified: profile.emailVerified,
+					name: profile.name,
+					image: undefined,
 				};
 			},
 		});

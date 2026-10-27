@@ -114,8 +114,9 @@ E2E: `bun --cwd apps/e2e test:e2e` (web). Mobile screens are smoke tested throug
 Expo web export with `bun --cwd apps/e2e test:e2e:mobile`, which reseeds the local D1
 database, exports to `apps/mobile/dist` and runs the dev stack on `localhost:5173`.
 
-Both suites sign in through the emulated providers — no passwords. The Playwright
-configs write the emulator URLs, matching secrets and `BETTER_AUTH_URL` to the
+Both suites sign in through the emulated providers — no passwords. The providers
+are served by the Worker itself (`apps/worker/src/emulate`); `scripts/dev.ts` and
+the mobile Playwright config write their URLs and `BETTER_AUTH_URL` to the
 gitignored `apps/worker/.env.local` before starting the dev server (wrangler
 dotenv outranks `webServer.env`). Kill a locally running `bun dev` before running
 e2e: Playwright reuses it, and seeding under a live server corrupts the D1 file.
@@ -163,7 +164,7 @@ Reference: https://www.better-auth.com/llms.txt
 
 Use **agent-browser** skill for UI verification. App uses **portless** — always runs on `https://scorebrawl.localhost:1355`. Use this URL when testing with browser agent.
 
-Password sign-in is gone. Run `bun dev` (it starts the emulated GitHub/Google/Resend providers, see `docs/features/24-local-provider-emulation.md`), open `/auth/sign-in`, click **Sign in with Google**, and pick `seed@example.com` on the emulator's user picker. The same emulator accounts back the e2e suites.
+Password sign-in is gone. Run `bun dev` (the emulated GitHub/Google providers are served by the Worker itself, see `docs/features/24-local-provider-emulation.md`), open `/auth/sign-in`, click **Sign in with Google**, and pick `seed@example.com` on the provider's user picker. The same emulator accounts back the e2e suites.
 
 ## Code Quality
 

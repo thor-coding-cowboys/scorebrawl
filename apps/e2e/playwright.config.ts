@@ -37,17 +37,8 @@ export default defineConfig({
 		},
 	],
 
-	/* Emulated third-party providers (GitHub/Google OAuth + Resend) */
+	/* Emulated providers are served by the Worker itself (apps/worker/src/emulate) */
 	webServer: [
-		{
-			command: "bun run emulate",
-			url: "http://localhost:4002/.well-known/openid-configuration",
-			reuseExistingServer: !process.env.CI,
-			cwd: "../..",
-			timeout: 60_000,
-			stdout: "pipe",
-			stderr: "pipe",
-		},
 		{
 			command: "bun run dev",
 			// Worker route, so readiness means the Worker answers too (the SPA

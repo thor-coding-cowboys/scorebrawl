@@ -62,8 +62,24 @@ const app = new Hono<HonoEnv>()
 		return enforceAuthMiddleware(c, next);
 	});
 
+/** Emulated GitHub/Google providers, served from this Worker in dev, e2e and previews. */
+function emulationEnabled(env: Env): boolean {
+	return (env as Env & { EMULATE_ENABLED?: string }).EMULATE_ENABLED === "true";
+}
+
 export default {
-	fetch: app.fetch,
+	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		const { pathname } = new URL(request.url);
+		if (pathname === "/emulate" || pathname.startsWith("/emulate/")) {
+			// A plain 404 (rather than the SPA fallback or the auth middleware's 401)
+			// in any deployment that has not opted into emulation.
+			if (!emulationEnabled(env)) return new Response("Not found", { status: 404 });
+			// Dynamic so production never evaluates the emulator module.
+			const { emulateApp } = await import("./emulate");
+			return emulateApp.fetch(request, env, ctx);
+		}
+		return app.fetch(request, env, ctx);
+	},
 	async queue(batch: MessageBatch<AchievementQueueMessage | SeedInput>, env: Env) {
 		const db = getDb(env.DB);
 		for (const msg of batch.messages) {

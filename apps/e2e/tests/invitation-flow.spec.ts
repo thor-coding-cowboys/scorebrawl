@@ -1,7 +1,7 @@
 import { signInWithEmulatedProvider } from "../lib/emulated-sign-in";
 import { API_BASE_URL, expect, SEED_LEAGUE, SEED_USER, signIn, test } from "./fixtures/auth";
 
-// Seeded in emulate.config.yaml but not in D1: signing in creates the account.
+// Seeded in the emulated provider but not in D1: signing in creates the account.
 const INVITEE = "invitee-e2e@example.com";
 
 test.describe("Invitation flow", () => {

@@ -1,25 +1,17 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+import { emulateEnvFile } from "../../scripts/lib/emulate-env";
 
 const apiUrl = process.env.MOBILE_E2E_API_URL ?? "http://localhost:5173";
 const webPort = process.env.MOBILE_E2E_WEB_PORT ?? "8081";
 
 // See playwright.config.ts: worker vars come from dotenv, which outranks the
 // shell, so the API origin for this run is written to apps/worker/.env.local.
+// The emulated providers are served by that same Worker origin.
 writeFileSync(
 	path.resolve(__dirname, "../worker/.env.local"),
-	[
-		`BETTER_AUTH_URL=${apiUrl}`,
-		"EMULATE_GITHUB_URL=http://localhost:4001",
-		"EMULATE_GOOGLE_URL=http://localhost:4002",
-		"GITHUB_CLIENT_SECRET=emulate-github-secret",
-		"GOOGLE_CLIENT_SECRET=emulate-google-secret",
-		"RESEND_API_KEY=re_emulated_key",
-		"RESEND_BASE_URL=http://localhost:4008",
-		"DISABLE_RATE_LIMIT=true",
-		"",
-	].join("\n")
+	emulateEnvFile({ origin: apiUrl, disableRateLimit: true })
 );
 
 /**
@@ -47,13 +39,6 @@ export default defineConfig({
 	},
 	projects: [{ name: "mobile-web", use: { ...devices["Pixel 7"] } }],
 	webServer: [
-		{
-			command: "bun run emulate",
-			url: "http://localhost:4002/.well-known/openid-configuration",
-			reuseExistingServer: !process.env.CI,
-			cwd: "../..",
-			timeout: 60_000,
-		},
 		{
 			command: "bunx vite --port 5173",
 			url: `${apiUrl}/api/version`,

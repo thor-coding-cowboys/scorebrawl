@@ -3,8 +3,6 @@
 import { $ } from "bun";
 
 const workerName = process.env.WORKER_NAME;
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
 if (!workerName) {
 	console.error("WORKER_NAME environment variable is required");
@@ -26,28 +24,4 @@ try {
 } catch (error) {
 	console.error("Failed to set BETTER_AUTH_SECRET:", error);
 	process.exit(1);
-}
-
-// Set GITHUB_CLIENT_SECRET if available
-if (githubClientSecret) {
-	console.log(`Setting GITHUB_CLIENT_SECRET for ${workerName}`);
-	try {
-		await $`printf "y\n%s" ${githubClientSecret} | bun wrangler secret put GITHUB_CLIENT_SECRET --name ${workerName}`;
-		console.log("GITHUB_CLIENT_SECRET set successfully");
-	} catch (error) {
-		console.error("Failed to set GITHUB_CLIENT_SECRET:", error);
-		process.exit(1);
-	}
-}
-
-// Set GOOGLE_CLIENT_SECRET if available
-if (googleClientSecret) {
-	console.log(`Setting GOOGLE_CLIENT_SECRET for ${workerName}`);
-	try {
-		await $`printf "y\n%s" ${googleClientSecret} | bun wrangler secret put GOOGLE_CLIENT_SECRET --name ${workerName}`;
-		console.log("GOOGLE_CLIENT_SECRET set successfully");
-	} catch (error) {
-		console.error("Failed to set GOOGLE_CLIENT_SECRET:", error);
-		process.exit(1);
-	}
 }

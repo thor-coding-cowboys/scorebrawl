@@ -102,6 +102,7 @@
 			"/api/*",
 			"/v1/*",
 			"/leagues/v1/*",
+			"/emulate/*",
 			"/mcp",
 			"/mcp/*",
 			"/.well-known/*"

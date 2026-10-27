@@ -5,8 +5,8 @@ const scheme = process.env.CI ? "http" : "https";
 const port = process.env.PORTLESS_PORT ?? "1355";
 export const API_BASE_URL = `${scheme}://scorebrawl.localhost:${port}`;
 
-// Mirrors the users seeded into the local `emulate` providers
-// (emulate.config.yaml) and the D1 seed.
+// Mirrors the users seeded into the in-Worker emulated providers
+// (apps/worker/src/emulate) and the D1 seed.
 export const SEED_USER = {
 	email: "seed@example.com",
 	name: "Seed User",
