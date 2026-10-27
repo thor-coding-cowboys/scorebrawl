@@ -96,6 +96,11 @@ const SCORE_TYPE_CONFIG: Record<
 		color: SharedColors.scoreTypeOneVnEloText,
 		icon: { ios: "person.3.fill", android: "groups", web: "groups" },
 	},
+	"elo-individual-vs-team": {
+		label: "Solo vs Team ELO",
+		color: SharedColors.scoreTypeIndividualVsTeamEloText,
+		icon: { ios: "person.2.fill", android: "group", web: "group" },
+	},
 };
 
 function toDateInput(date: Date) {
@@ -187,7 +192,7 @@ function EditSeasonModal({
 	});
 
 	const hasMatches = (countInfo?.matchCount ?? 0) > 0;
-	const isElo = scoreType === "elo" || scoreType === "1-v-n-elo";
+	const isElo = scoreType !== "3-1-0";
 	const scoreFieldsDisabled = hasMatches || isSubmitting;
 
 	const nameError = !submitted

@@ -29,7 +29,7 @@ interface CreateMatchModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	seasonSlug: string;
-	season: { startDate: Date; endDate: Date | null } | null | undefined;
+	season: { startDate: Date; endDate: Date | null; scoreType: string } | null | undefined;
 }
 
 function isSeasonActive(season: CreateMatchModalProps["season"]) {
@@ -97,7 +97,11 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 	const canReorder =
 		selectedCount > 0 && selectedCount % 2 === 0 && homePlayers.length === awayPlayers.length;
 
-	const teamsValid = homePlayers.length > 0 && homePlayers.length === awayPlayers.length;
+	const allowUnevenTeams = season?.scoreType === "elo-individual-vs-team";
+	const teamsValid =
+		homePlayers.length > 0 &&
+		awayPlayers.length > 0 &&
+		(allowUnevenTeams || homePlayers.length === awayPlayers.length);
 
 	const assignTeam = (playerId: string, team: Team) => {
 		setDuplicateWarning(false);
@@ -277,7 +281,13 @@ export function CreateMatchModal({ isOpen, onClose, seasonSlug, season }: Create
 
 						<View style={styles.messages}>
 							{!teamsValid && selectedCount > 0 ? (
-								<Warning text="Teams must have equal number of players (at least 1 each)" />
+								<Warning
+									text={
+										allowUnevenTeams
+											? "Each side needs at least 1 player"
+											: "Teams must have equal number of players (at least 1 each)"
+									}
+								/>
 							) : null}
 							{!isSeasonActive(season) ? <Warning text="Season is not currently active" /> : null}
 							{duplicateWarning ? (

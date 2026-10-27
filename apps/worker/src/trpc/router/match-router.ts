@@ -124,10 +124,11 @@ export const matchRouter = {
 				});
 			}
 
-			if (input.homeTeamPlayerIds.length !== input.awayTeamPlayerIds.length) {
+			const allPlayerIds = [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds];
+			if (new Set(allPlayerIds).size !== allPlayerIds.length) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Teams must have equal number of players",
+					message: "Duplicate players in match",
 				});
 			}
 
@@ -136,6 +137,16 @@ export const matchRouter = {
 				seasonSlug: input.seasonSlug,
 				leagueId: ctx.organizationId,
 			});
+
+			if (
+				comp.scoreType !== "elo-individual-vs-team" &&
+				input.homeTeamPlayerIds.length !== input.awayTeamPlayerIds.length
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Teams must have equal number of players",
+				});
+			}
 
 			if (comp.closed) {
 				throw new TRPCError({

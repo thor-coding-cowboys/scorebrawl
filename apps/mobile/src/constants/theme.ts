@@ -51,6 +51,7 @@ export const SharedColors = {
 	scoreTypeEloText: shared.scoreTypeEloText,
 	scoreTypeThreeOneZeroText: shared.scoreTypeThreeOneZeroText,
 	scoreTypeOneVnEloText: shared.scoreTypeOneVnEloText,
+	scoreTypeIndividualVsTeamEloText: shared.scoreTypeIndividualVsTeamEloText,
 };
 
 /** Semantic surface/ink tokens addressable by `ThemedText`/`ThemedView`. */

@@ -14,6 +14,7 @@ import {
 	Cancel01Icon,
 	DartFreeIcons,
 	Target01Icon,
+	UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-const scoreTypes = ["elo", "3-1-0", "1-v-n-elo"] as const;
+const scoreTypes = ["elo", "elo-individual-vs-team", "3-1-0", "1-v-n-elo"] as const;
 
 const createSeasonSchema = z
 	.object({
@@ -81,6 +82,12 @@ const scoreTypeConfig = {
 		color: "purple",
 		description: "Multiplayer — one winner, everyone else loses",
 	},
+	"elo-individual-vs-team": {
+		label: "Solo vs Team ELO",
+		icon: UserGroupIcon,
+		color: "amber",
+		description: "Uneven sides allowed — team change split by rating",
+	},
 };
 
 export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFormProps) {
@@ -121,7 +128,7 @@ export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFor
 	const endDate = watch("endDate");
 	const nameValue = watch("name");
 	const slugValue = watch("slug");
-	const isElo = scoreType === "elo" || scoreType === "1-v-n-elo";
+	const isElo = scoreType !== "3-1-0";
 
 	const [debouncedSlug, setDebouncedSlug] = useState(slugValue);
 
@@ -246,7 +253,7 @@ export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFor
 				<div className="relative z-10 overflow-y-auto max-h-[calc(95vh-140px)]">
 					<form onSubmit={handleSubmit(onSubmit)} className="space-y-2 p-1">
 						{/* Scoring System Selection */}
-						<div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 							{scoreTypes.map((type) => {
 								const config = scoreTypeConfig[type];
 								const isSelected = scoreType === type;
@@ -256,30 +263,36 @@ export function CreateSeasonForm({ isOpen, onClose, onSuccess }: CreateSeasonFor
 									elo: "border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/20",
 									"3-1-0": "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20",
 									"1-v-n-elo": "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20",
+									"elo-individual-vs-team":
+										"border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/20",
 								};
 
 								const iconClasses = {
 									elo: "bg-emerald-500/20",
 									"3-1-0": "bg-blue-500/20",
 									"1-v-n-elo": "bg-purple-500/20",
+									"elo-individual-vs-team": "bg-amber-500/20",
 								};
 
 								const iconColorClasses = {
 									elo: "text-emerald-400",
 									"3-1-0": "text-blue-400",
 									"1-v-n-elo": "text-purple-400",
+									"elo-individual-vs-team": "text-amber-400",
 								};
 
 								const textColorClasses = {
 									elo: "text-emerald-300 dark:text-emerald-300",
 									"3-1-0": "text-blue-300 dark:text-blue-300",
 									"1-v-n-elo": "text-purple-300 dark:text-purple-300",
+									"elo-individual-vs-team": "text-amber-300 dark:text-amber-300",
 								};
 
 								const topBorderClasses = {
 									elo: "from-emerald-400 to-emerald-600",
 									"3-1-0": "from-blue-400 to-blue-600",
 									"1-v-n-elo": "from-purple-400 to-purple-600",
+									"elo-individual-vs-team": "from-amber-400 to-amber-600",
 								};
 
 								return (

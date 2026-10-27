@@ -166,6 +166,121 @@ describe("elo-util", () => {
 				expect(result.homeTeam.players).toHaveLength(1);
 				expect(result.awayTeam.players).toHaveLength(2);
 			});
+
+			it("gives the individual and each team member the full team change at equal ratings", () => {
+				const result = calculateElo({
+					kFactor: 32,
+					scoreType: "elo-individual-vs-team",
+					homeScore: 1,
+					awayScore: 0,
+					homePlayers: [{ id: "solo", score: 1000 }],
+					awayPlayers: [
+						{ id: "t1", score: 1000 },
+						{ id: "t2", score: 1000 },
+					],
+				});
+
+				expect(result.homeTeam.players).toEqual([{ id: "solo", scoreAfter: 1016 }]);
+				expect(result.awayTeam.players).toEqual([
+					{ id: "t1", scoreAfter: 984 },
+					{ id: "t2", scoreAfter: 984 },
+				]);
+				expect(result.homeTeam.winningOdds).toBeCloseTo(0.5);
+			});
+
+			it("splits the team change by rating share", () => {
+				const result = calculateElo({
+					kFactor: 32,
+					scoreType: "elo-individual-vs-team",
+					homeScore: 1,
+					awayScore: 0,
+					homePlayers: [{ id: "solo", score: 1000 }],
+					awayPlayers: [
+						{ id: "strong", score: 1200 },
+						{ id: "weak", score: 800 },
+					],
+				});
+
+				expect(result.homeTeam.players).toEqual([{ id: "solo", scoreAfter: 1016 }]);
+				expect(result.awayTeam.players).toEqual([
+					{ id: "strong", scoreAfter: 1181 },
+					{ id: "weak", scoreAfter: 787 },
+				]);
+			});
+
+			it("differs from average strategy only in the split", () => {
+				const input = {
+					kFactor: 32,
+					homeScore: 0,
+					awayScore: 1,
+					homePlayers: [{ id: "solo", score: 1000 }],
+					awayPlayers: [
+						{ id: "strong", score: 1200 },
+						{ id: "weak", score: 800 },
+					],
+				};
+				const weighted = calculateElo({ ...input, scoreType: "elo-individual-vs-team" });
+				const average = calculateElo({ ...input, scoreType: "elo" });
+
+				expect(weighted.homeTeam).toEqual(average.homeTeam);
+				expect(average.awayTeam.players.map((p) => p.scoreAfter)).toEqual([1216, 816]);
+				expect(weighted.awayTeam.players.map((p) => p.scoreAfter)).toEqual([1219, 813]);
+			});
+
+			it("uses team average rating for the expected score", () => {
+				const result = calculateElo({
+					kFactor: 32,
+					scoreType: "elo-individual-vs-team",
+					homeScore: 1,
+					awayScore: 0,
+					homePlayers: [{ id: "solo", score: 1400 }],
+					awayPlayers: [
+						{ id: "t1", score: 1000 },
+						{ id: "t2", score: 1000 },
+					],
+				});
+
+				expect(result.homeTeam.winningOdds).toBeCloseTo(10 / 11, 5);
+				expect(result.awayTeam.winningOdds).toBeCloseTo(1 / 11, 5);
+				expect(result.homeTeam.players).toEqual([{ id: "solo", scoreAfter: 1403 }]);
+				expect(result.awayTeam.players).toEqual([
+					{ id: "t1", scoreAfter: 997 },
+					{ id: "t2", scoreAfter: 997 },
+				]);
+			});
+
+			it("leaves ratings unchanged on an equal-rated draw", () => {
+				const result = calculateElo({
+					kFactor: 32,
+					scoreType: "elo-individual-vs-team",
+					homeScore: 2,
+					awayScore: 2,
+					homePlayers: [{ id: "solo", score: 1000 }],
+					awayPlayers: [
+						{ id: "t1", score: 1000 },
+						{ id: "t2", score: 1000 },
+						{ id: "t3", score: 1000 },
+					],
+				});
+
+				expect(
+					[...result.homeTeam.players, ...result.awayTeam.players].map((p) => p.scoreAfter)
+				).toEqual([1000, 1000, 1000, 1000]);
+			});
+
+			it("matches the elo strategy for 1v1", () => {
+				const input = {
+					kFactor: 32,
+					homeScore: 3,
+					awayScore: 1,
+					homePlayers: [{ id: "p1", score: 1100 }],
+					awayPlayers: [{ id: "p2", score: 950 }],
+				};
+
+				expect(calculateElo({ ...input, scoreType: "elo-individual-vs-team" })).toEqual(
+					calculateElo({ ...input, scoreType: "elo" })
+				);
+			});
 		});
 
 		describe("k-factor variations", () => {

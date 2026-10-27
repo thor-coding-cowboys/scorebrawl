@@ -282,6 +282,7 @@ const domain = {
 		elo: { text: palette.emerald[500], solid: palette.emerald[500] },
 		threeOneZero: { text: palette.blue[500], solid: palette.blue[500] },
 		oneVnElo: { text: palette.purple[500], solid: palette.purple[500] },
+		individualVsTeamElo: { text: palette.amber[500], solid: palette.amber[500] },
 	},
 	chartSeries: {
 		a: "oklch(62.308% 0.188 259.815)",

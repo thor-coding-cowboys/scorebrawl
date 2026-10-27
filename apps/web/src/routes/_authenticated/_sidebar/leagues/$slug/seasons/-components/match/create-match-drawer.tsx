@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { type Resolver, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,19 +40,35 @@ type PlayerWithSelection = StandingPlayer & { team?: "home" | "away" };
 
 // --- Schema ---
 
-const createMatchSchema = z
-	.object({
-		homeScore: z.number().int().min(0),
-		awayScore: z.number().int().min(0),
-		homePlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 home player"),
-		awayPlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 away player"),
-	})
-	.refine((data) => data.homePlayers.length === data.awayPlayers.length, {
-		message: "Teams must have equal number of players",
-		path: ["homePlayers"], // Show error on home players field
-	});
+const unevenTeamsSchema = z.object({
+	homeScore: z.number().int().min(0),
+	awayScore: z.number().int().min(0),
+	homePlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 home player"),
+	awayPlayers: z.array(z.object({ id: z.string() })).min(1, "Select at least 1 away player"),
+});
 
-type CreateMatchFormValues = z.infer<typeof createMatchSchema>;
+const evenTeamsSchema = unevenTeamsSchema.refine(
+	(data) => data.homePlayers.length === data.awayPlayers.length,
+	{
+		message: "Teams must have equal number of players",
+		path: ["homePlayers"],
+	}
+);
+
+type CreateMatchFormValues = z.infer<typeof unevenTeamsSchema>;
+type CreateMatchFormContext = { allowUnevenTeams: boolean };
+
+const unevenTeamsResolver = zodResolver(unevenTeamsSchema);
+const evenTeamsResolver = zodResolver(evenTeamsSchema);
+
+const createMatchResolver: Resolver<CreateMatchFormValues, CreateMatchFormContext> = (
+	values,
+	context,
+	options
+) =>
+	context?.allowUnevenTeams
+		? unevenTeamsResolver(values, context, options)
+		: evenTeamsResolver(values, context, options);
 
 // --- Props ---
 
@@ -86,6 +102,7 @@ export function CreateMatchDialog({
 		trpc.match.getLatest.queryOptions({ seasonSlug }, { enabled: isOpen })
 	);
 
+	const allowUnevenTeams = season?.scoreType === "elo-individual-vs-team";
 	const [teamSelection, setTeamSelection] = useState<PlayerWithSelection[]>([]);
 	const [isPlayerDrawerOpen, setIsPlayerDrawerOpen] = useState(false);
 	const [keepOpen, setKeepOpen] = useState(false);
@@ -115,8 +132,9 @@ export function CreateMatchDialog({
 		reset,
 		trigger,
 		formState: { errors },
-	} = useForm<CreateMatchFormValues>({
-		resolver: zodResolver(createMatchSchema),
+	} = useForm<CreateMatchFormValues, CreateMatchFormContext>({
+		resolver: createMatchResolver,
+		context: { allowUnevenTeams },
 		defaultValues: {
 			homeScore: 0,
 			awayScore: 0,
@@ -333,6 +351,7 @@ export function CreateMatchDialog({
 
 	const homePlayers = teamSelection.filter((p) => p.team === "home");
 	const awayPlayers = teamSelection.filter((p) => p.team === "away");
+	const hasUnevenTeams = homePlayers.length !== awayPlayers.length;
 	const canReorder =
 		selectedCount > 0 && selectedCount % 2 === 0 && homePlayers.length === awayPlayers.length;
 
@@ -429,7 +448,8 @@ export function CreateMatchDialog({
 								{errors.root?.message && (
 									<p className="text-destructive text-xs font-mono">{errors.root.message}</p>
 								)}
-								{homePlayers.length !== awayPlayers.length &&
+								{!allowUnevenTeams &&
+									hasUnevenTeams &&
 									homePlayers.length > 0 &&
 									awayPlayers.length > 0 && (
 										<div className="flex items-center gap-1.5 text-xs text-amber-600">
@@ -516,7 +536,7 @@ export function CreateMatchDialog({
 										type="submit"
 										glowColor={showDuplicateWarning ? glowColors.red : glowColors.blue}
 										className="flex-1 font-mono"
-										disabled={createMutation.isPending || homePlayers.length !== awayPlayers.length}
+										disabled={createMutation.isPending || (!allowUnevenTeams && hasUnevenTeams)}
 										data-testid="match-submit-button"
 									>
 										{createMutation.isPending

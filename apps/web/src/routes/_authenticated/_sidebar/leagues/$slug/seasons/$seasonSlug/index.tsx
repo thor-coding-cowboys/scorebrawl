@@ -63,7 +63,7 @@ function SeasonDashboardPage() {
 		}
 	}, [error, navigate, slug]);
 
-	const isEloSeason = season?.scoreType === "elo" || season?.scoreType === "1-v-n-elo";
+	const isEloSeason = season !== undefined && season.scoreType !== "3-1-0";
 	const isSeasonLocked = season?.closed || season?.archived;
 
 	const { data: activeSession } = useQuery({
@@ -201,7 +201,7 @@ function SeasonDashboardPage() {
 					seasonSlug={seasonSlug}
 				/>
 			)}
-			{isEloSeason && seasonId && season?.scoreType === "elo" && (
+			{isEloSeason && seasonId && season?.scoreType !== "1-v-n-elo" && (
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}

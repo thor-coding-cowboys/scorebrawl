@@ -216,7 +216,7 @@ export const create = async ({ db, ...input }: SeasonCreateInput & { db: Drizzle
 	const seasonId = input.id ?? newId("season");
 
 	return withTransaction(db, async (tx) => {
-		const isEloBased = input.scoreType === "elo" || input.scoreType === "1-v-n-elo";
+		const isEloBased = input.scoreType !== "3-1-0";
 		const values = isEloBased
 			? {
 					id: seasonId,
