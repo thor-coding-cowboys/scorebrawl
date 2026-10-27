@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { trpcClient, useTRPC } from "@/lib/trpc";
 
 const COUNTDOWN_TICK_MS = 15_000;
+const SECOND_TICK_MS = 1_000;
+const SECOND_COUNTDOWN_THRESHOLD_MS = 60_000;
+const EXPIRY_REFRESH_MS = 5_000;
 
 interface SessionAutoCloseBannerProps {
 	sessionId: string;
@@ -18,10 +21,14 @@ interface SessionAutoCloseBannerProps {
 	autoEndsAt: Date | null;
 }
 
-function formatRemaining(minutesLeft: number) {
-	if (minutesLeft <= 0) return "less than a minute";
-	if (minutesLeft === 1) return "1 minute";
-	return `${minutesLeft} minutes`;
+function formatRemaining(remainingMs: number) {
+	if (remainingMs >= SECOND_COUNTDOWN_THRESHOLD_MS) {
+		const minutesLeft = Math.ceil(remainingMs / 60_000);
+		return minutesLeft === 1 ? "1 minute" : `${minutesLeft} minutes`;
+	}
+
+	const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1_000));
+	return secondsLeft === 1 ? "1 second" : `${secondsLeft} seconds`;
 }
 
 export function SessionAutoCloseBanner({
@@ -33,10 +40,30 @@ export function SessionAutoCloseBanner({
 	const trpc = useTRPC();
 	const [now, setNow] = useState(() => Date.now());
 
+	const remainingMs = getSessionAutoCloseRemainingMs(autoEndsAt, now);
+	const isInFinalMinute = remainingMs !== null && remainingMs <= SECOND_COUNTDOWN_THRESHOLD_MS;
+	const isExpired = remainingMs !== null && remainingMs <= 0;
+
 	useEffect(() => {
-		const interval = setInterval(() => setNow(Date.now()), COUNTDOWN_TICK_MS);
+		const interval = setInterval(
+			() => setNow(Date.now()),
+			isInFinalMinute ? SECOND_TICK_MS : COUNTDOWN_TICK_MS
+		);
 		return () => clearInterval(interval);
-	}, []);
+	}, [isInFinalMinute]);
+
+	useEffect(() => {
+		if (!isExpired) return;
+
+		const refresh = () => {
+			void queryClient.invalidateQueries(trpc.session.getById.queryFilter({ sessionId }));
+			void queryClient.invalidateQueries(trpc.session.getActive.queryFilter({ seasonSlug }));
+		};
+
+		refresh();
+		const interval = setInterval(refresh, EXPIRY_REFRESH_MS);
+		return () => clearInterval(interval);
+	}, [isExpired, queryClient, sessionId, seasonSlug, trpc]);
 
 	const extendSession = useMutation({
 		mutationFn: () => trpcClient.session.extend.mutate({ sessionId }),
@@ -49,10 +76,7 @@ export function SessionAutoCloseBanner({
 		onError: () => toast.error("Failed to extend session"),
 	});
 
-	const remainingMs = getSessionAutoCloseRemainingMs(autoEndsAt, now);
 	if (remainingMs === null || remainingMs > SESSION_AUTO_CLOSE_WARNING_MS) return null;
-
-	const minutesLeft = Math.max(0, Math.ceil(remainingMs / 60_000));
 
 	return (
 		<div
@@ -61,22 +85,30 @@ export function SessionAutoCloseBanner({
 		>
 			<div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
 				<HugeiconsIcon icon={Timer02Icon} className="size-4 shrink-0" />
-				<span>
-					Session auto closes in{" "}
-					<span className="font-semibold">{formatRemaining(minutesLeft)}</span> unless you register
-					a game.
-				</span>
+				{isExpired ? (
+					<span data-testid="session-auto-close-countdown">Closing session…</span>
+				) : (
+					<span>
+						Session auto closes in{" "}
+						<span className="font-semibold" data-testid="session-auto-close-countdown">
+							{formatRemaining(remainingMs)}
+						</span>{" "}
+						unless you register a game.
+					</span>
+				)}
 			</div>
-			<Button
-				size="sm"
-				variant="outline"
-				className="gap-1.5 border-amber-500/30 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400"
-				onClick={() => extendSession.mutate()}
-				disabled={extendSession.isPending}
-				data-testid="session-extend"
-			>
-				{extendSession.isPending ? "Extending…" : "Extend by 1 hour"}
-			</Button>
+			{!isExpired && (
+				<Button
+					size="sm"
+					variant="outline"
+					className="gap-1.5 border-amber-500/30 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400"
+					onClick={() => extendSession.mutate()}
+					disabled={extendSession.isPending}
+					data-testid="session-extend"
+				>
+					{extendSession.isPending ? "Extending…" : "Extend by 1 hour"}
+				</Button>
+			)}
 		</div>
 	);
 }

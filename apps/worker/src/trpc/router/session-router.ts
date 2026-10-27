@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { isSessionAutoCloseExpired } from "@coding-cowboys/scorebrawl-core/session";
 import { leagueMemberProcedure } from "../trpc";
 import { matchScoreSchema } from "../../lib/match-score";
 import * as sessionRepository from "../../repositories/session";
@@ -86,12 +87,28 @@ export const sessionRouter = {
 	getById: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.query(async ({ ctx, input }) => {
-			await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
+			const info = await getSessionForOrg(ctx.db, input.sessionId, ctx.organizationId);
 
-			const session = await sessionRepository.getSessionById({
+			let session = await sessionRepository.getSessionById({
 				db: ctx.db,
 				sessionId: input.sessionId,
 			});
+
+			if (!session) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+			}
+
+			if (session.status === "active" && isSessionAutoCloseExpired(session.autoEndsAt)) {
+				await sessionActions.closeExpiredSession(toActionContext(ctx), {
+					seasonId: info.sessionSeasonId,
+					seasonSlug: info.seasonSlug,
+				});
+
+				session = await sessionRepository.getSessionById({
+					db: ctx.db,
+					sessionId: input.sessionId,
+				});
+			}
 
 			if (!session) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
