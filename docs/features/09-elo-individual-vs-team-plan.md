@@ -13,19 +13,19 @@ Feature doc: [done/09-elo-individual-vs-team.md](done/09-elo-individual-vs-team.
 
 ## Steps
 
-| #   | Step                                                                                           | Status      |
-| --- | ---------------------------------------------------------------------------------------------- | ----------- |
-| 1   | Accept type in `season.create`; store with ELO settings in `season-repository.create`          | done        |
-| 2   | `match.create`: skip equal-size check for this type; reject duplicate players (all types)      | done        |
-| 3   | `getOrInsertTeam`: exact-roster team match (superset bug exposed by uneven sides)              | done        |
-| 4   | `WEIGHTED_TEAMS` unit tests (`packages/util`)                                                  | done        |
-| 5   | Worker integration tests (`elo-individual-vs-team-match-router.spec.ts`)                       | done        |
-| 6   | Web: create/edit season forms, season list icon, season page dialog, match dialog uneven sides | done        |
-| 7   | Mobile: score type card, season list/edit config, match modal uneven sides                     | done        |
-| 8   | Core theme token `scoreType.individualVsTeamElo`                                               | done        |
-| 9   | `bun check && bun run test`                                                                    | in progress |
-| 10  | UI verification with agent-browser (`https://scorebrawl.localhost:1355`, `seed@example.com`)   | todo        |
-| 11  | Move this plan to `done/`, README row to Done                                                  | todo        |
+| #   | Step                                                                                           | Status                                        |
+| --- | ---------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 1   | Accept type in `season.create`; store with ELO settings in `season-repository.create`          | done                                          |
+| 2   | `match.create`: skip equal-size check for this type; reject duplicate players (all types)      | done                                          |
+| 3   | `getOrInsertTeam`: exact-roster team match (superset bug exposed by uneven sides)              | done                                          |
+| 4   | `WEIGHTED_TEAMS` unit tests (`packages/util`)                                                  | done                                          |
+| 5   | Worker integration tests (`elo-individual-vs-team-match-router.spec.ts`)                       | done                                          |
+| 6   | Web: create/edit season forms, season list icon, season page dialog, match dialog uneven sides | done                                          |
+| 7   | Mobile: score type card, season list/edit config, match modal uneven sides                     | done                                          |
+| 8   | Core theme token `scoreType.individualVsTeamElo`                                               | done                                          |
+| 9   | `bun check && bun run test`                                                                    | done                                          |
+| 10  | UI verification with agent-browser (`https://scorebrawl.localhost:1355`, `seed@example.com`)   | todo (blocked: dev URL held by other session) |
+| 11  | Move this plan to `done/`, README row to Done                                                  | todo                                          |
 
 ## Key files
 
