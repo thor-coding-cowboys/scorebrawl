@@ -38,24 +38,42 @@ export default defineConfig({
 		},
 	],
 
-	/* Run your local dev server before starting the tests */
-	webServer: {
-		command: "bun run dev",
-		url: `${scheme}://scorebrawl.localhost:${port}`,
-		reuseExistingServer: !process.env.CI,
-		cwd: "../..",
-		timeout: 120_000,
-		stdout: "pipe",
-		stderr: "pipe",
-		ignoreHTTPSErrors: true,
-		// Loads apps/worker/.env.e2e (overrides apps/worker/.env) so real emails
-		// are never sent during e2e runs - the worker falls back to console.log
-		// when RESEND_API_KEY is empty. See apps/worker/.env.e2e.
-		env: { CLOUDFLARE_ENV: "e2e" },
-		// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
-		// Regex must tolerate ANSI color codes present in piped output.
-		wait: {
-			stdout: /VITE[^\n]*?ready/i,
+	/* Emulated third-party providers (GitHub/Google OAuth + Resend) */
+	webServer: [
+		{
+			command: "bun run emulate",
+			url: "http://localhost:4002/.well-known/openid-configuration",
+			reuseExistingServer: !process.env.CI,
+			cwd: "../..",
+			timeout: 60_000,
+			stdout: "pipe",
+			stderr: "pipe",
 		},
-	},
+		{
+			command: "bun run dev",
+			url: `${scheme}://scorebrawl.localhost:${port}`,
+			reuseExistingServer: !process.env.CI,
+			cwd: "../..",
+			timeout: 120_000,
+			stdout: "pipe",
+			stderr: "pipe",
+			ignoreHTTPSErrors: true,
+			// Loads apps/worker/.env.e2e (overrides apps/worker/.env): emails go to
+			// the emulated Resend service and social sign-in hits the emulated
+			// GitHub/Google providers. See apps/worker/.env.e2e.
+			env: {
+				CLOUDFLARE_ENV: "e2e",
+				// Public client ids (also in wrangler.jsonc) so the social buttons
+				// render in the built web app; the worker reads the same ids.
+				VITE_GITHUB_CLIENT_ID: "Ov23liEHPLUdBgTj5Cxu",
+				VITE_GOOGLE_CLIENT_ID:
+					"972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
+			},
+			// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
+			// Regex must tolerate ANSI color codes present in piped output.
+			wait: {
+				stdout: /VITE[^\n]*?ready/i,
+			},
+		},
+	],
 });

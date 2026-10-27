@@ -4,7 +4,15 @@ import { mcp } from "@better-auth/mcp";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, admin, bearer, deviceAuthorization, jwt } from "better-auth/plugins";
+import {
+	type GenericOAuthConfig,
+	genericOAuth,
+	organization,
+	admin,
+	bearer,
+	deviceAuthorization,
+	jwt,
+} from "better-auth/plugins";
 import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
@@ -45,6 +53,96 @@ const viewer = ac.newRole({
 	match: [],
 });
 
+export type EmulateProviders = {
+	googleUrl?: string;
+	githubUrl?: string;
+};
+
+/**
+ * Social providers pointed at the local `emulate` services instead of the real
+ * upstreams. Only used when `EMULATE_*_URL` is set (dev + e2e), so production
+ * keeps the built-in providers.
+ */
+function emulatedSocialProviders({
+	emulate,
+	githubClientId,
+	githubClientSecret,
+	googleClientId,
+	googleClientSecret,
+}: {
+	emulate: EmulateProviders;
+	githubClientId?: string;
+	githubClientSecret?: string;
+	googleClientId?: string;
+	googleClientSecret?: string;
+}): GenericOAuthConfig[] {
+	const configs: GenericOAuthConfig[] = [];
+	const { googleUrl, githubUrl } = emulate;
+
+	if (googleUrl && googleClientId && googleClientSecret) {
+		configs.push({
+			providerId: "google",
+			name: "Google",
+			discoveryUrl: `${googleUrl}/.well-known/openid-configuration`,
+			clientId: googleClientId,
+			clientSecret: googleClientSecret,
+			scopes: ["openid", "email", "profile"],
+			pkce: true,
+		});
+	}
+
+	if (githubUrl && githubClientId && githubClientSecret) {
+		configs.push({
+			providerId: "github",
+			name: "GitHub",
+			clientId: githubClientId,
+			clientSecret: githubClientSecret,
+			authorizationUrl: `${githubUrl}/login/oauth/authorize`,
+			tokenUrl: `${githubUrl}/login/oauth/access_token`,
+			userInfoUrl: `${githubUrl}/user`,
+			scopes: ["read:user", "user:email"],
+			getUserInfo: async (tokens) => {
+				const headers = {
+					Authorization: `Bearer ${tokens.accessToken}`,
+					Accept: "application/json",
+					"User-Agent": "better-auth",
+				};
+				const [profileResponse, emailsResponse] = await Promise.all([
+					fetch(`${githubUrl}/user`, { headers }),
+					fetch(`${githubUrl}/user/emails`, { headers }),
+				]);
+				if (!profileResponse.ok) return null;
+				const profile = (await profileResponse.json()) as {
+					id: number;
+					login: string;
+					name: string | null;
+					email: string | null;
+					avatar_url?: string;
+				};
+				const emails = emailsResponse.ok
+					? ((await emailsResponse.json()) as {
+							email: string;
+							primary: boolean;
+							verified: boolean;
+						}[])
+					: [];
+				const email =
+					profile.email ?? emails.find((entry) => entry.primary)?.email ?? emails[0]?.email;
+				if (!email) return null;
+				return {
+					id: String(profile.id),
+					email,
+					emailVerified: emails.find((entry) => entry.email === email)?.verified ?? false,
+					name: profile.name ?? profile.login,
+					image: profile.avatar_url,
+				};
+			},
+		});
+	}
+
+	return configs;
+}
+
 export function createAuth({
 	db,
 	betterAuthSecret,
@@ -59,6 +157,7 @@ export function createAuth({
 	passkey,
 	mcpResource,
 	baseURL,
+	emulate,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -73,9 +172,23 @@ export function createAuth({
 	passkey?: PasskeyConfig;
 	mcpResource?: string;
 	baseURL?: string;
+	/** Set only for local dev / e2e: routes social providers to `emulate`. */
+	emulate?: EmulateProviders;
 }) {
+	const emulatedProviders = emulate
+		? emulatedSocialProviders({
+				emulate,
+				githubClientId,
+				githubClientSecret,
+				googleClientId,
+				googleClientSecret,
+			})
+		: [];
+	const isEmulated = (provider: "github" | "google") =>
+		emulatedProviders.some((entry) => entry.providerId === provider);
 	const hasAnySocialProviders =
-		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
+		(!isEmulated("github") && githubClientId && githubClientSecret) ||
+		(!isEmulated("google") && googleClientId && googleClientSecret);
 
 	// Only the request middleware supplies a config; tests and the better-auth
 	// CLI export fall back to local dev values, matching previous behaviour.
@@ -247,7 +360,7 @@ export function createAuth({
 		socialProviders: hasAnySocialProviders
 			? {
 					github:
-						githubClientId && githubClientSecret
+						!isEmulated("github") && githubClientId && githubClientSecret
 							? {
 									enabled: true,
 									clientId: githubClientId,
@@ -255,7 +368,7 @@ export function createAuth({
 								}
 							: undefined,
 					google:
-						googleClientId && googleClientSecret
+						!isEmulated("google") && googleClientId && googleClientSecret
 							? {
 									enabled: true,
 									clientId: googleClientId,
@@ -272,6 +385,8 @@ export function createAuth({
 		},
 		plugins: [
 			expo(),
+			// Empty unless EMULATE_*_URL is set, so production registers nothing.
+			genericOAuth({ config: emulatedProviders }),
 			admin({ adminUserIds: adminUserIds || [] }),
 			organization({
 				ac,
