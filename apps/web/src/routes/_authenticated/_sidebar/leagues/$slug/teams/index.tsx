@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { RowCard } from "@/components/ui/row-card";
 import { trpcClient, type RouterOutput } from "@/lib/trpc";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
+import { CreateTeamDialog } from "./-components/create-team-dialog";
 
 // Helper to construct asset URL from key
 const getAssetUrl = (key: string | null | undefined): string | null => {
@@ -79,6 +80,7 @@ function TeamsPage() {
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [isLogoRemoved, setIsLogoRemoved] = useState(false);
 	const [showMyTeams, setShowMyTeams] = useState(false);
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
@@ -355,12 +357,32 @@ function TeamsPage() {
 				</DialogContent>
 			</Dialog>
 
+			<CreateTeamDialog
+				open={isCreateDialogOpen}
+				onOpenChange={setIsCreateDialogOpen}
+				onCreated={(team) => {
+					void queryClient.invalidateQueries({ queryKey: ["teams", slug] });
+					void navigate({
+						to: "/leagues/$slug/teams/$teamId",
+						params: { slug, teamId: team.id },
+					});
+				}}
+			/>
+
 			<Header
 				breadcrumbs={[
 					{ name: "League", href: "/leagues" },
 					{ name: truncateSlug(slug), href: `/leagues/${slug}` },
 					{ name: "Teams" },
 				]}
+				rightContent={
+					isEditor && (
+						<Button size="sm" className="gap-1.5" onClick={() => setIsCreateDialogOpen(true)}>
+							<HugeiconsIcon icon={Add01Icon} className="size-4" />
+							Team
+						</Button>
+					)
+				}
 			/>
 
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -428,6 +450,16 @@ function TeamsPage() {
 									<HugeiconsIcon icon={UserMultipleIcon} className="size-5" />
 								</div>
 								<p>No teams yet</p>
+								{isEditor && !showMyTeams && (
+									<Button
+										variant="outline"
+										className="gap-1.5"
+										onClick={() => setIsCreateDialogOpen(true)}
+									>
+										<HugeiconsIcon icon={Add01Icon} className="size-4" />
+										Create First Team
+									</Button>
+								)}
 							</div>
 						) : (
 							<div className="divide-y divide-border border">

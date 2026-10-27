@@ -13,10 +13,17 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { PlayerAvatarGroupInline } from "@/components/ui/player-avatar-group";
 import {
-	PlayerAvatarGroupInline,
-	PlayerAvatarGroupGrid,
-} from "@/components/ui/player-avatar-group";
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
 	Dialog,
 	DialogContent,
@@ -44,6 +51,7 @@ import {
 	UserMultipleIcon,
 	ChartIcon,
 	PencilEdit01Icon,
+	Delete02Icon,
 } from "@hugeicons/core-free-icons";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from "recharts";
 import {
@@ -55,6 +63,7 @@ import {
 	type ChartConfig,
 } from "@/components/ui/chart";
 import { formColors } from "@/lib/theme-tokens";
+import { TeamRosterCard } from "./-components/team-roster-card";
 
 const teamSearchSchema = z.object({
 	season: z.string().optional(),
@@ -114,6 +123,7 @@ function TeamProfilePage() {
 	const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [isLogoRemoved, setIsLogoRemoved] = useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
 	const { season: selectedSeasonId } = Route.useSearch();
 	const setSelectedSeasonId = (id: string | undefined) => {
@@ -233,6 +243,22 @@ function TeamProfilePage() {
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : "Failed to remove logo");
+		},
+	});
+
+	const deleteTeamMutation = useMutation({
+		mutationFn: async () => {
+			return await trpcClient.leagueTeam.delete.mutate({ teamId });
+		},
+		onSuccess: () => {
+			toast.success("Team deleted");
+			setIsDeleteDialogOpen(false);
+			void queryClient.invalidateQueries({ queryKey: ["teams"] });
+			void navigate({ to: "/leagues/$slug/teams", params: { slug } });
+		},
+		onError: (error) => {
+			setIsDeleteDialogOpen(false);
+			toast.error(error instanceof Error ? error.message : "Failed to delete team");
 		},
 	});
 
@@ -426,6 +452,28 @@ function TeamProfilePage() {
 				</DialogContent>
 			</Dialog>
 
+			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete team?</AlertDialogTitle>
+						<AlertDialogDescription>
+							"{team?.name}" and its roster are permanently deleted. Teams with match history cannot
+							be deleted.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							disabled={deleteTeamMutation.isPending}
+							onClick={() => deleteTeamMutation.mutate()}
+						>
+							{deleteTeamMutation.isPending ? "Deleting..." : "Delete"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			<Header
 				breadcrumbs={[
 					{ name: "Leagues", href: "/leagues" },
@@ -473,6 +521,17 @@ function TeamProfilePage() {
 													onClick={openEditDialog}
 												>
 													<HugeiconsIcon icon={PencilEdit01Icon} className="size-4" />
+												</Button>
+											)}
+											{isEditor && (
+												<Button
+													variant="ghost"
+													size="sm"
+													className="text-muted-foreground hover:text-destructive"
+													onClick={() => setIsDeleteDialogOpen(true)}
+													aria-label="Delete team"
+												>
+													<HugeiconsIcon icon={Delete02Icon} className="size-4" />
 												</Button>
 											)}
 										</div>
@@ -889,24 +948,12 @@ function TeamProfilePage() {
 					</Card>
 				</div>
 
-				{/* Team Players */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Team Roster</CardTitle>
-						<CardDescription>Current team members</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{playersLoading ? (
-							<PlayerAvatarGroupGrid players={[]} size="xl" isLoading />
-						) : players && players.length > 0 ? (
-							<PlayerAvatarGroupGrid players={players} size="xl" />
-						) : (
-							<div className="text-center text-muted-foreground py-8">
-								No players assigned to this team
-							</div>
-						)}
-					</CardContent>
-				</Card>
+				<TeamRosterCard
+					teamId={teamId}
+					players={players}
+					isLoading={playersLoading}
+					canManage={isEditor}
+				/>
 
 				{/* Recent Matches */}
 				<Card>
