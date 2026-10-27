@@ -36,7 +36,7 @@ export function useSessionRealtime({
 				queryClient.invalidateQueries({ queryKey });
 			}
 			for (const queryKey of getSeasonInvalidations(trpc, { seasonSlug })) {
-				queryClient.invalidateQueries({ queryKey });
+				queryClient.invalidateQueries({ queryKey }, { cancelRefetch: false });
 			}
 		};
 
@@ -58,13 +58,9 @@ export function useSessionRealtime({
 					return;
 				}
 
-				if (
-					event.type === "standings:update" ||
-					event.type === "match:insert" ||
-					event.type === "match:delete"
-				) {
+				if (event.type === "standings:update") {
 					for (const queryKey of getSeasonInvalidations(trpc, { seasonSlug })) {
-						queryClient.invalidateQueries({ queryKey });
+						queryClient.invalidateQueries({ queryKey }, { cancelRefetch: false });
 					}
 					return;
 				}

@@ -213,24 +213,18 @@ export function useSeasonSSE({
 						return;
 					}
 
-					if (parsed.type === "match:insert" || parsed.type === "match:delete") {
-						qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
-						qc.invalidateQueries({ queryKey: ["matches", seasonId] });
-						qc.invalidateQueries({ queryKey: t.match.getAll.queryKey({ seasonSlug }) });
-
-						if (!isOwnEvent && parsed.user) {
-							if (parsed.type === "match:insert") {
-								toast.info(
-									buildMatchResultToast({
-										scoreType: parsed.data.scoreType,
-										players: parsed.data.players,
-										homeScore: parsed.data.match.homeScore,
-										awayScore: parsed.data.match.awayScore,
-									})
-								);
-							} else {
-								toast.info(`${parsed.user.name} deleted a match`);
-							}
+					if (!isOwnEvent && parsed.user) {
+						if (parsed.type === "match:insert") {
+							toast.info(
+								buildMatchResultToast({
+									scoreType: parsed.data.scoreType,
+									players: parsed.data.players,
+									homeScore: parsed.data.match.homeScore,
+									awayScore: parsed.data.match.awayScore,
+								})
+							);
+						} else if (parsed.type === "match:delete") {
+							toast.info(`${parsed.user.name} deleted a match`);
 						}
 					}
 				} catch {
