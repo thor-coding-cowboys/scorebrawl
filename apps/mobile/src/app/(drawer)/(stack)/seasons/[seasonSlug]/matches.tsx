@@ -5,6 +5,8 @@ import { useState } from "react";
 import { CreateMatchFlow } from "@/components/create-match-flow";
 import { LatestMatches } from "@/components/latest-matches";
 import { HeaderPillButton } from "@/components/nav/header-buttons";
+import { useActiveLeague } from "@/hooks/use-active-league";
+import { useSeasonRealtime } from "@/hooks/use-season-realtime";
 import { authClient } from "@/lib/auth-client";
 import { useTRPC } from "@/lib/trpc";
 
@@ -12,6 +14,8 @@ export default function SeasonMatchesScreen() {
 	const { seasonSlug } = useLocalSearchParams<{ seasonSlug: string }>();
 	const trpc = useTRPC();
 	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+	const { activeLeague } = useActiveLeague();
+	useSeasonRealtime({ leagueSlug: activeLeague?.slug, seasonSlug, seasonId: season?.id });
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";

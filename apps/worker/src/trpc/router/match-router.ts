@@ -4,8 +4,7 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as matchRepository from "../../repositories/match-repository";
-import * as seasonPlayerRepository from "../../repositories/season-player-repository";
-import { broadcastSeasonEvent } from "../../routes/sse-router";
+import { broadcastSeasonEvent, broadcastStandingsUpdate } from "../../routes/sse-router";
 import {
 	createOneVnMatch,
 	finalizeMatchCreation,
@@ -98,7 +97,6 @@ export const matchRouter = {
 			return finalizeMatchCreation({
 				ctx: buildMatchCtx(ctx),
 				seasonSlug: input.seasonSlug,
-				seasonId: season.id,
 				createdMatch,
 				seasonPlayerIds: [fixture.homePlayerId, fixture.awayPlayerId],
 				scoreType: season.scoreType,
@@ -177,7 +175,6 @@ export const matchRouter = {
 					finalizeMatchCreation({
 						ctx: buildMatchCtx(ctx),
 						seasonSlug: input.seasonSlug,
-						seasonId: comp.id,
 						createdMatch,
 						seasonPlayerIds: [...input.homeTeamPlayerIds, ...input.awayTeamPlayerIds],
 						scoreType: comp.scoreType,
@@ -218,23 +215,29 @@ export const matchRouter = {
 				seasonId: ctx.season.id,
 			});
 
-			const standings = await seasonPlayerRepository.getStanding({
-				db: ctx.db,
-				seasonId: ctx.season.id,
-			});
+			const user = {
+				id: ctx.authentication.user.id,
+				name: ctx.authentication.user.name,
+			};
 
 			ctx.waitUntil(
 				broadcastSeasonEvent(ctx.env, ctx.organization.slug, input.seasonSlug, {
 					type: "match:delete",
 					data: {
 						matchId: input.matchId,
-						standings,
 					},
-					user: {
-						id: ctx.authentication.user.id,
-						name: ctx.authentication.user.name,
-					},
+					user,
 				})
+			);
+
+			ctx.waitUntil(
+				broadcastStandingsUpdate(
+					ctx.env,
+					ctx.organization.slug,
+					input.seasonSlug,
+					{ reason: "match:remove", matchId: input.matchId },
+					user
+				)
 			);
 
 			return { success: true };

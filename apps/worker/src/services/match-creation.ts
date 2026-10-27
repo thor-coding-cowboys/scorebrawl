@@ -3,7 +3,7 @@ import type { DrizzleDB } from "../db";
 import * as seasonRepository from "../repositories/season-repository";
 import * as matchRepository from "../repositories/match-repository";
 import * as seasonPlayerRepository from "../repositories/season-player-repository";
-import { broadcastSeasonEvent } from "../routes/sse-router";
+import { broadcastSeasonEvent, broadcastStandingsUpdate } from "../routes/sse-router";
 import type { AchievementQueueMessage } from "../services/achievement-calculation";
 import { buildMatchInsertData, type SeasonScoreType } from "../services/match-events";
 import { buildStreakPushEvents, formatMatchSummary, matchRecorded } from "./notification-events";
@@ -108,14 +108,12 @@ function broadcastStreakEvents(
 export async function finalizeMatchCreation({
 	ctx,
 	seasonSlug,
-	seasonId,
 	createdMatch,
 	seasonPlayerIds,
 	scoreType,
 }: {
 	ctx: MatchCreationContext;
 	seasonSlug: string;
-	seasonId: string;
 	createdMatch: {
 		id: string;
 		seasonId: string;
@@ -126,26 +124,32 @@ export async function finalizeMatchCreation({
 	seasonPlayerIds: string[];
 	scoreType: SeasonScoreType;
 }) {
-	const standings = await seasonPlayerRepository.getStanding({
-		db: ctx.db,
-		seasonId,
-	});
-
 	const data = await buildMatchInsertData(ctx.db, {
 		match: createdMatch,
 		scoreType,
-		standings,
 	});
+
+	const user = {
+		id: ctx.user.id,
+		name: ctx.user.name,
+	};
 
 	ctx.waitUntil(
 		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
 			type: "match:insert",
 			data,
-			user: {
-				id: ctx.user.id,
-				name: ctx.user.name,
-			},
+			user,
 		})
+	);
+
+	ctx.waitUntil(
+		broadcastStandingsUpdate(
+			ctx.env,
+			ctx.organization.slug,
+			seasonSlug,
+			{ reason: "match:create", matchId: createdMatch.id },
+			user
+		)
 	);
 
 	const [streakPlayers, streakTeams] = await Promise.all([
@@ -308,7 +312,6 @@ export async function createOneVnMatch({
 	return finalizeMatchCreation({
 		ctx,
 		seasonSlug,
-		seasonId: comp.id,
 		createdMatch,
 		seasonPlayerIds: allIds,
 		scoreType: comp.scoreType,

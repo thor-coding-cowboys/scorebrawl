@@ -1,5 +1,9 @@
 # Real-Time Standings via SSE
 
+## Status
+
+Done: `standings:update` is emitted as a lightweight invalidation signal (no standings snapshot) after match create/remove and session record/delete-last-match. Web and mobile invalidate `getSeasonInvalidations`; the season dashboard, matches list and session standings update without a reload.
+
 ## Summary
 
 Emit the `standings:update` SSE event (declared in the event type but never sent) so standings refresh live without manual reload.

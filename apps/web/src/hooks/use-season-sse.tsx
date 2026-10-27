@@ -2,84 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc";
-import { getSessionInvalidations } from "@coding-cowboys/scorebrawl-client/realtime";
 import {
-	buildMatchResultToast,
-	type MatchDisplayPlayer,
-} from "@coding-cowboys/scorebrawl-core/presentation";
+	getSeasonInvalidations,
+	getSessionInvalidations,
+	type SeasonRealtimeEvent,
+	type SessionEventDetail,
+} from "@coding-cowboys/scorebrawl-client/realtime";
+import { buildMatchResultToast } from "@coding-cowboys/scorebrawl-core/presentation";
 import { achievementCatalog } from "@coding-cowboys/scorebrawl-core/achievements";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import "@/lib/event-types";
-
-type StreakData = {
-	playerId?: string;
-	playerName?: string;
-	playerImage?: string | null;
-	streak?: number;
-	timestamp?: number;
-	isTeam?: boolean;
-};
-
-type SessionData = {
-	sessionId?: string;
-	session?: { id: string };
-};
-
-type MatchData = {
-	match?: {
-		id: string;
-		seasonId: string;
-		homeScore: number;
-		awayScore: number;
-		createdAt: Date;
-	};
-	matchId?: string;
-	scoreType?: string;
-	players?: MatchDisplayPlayer[];
-	standings?: Array<{
-		id: string;
-		seasonId: string;
-		playerId: string;
-		score: number;
-		name: string;
-		image: string | null;
-		userId: string;
-		matchCount: number;
-		winCount: number;
-		lossCount: number;
-		drawCount: number;
-		rank: number;
-		pointDiff: number;
-		form: Array<"W" | "D" | "L">;
-	}>;
-};
-
-export type SeasonSSEEvent =
-	| { type: "connected"; user?: { id: string; name: string } }
-	| { type: "streak"; user?: { id: string; name: string }; data: StreakData }
-	| { type: "session:start"; user?: { id: string; name: string }; data: SessionData }
-	| { type: "session:update"; user?: { id: string; name: string }; data: SessionData }
-	| { type: "session:end"; user?: { id: string; name: string }; data: SessionData }
-	| {
-			type: "session:score-update";
-			user?: { id: string; name: string };
-			data: {
-				sessionId?: string;
-				sessionMatchId?: string;
-				homeScore?: number;
-				awayScore?: number;
-			};
-	  }
-	| { type: "match:insert"; user?: { id: string; name: string }; data?: MatchData }
-	| { type: "match:delete"; user?: { id: string; name: string }; data?: MatchData }
-	| { type: "standings:update"; user?: { id: string; name: string }; data?: MatchData }
-	| {
-			type: "achievement:unlock";
-			data?: {
-				player?: { id: string; name: string; image: string | null };
-				type?: string;
-			};
-	  };
 
 const CONNECT_STABILITY_MS = 500;
 
@@ -128,16 +60,9 @@ export function useSeasonSSE({
 			const qc = queryClientRef.current;
 			const { seasonSlug: slug, seasonId: id } = paramsRef.current;
 
-			qc.invalidateQueries({ queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.season.getFixtures.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: t.session.getActive.queryKey({ seasonSlug: slug }) });
-			qc.invalidateQueries({ queryKey: ["infinite-matches", id] });
-			qc.invalidateQueries({ queryKey: ["matches", id] });
+			for (const queryKey of getSeasonInvalidations(t, { seasonSlug: slug, seasonId: id })) {
+				qc.invalidateQueries({ queryKey });
+			}
 		};
 
 		const connect = () => {
@@ -169,7 +94,7 @@ export function useSeasonSSE({
 
 			ws.onmessage = (event) => {
 				try {
-					const parsed: SeasonSSEEvent = JSON.parse(event.data);
+					const parsed: SeasonRealtimeEvent = JSON.parse(event.data);
 
 					if (parsed.type === "connected") {
 						return;
@@ -241,9 +166,9 @@ export function useSeasonSSE({
 						parsed.type === "session:update" ||
 						parsed.type === "session:end"
 					) {
-						const sessionId = parsed.data?.sessionId ?? parsed.data?.session?.id;
+						const sessionId = parsed.data.sessionId ?? parsed.data.session?.id;
 						window.dispatchEvent(
-							new CustomEvent("session-event", {
+							new CustomEvent<SessionEventDetail>("session-event", {
 								detail: { type: parsed.type, sessionId, userName: parsed.user?.name },
 							})
 						);
@@ -253,22 +178,9 @@ export function useSeasonSSE({
 								for (const queryKey of getSessionInvalidations(t, { sessionId, seasonSlug })) {
 									qc.invalidateQueries({ queryKey });
 								}
-								qc.invalidateQueries({
-									queryKey: t.match.getLatest.queryKey({ seasonSlug }),
-								});
-							} else {
-								qc.invalidateQueries({
-									queryKey: t.session.getActive.queryKey({ seasonSlug }),
-								});
-								qc.invalidateQueries({
-									queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-								});
-								qc.invalidateQueries({
-									queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
-								});
-								qc.invalidateQueries({
-									queryKey: t.match.getLatest.queryKey({ seasonSlug }),
-								});
+							}
+							for (const queryKey of getSeasonInvalidations(t, { seasonSlug, seasonId })) {
+								qc.invalidateQueries({ queryKey });
 							}
 						} else {
 							if (sessionId) {
@@ -293,45 +205,31 @@ export function useSeasonSSE({
 						return;
 					}
 
-					if (!isOwnEvent) {
-						if (parsed.type === "match:insert" || parsed.type === "match:delete") {
-							qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
-							qc.invalidateQueries({ queryKey: ["matches", seasonId] });
+					if (parsed.type === "standings:update") {
+						for (const queryKey of getSeasonInvalidations(t, { seasonSlug, seasonId })) {
+							qc.invalidateQueries({ queryKey });
 						}
-
-						if (
-							(parsed.type === "standings:update" && parsed.data?.standings) ||
-							parsed.type === "match:insert" ||
-							parsed.type === "match:delete"
-						) {
-							qc.invalidateQueries({
-								queryKey: t.seasonPlayer.getStanding.queryKey({ seasonSlug }),
-							});
-							qc.invalidateQueries({
-								queryKey: t.seasonTeam.getStanding.queryKey({ seasonSlug }),
-							});
-							qc.invalidateQueries({ queryKey: t.seasonPlayer.getTop.queryKey({ seasonSlug }) });
-							qc.invalidateQueries({ queryKey: t.seasonPlayer.getAll.queryKey({ seasonSlug }) });
-							qc.invalidateQueries({ queryKey: t.season.getCountInfo.queryKey({ seasonSlug }) });
-							qc.invalidateQueries({ queryKey: t.match.getLatest.queryKey({ seasonSlug }) });
-							qc.invalidateQueries({
-								queryKey: t.season.getFixtures.queryKey({ seasonSlug }),
-							});
-						}
+						return;
 					}
 
-					if ("user" in parsed && parsed.user && parsed.user.id !== currentUserId) {
-						if (parsed.type === "match:insert") {
-							toast.info(
-								buildMatchResultToast({
-									scoreType: parsed.data?.scoreType ?? "",
-									players: parsed.data?.players ?? [],
-									homeScore: parsed.data?.match?.homeScore ?? 0,
-									awayScore: parsed.data?.match?.awayScore ?? 0,
-								})
-							);
-						} else if (parsed.type === "match:delete") {
-							toast.info(`${parsed.user.name} deleted a match`);
+					if (parsed.type === "match:insert" || parsed.type === "match:delete") {
+						qc.invalidateQueries({ queryKey: ["infinite-matches", seasonId] });
+						qc.invalidateQueries({ queryKey: ["matches", seasonId] });
+						qc.invalidateQueries({ queryKey: t.match.getAll.queryKey({ seasonSlug }) });
+
+						if (!isOwnEvent && parsed.user) {
+							if (parsed.type === "match:insert") {
+								toast.info(
+									buildMatchResultToast({
+										scoreType: parsed.data.scoreType,
+										players: parsed.data.players,
+										homeScore: parsed.data.match.homeScore,
+										awayScore: parsed.data.match.awayScore,
+									})
+								);
+							} else {
+								toast.info(`${parsed.user.name} deleted a match`);
+							}
 						}
 					}
 				} catch {
