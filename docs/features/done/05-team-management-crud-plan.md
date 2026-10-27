@@ -2,7 +2,9 @@
 
 **Goal:** Owners/editors can create, rename and delete teams and manage team rosters, on web and mobile.
 
-**Spec:** `docs/features/05-team-management-crud.md`
+**Spec:** `docs/features/done/05-team-management-crud.md`
+
+**PR:** [#752](https://github.com/thor-coding-cowboys/scorebrawl/pull/752)
 
 ## Decisions
 
@@ -19,8 +21,8 @@
 2. **done** — Integration tests `apps/worker/test/trpc/league-team-crud.spec.ts` (create, logo, editor/member permissions, roster add/remove/duplicate/cross-league, blocked delete, delete).
 3. **done** — Web: create dialog on teams page (`teams/-components/create-team-dialog.tsx`); roster card with add/remove (`teams/$teamId/-components/team-roster-card.tsx`) and delete with confirm dialog on team page.
 4. **done** — Mobile: `apps/mobile/src/app/(drawer)/(stack)/teams.tsx` — "Team" header button opens create modal; edit modal has roster add/remove and delete (Alert confirm). Mobile has no team detail screen.
-5. **todo** — UI check with agent-browser at `https://scorebrawl.localhost:1355` as `seed@example.com`.
-6. **todo** — Move spec + plan to `docs/features/done/`, README row to Done with PR link.
+5. **done** — UI check with agent-browser as `seed@example.com` on seeded data: create → team page, add 2 players, remove 1, delete with confirm, blocked delete toast on a team with 1 match. The shared portless proxy was HTTP only, so the emulator callback was replayed on `http://scorebrawl.localhost:1355`. Mobile checked by typecheck only (no simulator run).
+6. **done** — Spec + plan moved to `docs/features/done/`, README row in Done with PR link.
 
 ## Key files
 
@@ -39,6 +41,6 @@
 
 ## Open questions
 
-- Match lineups find a team by "team contains all lineup players" (`getOrInsertTeam` in `match-repository.ts`), not by exact roster and not scoped by league. With editable rosters, a lineup can match a larger team, and two teams can share a roster. Exact-roster matching is a follow-up.
+- Match lineups find a team by "team contains all lineup players" (`getOrInsertTeam` in `match-repository.ts`). With editable rosters, a lineup can match a larger team. The feature 09 branch changes this to exact-roster matching. Two teams can still share one roster; nothing blocks that.
 - Pre-register teams for a season before matches start: not done.
 - Merge auto-created teams into permanent teams: not done.
