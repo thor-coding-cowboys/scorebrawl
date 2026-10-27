@@ -432,3 +432,81 @@ export const slugifySeasonName = async ({ db, name }: { db: DrizzleDB; name: str
 
 	return findAvailableSlug();
 };
+
+export const getHighlights = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
+	const [streakRows, upsetRows, gainRows] = await Promise.all([
+		db.all<{ seasonPlayerId: string; length: number }>(sql`
+			SELECT season_player_id as seasonPlayerId, COUNT(*) as length
+			FROM (
+				SELECT
+					mp.season_player_id,
+					mp.result,
+					ROW_NUMBER() OVER (PARTITION BY mp.season_player_id ORDER BY mp.created_at, mp.rowid)
+						- ROW_NUMBER() OVER (PARTITION BY mp.season_player_id, mp.result ORDER BY mp.created_at, mp.rowid) as grp
+				FROM match_player mp
+				INNER JOIN season_player sp ON mp.season_player_id = sp.id
+				WHERE sp.season_id = ${seasonId}
+			)
+			WHERE result = 'W'
+			GROUP BY season_player_id, grp
+			ORDER BY length DESC
+			LIMIT 1
+		`),
+		db.all<{
+			matchId: string;
+			homeScore: number;
+			awayScore: number;
+			winnerOdds: number;
+			homeIds: string | null;
+			awayIds: string | null;
+		}>(sql`
+			SELECT
+				u.id as matchId,
+				u.home_score as homeScore,
+				u.away_score as awayScore,
+				u.winner_odds as winnerOdds,
+				GROUP_CONCAT(CASE WHEN mp.home_team = 1 THEN mp.season_player_id END) as homeIds,
+				GROUP_CONCAT(CASE WHEN mp.home_team = 0 THEN mp.season_player_id END) as awayIds
+			FROM (
+				SELECT
+					m.id,
+					m.home_score,
+					m.away_score,
+					CASE WHEN m.home_score > m.away_score THEN m.home_expected_elo ELSE m.away_expected_elo END as winner_odds
+				FROM match m
+				WHERE m.season_id = ${seasonId}
+					AND m.home_score != m.away_score
+					AND m.home_expected_elo IS NOT NULL
+					AND m.away_expected_elo IS NOT NULL
+				ORDER BY winner_odds ASC
+				LIMIT 1
+			) u
+			INNER JOIN match_player mp ON mp.match_id = u.id
+			GROUP BY u.id
+		`),
+		db.all<{ seasonPlayerId: string; gain: number }>(sql`
+			SELECT mp.season_player_id as seasonPlayerId, mp.score_after - mp.score_before as gain
+			FROM match_player mp
+			INNER JOIN season_player sp ON mp.season_player_id = sp.id
+			WHERE sp.season_id = ${seasonId} AND mp.score_before >= 0 AND mp.score_after >= 0
+			ORDER BY gain DESC
+			LIMIT 1
+		`),
+	]);
+
+	const upset = upsetRows[0];
+	return {
+		longestWinStreak: streakRows[0] ?? null,
+		biggestUpset: upset
+			? {
+					matchId: upset.matchId,
+					homeScore: upset.homeScore,
+					awayScore: upset.awayScore,
+					winnerOdds: upset.winnerOdds,
+					homeSeasonPlayerIds: upset.homeIds?.split(",") ?? [],
+					awaySeasonPlayerIds: upset.awayIds?.split(",") ?? [],
+				}
+			: null,
+		biggestGain: gainRows[0] && gainRows[0].gain > 0 ? gainRows[0] : null,
+	};
+};

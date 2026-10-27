@@ -22,7 +22,7 @@ import { FORM_COLORS, type StandingFormResult } from "@coding-cowboys/scorebrawl
 
 type SymbolName = Parameters<typeof SymbolView>[0]["name"];
 
-function DashboardCard({
+export function DashboardCard({
 	title,
 	icon,
 	accent,

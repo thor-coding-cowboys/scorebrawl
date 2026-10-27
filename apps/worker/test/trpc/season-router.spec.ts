@@ -245,4 +245,134 @@ describe("season router — season_winner", () => {
 		const reopenedTypes = await getAchievementTypes(standings[0].playerId);
 		expect(reopenedTypes).toContain("season_winner");
 	});
+
+	it("does not duplicate season_winner when closing, reopening and closing again", async () => {
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Winner Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 0,
+			homeTeamPlayerIds: [standings[0].id],
+			awayTeamPlayerIds: [standings[1].id],
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: false });
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const types = await getAchievementTypes(standings[0].playerId);
+		expect(types.filter((t) => t === "season_winner")).toHaveLength(1);
+	});
+});
+
+describe("season router — getSummary", () => {
+	let ctx: Awaited<ReturnType<typeof createAuthContext>>;
+	let client: ReturnType<typeof createTRPCTestClient>;
+
+	beforeEach(async () => {
+		ctx = await createAuthContext();
+		client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+	});
+
+	const createEloSeason = () =>
+		client.season.create.mutate({
+			name: "Summary Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+	it("returns empty champions and highlights for a season without matches", async () => {
+		await createPlayers(ctx, 2);
+		const season = await createEloSeason();
+
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+
+		expect(summary.matchCount).toBe(0);
+		expect(summary.playerCount).toBe(2);
+		expect(summary.champions).toHaveLength(0);
+		expect(summary.podium).toHaveLength(2);
+		expect(summary.teamPodium).toHaveLength(0);
+		expect(summary.highlights).toEqual({
+			longestWinStreak: null,
+			biggestUpset: null,
+			biggestGain: null,
+			mostMatches: null,
+		});
+	});
+
+	it("returns podium, champion and highlights", async () => {
+		await createPlayers(ctx, 3);
+		const season = await createEloSeason();
+		const [a, b, c] = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		const play = (home: string, away: string) =>
+			client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 0,
+				homeTeamPlayerIds: [home],
+				awayTeamPlayerIds: [away],
+			});
+		await play(a.id, b.id);
+		await play(a.id, c.id);
+		await play(a.id, b.id);
+		await play(c.id, a.id);
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		expect(summary.matchCount).toBe(4);
+		expect(summary.podium.map((p) => p.id)).toEqual(standings.slice(0, 3).map((p) => p.id));
+		expect(summary.champions.map((p) => p.id)).toEqual([standings[0].id]);
+
+		const champion = summary.podium[0];
+		expect(champion.id).toBe(a.id);
+		expect(champion.matchCount).toBe(4);
+		expect(champion.winRate).toBe(75);
+
+		expect(summary.highlights.longestWinStreak).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			length: 3,
+		});
+		expect(summary.highlights.mostMatches).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			matchCount: 4,
+		});
+		expect(summary.highlights.biggestUpset?.winners.map((p) => p.id)).toEqual([c.id]);
+		expect(summary.highlights.biggestUpset?.losers.map((p) => p.id)).toEqual([a.id]);
+		expect(summary.highlights.biggestUpset?.winnerOdds).toBeLessThan(0.5);
+		expect(summary.highlights.biggestGain?.player.id).toBe(c.id);
+	});
+
+	it("returns team podium when team standings exist", async () => {
+		await createPlayers(ctx, 4);
+		const season = await createEloSeason();
+		const [a, b, c, d] = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 1,
+			homeTeamPlayerIds: [a.id, b.id],
+			awayTeamPlayerIds: [c.id, d.id],
+		});
+
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+
+		expect(summary.teamPodium).toHaveLength(2);
+		expect(summary.teamPodium[0].winRate).toBe(100);
+		expect(summary.teamPodium[1].winRate).toBe(0);
+	});
 });

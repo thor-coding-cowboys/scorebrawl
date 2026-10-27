@@ -15,6 +15,7 @@ import { TeamStandingCard } from "../-components/season/team-standing-card";
 import { LatestMatches } from "../-components/season/latest-matches";
 import { Fixtures } from "../-components/season/fixtures";
 import { OverviewCard } from "../-components/season/overview-card";
+import { SeasonCeremony } from "../-components/season/season-ceremony";
 import { CreateMatchDialog } from "../-components/match/create-match-drawer";
 import { CreateOneVnGameDialog } from "../-components/match/create-one-vn-game-drawer";
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
@@ -45,6 +46,7 @@ function SeasonDashboardPage() {
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
+	const canCreateSeasons = role === "owner" || role === "editor";
 
 	const { data: season, error } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 
@@ -147,6 +149,13 @@ function SeasonDashboardPage() {
 				}
 			/>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+				{season?.closed && (
+					<SeasonCeremony
+						seasonSlug={seasonSlug}
+						leagueSlug={slug}
+						canStartNextSeason={canCreateSeasons}
+					/>
+				)}
 				<DashboardCards seasonSlug={seasonSlug} />
 
 				{hasTeams ? (

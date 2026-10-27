@@ -5,6 +5,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-n
 
 import { CreateMatchFlow } from "@/components/create-match-flow";
 import { DashboardCards } from "@/components/season/dashboard-cards";
+import { SeasonCeremony } from "@/components/season/season-ceremony";
 import { LatestMatches } from "@/components/latest-matches";
 import { HeaderActions, HeaderIconButton, HeaderPillButton } from "@/components/nav/header-buttons";
 import { SCORE_TYPE_CONFIG, type ScoreType } from "@/components/score-type-card";
@@ -42,6 +43,7 @@ export function SeasonDashboard({ season }: { season: Season }) {
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
+	const canCreateSeasons = role === "owner" || role === "editor";
 	const isLocked = Boolean(season.closed || season.archived);
 	const is1vN = season.scoreType === "1-v-n-elo";
 
@@ -112,6 +114,10 @@ export function SeasonDashboard({ season }: { season: Season }) {
 							{isLocked ? " · Locked" : ""}
 						</ThemedText>
 					</View>
+
+					{season.closed ? (
+						<SeasonCeremony seasonSlug={seasonSlug} canStartNextSeason={canCreateSeasons} />
+					) : null}
 
 					<DashboardCards seasonSlug={seasonSlug} />
 
