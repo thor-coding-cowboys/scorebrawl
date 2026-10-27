@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
+import { SessionAutoCloseBanner } from "@/components/session/session-auto-close-banner";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -31,45 +32,54 @@ export function ActiveSessionBanner({ seasonSlug }: { seasonSlug: string }) {
 	if (!session || session.status !== "active") return null;
 
 	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel="Go to session"
-			onPress={() =>
-				router.push({
-					pathname: "/seasons/[seasonSlug]/session/[sessionId]",
-					params: { seasonSlug, sessionId: session.id },
-				})
-			}
-			style={({ pressed }) => [
-				styles.banner,
-				{ backgroundColor: theme.glowAmberBackground, borderBottomColor: theme.glowAmberBorder },
-				pressed && { opacity: 0.85 },
-			]}
-		>
-			<Animated.View style={[styles.liveDot, { backgroundColor: theme.glowAmberText }, dotStyle]} />
-			<View style={styles.info}>
-				<ThemedText type="smallBold" style={[styles.title, { color: theme.glowAmberText }]}>
-					Session in progress
-				</ThemedText>
-				<ThemedText
-					type="small"
-					style={[styles.sub, { color: theme.glowAmberText }]}
-					numberOfLines={1}
-				>
-					{rotationLabel(session.rotationMode)} · {session.players.length} players
-				</ThemedText>
-			</View>
-			<View style={[styles.cta, { borderColor: theme.glowAmberBorder }]}>
-				<SymbolView
-					name={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
-					size={11}
-					tintColor={theme.glowAmberText}
+		<>
+			<Pressable
+				accessibilityRole="button"
+				accessibilityLabel="Go to session"
+				onPress={() =>
+					router.push({
+						pathname: "/seasons/[seasonSlug]/session/[sessionId]",
+						params: { seasonSlug, sessionId: session.id },
+					})
+				}
+				style={({ pressed }) => [
+					styles.banner,
+					{ backgroundColor: theme.glowAmberBackground, borderBottomColor: theme.glowAmberBorder },
+					pressed && { opacity: 0.85 },
+				]}
+			>
+				<Animated.View
+					style={[styles.liveDot, { backgroundColor: theme.glowAmberText }, dotStyle]}
 				/>
-				<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.glowAmberText }]}>
-					Go to Session
-				</ThemedText>
-			</View>
-		</Pressable>
+				<View style={styles.info}>
+					<ThemedText type="smallBold" style={[styles.title, { color: theme.glowAmberText }]}>
+						Session in progress
+					</ThemedText>
+					<ThemedText
+						type="small"
+						style={[styles.sub, { color: theme.glowAmberText }]}
+						numberOfLines={1}
+					>
+						{rotationLabel(session.rotationMode)} · {session.players.length} players
+					</ThemedText>
+				</View>
+				<View style={[styles.cta, { borderColor: theme.glowAmberBorder }]}>
+					<SymbolView
+						name={{ ios: "play.fill", android: "play_arrow", web: "play_arrow" }}
+						size={11}
+						tintColor={theme.glowAmberText}
+					/>
+					<ThemedText type="smallBold" style={[styles.ctaLabel, { color: theme.glowAmberText }]}>
+						Go to Session
+					</ThemedText>
+				</View>
+			</Pressable>
+			<SessionAutoCloseBanner
+				sessionId={session.id}
+				seasonSlug={seasonSlug}
+				autoEndsAt={session.autoEndsAt}
+			/>
+		</>
 	);
 }
 
