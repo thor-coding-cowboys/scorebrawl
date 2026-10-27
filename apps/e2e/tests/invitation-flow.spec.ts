@@ -22,15 +22,22 @@ test.describe("Invitation flow", () => {
 		expect(seedOrg).toBeDefined();
 
 		const inviteRes = await request.post("/api/auth/organization/invite-member", {
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				"Content-Type": "application/json",
+				Origin: new URL(API_BASE_URL).origin,
+			},
 			data: { organizationId: seedOrg.id, email: INVITEE, role: "member" },
 		});
-		expect(inviteRes.ok()).toBeTruthy();
-		const invite = await inviteRes.json();
+		const inviteBody = (await inviteRes.json().catch(() => null)) as { id?: string } | null;
+		expect(inviteRes.ok(), JSON.stringify(inviteBody)).toBeTruthy();
+		const invite = inviteBody as { id: string };
 		expect(invite.id).toBeDefined();
 
 		// Clear the owner session before signing in as the invited user.
-		await request.post("/api/auth/sign-out", { data: {} });
+		await request.post("/api/auth/sign-out", {
+			data: {},
+			headers: { Origin: new URL(API_BASE_URL).origin },
+		});
 
 		await signIn(page, INVITEE);
 		await expect(page).toHaveURL(new RegExp(`/accept-invitation/${invite.id}`), {
