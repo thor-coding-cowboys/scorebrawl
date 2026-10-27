@@ -57,7 +57,8 @@ jobs:
           echo "Web changes: $web"
 
   e2e:
-    name: E2E
+    # No display name on purpose: the job id is the check context, and the
+    # `main` ruleset requires a status check literally named `e2e`.
     needs: changes
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
@@ -236,7 +237,6 @@ jobs:
 
   # Smoke tests the Expo app through its web export. Not a required check yet.
   mobile-e2e:
-    name: Mobile E2E
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
