@@ -108,10 +108,25 @@ for (const consumer of config.queues.consumers) {
 // Remove custom domain routes for preview
 config.routes = undefined;
 
+const previewOrigin = `https://${workerName}.coding-cowboys.workers.dev`;
+
 // Set preview-specific vars (avoid production values)
 config.vars = {
 	ADMIN_USER_IDS: "seed-user-id",
 	OAUTH_RESOURCE: "https://scorebrawl.com/api/v1",
+	// Copied from wrangler.jsonc so the built web app renders the provider
+	// buttons and the Worker can register the emulated providers.
+	VITE_GITHUB_CLIENT_ID: config.vars?.VITE_GITHUB_CLIENT_ID,
+	VITE_GOOGLE_CLIENT_ID: config.vars?.VITE_GOOGLE_CLIENT_ID,
+	// Emulated providers are served by this Worker, so previews need no per-PR
+	// OAuth callback registration with GitHub/Google.
+	EMULATE_ENABLED: "true",
+	EMULATE_GOOGLE_URL: `${previewOrigin}/emulate/google`,
+	EMULATE_GITHUB_URL: `${previewOrigin}/emulate/github`,
+	// The emulator ignores client secrets; these keep the providers registered
+	// even when repository secrets are unavailable (e.g. forked PRs).
+	GITHUB_CLIENT_SECRET: "emulate-github-secret",
+	GOOGLE_CLIENT_SECRET: "emulate-google-secret",
 	// PROD_URL / PROD_PUBLIC_API_URL intentionally omitted: host split is disabled on previews
 };
 

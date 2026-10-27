@@ -1,6 +1,6 @@
 import { test, expect, signIn, signOut, SEED_USER, type Page } from "./fixtures/auth";
 
-// Seeded in emulate.config.yaml and served by the local `emulate` providers.
+// Seeded in the in-Worker emulated providers (apps/worker/src/emulate).
 const EMULATED_GOOGLE_EMAIL = "emulate-e2e@example.com";
 const EMULATED_GITHUB_LOGIN = "seed";
 

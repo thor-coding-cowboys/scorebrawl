@@ -29,8 +29,7 @@
 		"db:seed": "bun --cwd apps/worker db:seed",
 		"db:migrate:prod": "bun --cwd apps/worker db:migrate:prod",
 		"db:studio": "bun --cwd apps/worker db:studio",
-		"cf-typegen": "bun --cwd apps/worker cf-typegen",
-		"emulate": "emulate start --seed emulate.config.yaml --service github,google,resend"
+		"cf-typegen": "bun --cwd apps/worker cf-typegen"
 	},
 	"dependencies": {
 		"wrangler": "catalog:"
@@ -38,7 +37,6 @@
 	"devDependencies": {
 		"@opencode-ai/sdk": "^1.3.1",
 		"@typescript/native-preview": "^7.0.0-dev.20260112.1",
-		"emulate": "^0.12.3",
 		"oxfmt": "0.34.0",
 		"oxlint": "^1.49.0",
 		"turbo": "^2.8.7",

@@ -1,6 +1,6 @@
 import { expect, generateLeagueName, signIn, test } from "./fixtures/auth";
 
-// Seeded in emulate.config.yaml but not in D1: signing in creates the account and
+// Seeded in the emulated provider but not in D1: signing in creates the account and
 // drops the user into onboarding.
 const NEW_USER = "signup-e2e@example.com";
 

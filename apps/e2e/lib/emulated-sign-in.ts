@@ -2,10 +2,14 @@ import type { APIRequestContext } from "@playwright/test";
 
 export type EmulatedProvider = "google" | "github";
 
-const CALLBACK_PATH: Record<EmulatedProvider, string> = {
-	google: "/o/oauth2/v2/auth/callback",
-	github: "/login/oauth/callback",
-};
+/** The picker endpoint hands the code back to the app callback on the same origin. */
+function callbackUrl(authorizeUrl: URL, provider: EmulatedProvider): URL {
+	const pathname =
+		provider === "google"
+			? `${authorizeUrl.pathname.replace(/\/$/, "")}/callback`
+			: authorizeUrl.pathname.replace(/\/authorize$/, "/callback");
+	return new URL(pathname, authorizeUrl.origin);
+}
 
 /**
  * Completes an OAuth round trip against a local `emulate` provider without the
@@ -13,7 +17,8 @@ const CALLBACK_PATH: Record<EmulatedProvider, string> = {
  * the emulator, then hit the app callback so the session cookie lands in the
  * request context (which shares its cookie jar with the page).
  *
- * The emulator only issues codes for users seeded in `emulate.config.yaml`.
+ * The emulated provider accepts any email/login (seeded users are only listed
+ * in the picker), so new-account flows work too.
  */
 export async function signInWithEmulatedProvider(
 	request: APIRequestContext,
@@ -76,7 +81,7 @@ export async function signInWithEmulatedProvider(
 					client_id: params.get("client_id") ?? "",
 				};
 
-	const callback = await request.post(`${authorizeUrl.origin}${CALLBACK_PATH[provider]}`, {
+	const callback = await request.post(callbackUrl(authorizeUrl, provider).toString(), {
 		form,
 		maxRedirects: 0,
 	});

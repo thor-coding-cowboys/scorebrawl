@@ -70,7 +70,7 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	const publicRequestOrigin = publicOrigin(c.req.raw);
 	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
 
-	// Optional local emulation (see emulate.config.yaml). Both are unset in
+	// Optional local emulation (see apps/worker/src/emulate). Both are unset in
 	// production, which keeps the built-in GitHub/Google providers.
 	const emulatedEnv = c.env as {
 		EMULATE_GOOGLE_URL?: string;
