@@ -1,4 +1,9 @@
 import { Hono } from "hono";
+import type {
+	SeasonRealtimeEvent,
+	SeasonRealtimeUser,
+	SeasonStandingsUpdateData,
+} from "@coding-cowboys/scorebrawl-core/realtime";
 import type { HonoEnv } from "../middleware/context";
 
 export const sseRouter = new Hono<HonoEnv>().get("/:leagueSlug/:seasonSlug", async (c) => {
@@ -19,7 +24,7 @@ export function broadcastSeasonEvent(
 	env: Pick<Env, "SEASON_SSE">,
 	leagueSlug: string,
 	seasonSlug: string,
-	event: { type: string; data: unknown; user?: { id: string; name: string } }
+	event: SeasonRealtimeEvent
 ): Promise<void> {
 	const doId = env.SEASON_SSE.idFromName(`${leagueSlug}/${seasonSlug}`);
 	const stub = env.SEASON_SSE.get(doId);
@@ -36,4 +41,18 @@ export function broadcastSeasonEvent(
 			res.body?.cancel().catch(() => {});
 		})
 		.then(() => {});
+}
+
+export function broadcastStandingsUpdate(
+	env: Pick<Env, "SEASON_SSE">,
+	leagueSlug: string,
+	seasonSlug: string,
+	data: SeasonStandingsUpdateData,
+	user?: SeasonRealtimeUser
+): Promise<void> {
+	return broadcastSeasonEvent(env, leagueSlug, seasonSlug, {
+		type: "standings:update",
+		data,
+		...(user ? { user } : {}),
+	});
 }
