@@ -38,7 +38,7 @@ export function CreateOneVnGameDialog({
 	const queryClient = useQueryClient();
 
 	const { data: seasonPlayers } = useQuery(
-		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug })
+		trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }, { enabled: isOpen })
 	);
 
 	const {
