@@ -40,7 +40,7 @@ type GameSession = RouterOutput["session"]["getById"];
 
 type Team = "home" | "away";
 
-const SSE_SCORE_DEBOUNCE_MS = 500;
+const SSE_SCORE_GRACE_MS = 1000;
 
 export function NextMatchTab({
 	session,
@@ -75,7 +75,8 @@ export function NextMatchTab({
 	const prevMatchIdRef = useRef<string | null>(null);
 	const homeScoreRef = useRef(0);
 	const awayScoreRef = useRef(0);
-	const lastLocalScoreChangeRef = useRef(0);
+	const lastLocalScoreActivityRef = useRef(0);
+	const inFlightScoreSyncsRef = useRef(0);
 	const currentMatchRef = useRef<{ id: string } | null>(null);
 
 	const currentMatch = session.matches.find((m) => m.result === null) ?? null;
@@ -85,7 +86,14 @@ export function NextMatchTab({
 		sessionId,
 		currentMatchRef,
 		updateMatchScore: (input: UpdateMatchScoreInput) => {
-			trpcClient.session.updateMatchScore.mutate(input).catch(() => undefined);
+			inFlightScoreSyncsRef.current += 1;
+			trpcClient.session.updateMatchScore
+				.mutate(input)
+				.catch(() => undefined)
+				.finally(() => {
+					inFlightScoreSyncsRef.current -= 1;
+					lastLocalScoreActivityRef.current = Date.now();
+				});
 		},
 	});
 
@@ -152,7 +160,8 @@ export function NextMatchTab({
 		if (!scoreUpdate) return;
 		const match = currentMatchRef.current;
 		if (!match || scoreUpdate.sessionMatchId !== match.id) return;
-		if (Date.now() - lastLocalScoreChangeRef.current < SSE_SCORE_DEBOUNCE_MS) return;
+		if (inFlightScoreSyncsRef.current > 0) return;
+		if (Date.now() - lastLocalScoreActivityRef.current < SSE_SCORE_GRACE_MS) return;
 		homeScoreRef.current = scoreUpdate.homeScore;
 		awayScoreRef.current = scoreUpdate.awayScore;
 		setHomeScore(scoreUpdate.homeScore);
@@ -160,14 +169,14 @@ export function NextMatchTab({
 	}, [scoreUpdate]);
 
 	const updateHomeScore = (updater: (prev: number) => number) => {
-		lastLocalScoreChangeRef.current = Date.now();
+		lastLocalScoreActivityRef.current = Date.now();
 		homeScoreRef.current = updater(homeScoreRef.current);
 		setHomeScore(homeScoreRef.current);
 		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
 	};
 
 	const updateAwayScore = (updater: (prev: number) => number) => {
-		lastLocalScoreChangeRef.current = Date.now();
+		lastLocalScoreActivityRef.current = Date.now();
 		awayScoreRef.current = updater(awayScoreRef.current);
 		setAwayScore(awayScoreRef.current);
 		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
