@@ -48,8 +48,6 @@ interface ManualSessionProps {
 	seasonSlug: string;
 }
 
-const SSE_SCORE_DEBOUNCE_MS = 500;
-
 export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProps) {
 	const { data: authSession } = useSession();
 
@@ -85,7 +83,7 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		awayScore: number;
 	}) => {
 		if (!currentMatchRef.current || input.sessionMatchId !== currentMatchRef.current.id) return;
-		if (Date.now() - lastLocalScoreChangeRef.current < SSE_SCORE_DEBOUNCE_MS) return;
+		if (shouldIgnoreRemoteScore()) return;
 		homeScoreRef.current = input.homeScore;
 		awayScoreRef.current = input.awayScore;
 		setHomeScore(input.homeScore);
@@ -110,7 +108,6 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	const [awayScore, setAwayScore] = useState(0);
 	const homeScoreRef = useRef(0);
 	const awayScoreRef = useRef(0);
-	const lastLocalScoreChangeRef = useRef(0);
 	const [showUndoDialog, setShowUndoDialog] = useState(false);
 
 	const allMatches = session?.matches ?? [];
@@ -133,21 +130,19 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 		mutationFn: (input: UpdateMatchScoreInput) => trpcClient.session.updateMatchScore.mutate(input),
 	});
 
-	const { debouncedUpdateScore } = useScoreSync({
+	const { debouncedUpdateScore, shouldIgnoreRemoteScore } = useScoreSync({
 		sessionId,
 		currentMatchRef,
-		updateMatchScore: updateMatchScore.mutate,
+		updateMatchScore: (input: UpdateMatchScoreInput) => updateMatchScore.mutateAsync(input),
 	});
 
 	const updateHomeScore = (updater: (prev: number) => number) => {
-		lastLocalScoreChangeRef.current = Date.now();
 		homeScoreRef.current = updater(homeScoreRef.current);
 		setHomeScore(homeScoreRef.current);
 		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
 	};
 
 	const updateAwayScore = (updater: (prev: number) => number) => {
-		lastLocalScoreChangeRef.current = Date.now();
 		awayScoreRef.current = updater(awayScoreRef.current);
 		setAwayScore(awayScoreRef.current);
 		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
