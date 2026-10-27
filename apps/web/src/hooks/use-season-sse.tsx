@@ -178,9 +178,10 @@ export function useSeasonSSE({
 								for (const queryKey of getSessionInvalidations(t, { sessionId, seasonSlug })) {
 									qc.invalidateQueries({ queryKey });
 								}
-							}
-							for (const queryKey of getSeasonInvalidations(t, { seasonSlug, seasonId })) {
-								qc.invalidateQueries({ queryKey });
+							} else {
+								qc.invalidateQueries({
+									queryKey: t.session.getActive.queryKey({ seasonSlug }),
+								});
 							}
 						} else {
 							if (sessionId) {
