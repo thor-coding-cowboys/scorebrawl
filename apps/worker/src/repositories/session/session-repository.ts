@@ -308,9 +308,11 @@ export const getActiveSessionsForLeague = async ({
 		.select({
 			id: gameSession.id,
 			seasonId: gameSession.seasonId,
+			seasonName: season.name,
 			seasonSlug: season.slug,
 			scoreType: season.scoreType,
 			status: gameSession.status,
+			autoEndsAt: gameSession.autoEndsAt,
 		})
 		.from(gameSession)
 		.innerJoin(season, eq(season.id, gameSession.seasonId))
