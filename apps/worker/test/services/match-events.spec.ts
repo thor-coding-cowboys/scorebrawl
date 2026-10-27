@@ -1,7 +1,6 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../../src/db/index";
-import * as seasonPlayerRepository from "../../src/repositories/season-player-repository";
 import { buildMatchInsertData } from "../../src/services/match-events";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
@@ -29,18 +28,15 @@ describe("buildMatchInsertData", () => {
 		});
 
 		const db = getDb(env.DB);
-		const standings = await seasonPlayerRepository.getStanding({ db, seasonId: season.id });
 		const data = await buildMatchInsertData(db, {
 			match,
 			scoreType: "elo",
-			standings,
 		});
 
 		expect(data.scoreType).toBe("elo");
 		expect(data.players).toHaveLength(2);
 		expect(data.players.every((p) => p.name.length > 0)).toBe(true);
 		expect(data.match.id).toBe(match.id);
-		expect(data.standings.length).toBe(2);
 	});
 
 	it("includes team names for a 2v2 match", async () => {
@@ -64,11 +60,9 @@ describe("buildMatchInsertData", () => {
 		});
 
 		const db = getDb(env.DB);
-		const standings = await seasonPlayerRepository.getStanding({ db, seasonId: season.id });
 		const data = await buildMatchInsertData(db, {
 			match,
 			scoreType: "elo",
-			standings,
 		});
 
 		const home = data.players.filter((p) => p.homeTeam);
