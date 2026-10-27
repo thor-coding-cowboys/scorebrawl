@@ -13,19 +13,19 @@ Feature doc: [done/09-elo-individual-vs-team.md](done/09-elo-individual-vs-team.
 
 ## Steps
 
-| #   | Step                                                                                           | Status                                        |
-| --- | ---------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 1   | Accept type in `season.create`; store with ELO settings in `season-repository.create`          | done                                          |
-| 2   | `match.create`: skip equal-size check for this type; reject duplicate players (all types)      | done                                          |
-| 3   | `getOrInsertTeam`: exact-roster team match (superset bug exposed by uneven sides)              | done                                          |
-| 4   | `WEIGHTED_TEAMS` unit tests (`packages/util`)                                                  | done                                          |
-| 5   | Worker integration tests (`elo-individual-vs-team-match-router.spec.ts`)                       | done                                          |
-| 6   | Web: create/edit season forms, season list icon, season page dialog, match dialog uneven sides | done                                          |
-| 7   | Mobile: score type card, season list/edit config, match modal uneven sides                     | done                                          |
-| 8   | Core theme token `scoreType.individualVsTeamElo`                                               | done                                          |
-| 9   | `bun check && bun run test`                                                                    | done                                          |
-| 10  | UI verification with agent-browser (`https://scorebrawl.localhost:1355`, `seed@example.com`)   | todo (blocked: dev URL held by other session) |
-| 11  | Move this plan to `done/`, README row to Done                                                  | todo                                          |
+| #   | Step                                                                                           | Status  |
+| --- | ---------------------------------------------------------------------------------------------- | ------- |
+| 1   | Accept type in `season.create`; store with ELO settings in `season-repository.create`          | done    |
+| 2   | `match.create`: skip equal-size check for this type; reject duplicate players (all types)      | done    |
+| 3   | `getOrInsertTeam`: exact-roster team match (superset bug exposed by uneven sides)              | done    |
+| 4   | `WEIGHTED_TEAMS` unit tests (`packages/util`)                                                  | done    |
+| 5   | Worker integration tests (`elo-individual-vs-team-match-router.spec.ts`)                       | done    |
+| 6   | Web: create/edit season forms, season list icon, season page dialog, match dialog uneven sides | done    |
+| 7   | Mobile: score type card, season list/edit config, match modal uneven sides                     | done    |
+| 8   | Core theme token `scoreType.individualVsTeamElo`                                               | done    |
+| 9   | `bun check && bun run test`                                                                    | done    |
+| 10  | UI verification with agent-browser (`https://scorebrawl.localhost:1355`, `seed@example.com`)   | blocked |
+| 11  | Move this plan to `done/`, README row to Done                                                  | todo    |
 
 ## Key files
 
@@ -42,6 +42,15 @@ Feature doc: [done/09-elo-individual-vs-team.md](done/09-elo-individual-vs-team.
 - `bun --cwd packages/util run test`; `bun --cwd apps/worker run test test/trpc/elo-individual-vs-team-match-router.spec.ts`
 - `bun check && bun run test`
 - UI: create season "Solo vs Team ELO", record 1v2 match on season page, check standings (solo +16, team −16 each at 1000/K32).
+
+## UI verification blocker
+
+`bun dev` from this worktree registers with the shared portless proxy (PID 63205) and serves this code at `http://scorebrawl.localhost:1355`. The proxy serves HTTP only. `BETTER_AUTH_URL` and the Google emulator redirect use `https://scorebrawl.localhost:1355`, so the OAuth callback fails:
+
+- Browser: `chrome-error://chromewebdata/` after picking `seed@example.com`
+- curl: `LibreSSL/3.3.6: error:1404B42E:SSL routines:ST_CONNECT:tlsv1 alert protocol version`
+
+The proxy was not changed. To finish: run the proxy with HTTPS (or restart it from this repo), then sign in and run the UI check in "Verify".
 
 ## Open questions
 
