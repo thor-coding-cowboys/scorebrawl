@@ -11,8 +11,7 @@ Two manual GitHub workflows ship the iOS app. Nothing publishes automatically.
 
 - `EXPO_TOKEN` repository secret (used by both workflows).
 - The `production` environment on EAS holds `EXPO_PUBLIC_API_URL`,
-  `EXPO_PUBLIC_DISABLE_EMAIL_PASSWORD`, `EXPO_PUBLIC_GOOGLE_CLIENT_ID`,
-  `EXPO_PUBLIC_GITHUB_CLIENT_ID` (`bunx eas-cli@latest env:list --environment production`).
+  `EXPO_PUBLIC_GOOGLE_CLIENT_ID`, `EXPO_PUBLIC_GITHUB_CLIENT_ID` (`bunx eas-cli@latest env:list --environment production`).
   SDK 55+ `eas update --environment` reads **only** these; `.env` files and `eas.json`
   profile `env` are ignored.
 - EAS iOS credentials: the EAS project must hold an App Store Connect API key (Admin or

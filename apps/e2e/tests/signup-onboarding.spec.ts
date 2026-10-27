@@ -1,31 +1,23 @@
-import { test, expect, generateTestUser, generateLeagueName } from "./fixtures/auth";
+import { expect, generateLeagueName, signIn, test } from "./fixtures/auth";
+
+// Seeded in emulate.config.yaml but not in D1: signing in creates the account and
+// drops the user into onboarding.
+const NEW_USER = "signup-e2e@example.com";
 
 test.describe("Signup and Onboarding", () => {
-	// Skip this test for now - there's an application bug with SidebarProvider
-	// after signup that needs to be fixed separately
-	test("should sign up a new user and create a league", async ({ page }) => {
-		const testUser = generateTestUser();
+	test("signs up with a provider and creates a league", async ({ page }) => {
 		const testLeague = generateLeagueName();
 
-		// Step 1: Sign up
-		await page.goto("/auth/sign-up", { waitUntil: "networkidle" });
-		// CardTitle renders as div, not heading - check for submit button presence
-		await expect(page.getByTestId("signup-submit-button")).toBeVisible({ timeout: 15000 });
+		await signIn(page, NEW_USER);
 
-		await page.getByTestId("signup-name-input").fill(testUser.name);
-		await page.getByTestId("signup-email-input").fill(testUser.email);
-		await page.getByTestId("signup-password-input").fill(testUser.password);
-		await page.getByTestId("signup-submit-button").click();
+		// A fresh account has no league yet.
+		await expect(page).toHaveURL(/\/onboarding/, { timeout: 20000 });
 
-		// Should redirect to onboarding after signup
-		await expect(page).toHaveURL(/\/onboarding/);
-
-		// Step 2: Start onboarding - click "Create your first league"
-		// Wait for the page to load and find the button text
+		// Step 1: Start onboarding - click "Create your first league"
 		await expect(page.getByText(/create your first league/i)).toBeVisible();
 		await page.getByText(/create your first league/i).click();
 
-		// Step 3: Create league
+		// Step 2: Create league
 		await expect(page).toHaveURL(/\/onboarding\/create-league/);
 		await expect(page.getByTestId("league-name-input")).toBeVisible();
 
@@ -37,33 +29,5 @@ test.describe("Signup and Onboarding", () => {
 
 		// Should redirect to the new league page
 		await expect(page).toHaveURL(new RegExp(`/leagues/${testLeague.slug}`));
-	});
-
-	test("should show validation errors on signup form", async ({ page }) => {
-		await page.goto("/auth/sign-up", { waitUntil: "networkidle" });
-
-		// Submit empty form
-		await expect(page.getByTestId("signup-submit-button")).toBeVisible({ timeout: 15000 });
-		await page.getByTestId("signup-submit-button").click();
-
-		// Should show validation errors
-		await expect(page.getByText(/name is required/i)).toBeVisible();
-		await expect(page.getByText(/valid email/i)).toBeVisible();
-		await expect(page.getByText(/at least 8 characters/i)).toBeVisible();
-	});
-
-	test("should navigate between sign-in and sign-up", async ({ page }) => {
-		await page.goto("/auth/sign-up", { waitUntil: "networkidle" });
-		// CardTitle renders as div - check for submit button
-		await expect(page.getByTestId("signup-submit-button")).toBeVisible({ timeout: 15000 });
-
-		// Click "Sign In" link
-		await page.getByRole("link", { name: "Sign In" }).click();
-		await expect(page).toHaveURL(/\/auth\/sign-in/);
-		await expect(page.getByTestId("signin-submit-button")).toBeVisible();
-
-		// Click "Sign Up" link
-		await page.getByRole("link", { name: "Sign Up" }).click();
-		await expect(page).toHaveURL(/\/auth\/sign-up/);
 	});
 });

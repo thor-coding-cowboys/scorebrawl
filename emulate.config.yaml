@@ -1,0 +1,55 @@
+# Local emulation of third-party auth/email providers for dev + e2e.
+# Start with `bun emulate` (see package.json). Ports are pinned so URLs stay
+# stable regardless of which services are selected on the command line.
+
+google:
+  port: 4002
+  users:
+    - email: seed@example.com
+      name: Seed User
+    - email: emulate-e2e@example.com
+      name: Emulated E2E
+    - email: signup-e2e@example.com
+      name: Signup E2E
+    - email: invitee-e2e@example.com
+      name: Invited E2E
+  # client_id matches VITE_GOOGLE_CLIENT_ID in apps/worker/wrangler.jsonc so the
+  # frontend + worker need no extra client-id override when emulating.
+  oauth_clients:
+    - client_id: 972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com
+      client_secret: emulate-google-secret
+      name: Scorebrawl Local
+      # Portless forwards without the :1355 port in the Host header, so the
+      # worker derives both variants depending on how the app is reached.
+      redirect_uris:
+        - https://scorebrawl.localhost:1355/api/auth/callback/google
+        - https://scorebrawl.localhost/api/auth/callback/google
+        - http://scorebrawl.localhost:1355/api/auth/callback/google
+        - http://scorebrawl.localhost/api/auth/callback/google
+        - http://localhost:1355/api/auth/callback/google
+        - http://localhost:5173/api/auth/callback/google
+
+github:
+  port: 4001
+  users:
+    - login: seed
+      name: Seed User
+      email: seed@example.com
+  oauth_apps:
+    - client_id: Ov23liEHPLUdBgTj5Cxu
+      client_secret: emulate-github-secret
+      name: Scorebrawl Local
+      # Portless forwards without the :1355 port in the Host header, so the
+      # worker derives both variants depending on how the app is reached.
+      redirect_uris:
+        - https://scorebrawl.localhost:1355/api/auth/callback/github
+        - https://scorebrawl.localhost/api/auth/callback/github
+        - http://scorebrawl.localhost:1355/api/auth/callback/github
+        - http://scorebrawl.localhost/api/auth/callback/github
+        - http://localhost:1355/api/auth/callback/github
+        - http://localhost:5173/api/auth/callback/github
+
+resend:
+  port: 4008
+  domains:
+    - name: scorebrawl.com

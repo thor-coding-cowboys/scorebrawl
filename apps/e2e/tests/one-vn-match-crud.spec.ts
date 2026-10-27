@@ -1,8 +1,8 @@
-import { test, expect, signIn, SEED_USER, SEED_LEAGUE } from "./fixtures/auth";
+import { test, expect, signIn, SEED_LEAGUE } from "./fixtures/auth";
 
 test.describe("1-v-n Match CRUD", () => {
 	test.beforeEach(async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	test("records a 1-v-n game, verifies ELO change, then removes it", async ({ page }) => {

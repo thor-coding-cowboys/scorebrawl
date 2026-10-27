@@ -10,13 +10,14 @@ const apiUrl = process.env.MOBILE_E2E_API_URL ?? "http://localhost:5173";
 
 // apps/mobile/.env is committed and outranks the shell environment, so the e2e
 // values have to go in .env.local (gitignored, higher precedence, removed again
-// after the export). Email/password is enabled because the e2e seeds a user.
+// after the export). Social sign-in is the only way in: the specs drive the
+// emulated GitHub/Google providers, so both ids have to render the buttons.
 const overrides: Record<string, string> = {
 	EXPO_PUBLIC_API_URL: apiUrl,
 	EXPO_PUBLIC_DISABLE_PASSKEY: "true",
-	EXPO_PUBLIC_DISABLE_EMAIL_PASSWORD: "",
-	EXPO_PUBLIC_GITHUB_CLIENT_ID: "",
-	EXPO_PUBLIC_GOOGLE_CLIENT_ID: "",
+	EXPO_PUBLIC_GITHUB_CLIENT_ID: "Ov23liEHPLUdBgTj5Cxu",
+	EXPO_PUBLIC_GOOGLE_CLIENT_ID:
+		"972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
 };
 
 await writeFile(

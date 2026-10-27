@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -35,8 +33,6 @@ function DevicePage() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
 	const [state, setState] = useState<State>("loading");
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
 	const [loginError, setLoginError] = useState("");
 	const [loginLoading, setLoginLoading] = useState(false);
 	const [orgs, setOrgs] = useState<Org[]>([]);
@@ -72,22 +68,24 @@ function DevicePage() {
 		}
 	}, [sessionPending, session, verified, verifyAndFetchOrgs]);
 
-	const handleLogin = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const handleSocialLogin = async (provider: "github" | "google") => {
 		setLoginError("");
 		setLoginLoading(true);
-		const { error } = await authClient.signIn.email({
-			email,
-			password,
-			callbackURL: undefined as never,
-		});
-		if (error) {
-			setLoginError(error.message || "Invalid email or password.");
+		const callbackURL = window.location.pathname + window.location.search;
+		try {
+			const { error } = await authClient.signIn.social({
+				provider,
+				callbackURL,
+				errorCallbackURL: callbackURL,
+			});
+			if (error) {
+				setLoginError(error.message || `Failed to sign in with ${provider}.`);
+				setLoginLoading(false);
+			}
+		} catch (err) {
+			setLoginError(err instanceof Error ? err.message : `Failed to sign in with ${provider}.`);
 			setLoginLoading(false);
-			return;
 		}
-		setLoginLoading(false);
-		await verifyAndFetchOrgs();
 	};
 
 	const handleOrgSelect = async (orgId: string) => {
@@ -130,34 +128,30 @@ function DevicePage() {
 					)}
 
 					{state === "login" && (
-						<form onSubmit={handleLogin} className="space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="email">Email</Label>
-								<Input
-									id="email"
-									type="email"
-									value={email}
-									onChange={(e) => setEmail(e.target.value)}
-									autoComplete="email"
-									required
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="password">Password</Label>
-								<Input
-									id="password"
-									type="password"
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									autoComplete="current-password"
-									required
-								/>
-							</div>
+						<div className="space-y-4">
+							<p className="text-sm text-muted-foreground">Sign in to approve this device.</p>
+							{import.meta.env.VITE_GITHUB_CLIENT_ID && (
+								<Button
+									variant="outline"
+									className="w-full"
+									disabled={loginLoading}
+									onClick={() => void handleSocialLogin("github")}
+								>
+									Sign in with GitHub
+								</Button>
+							)}
+							{import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+								<Button
+									variant="outline"
+									className="w-full"
+									disabled={loginLoading}
+									onClick={() => void handleSocialLogin("google")}
+								>
+									Sign in with Google
+								</Button>
+							)}
 							{loginError && <p className="text-sm text-destructive">{loginError}</p>}
-							<Button type="submit" className="w-full" disabled={loginLoading}>
-								{loginLoading ? "Signing in..." : "Sign In"}
-							</Button>
-						</form>
+						</div>
 					)}
 
 					{state === "loading" && (

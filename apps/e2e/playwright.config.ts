@@ -2,12 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 const scheme = process.env.CI ? "http" : "https";
 const port = process.env.PORTLESS_PORT || "1355";
+const baseURL = `${scheme}://scorebrawl.localhost:${port}`;
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
 	testDir: "./tests",
+	globalSetup: "./global-setup.ts",
 	/* Run tests serially - shared database requires isolation */
 	fullyParallel: false,
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -23,7 +22,7 @@ export default defineConfig({
 	],
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
-		baseURL: `${scheme}://scorebrawl.localhost:${port}`,
+		baseURL,
 		/* CI runs over plain HTTP; local runs over portless HTTPS (self-signed) */
 		ignoreHTTPSErrors: true,
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
@@ -38,24 +37,45 @@ export default defineConfig({
 		},
 	],
 
-	/* Run your local dev server before starting the tests */
-	webServer: {
-		command: "bun run dev",
-		url: `${scheme}://scorebrawl.localhost:${port}`,
-		reuseExistingServer: !process.env.CI,
-		cwd: "../..",
-		timeout: 120_000,
-		stdout: "pipe",
-		stderr: "pipe",
-		ignoreHTTPSErrors: true,
-		// Loads apps/worker/.env.e2e (overrides apps/worker/.env) so real emails
-		// are never sent during e2e runs - the worker falls back to console.log
-		// when RESEND_API_KEY is empty. See apps/worker/.env.e2e.
-		env: { CLOUDFLARE_ENV: "e2e" },
-		// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
-		// Regex must tolerate ANSI color codes present in piped output.
-		wait: {
-			stdout: /VITE[^\n]*?ready/i,
+	/* Emulated third-party providers (GitHub/Google OAuth + Resend) */
+	webServer: [
+		{
+			command: "bun run emulate",
+			url: "http://localhost:4002/.well-known/openid-configuration",
+			reuseExistingServer: !process.env.CI,
+			cwd: "../..",
+			timeout: 60_000,
+			stdout: "pipe",
+			stderr: "pipe",
 		},
-	},
+		{
+			command: "bun run dev",
+			// Worker route, so readiness means the Worker answers too (the SPA
+			// assets are served before the Worker is warm).
+			url: `${baseURL}/api/version`,
+			reuseExistingServer: !process.env.CI,
+			cwd: "../..",
+			timeout: 120_000,
+			stdout: "pipe",
+			stderr: "pipe",
+			ignoreHTTPSErrors: true,
+			env: {
+				// `bun dev` writes apps/worker/.env.local from these: wrangler dotenv
+				// outranks the shell, so passing them here alone would not reach the
+				// Worker. Scheme/port differ between CI and local runs.
+				BETTER_AUTH_URL: baseURL,
+				DISABLE_RATE_LIMIT: "true",
+				// Public client ids (also in wrangler.jsonc) so the social buttons
+				// render in the built web app; the worker reads the same ids.
+				VITE_GITHUB_CLIENT_ID: "Ov23liEHPLUdBgTj5Cxu",
+				VITE_GOOGLE_CLIENT_ID:
+					"972190779505-ob8vi6970ib3c8i46plgmu4i9cpr7ohg.apps.googleusercontent.com",
+			},
+			// Wait for Vite to report ready (Vite 6 uses "VITE v" message).
+			// Regex must tolerate ANSI color codes present in piped output.
+			wait: {
+				stdout: /VITE[^\n]*?ready/i,
+			},
+		},
+	],
 });

@@ -111,6 +111,9 @@ export default defineWorkersConfig({
 						// Override BETTER_AUTH_URL from .env (https) so better-auth uses
 						// plain (non __Secure-) cookies matching the test auth helpers.
 						BETTER_AUTH_URL: "http://localhost",
+						// Test helpers create sessions directly and sign the cookie with this
+						// secret; CI has no .env to supply one.
+						BETTER_AUTH_SECRET: "scorebrawl-test-secret-0123456789abcdef",
 						// Pin the MCP protected-resource identifier; test requests use
 						// synthetic hosts (`http://example.com`) whose origin is not a
 						// valid MCP resource URL.

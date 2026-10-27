@@ -1,8 +1,8 @@
-import { test, expect, signIn, SEED_USER, SEED_LEAGUE, SEED_SEASON } from "./fixtures/auth";
+import { test, expect, signIn, SEED_LEAGUE, SEED_SEASON } from "./fixtures/auth";
 
 test.describe("Session live match", () => {
 	test.beforeEach(async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	// Covers the session write path end to end: session.getById, session.startNextMatch,
@@ -67,7 +67,7 @@ test.describe("Session live match", () => {
 		const secondContext = await browser.newContext({ ignoreHTTPSErrors: true });
 		const secondPage = await secondContext.newPage();
 		try {
-			await signIn(secondPage, SEED_USER.email, SEED_USER.password);
+			await signIn(secondPage);
 			await secondPage.goto(sessionUrl);
 
 			// Mount-sync: a device that loads after scoring shows the persisted in-progress score.

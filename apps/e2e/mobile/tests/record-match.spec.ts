@@ -4,14 +4,13 @@ import {
 	openSeason,
 	readStandingScore,
 	SEED_ONE_VN_SEASON,
-	SEED_USER,
 	signIn,
 	test,
 } from "./fixtures/auth";
 
 test.describe("Mobile match registration", () => {
 	test.beforeEach(async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	test("records a 1-v-n game and moves the winner's score", async ({ page }) => {

@@ -2,7 +2,7 @@ import { test, expect, signIn, SEED_USER, SEED_LEAGUE } from "./fixtures/auth";
 
 test.describe("Public API keys", () => {
 	test.beforeEach(async ({ page }) => {
-		await signIn(page, SEED_USER.email, SEED_USER.password);
+		await signIn(page);
 	});
 
 	test("league key (created in UI) and personal key authenticate against the public API", async ({

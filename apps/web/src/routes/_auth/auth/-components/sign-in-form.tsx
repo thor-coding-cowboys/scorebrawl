@@ -1,31 +1,16 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { GithubIcon, GoogleIcon, Key01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useSessionInvalidate } from "@/hooks/useSession";
-
-const signInSchema = z.object({
-	email: z.string().email("Please enter a valid email address"),
-	password: z.string().min(1, "Password is required"),
-});
-
-type SignInFormValues = z.infer<typeof signInSchema>;
 
 interface SignInFormProps {
 	callbackURL?: string;
 	error?: string;
 }
-
-const isEmailPasswordEnabled = !import.meta.env.VITE_DISABLE_EMAIL_PASSWORD;
 
 export function SignInForm({ callbackURL, error }: SignInFormProps) {
 	const navigate = useNavigate();
@@ -47,65 +32,9 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 		}
 	}, [error]);
 
-	// Preload passkeys for conditional UI
 	useEffect(() => {
-		if (
-			typeof PublicKeyCredential === "undefined" ||
-			!PublicKeyCredential.isConditionalMediationAvailable
-		) {
-			return;
-		}
-
-		void (async () => {
-			const isAvailable = await PublicKeyCredential.isConditionalMediationAvailable();
-			setSupportsPasskey(isAvailable);
-			if (isAvailable) {
-				// Silently handle errors for conditional UI (user might not have passkeys)
-				void authClient.signIn.passkey({ autoFill: true }).catch(() => {
-					// Ignore errors for conditional UI preload
-				});
-			}
-		})();
+		setSupportsPasskey(typeof PublicKeyCredential !== "undefined");
 	}, []);
-
-	const {
-		register,
-		handleSubmit,
-		formState: { errors, isSubmitting },
-	} = useForm<SignInFormValues>({
-		resolver: zodResolver(signInSchema),
-		defaultValues: {
-			email: "",
-			password: "",
-		},
-	});
-
-	const onSubmit = async (values: SignInFormValues) => {
-		setApiError("");
-		try {
-			const { data, error } = await authClient.signIn.email({
-				email: values.email,
-				password: values.password,
-				callbackURL: callbackURL || "/",
-			});
-
-			if (error) {
-				setApiError(error.message || "Failed to sign in. Please check your credentials.");
-				return;
-			}
-
-			if (data) {
-				await invalidateSession();
-				navigate({ to: callbackURL || "/" } as never);
-			} else {
-				setApiError("Failed to sign in. Please try again.");
-			}
-		} catch (err) {
-			setApiError(
-				err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
-			);
-		}
-	};
 
 	const handleGitHubSignIn = async () => {
 		setIsGitHubLoading(true);
@@ -229,148 +158,52 @@ export function SignInForm({ callbackURL, error }: SignInFormProps) {
 		<Card className="w-full max-w-md border-border">
 			<CardHeader>
 				<CardTitle className="text-2xl">Sign In</CardTitle>
-				<CardDescription>
-					{isEmailPasswordEnabled
-						? "Enter your email below to login to your account"
-						: "Sign in to your account"}
-				</CardDescription>
+				<CardDescription>Sign in to your account</CardDescription>
 			</CardHeader>
 			<CardContent>
-				{isEmailPasswordEnabled && (
-					<form onSubmit={handleSubmit(onSubmit)}>
-						<FieldGroup>
-							<Field>
-								<FieldLabel htmlFor="email">Email</FieldLabel>
-								<Input
-									id="email"
-									type="text"
-									placeholder="m@example.com"
-									autoComplete="username webauthn"
-									disabled={isSubmitting}
-									data-testid="signin-email-input"
-									{...register("email")}
-									onChange={(e) => {
-										register("email").onChange(e);
-										setApiError("");
-									}}
-								/>
-								{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-							</Field>
-							<Field>
-								<div className="flex items-center justify-between">
-									<FieldLabel htmlFor="password">Password</FieldLabel>
-									<Link
-										to="/auth/forgot-password"
-										search={{ redirect: callbackURL }}
-										className="text-sm text-primary hover:underline"
-										tabIndex={-1}
-									>
-										Forgot your password?
-									</Link>
-								</div>
-								<Input
-									id="password"
-									type="password"
-									placeholder="Password"
-									autoComplete="current-password webauthn"
-									disabled={isSubmitting}
-									data-testid="signin-password-input"
-									{...register("password")}
-									onChange={(e) => {
-										register("password").onChange(e);
-										setApiError("");
-									}}
-								/>
-								{errors.password && (
-									<p className="text-sm text-destructive">{errors.password.message}</p>
-								)}
-							</Field>
-							{apiError && (
-								<p className="text-sm text-destructive" data-testid="signin-error">
-									{apiError}
-								</p>
-							)}
-							<Button
-								type="submit"
-								className="w-full"
-								disabled={isSubmitting}
-								data-testid="signin-submit-button"
-							>
-								{isSubmitting ? "Signing in..." : "Sign In"}
-							</Button>
-						</FieldGroup>
-					</form>
+				{apiError && (
+					<p className="mb-4 text-sm text-destructive" data-testid="signin-error">
+						{apiError}
+					</p>
 				)}
 
-				{(import.meta.env.VITE_GITHUB_CLIENT_ID ||
-					import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-					supportsPasskey) && (
-					<>
-						{isEmailPasswordEnabled && (
-							<div className="relative my-4">
-								<div className="absolute inset-0 flex items-center">
-									<Separator />
-								</div>
-								<div className="relative flex justify-center text-xs uppercase">
-									<span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-								</div>
-							</div>
-						)}
-
-						{!isEmailPasswordEnabled && apiError && (
-							<p className="mb-4 text-sm text-destructive">{apiError}</p>
-						)}
-
-						<div className="flex flex-col gap-2">
-							{supportsPasskey && (
-								<Button
-									variant="outline"
-									className="w-full"
-									onClick={handlePasskeySignIn}
-									disabled={isPasskeyLoading || isSubmitting}
-									type="button"
-								>
-									<HugeiconsIcon icon={Key01Icon} className="mr-2 h-4 w-4" />
-									{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
-								</Button>
-							)}
-							{import.meta.env.VITE_GITHUB_CLIENT_ID && (
-								<Button
-									variant="outline"
-									className="w-full"
-									onClick={handleGitHubSignIn}
-									disabled={isGitHubLoading || isSubmitting}
-									type="button"
-								>
-									<HugeiconsIcon icon={GithubIcon} className="mr-2 h-4 w-4" />
-									{isGitHubLoading ? "Signing in..." : "Sign in with GitHub"}
-								</Button>
-							)}
-							{import.meta.env.VITE_GOOGLE_CLIENT_ID && (
-								<Button
-									variant="outline"
-									className="w-full"
-									onClick={handleGoogleSignIn}
-									disabled={isGoogleLoading || isSubmitting}
-									type="button"
-								>
-									<HugeiconsIcon icon={GoogleIcon} className="mr-2 h-4 w-4" />
-									{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
-								</Button>
-							)}
-						</div>
-					</>
-				)}
-
-				<div className="mt-4 text-center text-sm text-muted-foreground">
-					Don't have an account?{" "}
-					<Link
-						to="/auth/sign-up"
-						search={{ redirect: callbackURL }}
-						className="text-primary hover:underline"
-					>
-						Sign Up
-					</Link>
+				<div className="flex flex-col gap-2">
+					{import.meta.env.VITE_GITHUB_CLIENT_ID && (
+						<Button
+							variant="outline"
+							className="w-full"
+							onClick={handleGitHubSignIn}
+							disabled={isGitHubLoading}
+							type="button"
+						>
+							<HugeiconsIcon icon={GithubIcon} className="mr-2 h-4 w-4" />
+							{isGitHubLoading ? "Signing in..." : "Sign in with GitHub"}
+						</Button>
+					)}
+					{import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+						<Button
+							variant="outline"
+							className="w-full"
+							onClick={handleGoogleSignIn}
+							disabled={isGoogleLoading}
+							type="button"
+						>
+							<HugeiconsIcon icon={GoogleIcon} className="mr-2 h-4 w-4" />
+							{isGoogleLoading ? "Signing in..." : "Sign in with Google"}
+						</Button>
+					)}
+					{supportsPasskey && (
+						<Button
+							variant="outline"
+							className="w-full"
+							onClick={handlePasskeySignIn}
+							disabled={isPasskeyLoading}
+							type="button"
+						>
+							<HugeiconsIcon icon={Key01Icon} className="mr-2 h-4 w-4" />
+							{isPasskeyLoading ? "Signing in..." : "Sign in with Passkey"}
+						</Button>
+					)}
 				</div>
 			</CardContent>
 		</Card>

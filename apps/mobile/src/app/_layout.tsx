@@ -25,7 +25,7 @@ function useProtectedRoute(session: { userId: string } | null, isPending: boolea
 	useEffect(() => {
 		if (isPending) return;
 
-		const isAuthScreen = segments[0] === "sign-in" || segments[0] === "sign-up";
+		const isAuthScreen = segments[0] === "sign-in";
 
 		if (!session && !isAuthScreen) {
 			router.replace("/sign-in");
@@ -69,7 +69,6 @@ function RootContent() {
 			>
 				<Stack.Screen name="(drawer)" />
 				<Stack.Screen name="sign-in" />
-				<Stack.Screen name="sign-up" />
 				<Stack.Screen name="profile" options={{ headerShown: true, title: "Profile" }} />
 				<Stack.Screen
 					name="settings/notifications"

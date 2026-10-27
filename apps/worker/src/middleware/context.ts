@@ -70,6 +70,13 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	const publicRequestOrigin = publicOrigin(c.req.raw);
 	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
 
+	// Optional local emulation (see emulate.config.yaml). Both are unset in
+	// production, which keeps the built-in GitHub/Google providers.
+	const emulatedEnv = c.env as {
+		EMULATE_GOOGLE_URL?: string;
+		EMULATE_GITHUB_URL?: string;
+	};
+
 	const auth = createAuth({
 		db,
 		betterAuthSecret,
@@ -84,6 +91,10 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		oauthResource,
 		baseURL: authBaseURL,
 		mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
+		emulate: {
+			googleUrl: stripTrailingSlash(emulatedEnv.EMULATE_GOOGLE_URL),
+			githubUrl: stripTrailingSlash(emulatedEnv.EMULATE_GITHUB_URL),
+		},
 	});
 	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
 	// request so no storage work is left floating after the response.
@@ -97,6 +108,11 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
 	await next();
 });
+
+function stripTrailingSlash(value?: string) {
+	if (!value) return undefined;
+	return value.replace(/\/+$/, "");
+}
 
 export type AuthType = {
 	user: ReturnType<typeof createAuth>["$Infer"]["Session"]["user"];

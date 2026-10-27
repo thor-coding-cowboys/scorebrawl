@@ -1,21 +1,20 @@
-import { test, expect, generateTestUser, signUp, SEED_USER, SEED_LEAGUE } from "./fixtures/auth";
+import { signInWithEmulatedProvider } from "../lib/emulated-sign-in";
+import { API_BASE_URL, expect, SEED_LEAGUE, SEED_USER, signIn, test } from "./fixtures/auth";
+
+// Seeded in emulate.config.yaml but not in D1: signing in creates the account.
+const INVITEE = "invitee-e2e@example.com";
 
 test.describe("Invitation flow", () => {
 	test("accepted invitation is reflected in the session and navigates into the league", async ({
 		page,
 		request,
 	}) => {
-		const user = generateTestUser();
-
-		await page.goto("/auth/sign-in");
-		const origin = new URL(page.url()).origin;
-
-		// Create an invitation for the new user as the seeded league owner (API)
-		const signInRes = await request.post("/api/auth/sign-in/email", {
-			headers: { "Content-Type": "application/json", Origin: origin },
-			data: { email: SEED_USER.email, password: SEED_USER.password },
+		// Create an invitation for the new user as the seeded league owner.
+		await signInWithEmulatedProvider(request, {
+			apiBaseURL: API_BASE_URL,
+			provider: "google",
+			email: SEED_USER.email,
 		});
-		expect(signInRes.ok()).toBeTruthy();
 
 		const orgsRes = await request.get("/api/auth/organization/list");
 		const orgs = await orgsRes.json();
@@ -23,21 +22,24 @@ test.describe("Invitation flow", () => {
 		expect(seedOrg).toBeDefined();
 
 		const inviteRes = await request.post("/api/auth/organization/invite-member", {
-			headers: { "Content-Type": "application/json", Origin: origin },
-			data: { organizationId: seedOrg.id, email: user.email, role: "member" },
+			headers: {
+				"Content-Type": "application/json",
+				Origin: new URL(API_BASE_URL).origin,
+			},
+			data: { organizationId: seedOrg.id, email: INVITEE, role: "member" },
 		});
-		expect(inviteRes.ok()).toBeTruthy();
-		const invite = await inviteRes.json();
+		const inviteBody = (await inviteRes.json().catch(() => null)) as { id?: string } | null;
+		expect(inviteRes.ok(), JSON.stringify(inviteBody)).toBeTruthy();
+		const invite = inviteBody as { id: string };
 		expect(invite.id).toBeDefined();
 
-		// Clear the seed session before signing up the invited user
+		// Clear the owner session before signing in as the invited user.
 		await request.post("/api/auth/sign-out", {
-			headers: { "Content-Type": "application/json", Origin: origin },
 			data: {},
+			headers: { Origin: new URL(API_BASE_URL).origin },
 		});
 
-		// Sign up the invited user; the app should route them to the accept page
-		await signUp(page, user.name, user.email, user.password);
+		await signIn(page, INVITEE);
 		await expect(page).toHaveURL(new RegExp(`/accept-invitation/${invite.id}`), {
 			timeout: 15000,
 		});
@@ -46,9 +48,7 @@ test.describe("Invitation flow", () => {
 		await page.getByRole("button", { name: "Accept Invitation" }).click();
 
 		// The session must reflect the accepted invite: navigate into the accepted league
-		await expect(page).toHaveURL(new RegExp(`/leagues/${SEED_LEAGUE.slug}`), {
-			timeout: 15000,
-		});
+		await expect(page).toHaveURL(new RegExp(`/leagues/${SEED_LEAGUE.slug}`), { timeout: 15000 });
 
 		// Sidebar active league switches to the accepted league
 		await expect(
@@ -57,8 +57,6 @@ test.describe("Invitation flow", () => {
 
 		// No stale pending invitation: going home routes to the active league, not the accept page
 		await page.goto("/", { waitUntil: "networkidle" });
-		await expect(page).toHaveURL(new RegExp(`/leagues/${SEED_LEAGUE.slug}`), {
-			timeout: 15000,
-		});
+		await expect(page).toHaveURL(new RegExp(`/leagues/${SEED_LEAGUE.slug}`), { timeout: 15000 });
 	});
 });

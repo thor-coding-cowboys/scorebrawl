@@ -4,9 +4,16 @@ import { mcp } from "@better-auth/mcp";
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, admin, bearer, deviceAuthorization, jwt } from "better-auth/plugins";
+import {
+	type GenericOAuthConfig,
+	genericOAuth,
+	organization,
+	admin,
+	bearer,
+	deviceAuthorization,
+	jwt,
+} from "better-auth/plugins";
 import * as schema from "../db/schema";
-import { hashPassword, verifyPassword } from "../lib/password";
 import { createAccessControl } from "better-auth/plugins/access";
 import { afterAcceptInvitation, afterCreateOrganization } from "./better-auth-organization-hooks";
 import { and, eq } from "drizzle-orm";
@@ -45,6 +52,122 @@ const viewer = ac.newRole({
 	match: [],
 });
 
+export type EmulateProviders = {
+	googleUrl?: string;
+	githubUrl?: string;
+};
+
+/**
+ * Social providers pointed at the local `emulate` services instead of the real
+ * upstreams. Only used when `EMULATE_*_URL` is set (dev + e2e), so production
+ * keeps the built-in providers.
+ */
+function emulatedSocialProviders({
+	emulate,
+	githubClientId,
+	githubClientSecret,
+	googleClientId,
+	googleClientSecret,
+}: {
+	emulate: EmulateProviders;
+	githubClientId?: string;
+	githubClientSecret?: string;
+	googleClientId?: string;
+	googleClientSecret?: string;
+}): GenericOAuthConfig[] {
+	const configs: GenericOAuthConfig[] = [];
+	const { googleUrl, githubUrl } = emulate;
+
+	if (googleUrl && googleClientId && googleClientSecret) {
+		configs.push({
+			providerId: "google",
+			name: "Google",
+			clientId: googleClientId,
+			clientSecret: googleClientSecret,
+			authorizationUrl: `${googleUrl}/o/oauth2/v2/auth`,
+			tokenUrl: `${googleUrl}/oauth2/token`,
+			userInfoUrl: `${googleUrl}/oauth2/v2/userinfo`,
+			scopes: ["openid", "email", "profile"],
+			pkce: true,
+			// Mapped by hand because the profile is OIDC-shaped (`sub`) while the
+			// provider is registered as plain OAuth. Explicit endpoints instead of
+			// `discoveryUrl` keep auth init free of network calls: a stale
+			// EMULATE_GOOGLE_URL then logs nothing and only fails at sign-in.
+			getUserInfo: async (tokens) => {
+				const response = await fetch(`${googleUrl}/oauth2/v2/userinfo`, {
+					headers: { Authorization: `Bearer ${tokens.accessToken}` },
+				});
+				if (!response.ok) return null;
+				const profile = (await response.json()) as {
+					sub: string;
+					email: string;
+					email_verified?: boolean;
+					name?: string;
+					picture?: string | null;
+				};
+				return {
+					id: profile.sub,
+					email: profile.email,
+					emailVerified: profile.email_verified ?? false,
+					name: profile.name ?? profile.email,
+					image: profile.picture ?? undefined,
+				};
+			},
+		});
+	}
+
+	if (githubUrl && githubClientId && githubClientSecret) {
+		configs.push({
+			providerId: "github",
+			name: "GitHub",
+			clientId: githubClientId,
+			clientSecret: githubClientSecret,
+			authorizationUrl: `${githubUrl}/login/oauth/authorize`,
+			tokenUrl: `${githubUrl}/login/oauth/access_token`,
+			userInfoUrl: `${githubUrl}/user`,
+			scopes: ["read:user", "user:email"],
+			getUserInfo: async (tokens) => {
+				const headers = {
+					Authorization: `Bearer ${tokens.accessToken}`,
+					Accept: "application/json",
+					"User-Agent": "better-auth",
+				};
+				const [profileResponse, emailsResponse] = await Promise.all([
+					fetch(`${githubUrl}/user`, { headers }),
+					fetch(`${githubUrl}/user/emails`, { headers }),
+				]);
+				if (!profileResponse.ok) return null;
+				const profile = (await profileResponse.json()) as {
+					id: number;
+					login: string;
+					name: string | null;
+					email: string | null;
+					avatar_url?: string;
+				};
+				const emails = emailsResponse.ok
+					? ((await emailsResponse.json()) as {
+							email: string;
+							primary: boolean;
+							verified: boolean;
+						}[])
+					: [];
+				const email =
+					profile.email ?? emails.find((entry) => entry.primary)?.email ?? emails[0]?.email;
+				if (!email) return null;
+				return {
+					id: String(profile.id),
+					email,
+					emailVerified: emails.find((entry) => entry.email === email)?.verified ?? false,
+					name: profile.name ?? profile.login,
+					image: profile.avatar_url,
+				};
+			},
+		});
+	}
+
+	return configs;
+}
+
 export function createAuth({
 	db,
 	betterAuthSecret,
@@ -59,6 +182,7 @@ export function createAuth({
 	passkey,
 	mcpResource,
 	baseURL,
+	emulate,
 }: {
 	db: DB;
 	betterAuthSecret: string;
@@ -73,9 +197,23 @@ export function createAuth({
 	passkey?: PasskeyConfig;
 	mcpResource?: string;
 	baseURL?: string;
+	/** Set only for local dev / e2e: routes social providers to `emulate`. */
+	emulate?: EmulateProviders;
 }) {
+	const emulatedProviders = emulate
+		? emulatedSocialProviders({
+				emulate,
+				githubClientId,
+				githubClientSecret,
+				googleClientId,
+				googleClientSecret,
+			})
+		: [];
+	const isEmulated = (provider: "github" | "google") =>
+		emulatedProviders.some((entry) => entry.providerId === provider);
 	const hasAnySocialProviders =
-		(githubClientId && githubClientSecret) || (googleClientId && googleClientSecret);
+		(!isEmulated("github") && githubClientId && githubClientSecret) ||
+		(!isEmulated("google") && googleClientId && googleClientSecret);
 
 	// Only the request middleware supplies a config; tests and the better-auth
 	// CLI export fall back to local dev values, matching previous behaviour.
@@ -233,21 +371,13 @@ export function createAuth({
 				},
 			},
 		},
-		emailAndPassword: {
-			enabled: process.env.DISABLE_EMAIL_PASSWORD?.toLowerCase() !== "true",
-			password: {
-				hash: async (password) => {
-					return await hashPassword(password);
-				},
-				verify: async ({ password, hash }) => {
-					return await verifyPassword(hash, password);
-				},
-			},
-		},
+		// The e2e suites sign in for every spec from one IP, which trips the default
+		// per-IP rate limiter. Playwright sets this flag for its runs only.
+		rateLimit: process.env.DISABLE_RATE_LIMIT === "true" ? { enabled: false } : undefined,
 		socialProviders: hasAnySocialProviders
 			? {
 					github:
-						githubClientId && githubClientSecret
+						!isEmulated("github") && githubClientId && githubClientSecret
 							? {
 									enabled: true,
 									clientId: githubClientId,
@@ -255,7 +385,7 @@ export function createAuth({
 								}
 							: undefined,
 					google:
-						googleClientId && googleClientSecret
+						!isEmulated("google") && googleClientId && googleClientSecret
 							? {
 									enabled: true,
 									clientId: googleClientId,
@@ -267,11 +397,13 @@ export function createAuth({
 		account: {
 			accountLinking: {
 				enabled: true,
-				trustedProviders: ["google", "email-password", "github"],
+				trustedProviders: ["google", "github"],
 			},
 		},
 		plugins: [
 			expo(),
+			// Empty unless EMULATE_*_URL is set, so production registers nothing.
+			genericOAuth({ config: emulatedProviders }),
 			admin({ adminUserIds: adminUserIds || [] }),
 			organization({
 				ac,
