@@ -3,14 +3,23 @@ import { TRPCError } from "@trpc/server";
 import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { user } from "../../db/schema/auth-schema";
-import { leagueTeam, leagueTeamPlayer, player } from "../../db/schema/league-schema";
+import { newId } from "@coding-cowboys/scorebrawl-util/id-util";
+import type { DrizzleDB } from "../../db";
+import {
+	leagueTeam,
+	leagueTeamPlayer,
+	matchTeam,
+	player,
+	seasonTeam,
+} from "../../db/schema/league-schema";
 import {
 	generateTeamLogoKey,
 	getExtensionFromContentType,
 	isValidImageType,
 	MAX_AVATAR_SIZE,
+	type R2BucketRef,
 } from "../../lib/asset-util";
-import { activeOrgProcedure, leagueProcedure } from "../trpc";
+import { activeOrgProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 import * as teamRepository from "../../repositories/team-repository";
 
 /**
@@ -18,6 +27,104 @@ import * as teamRepository from "../../repositories/team-repository";
  * Matches: data:image/{type};base64,{data}
  */
 const BASE64_IMAGE_REGEX = /^data:image\/(jpeg|png|webp);base64,/;
+
+const storeTeamLogo = async ({
+	bucket,
+	organizationId,
+	teamId,
+	imageData,
+}: {
+	bucket: R2BucketRef["bucket"];
+	organizationId: string;
+	teamId: string;
+	imageData: string;
+}) => {
+	const contentTypeMatch = imageData.match(/^data:(image\/\w+);base64,/);
+	if (!contentTypeMatch) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Could not extract content type from image data",
+		});
+	}
+
+	const contentType = contentTypeMatch[1];
+
+	if (!isValidImageType(contentType)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid image type. Allowed: image/jpeg, image/png, image/webp",
+		});
+	}
+
+	const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+
+	let binaryData: Uint8Array;
+	try {
+		const binaryString = atob(base64Data);
+		binaryData = new Uint8Array(binaryString.length);
+		for (let i = 0; i < binaryString.length; i++) {
+			binaryData[i] = binaryString.charCodeAt(i);
+		}
+	} catch {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid base64 image data",
+		});
+	}
+
+	const approximateSize = (base64Data.length * 3) / 4;
+	if (approximateSize > MAX_AVATAR_SIZE) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Image too large. Maximum size is ${MAX_AVATAR_SIZE / 1024 / 1024}MB`,
+		});
+	}
+
+	const key = generateTeamLogoKey(organizationId, teamId, getExtensionFromContentType(contentType));
+	await bucket.put(key, binaryData, { httpMetadata: { contentType } });
+	return key;
+};
+
+const findTeamAndPlayer = async ({
+	db,
+	organizationId,
+	teamId,
+	playerId,
+}: {
+	db: DrizzleDB;
+	organizationId: string;
+	teamId: string;
+	playerId: string;
+}) => {
+	const [[team], [leaguePlayer], [membership]] = await db.batch([
+		db
+			.select({ id: leagueTeam.id })
+			.from(leagueTeam)
+			.where(and(eq(leagueTeam.id, teamId), eq(leagueTeam.leagueId, organizationId)))
+			.limit(1),
+		db
+			.select({ id: player.id })
+			.from(player)
+			.where(and(eq(player.id, playerId), eq(player.leagueId, organizationId)))
+			.limit(1),
+		db
+			.select({ id: leagueTeamPlayer.id })
+			.from(leagueTeamPlayer)
+			.where(
+				and(eq(leagueTeamPlayer.leagueTeamId, teamId), eq(leagueTeamPlayer.playerId, playerId))
+			)
+			.limit(1),
+	]);
+
+	if (!team) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+	}
+	if (!leaguePlayer) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+	}
+
+	return { isMember: !!membership };
+};
 
 export const leagueTeamRouter = {
 	list: activeOrgProcedure
@@ -216,6 +323,123 @@ export const leagueTeamRouter = {
 			return { team: updatedTeam };
 		}),
 
+	create: leagueEditorProcedure
+		.input(
+			z.object({
+				name: z.string().trim().min(1).max(100),
+				imageData: z
+					.string()
+					.regex(
+						BASE64_IMAGE_REGEX,
+						"Invalid image data format. Expected base64 data URL (data:image/jpeg;base64,... or data:image/png;base64,...)"
+					)
+					.optional(),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { db, organizationId, userAssets } = ctx;
+			const teamId = newId("team");
+			const logo = input.imageData
+				? await storeTeamLogo({
+						bucket: userAssets.bucket,
+						organizationId,
+						teamId,
+						imageData: input.imageData,
+					})
+				: null;
+			const now = new Date();
+
+			const [team] = await db
+				.insert(leagueTeam)
+				.values({
+					id: teamId,
+					name: input.name,
+					logo,
+					leagueId: organizationId,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.returning({
+					id: leagueTeam.id,
+					name: leagueTeam.name,
+					logo: leagueTeam.logo,
+					createdAt: leagueTeam.createdAt,
+					updatedAt: leagueTeam.updatedAt,
+				});
+
+			return { team };
+		}),
+
+	delete: leagueEditorProcedure
+		.input(z.object({ teamId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const { db, organizationId, userAssets } = ctx;
+			const { teamId } = input;
+
+			const [[existingTeam], [history]] = await db.batch([
+				db
+					.select({ id: leagueTeam.id, logo: leagueTeam.logo })
+					.from(leagueTeam)
+					.where(and(eq(leagueTeam.id, teamId), eq(leagueTeam.leagueId, organizationId)))
+					.limit(1),
+				db
+					.select({ id: matchTeam.id })
+					.from(matchTeam)
+					.innerJoin(seasonTeam, eq(matchTeam.seasonTeamId, seasonTeam.id))
+					.where(eq(seasonTeam.leagueTeamId, teamId))
+					.limit(1),
+			]);
+
+			if (!existingTeam) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+			}
+
+			if (history) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "This team has match history and cannot be deleted",
+				});
+			}
+
+			await db
+				.delete(leagueTeam)
+				.where(and(eq(leagueTeam.id, teamId), eq(leagueTeam.leagueId, organizationId)));
+
+			if (existingTeam.logo?.startsWith(`organization/${organizationId}/`)) {
+				await userAssets.bucket.delete(existingTeam.logo).catch(() => undefined);
+			}
+
+			return { success: true };
+		}),
+
+	addPlayer: leagueEditorProcedure
+		.input(z.object({ teamId: z.string(), playerId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const { db, organizationId } = ctx;
+			const { isMember } = await findTeamAndPlayer({ db, organizationId, ...input });
+
+			if (isMember) {
+				throw new TRPCError({ code: "CONFLICT", message: "Player is already on this team" });
+			}
+
+			await teamRepository.addPlayerToTeam({ db, ...input });
+			return { success: true };
+		}),
+
+	removePlayer: leagueEditorProcedure
+		.input(z.object({ teamId: z.string(), playerId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const { db, organizationId } = ctx;
+			const { isMember } = await findTeamAndPlayer({ db, organizationId, ...input });
+
+			if (!isMember) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Player is not on this team" });
+			}
+
+			await teamRepository.removePlayerFromTeam({ db, ...input });
+			return { success: true };
+		}),
+
 	uploadLogo: leagueProcedure
 		.input(
 			z.object({
@@ -289,62 +513,11 @@ export const leagueTeamRouter = {
 				}
 			}
 
-			// Extract content type from base64 data URL
-			const contentTypeMatch = imageData.match(/^data:(image\/\w+);base64,/);
-			if (!contentTypeMatch) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Could not extract content type from image data",
-				});
-			}
-
-			const contentType = contentTypeMatch[1];
-
-			// Validate content type
-			if (!isValidImageType(contentType)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid image type. Allowed: image/jpeg, image/png, image/webp",
-				});
-			}
-
-			// Extract base64 data
-			const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-
-			// Decode base64 to binary
-			let binaryData: Uint8Array;
-			try {
-				const binaryString = atob(base64Data);
-				binaryData = new Uint8Array(binaryString.length);
-				for (let i = 0; i < binaryString.length; i++) {
-					binaryData[i] = binaryString.charCodeAt(i);
-				}
-			} catch {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid base64 image data",
-				});
-			}
-
-			// Check file size
-			const approximateSize = (base64Data.length * 3) / 4;
-			if (approximateSize > MAX_AVATAR_SIZE) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Image too large. Maximum size is ${MAX_AVATAR_SIZE / 1024 / 1024}MB`,
-				});
-			}
-
-			// Generate key and upload to R2
-			const extension = getExtensionFromContentType(contentType);
-			const key = generateTeamLogoKey(organizationId, teamId, extension);
-
-			// Upload to R2 bucket
-			const bucket = userAssets.bucket;
-			await bucket.put(key, binaryData, {
-				httpMetadata: {
-					contentType,
-				},
+			const key = await storeTeamLogo({
+				bucket: userAssets.bucket,
+				organizationId,
+				teamId,
+				imageData,
 			});
 
 			// Delete old logo if exists
@@ -353,7 +526,7 @@ export const leagueTeamRouter = {
 				// Only delete if it starts with organization's path (safety check)
 				if (oldKey.startsWith(`organization/${organizationId}/`)) {
 					try {
-						await bucket.delete(oldKey);
+						await userAssets.bucket.delete(oldKey);
 					} catch {
 						// Ignore deletion errors - file might not exist
 					}

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+	Alert,
 	FlatList,
 	KeyboardAvoidingView,
 	Modal,
@@ -12,6 +14,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
+import { HeaderPillButton } from "@/components/nav/header-buttons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
@@ -35,13 +38,126 @@ function memberSummary(players: { name: string | null }[]) {
 	return `${firstNames.slice(0, -1).join(", ")} & ${firstNames[firstNames.length - 1]}`;
 }
 
-function EditTeamModal({
-	team,
-	isOpen,
+type TeamFormTarget = { mode: "create" } | { mode: "edit"; team: { id: string; name: string } };
+
+function TeamRoster({
+	teamId,
+	avatarHeaders,
+}: {
+	teamId: string;
+	avatarHeaders: Record<string, string> | undefined;
+}) {
+	const theme = useTheme();
+	const queryClient = useQueryClient();
+	const [search, setSearch] = useState("");
+	const [pendingPlayerId, setPendingPlayerId] = useState<string | null>(null);
+
+	const { data: roster = [], isLoading: rosterLoading } = useQuery({
+		queryKey: ["leagueTeam", "getPlayers", teamId],
+		queryFn: () => trpcClient.leagueTeam.getPlayers.query({ teamId }),
+	});
+	const { data: leaguePlayers = [] } = useQuery({
+		queryKey: ["player", "getAll"],
+		queryFn: () => trpcClient.player.getAll.query(),
+	});
+
+	const rosterIds = new Set(roster.map((p) => p.id));
+	const term = search.trim().toLowerCase();
+	const availablePlayers = term
+		? leaguePlayers
+				.filter((p) => !p.disabled && !rosterIds.has(p.id))
+				.filter((p) => p.name?.toLowerCase().includes(term))
+				.slice(0, 8)
+		: [];
+
+	const updateRoster = async (playerId: string, action: "add" | "remove") => {
+		if (pendingPlayerId) return;
+		setPendingPlayerId(playerId);
+		try {
+			if (action === "add") {
+				await trpcClient.leagueTeam.addPlayer.mutate({ teamId, playerId });
+				setSearch("");
+			} else {
+				await trpcClient.leagueTeam.removePlayer.mutate({ teamId, playerId });
+			}
+			await queryClient.invalidateQueries({ queryKey: ["leagueTeam"] });
+		} catch (err) {
+			Alert.alert("Error", err instanceof Error ? err.message : "Failed to update roster.");
+		} finally {
+			setPendingPlayerId(null);
+		}
+	};
+
+	return (
+		<View style={styles.roster}>
+			<ThemedText type="smallBold">Roster</ThemedText>
+			{rosterLoading ? (
+				<SkeletonListRow trailing={<Skeleton width={54} height={24} radius={7} />} />
+			) : roster.length === 0 ? (
+				<ThemedText type="small" themeColor="mutedForeground">
+					No players assigned to this team
+				</ThemedText>
+			) : (
+				roster.map((p) => (
+					<View key={p.id} style={styles.row}>
+						<Avatar name={p.name} image={getAvatarUri(p.image)} headers={avatarHeaders} size={32} />
+						<ThemedText style={styles.rowInfo} numberOfLines={1}>
+							{p.name}
+						</ThemedText>
+						<Button
+							variant="ghost"
+							size="sm"
+							loading={pendingPlayerId === p.id}
+							disabled={!!pendingPlayerId}
+							onPress={() => updateRoster(p.id, "remove")}
+						>
+							Remove
+						</Button>
+					</View>
+				))
+			)}
+			<Input
+				label="Add player"
+				placeholder="Search players"
+				value={search}
+				onChangeText={setSearch}
+				autoCapitalize="none"
+			/>
+			{availablePlayers.map((p) => (
+				<View key={p.id} style={styles.row}>
+					<Avatar name={p.name} image={getAvatarUri(p.image)} headers={avatarHeaders} size={32} />
+					<ThemedText style={styles.rowInfo} numberOfLines={1}>
+						{p.name}
+					</ThemedText>
+					<Button
+						variant="outline"
+						size="sm"
+						loading={pendingPlayerId === p.id}
+						disabled={!!pendingPlayerId}
+						onPress={() => updateRoster(p.id, "add")}
+					>
+						Add
+					</Button>
+				</View>
+			))}
+			{term && availablePlayers.length === 0 ? (
+				<ThemedText type="small" style={{ color: theme.mutedForeground }}>
+					No players to add
+				</ThemedText>
+			) : null}
+		</View>
+	);
+}
+
+function TeamFormModal({
+	target,
+	isEditor,
+	avatarHeaders,
 	onClose,
 }: {
-	team: { id: string; name: string } | null;
-	isOpen: boolean;
+	target: TeamFormTarget | null;
+	isEditor: boolean;
+	avatarHeaders: Record<string, string> | undefined;
 	onClose: () => void;
 }) {
 	const insets = useSafeAreaInsets();
@@ -51,15 +167,18 @@ function EditTeamModal({
 	const [submitted, setSubmitted] = useState(false);
 	const [apiError, setApiError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+	const team = target?.mode === "edit" ? target.team : null;
 
 	useEffect(() => {
-		if (isOpen && team) {
-			setName(team.name);
+		if (target) {
+			setName(target.mode === "edit" ? target.team.name : "");
 			setSubmitted(false);
 			setApiError("");
 			setIsSubmitting(false);
+			setIsDeleting(false);
 		}
-	}, [isOpen, team]);
+	}, [target]);
 
 	const nameError = !submitted
 		? undefined
@@ -72,12 +191,16 @@ function EditTeamModal({
 	const canSubmit = !isSubmitting && !!name.trim() && name.trim().length <= 100;
 
 	const onSubmit = async () => {
-		if (!team || isSubmitting) return;
+		if (!target || isSubmitting) return;
 		setSubmitted(true);
 		setApiError("");
 		setIsSubmitting(true);
 		try {
-			await trpcClient.leagueTeam.edit.mutate({ teamId: team.id, name: name.trim() });
+			if (team) {
+				await trpcClient.leagueTeam.edit.mutate({ teamId: team.id, name: name.trim() });
+			} else {
+				await trpcClient.leagueTeam.create.mutate({ name: name.trim() });
+			}
 			await queryClient.invalidateQueries({ queryKey: ["leagueTeam"] });
 			onClose();
 		} catch (err) {
@@ -87,8 +210,35 @@ function EditTeamModal({
 		}
 	};
 
+	const deleteTeam = async () => {
+		if (!team || isDeleting) return;
+		setIsDeleting(true);
+		setApiError("");
+		try {
+			await trpcClient.leagueTeam.delete.mutate({ teamId: team.id });
+			await queryClient.invalidateQueries({ queryKey: ["leagueTeam"] });
+			onClose();
+		} catch (err) {
+			setApiError(err instanceof Error ? err.message : "Failed to delete team.");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	const confirmDelete = () => {
+		if (!team) return;
+		Alert.alert(
+			"Delete team",
+			`"${team.name}" and its roster are permanently deleted. Teams with match history cannot be deleted.`,
+			[
+				{ text: "Cancel", style: "cancel" },
+				{ text: "Delete", style: "destructive", onPress: deleteTeam },
+			]
+		);
+	};
+
 	return (
-		<Modal visible={isOpen} animationType="slide" onRequestClose={onClose}>
+		<Modal visible={target !== null} animationType="slide" onRequestClose={onClose}>
 			<ThemedView style={styles.modalContainer}>
 				<KeyboardAvoidingView
 					behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -97,7 +247,7 @@ function EditTeamModal({
 					<View style={[styles.content, { paddingTop: insets.top + Spacing.three }]}>
 						<View style={styles.modalHeader}>
 							<ThemedText type="subtitle" style={styles.modalTitle}>
-								Edit Team
+								{team ? "Edit Team" : "Create Team"}
 							</ThemedText>
 							<ModalCloseButton onPress={onClose} />
 						</View>
@@ -123,6 +273,14 @@ function EditTeamModal({
 									{apiError}
 								</ThemedText>
 							) : null}
+							{team && isEditor ? (
+								<>
+									<TeamRoster teamId={team.id} avatarHeaders={avatarHeaders} />
+									<Button variant="ghost" onPress={confirmDelete} loading={isDeleting}>
+										Delete team
+									</Button>
+								</>
+							) : null}
 						</ScrollView>
 
 						<View style={[styles.modalActions, { paddingBottom: insets.bottom + Spacing.two }]}>
@@ -133,7 +291,13 @@ function EditTeamModal({
 								loading={isSubmitting}
 								disabled={!canSubmit}
 							>
-								{isSubmitting ? "Saving..." : "Save Changes"}
+								{isSubmitting
+									? team
+										? "Saving..."
+										: "Creating..."
+									: team
+										? "Save Changes"
+										: "Create Team"}
 							</Button>
 						</View>
 					</View>
@@ -151,7 +315,7 @@ const TEAM_FILTERS = [
 export default function TeamsScreen() {
 	const [teamView, setTeamView] = useState<"all" | "my">("all");
 	const [cookie, setCookie] = useState<string | undefined>();
-	const [editingTeam, setEditingTeam] = useState<{ id: string; name: string } | null>(null);
+	const [formTarget, setFormTarget] = useState<TeamFormTarget | null>(null);
 	const { data: activeMember } = authClient.useActiveMember();
 	const role = activeMember?.role;
 	const isEditor = role === "owner" || role === "editor";
@@ -191,6 +355,20 @@ export default function TeamsScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView edges={[]} style={styles.safeArea}>
+				<Stack.Screen
+					options={{
+						headerRight: isEditor
+							? () => (
+									<HeaderPillButton
+										icon={{ ios: "plus", android: "add", web: "add" }}
+										label="Team"
+										tone="glow"
+										onPress={() => setFormTarget({ mode: "create" })}
+									/>
+								)
+							: undefined,
+					}}
+				/>
 				{myPlayer ? (
 					<View style={styles.filter}>
 						<SegmentedControl options={TEAM_FILTERS} value={teamView} onChange={setTeamView} />
@@ -222,7 +400,9 @@ export default function TeamsScreen() {
 								<Button
 									variant="outline"
 									size="sm"
-									onPress={() => setEditingTeam({ id: item.id, name: item.name })}
+									onPress={() =>
+										setFormTarget({ mode: "edit", team: { id: item.id, name: item.name } })
+									}
 								>
 									Edit
 								</Button>
@@ -257,10 +437,11 @@ export default function TeamsScreen() {
 					}
 				/>
 			</SafeAreaView>
-			<EditTeamModal
-				team={editingTeam}
-				isOpen={editingTeam !== null}
-				onClose={() => setEditingTeam(null)}
+			<TeamFormModal
+				target={formTarget}
+				isEditor={isEditor}
+				avatarHeaders={avatarHeaders}
+				onClose={() => setFormTarget(null)}
 			/>
 		</ThemedView>
 	);
@@ -322,6 +503,10 @@ const styles = StyleSheet.create({
 	emptyBox: {
 		alignItems: "center",
 		gap: Spacing.three,
+	},
+	roster: {
+		gap: Spacing.two,
+		marginTop: Spacing.three,
 	},
 	modalHeader: {
 		flexDirection: "row",

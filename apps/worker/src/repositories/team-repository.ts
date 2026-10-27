@@ -2,6 +2,7 @@ import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "../db";
 import { user } from "../db/schema/auth-schema";
 import {
+	guest,
 	match,
 	matchTeam,
 	matchPlayer,
@@ -89,12 +90,13 @@ export const getTeamPlayersWithDetails = async ({
 		.select({
 			id: player.id,
 			userId: player.userId,
-			name: user.name,
+			name: sql<string>`COALESCE(${user.name}, ${guest.displayName})`,
 			image: user.image,
 		})
 		.from(leagueTeamPlayer)
 		.innerJoin(player, eq(leagueTeamPlayer.playerId, player.id))
-		.innerJoin(user, eq(player.userId, user.id))
+		.leftJoin(user, eq(player.userId, user.id))
+		.leftJoin(guest, eq(player.guestId, guest.id))
 		.where(eq(leagueTeamPlayer.leagueTeamId, teamId));
 };
 

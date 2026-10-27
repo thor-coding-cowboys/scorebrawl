@@ -31,7 +31,10 @@ Teams are a first-class concept (standings, profiles, rivalries) but management 
 - Deleting a team with match history is blocked or shows a clear warning
 - Permissions: only owner/editor (and team members for name) per existing `leagueTeam.edit` rule
 
-## Open questions / notes
+## Resolution
 
-- Deleting a team that has matches: what happens to historical records (soft-delete vs block)?
-- Should auto-created teams from lineups be mergeable/renamable into permanent teams?
+- `leagueTeam.create` (name + optional logo), `delete`, `addPlayer`, `removePlayer` added; all owner/editor only (`leagueEditorProcedure`). Rename stays on `leagueTeam.edit` (owner/editor + team members).
+- Delete is blocked with `PRECONDITION_FAILED` when the team has any `match_team` row; teams without history are hard-deleted (roster and `season_team` rows cascade). Soft-delete is out of scope.
+- Web: create dialog on the teams page; roster add/remove and delete (confirm dialog) on the team page.
+- Mobile: create from the teams header; roster add/remove and delete in the edit modal.
+- Pre-registering teams per season and merging auto-created teams stay open.
