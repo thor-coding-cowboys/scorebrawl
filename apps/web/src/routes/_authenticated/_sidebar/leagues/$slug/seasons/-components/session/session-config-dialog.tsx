@@ -269,8 +269,8 @@ export function SessionConfigDialog(props: SessionConfigDialogProps) {
 				replace: true,
 			});
 		},
-		onError: () => {
-			toast.error("Failed to start session");
+		onError: (error) => {
+			toast.error(error.message || "Failed to start session");
 		},
 	});
 

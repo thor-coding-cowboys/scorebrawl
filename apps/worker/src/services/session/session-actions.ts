@@ -211,13 +211,26 @@ export async function startSession(ctx: SessionActionContext, input: StartSessio
 		});
 	}
 
-	const active = await sessionRepository.getActiveSession({ db: ctx.db, seasonId: season.id });
-	if (active) {
-		if (!isSessionAutoCloseExpired(active.autoEndsAt)) {
-			throw new TRPCError({ code: "CONFLICT", message: "An active session already exists" });
-		}
-		await endActiveSession(ctx, { id: active.id, seasonSlug: season.slug });
+	const activeSessions = await sessionRepository.getActiveSessionsForLeague({
+		db: ctx.db,
+		leagueId: ctx.organization.id,
+	});
+
+	const liveSession = activeSessions.find(
+		(active) => !isSessionAutoCloseExpired(active.autoEndsAt)
+	);
+	if (liveSession) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `A session is already active in "${liveSession.seasonName}"`,
+		});
 	}
+
+	await Promise.all(
+		activeSessions.map((active) =>
+			endActiveSession(ctx, { id: active.id, seasonSlug: active.seasonSlug })
+		)
+	);
 
 	const seasonPlayerIds =
 		input.seasonPlayerIds ??

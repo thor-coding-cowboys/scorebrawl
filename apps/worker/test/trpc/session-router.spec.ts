@@ -59,7 +59,7 @@ describe("session router", () => {
 					maxConsecutiveGames: null,
 					seasonPlayerIds: seasonPlayers.map((p) => p.id),
 				})
-			).rejects.toThrow("active session");
+			).rejects.toThrow(`A session is already active in "${season.name}"`);
 		});
 	});
 
