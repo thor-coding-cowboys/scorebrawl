@@ -188,20 +188,3 @@
 @utility selected-glow-blue {
     box-shadow: 0 0 8px color-mix(in oklab, var(--glow-blue-solid) 30%, transparent);
 }
-
-
-.h-screen-safe {
-    height: 100vh;
-}
-
-@supports (height: 100cqh) {
-    .h-screen-safe {
-        height: 100cqh;
-    }
-}
-
-@supports (height: 100svh) {
-    .h-screen-safe {
-        height: 100svh;
-    }
-}
