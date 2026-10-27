@@ -80,6 +80,30 @@ describe("elo-individual-vs-team", () => {
 		expect(standing.find((p) => p.id === p0.id)?.matchCount).toBe(2);
 	});
 
+	it("keeps a 2-player side apart from a 3-player team that contains it", async () => {
+		const { client, season, seasonPlayers } = await createIndividualVsTeamSeason(5);
+		const [a, b, c, d, e] = seasonPlayers;
+
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 1,
+			awayScore: 0,
+			homeTeamPlayerIds: [a.id, b.id],
+			awayTeamPlayerIds: [c.id, d.id, e.id],
+		});
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 1,
+			awayScore: 0,
+			homeTeamPlayerIds: [c.id, d.id],
+			awayTeamPlayerIds: [a.id, b.id],
+		});
+
+		const teams = await client.seasonTeam.getStanding.query({ seasonSlug: season.slug });
+		expect(teams).toHaveLength(3);
+		expect(teams.map((t) => t.matchCount).sort()).toEqual([1, 1, 2]);
+	});
+
 	it("rejects a player on both sides", async () => {
 		const { client, season, seasonPlayers } = await createIndividualVsTeamSeason(3);
 		const [p0, p1] = seasonPlayers;

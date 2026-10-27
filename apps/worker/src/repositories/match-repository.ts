@@ -125,17 +125,23 @@ const getOrInsertTeam = async ({
 	now: Date;
 }): Promise<{ seasonTeamId: string; score: number }> => {
 	// Find team by matching all player IDs
+	const playerIds = players.map((p) => p.playerId);
 	const [teamIdResult] = await db
 		.select({ leagueTeamId: leagueTeamPlayer.leagueTeamId })
 		.from(leagueTeamPlayer)
 		.where(
 			inArray(
-				leagueTeamPlayer.playerId,
-				players.map((p) => p.playerId)
+				leagueTeamPlayer.leagueTeamId,
+				db
+					.select({ leagueTeamId: leagueTeamPlayer.leagueTeamId })
+					.from(leagueTeamPlayer)
+					.where(inArray(leagueTeamPlayer.playerId, playerIds))
 			)
 		)
 		.groupBy(leagueTeamPlayer.leagueTeamId)
-		.having(sql`COUNT(DISTINCT ${leagueTeamPlayer.playerId}) = ${players.length}`);
+		.having(
+			sql`COUNT(DISTINCT ${leagueTeamPlayer.playerId}) = ${players.length} AND SUM(CASE WHEN ${leagueTeamPlayer.playerId} IN ${playerIds} THEN 1 ELSE 0 END) = ${players.length}`
+		);
 
 	let leagueTeamId = teamIdResult?.leagueTeamId;
 
