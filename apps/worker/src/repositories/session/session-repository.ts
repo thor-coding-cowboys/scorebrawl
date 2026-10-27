@@ -250,7 +250,32 @@ export const getActiveSession = async ({ db, seasonId }: { db: DrizzleDB; season
 	return { ...session, players };
 };
 
-export const findExpiredActiveSession = async ({
+export const findExpiredSession = async ({
+	db,
+	sessionId,
+	now,
+}: {
+	db: DrizzleDB;
+	sessionId: string;
+	now: Date;
+}) => {
+	const [session] = await db
+		.select()
+		.from(gameSession)
+		.where(
+			and(
+				eq(gameSession.id, sessionId),
+				eq(gameSession.status, "active"),
+				isNotNull(gameSession.autoEndsAt),
+				lte(gameSession.autoEndsAt, now)
+			)
+		)
+		.limit(1);
+
+	return session ?? null;
+};
+
+export const findExpiredActiveSessions = async ({
 	db,
 	seasonId,
 	now,
@@ -259,7 +284,7 @@ export const findExpiredActiveSession = async ({
 	seasonId: string;
 	now: Date;
 }) => {
-	const [session] = await db
+	return db
 		.select()
 		.from(gameSession)
 		.where(
@@ -269,10 +294,7 @@ export const findExpiredActiveSession = async ({
 				isNotNull(gameSession.autoEndsAt),
 				lte(gameSession.autoEndsAt, now)
 			)
-		)
-		.limit(1);
-
-	return session ?? null;
+		);
 };
 
 export const getActiveSessionsForLeague = async ({
@@ -467,10 +489,10 @@ export const endSession = async ({ db, sessionId }: { db: DrizzleDB; sessionId: 
 	const [updated] = await db
 		.update(gameSession)
 		.set({ status: "ended", endedAt: now, updatedAt: now })
-		.where(eq(gameSession.id, sessionId))
+		.where(and(eq(gameSession.id, sessionId), eq(gameSession.status, "active")))
 		.returning();
 
-	return updated;
+	return updated ?? null;
 };
 
 export const extendSession = async ({ db, sessionId }: { db: DrizzleDB; sessionId: string }) => {

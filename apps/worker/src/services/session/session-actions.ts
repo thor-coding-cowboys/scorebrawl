@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { isSessionAutoCloseExpired } from "@coding-cowboys/scorebrawl-core/session";
 import type { HonoEnv } from "../../middleware/context";
 import type { DrizzleDB } from "../../db";
 import {
@@ -212,7 +213,10 @@ export async function startSession(ctx: SessionActionContext, input: StartSessio
 
 	const active = await sessionRepository.getActiveSession({ db: ctx.db, seasonId: season.id });
 	if (active) {
-		throw new TRPCError({ code: "CONFLICT", message: "An active session already exists" });
+		if (!isSessionAutoCloseExpired(active.autoEndsAt)) {
+			throw new TRPCError({ code: "CONFLICT", message: "An active session already exists" });
+		}
+		await endActiveSession(ctx, { id: active.id, seasonSlug: season.slug });
 	}
 
 	const seasonPlayerIds =
@@ -280,38 +284,78 @@ export async function endSession(
 ) {
 	const session = await resolveSession(ctx, leagueId, input.sessionId);
 
-	const ended = await sessionRepository.endSession({ db: ctx.db, sessionId: session.id });
+	return endActiveSession(ctx, session, ctx.user);
+}
 
+type EndableSession = { id: string; seasonSlug: string };
+type EndedSession = NonNullable<Awaited<ReturnType<typeof sessionRepository.endSession>>>;
+
+function broadcastSessionEnd(
+	ctx: SessionActionContext,
+	seasonSlug: string,
+	sessionRow: EndedSession,
+	actor?: { id: string; name: string }
+) {
 	ctx.waitUntil(
-		broadcastSeasonEvent(ctx.env, ctx.organization.slug, session.seasonSlug, {
+		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
 			type: "session:end",
-			data: { session: ended },
-			user: { id: ctx.user.id, name: ctx.user.name },
+			data: { session: sessionRow },
+			...(actor ? { user: actor } : {}),
 		})
 	);
+}
+
+async function endActiveSession(
+	ctx: SessionActionContext,
+	session: EndableSession,
+	actor?: { id: string; name: string }
+) {
+	const ended = await sessionRepository.endSession({ db: ctx.db, sessionId: session.id });
+
+	if (!ended) {
+		const existing = await sessionRepository.getSessionById({ db: ctx.db, sessionId: session.id });
+		if (!existing) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+		}
+		return existing;
+	}
+
+	broadcastSessionEnd(ctx, session.seasonSlug, ended, actor);
 
 	return ended;
 }
 
 export async function closeExpiredSession(
 	ctx: SessionActionContext,
-	{ seasonId, seasonSlug }: { seasonId: string; seasonSlug: string }
+	leagueId: string,
+	{ sessionId }: { sessionId: string }
 ) {
-	const expired = await sessionRepository.findExpiredActiveSession({
+	const session = await resolveSession(ctx, leagueId, sessionId);
+	const expired = await sessionRepository.findExpiredSession({
 		db: ctx.db,
-		seasonId,
+		sessionId: session.id,
 		now: new Date(),
 	});
 
 	if (!expired) return null;
 
-	const ended = await sessionRepository.endSession({ db: ctx.db, sessionId: expired.id });
+	return endActiveSession(ctx, session);
+}
 
-	ctx.waitUntil(
-		broadcastSeasonEvent(ctx.env, ctx.organization.slug, seasonSlug, {
-			type: "session:end",
-			data: { session: ended },
-		})
+export async function closeExpiredSessionsForSeason(
+	ctx: SessionActionContext,
+	{ seasonId, seasonSlug }: { seasonId: string; seasonSlug: string }
+) {
+	const expired = await sessionRepository.findExpiredActiveSessions({
+		db: ctx.db,
+		seasonId,
+		now: new Date(),
+	});
+
+	if (expired.length === 0) return [];
+
+	const ended = await Promise.all(
+		expired.map((session) => endActiveSession(ctx, { id: session.id, seasonSlug }))
 	);
 
 	return ended;
