@@ -4,11 +4,11 @@
 stand-ins for third-party APIs. We use it for the providers better-auth talks
 to, so dev and e2e never hit real GitHub/Google/Resend.
 
-| Service | URL                     | Used for                                     |
-| ------- | ----------------------- | -------------------------------------------- |
-| GitHub  | `http://localhost:4001` | GitHub OAuth sign-in                         |
-| Google  | `http://localhost:4002` | Google OAuth sign-in (OIDC discovery + PKCE) |
-| Resend  | `http://localhost:4008` | Invitation / guest-claim emails              |
+| Service | URL                     | Used for                                          |
+| ------- | ----------------------- | ------------------------------------------------- |
+| GitHub  | `http://localhost:4001` | GitHub OAuth sign-in                              |
+| Google  | `http://localhost:4002` | Google OAuth sign-in (PKCE, OIDC-shaped userinfo) |
+| Resend  | `http://localhost:4008` | Invitation / guest-claim emails                   |
 
 Seed users, OAuth client ids and redirect URIs live in
 [`emulate.config.yaml`](../../emulate.config.yaml). Ports are pinned there, so
@@ -60,9 +60,11 @@ The emulator also serves an inspector at `/` on each service port.
   (`https://github.com/login/oauth/...`, `https://accounts.google.com/...`).
   Provider ids stay `github` / `google`, so `signIn.social`, account linking and
   `trustedProviders` behave exactly as in production.
-- Google uses the emulator's OIDC discovery document, so ID tokens are verified
-  against the emulator's JWKS. GitHub is plain OAuth, so the provider maps
-  `/user` + `/user/emails` into a better-auth profile.
+- Both providers use explicit endpoints rather than `discoveryUrl`, so auth init
+  makes no network calls: a stale `EMULATE_*_URL` stays quiet and only fails at
+  sign-in. Google's OIDC-shaped profile (`sub`) and GitHub's `/user` +
+  `/user/emails` are mapped into better-auth profiles by hand, including
+  `emailVerified`.
 - Emails: the `resend` SDK reads `RESEND_BASE_URL` at module load; set it to the
   emulator to capture mail instead of sending it.
 

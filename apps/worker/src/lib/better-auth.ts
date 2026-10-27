@@ -83,11 +83,37 @@ function emulatedSocialProviders({
 		configs.push({
 			providerId: "google",
 			name: "Google",
-			discoveryUrl: `${googleUrl}/.well-known/openid-configuration`,
 			clientId: googleClientId,
 			clientSecret: googleClientSecret,
+			authorizationUrl: `${googleUrl}/o/oauth2/v2/auth`,
+			tokenUrl: `${googleUrl}/oauth2/token`,
+			userInfoUrl: `${googleUrl}/oauth2/v2/userinfo`,
 			scopes: ["openid", "email", "profile"],
 			pkce: true,
+			// Mapped by hand because the profile is OIDC-shaped (`sub`) while the
+			// provider is registered as plain OAuth. Explicit endpoints instead of
+			// `discoveryUrl` keep auth init free of network calls: a stale
+			// EMULATE_GOOGLE_URL then logs nothing and only fails at sign-in.
+			getUserInfo: async (tokens) => {
+				const response = await fetch(`${googleUrl}/oauth2/v2/userinfo`, {
+					headers: { Authorization: `Bearer ${tokens.accessToken}` },
+				});
+				if (!response.ok) return null;
+				const profile = (await response.json()) as {
+					sub: string;
+					email: string;
+					email_verified?: boolean;
+					name?: string;
+					picture?: string | null;
+				};
+				return {
+					id: profile.sub,
+					email: profile.email,
+					emailVerified: profile.email_verified ?? false,
+					name: profile.name ?? profile.email,
+					image: profile.picture ?? undefined,
+				};
+			},
 		});
 	}
 
