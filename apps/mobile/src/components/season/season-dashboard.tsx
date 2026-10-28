@@ -116,7 +116,11 @@ export function SeasonDashboard({ season }: { season: Season }) {
 					</View>
 
 					{season.closed ? (
-						<SeasonCeremony seasonSlug={seasonSlug} canStartNextSeason={canCreateSeasons} />
+						<SeasonCeremony
+							seasonSlug={seasonSlug}
+							seasonName={season.name}
+							canStartNextSeason={canCreateSeasons}
+						/>
 					) : null}
 
 					<DashboardCards seasonSlug={seasonSlug} />

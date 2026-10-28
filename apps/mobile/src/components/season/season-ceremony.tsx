@@ -1,16 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useId, useState, type ReactNode } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
 import { Avatar } from "@/components/avatar";
 import { CreateSeasonForm } from "@/components/create-season-form";
-import { DashboardCard } from "@/components/season/dashboard-cards";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
-import { CardGlow } from "@/components/ui/card-glow";
-import { SectionCard } from "@/components/ui/section-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
@@ -18,7 +16,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 
 type Summary = RouterOutput["season"]["getSummary"];
+type PlayerRef = Summary["champions"][number];
 type SymbolName = Parameters<typeof SymbolView>[0]["name"];
+type Theme = ReturnType<typeof useTheme>;
 
 interface PodiumEntry {
 	id: string;
@@ -27,64 +27,119 @@ interface PodiumEntry {
 	image: string | null;
 	score: number;
 	matchCount: number;
+	winCount: number;
+	lossCount: number;
+	drawCount: number;
 	winRate: number;
+	players?: { id: string; name: string; image: string | null }[];
 }
 
-const MEDAL: SymbolName = { ios: "medal.fill", android: "military_tech", web: "military_tech" };
-const CROWN: SymbolName = { ios: "crown.fill", android: "emoji_events", web: "emoji_events" };
+interface Moment {
+	key: string;
+	label: string;
+	icon: SymbolName;
+	accent: string;
+	value: string;
+	unit: string;
+	players: PlayerRef[];
+	caption: string;
+	detail?: string;
+}
 
-function Podium({ title, entries }: { title: string; entries: PodiumEntry[] }) {
-	const theme = useTheme();
-	const { headers } = useUserAvatar();
-	const medalColors: Record<number, string> = {
-		1: theme.glowAmberSolid,
-		2: theme.mutedForeground,
-		3: theme.glowRedSolid,
-	};
+const CROWN: SymbolName = { ios: "crown.fill", android: "emoji_events", web: "emoji_events" };
+const STEP_HEIGHT: Record<number, number> = { 1: 124, 2: 104, 3: 92 };
+const STEP_ORDER: Record<number, number> = { 1: 2, 2: 1, 3: 3 };
+
+const placeColor = (theme: Theme, rank: number) =>
+	rank === 1 ? theme.glowAmberSolid : rank === 2 ? theme.mutedForeground : theme.avatar6Text;
+
+const record = ({ winCount, drawCount, lossCount }: PodiumEntry) =>
+	drawCount > 0 ? `${winCount}-${drawCount}-${lossCount}` : `${winCount}-${lossCount}`;
+
+const names = (players: PlayerRef[]) => players.map((p) => p.name).join(" & ");
+
+function Eyebrow({ children, color }: { children: ReactNode; color?: string }) {
 	return (
-		<SectionCard title={title}>
-			{entries.map((entry) => (
-				<View
-					key={entry.id}
-					style={[
-						styles.podiumRow,
-						{ borderColor: entry.rank === 1 ? theme.glowAmberBorder : theme.border },
-					]}
-				>
-					<View style={styles.podiumRank}>
-						<SymbolView
-							name={MEDAL}
-							size={16}
-							tintColor={medalColors[entry.rank] ?? theme.mutedForeground}
-						/>
-						<ThemedText type="smallBold">#{entry.rank}</ThemedText>
-					</View>
-					<Avatar
-						name={entry.name}
-						image={getAvatarUri(entry.image)}
-						headers={headers}
-						size={entry.rank === 1 ? 44 : 36}
-					/>
-					<View style={styles.flex}>
-						<ThemedText type="smallBold" numberOfLines={1}>
-							{entry.name}
-						</ThemedText>
-						<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
-							{entry.matchCount} matches · {entry.winRate}% wins
-						</ThemedText>
-					</View>
-					<ThemedText style={styles.score}>{entry.score}</ThemedText>
-				</View>
-			))}
-		</SectionCard>
+		<ThemedText
+			themeColor="mutedForeground"
+			style={[styles.eyebrow, color ? { color } : null]}
+			numberOfLines={1}
+		>
+			{children}
+		</ThemedText>
 	);
 }
 
-function ChampionBanner({
+function AvatarStack({
+	players,
+	size,
+}: {
+	players: { id: string; name: string; image: string | null }[];
+	size: number;
+}) {
+	const { headers } = useUserAvatar();
+	return (
+		<View style={styles.avatarStack}>
+			{players.slice(0, 2).map((p) => (
+				<Avatar
+					key={p.id}
+					name={p.name}
+					image={getAvatarUri(p.image)}
+					headers={headers}
+					size={size}
+				/>
+			))}
+		</View>
+	);
+}
+
+function GradientFill({
+	color,
+	opacity = 0.16,
+	diagonal = false,
+}: {
+	color: string;
+	opacity?: number;
+	diagonal?: boolean;
+}) {
+	const id = useId();
+	return (
+		<Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+			<Defs>
+				<LinearGradient id={id} x1="0" y1="0" x2={diagonal ? "1" : "0"} y2="1">
+					<Stop offset="0" stopColor={color} stopOpacity={opacity} />
+					<Stop offset="1" stopColor={color} stopOpacity={0} />
+				</LinearGradient>
+			</Defs>
+			<Rect width="100%" height="100%" fill={`url(#${id})`} />
+		</Svg>
+	);
+}
+
+function HeroStat({
+	label,
+	value,
+	style,
+}: {
+	label: string;
+	value: string;
+	style?: StyleProp<ViewStyle>;
+}) {
+	return (
+		<View style={[styles.heroStat, style]}>
+			<Eyebrow>{label}</Eyebrow>
+			<ThemedText style={styles.heroStatValue}>{value}</ThemedText>
+		</View>
+	);
+}
+
+function ChampionHero({
+	seasonName,
 	summary,
 	canStartNextSeason,
 	onStartNextSeason,
 }: {
+	seasonName: string;
 	summary: Summary;
 	canStartNextSeason: boolean;
 	onStartNextSeason: () => void;
@@ -93,157 +148,297 @@ function ChampionBanner({
 	const { headers } = useUserAvatar();
 	const champion = summary.podium[0];
 	const hasChampion = summary.champions.length > 0 && !!champion;
+	const isTie = summary.champions.length > 1;
+	const divider = { borderColor: theme.border };
+
 	return (
 		<View
-			style={[styles.banner, { backgroundColor: theme.card, borderColor: theme.glowAmberBorder }]}
+			style={[styles.card, { backgroundColor: theme.card, borderColor: theme.glowAmberBorder }]}
 		>
-			<CardGlow color={theme.glowAmberSolid} />
-			<View style={styles.bannerRow}>
-				{champion ? (
-					<Avatar
-						name={champion.name}
-						image={getAvatarUri(champion.image)}
-						headers={headers}
-						size={56}
-					/>
-				) : null}
-				<View style={styles.flex}>
-					<View style={styles.bannerLabel}>
-						<SymbolView name={CROWN} size={14} tintColor={theme.glowAmberText} />
-						<ThemedText type="smallBold" style={{ color: theme.glowAmberText }}>
-							{summary.champions.length > 1 ? "SEASON CO-CHAMPIONS" : "SEASON CHAMPION"}
-						</ThemedText>
+			<GradientFill color={theme.glowAmberSolid} opacity={0.14} diagonal />
+			<View style={styles.heroBody}>
+				{hasChampion ? (
+					<View style={styles.heroAvatar}>
+						{isTie ? (
+							<AvatarStack players={summary.champions} size={56} />
+						) : (
+							<View style={[styles.heroAvatarRing, { borderColor: theme.glowAmberSolid }]}>
+								<Avatar
+									name={champion.name}
+									image={getAvatarUri(champion.image)}
+									headers={headers}
+									size={60}
+								/>
+							</View>
+						)}
+						<View style={[styles.crownBadge, { backgroundColor: theme.glowAmberSolid }]}>
+							<SymbolView name={CROWN} size={12} tintColor="#ffffff" />
+						</View>
 					</View>
-					<ThemedText style={styles.championName} numberOfLines={2}>
-						{hasChampion ? summary.champions.map((c) => c.name).join(" & ") : "No champion"}
+				) : null}
+				<View style={styles.heroText}>
+					<Eyebrow color={theme.glowAmberText}>
+						{seasonName} · {isTie ? "Co-champions" : "Champion"}
+					</Eyebrow>
+					<ThemedText style={styles.championName}>
+						{hasChampion ? names(summary.champions) : "No champion crowned"}
 					</ThemedText>
-					<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
-						{hasChampion
-							? `${champion.score} points · ${champion.matchCount} matches · ${champion.winRate}% win rate`
-							: "No matches were played this season"}
-					</ThemedText>
+					{!hasChampion ? (
+						<ThemedText type="small" themeColor="mutedForeground">
+							No matches were played this season.
+						</ThemedText>
+					) : null}
 				</View>
+				{canStartNextSeason ? (
+					<Button
+						fullWidth
+						icon={{ ios: "plus", android: "add", web: "add" }}
+						onPress={onStartNextSeason}
+					>
+						Start next season
+					</Button>
+				) : null}
 			</View>
-			{canStartNextSeason ? (
-				<Button
-					size="sm"
-					icon={{ ios: "plus", android: "add", web: "add" }}
-					onPress={onStartNextSeason}
-				>
-					Start next season
-				</Button>
+			{hasChampion ? (
+				<View style={[styles.heroStats, { borderColor: theme.glowAmberBorder }]}>
+					<View style={styles.heroStatsRow}>
+						<HeroStat label="Points" value={String(champion.score)} />
+						<HeroStat label="Record" value={record(champion)} style={[styles.leftRule, divider]} />
+					</View>
+					<View style={[styles.heroStatsRow, styles.topRule, divider]}>
+						<HeroStat label="Win rate" value={`${champion.winRate}%`} />
+						<HeroStat
+							label="Matches"
+							value={String(champion.matchCount)}
+							style={[styles.leftRule, divider]}
+						/>
+					</View>
+				</View>
 			) : null}
 		</View>
 	);
 }
 
-function Highlights({ highlights }: { highlights: Summary["highlights"] }) {
+function PodiumColumn({ entry }: { entry: PodiumEntry }) {
 	const theme = useTheme();
 	const { headers } = useUserAvatar();
-	const { longestWinStreak, biggestUpset, biggestGain, mostMatches } = highlights;
-	const items = [
-		longestWinStreak && {
-			title: "Longest Streak",
-			icon: { ios: "flame.fill", android: "local_fire_department", web: "local_fire_department" },
-			accent: theme.glowRedSolid,
-			player: longestWinStreak.player,
-			label: longestWinStreak.player.name,
-			detail: `${longestWinStreak.length} wins in a row`,
-		},
-		biggestUpset && {
-			title: "Biggest Upset",
-			icon: { ios: "bolt.fill", android: "bolt", web: "bolt" },
-			accent: theme.glowPurpleSolid,
-			player: biggestUpset.winners[0],
-			label: biggestUpset.winners.map((p) => p.name).join(" & "),
-			detail: `${biggestUpset.winnerScore}–${biggestUpset.loserScore} vs ${biggestUpset.losers.map((p) => p.name).join(" & ")} (${Math.round(biggestUpset.winnerOdds * 100)}% odds)`,
-		},
-		biggestGain && {
-			title: "Biggest Gain",
-			icon: { ios: "chart.line.uptrend.xyaxis", android: "trending_up", web: "trending_up" },
-			accent: theme.glowEmeraldSolid,
-			player: biggestGain.player,
-			label: biggestGain.player.name,
-			detail: `+${biggestGain.gain} points in one match`,
-		},
-		mostMatches && {
-			title: "Most Matches",
-			icon: { ios: "gamecontroller.fill", android: "sports_esports", web: "sports_esports" },
-			accent: theme.glowBlueSolid,
-			player: mostMatches.player,
-			label: mostMatches.player.name,
-			detail: `${mostMatches.matchCount} matches played`,
-		},
-	].filter((item) => !!item);
-
-	if (items.length === 0) return null;
-
+	const color = placeColor(theme, entry.rank);
+	const isWinner = entry.rank === 1;
 	return (
-		<View style={styles.highlights}>
-			<ThemedText type="smallBold" themeColor="mutedForeground">
-				Biggest moments
-			</ThemedText>
-			{items.map((item) => (
-				<DashboardCard
-					key={item.title}
-					title={item.title}
-					icon={item.icon as SymbolName}
-					accent={item.accent}
-				>
-					<View style={styles.highlightRow}>
-						{item.player ? (
-							<Avatar
-								name={item.player.name}
-								image={getAvatarUri(item.player.image)}
-								headers={headers}
-								size={36}
-							/>
-						) : null}
-						<View style={styles.flex}>
-							<ThemedText type="smallBold" numberOfLines={1}>
-								{item.label}
-							</ThemedText>
-							<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
-								{item.detail}
-							</ThemedText>
-						</View>
-					</View>
-				</DashboardCard>
-			))}
+		<View style={styles.podiumColumn}>
+			<View style={styles.podiumIdentity}>
+				{entry.players && entry.players.length > 0 ? (
+					<AvatarStack players={entry.players} size={isWinner ? 36 : 30} />
+				) : (
+					<Avatar
+						name={entry.name}
+						image={getAvatarUri(entry.image)}
+						headers={headers}
+						size={isWinner ? 52 : 40}
+					/>
+				)}
+				<ThemedText style={styles.podiumName} numberOfLines={3}>
+					{entry.name}
+				</ThemedText>
+			</View>
+			<View
+				style={[
+					styles.step,
+					{
+						height: STEP_HEIGHT[entry.rank] ?? 72,
+						borderColor: theme.border,
+						borderTopColor: color,
+					},
+				]}
+			>
+				<GradientFill color={color} />
+				<ThemedText style={[styles.stepRank, { color }]}>{entry.rank}</ThemedText>
+				<ThemedText style={styles.stepScore}>{entry.score}</ThemedText>
+				<ThemedText themeColor="mutedForeground" style={styles.stepMeta} numberOfLines={1}>
+					{record(entry)} · {entry.winRate}%
+				</ThemedText>
+			</View>
 		</View>
 	);
 }
 
+function Podium({ title, entries }: { title: string; entries: PodiumEntry[] }) {
+	const theme = useTheme();
+	return (
+		<View
+			style={[
+				styles.card,
+				styles.padded,
+				{ backgroundColor: theme.card, borderColor: theme.border },
+			]}
+		>
+			<View style={styles.headingRow}>
+				<Eyebrow>{title}</Eyebrow>
+				<ThemedText themeColor="mutedForeground" style={styles.legend}>
+					pts · W-L · win %
+				</ThemedText>
+			</View>
+			<View style={styles.podiumRow}>
+				{[...entries]
+					.sort((a, b) => (STEP_ORDER[a.rank] ?? 3) - (STEP_ORDER[b.rank] ?? 3))
+					.map((entry) => (
+						<PodiumColumn key={entry.id} entry={entry} />
+					))}
+			</View>
+		</View>
+	);
+}
+
+function MomentTile({ moment }: { moment: Moment }) {
+	const theme = useTheme();
+	return (
+		<View
+			style={[
+				styles.card,
+				styles.padded,
+				styles.moment,
+				{ backgroundColor: theme.card, borderColor: theme.border },
+			]}
+		>
+			<View style={styles.headingRow}>
+				<Eyebrow>{moment.label}</Eyebrow>
+				<View style={[styles.momentIcon, { backgroundColor: `${moment.accent}1a` }]}>
+					<SymbolView name={moment.icon} size={14} tintColor={moment.accent} />
+				</View>
+			</View>
+			<View style={styles.momentValueRow}>
+				<ThemedText style={styles.momentValue}>{moment.value}</ThemedText>
+				<ThemedText type="small" themeColor="mutedForeground" style={styles.caption}>
+					{moment.unit}
+				</ThemedText>
+			</View>
+			<View style={[styles.momentFooter, { borderColor: theme.border }]}>
+				<AvatarStack players={moment.players} size={24} />
+				<View style={styles.flex}>
+					<ThemedText type="smallBold" style={styles.caption} numberOfLines={2}>
+						{moment.caption}
+					</ThemedText>
+					{moment.detail ? (
+						<ThemedText
+							type="small"
+							themeColor="mutedForeground"
+							style={styles.caption}
+							numberOfLines={2}
+						>
+							{moment.detail}
+						</ThemedText>
+					) : null}
+				</View>
+			</View>
+		</View>
+	);
+}
+
+function buildMoments(
+	theme: Theme,
+	{ longestWinStreak, biggestUpset, biggestGain, mostMatches }: Summary["highlights"]
+) {
+	const moments: Moment[] = [];
+	if (longestWinStreak) {
+		moments.push({
+			key: "streak",
+			label: "Longest streak",
+			icon: { ios: "flame.fill", android: "local_fire_department", web: "local_fire_department" },
+			accent: theme.glowRedSolid,
+			value: String(longestWinStreak.length),
+			unit: "wins in a row",
+			players: [longestWinStreak.player],
+			caption: longestWinStreak.player.name,
+		});
+	}
+	if (biggestUpset) {
+		moments.push({
+			key: "upset",
+			label: "Biggest upset",
+			icon: { ios: "bolt.fill", android: "bolt", web: "bolt" },
+			accent: theme.glowPurpleSolid,
+			value: `${Math.round(biggestUpset.winnerOdds * 100)}%`,
+			unit: "win odds",
+			players: biggestUpset.winners,
+			caption: names(biggestUpset.winners),
+			detail: `${biggestUpset.winnerScore}–${biggestUpset.loserScore} vs ${names(biggestUpset.losers)}`,
+		});
+	}
+	if (biggestGain) {
+		moments.push({
+			key: "gain",
+			label: "Biggest swing",
+			icon: { ios: "chart.line.uptrend.xyaxis", android: "trending_up", web: "trending_up" },
+			accent: theme.glowEmeraldSolid,
+			value: `+${biggestGain.gain}`,
+			unit: "pts in one match",
+			players: [biggestGain.player],
+			caption: biggestGain.player.name,
+		});
+	}
+	if (mostMatches) {
+		moments.push({
+			key: "matches",
+			label: "Iron player",
+			icon: { ios: "gamecontroller.fill", android: "sports_esports", web: "sports_esports" },
+			accent: theme.glowBlueSolid,
+			value: String(mostMatches.matchCount),
+			unit: "matches played",
+			players: [mostMatches.player],
+			caption: mostMatches.player.name,
+		});
+	}
+	return moments;
+}
+
 export function SeasonCeremony({
 	seasonSlug,
+	seasonName,
 	canStartNextSeason,
 }: {
 	seasonSlug: string;
+	seasonName: string;
 	canStartNextSeason: boolean;
 }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const { data: summary } = useQuery(trpc.season.getSummary.queryOptions({ seasonSlug }));
 
-	if (!summary) return <Skeleton width="100%" height={120} />;
+	if (!summary) return <Skeleton width="100%" height={180} />;
+
+	const moments = buildMoments(theme, summary.highlights);
 
 	return (
 		<View style={styles.container}>
-			<ChampionBanner
+			<ChampionHero
+				seasonName={seasonName}
 				summary={summary}
 				canStartNextSeason={canStartNextSeason}
 				onStartNextSeason={() => setIsCreateOpen(true)}
 			/>
 			{summary.matchCount > 0 ? (
 				<>
-					<Podium title="Player Podium" entries={summary.podium} />
+					<Podium title="Player podium" entries={summary.podium} />
 					{summary.teamPodium.length > 0 ? (
 						<Podium
-							title="Team Podium"
+							title="Team podium"
 							entries={summary.teamPodium.map((t) => ({ ...t, image: t.logo }))}
 						/>
 					) : null}
-					<Highlights highlights={summary.highlights} />
+					{moments.length > 0 ? (
+						<View style={styles.moments}>
+							<View style={styles.headingRow}>
+								<Eyebrow>Season highlights</Eyebrow>
+								<ThemedText themeColor="mutedForeground" style={styles.legend}>
+									{summary.matchCount} matches · {summary.playerCount} players
+								</ThemedText>
+							</View>
+							{moments.map((moment) => (
+								<MomentTile key={moment.key} moment={moment} />
+							))}
+						</View>
+					) : null}
 				</>
 			) : null}
 			{canStartNextSeason ? (
@@ -268,56 +463,171 @@ const styles = StyleSheet.create({
 	},
 	flex: {
 		flex: 1,
+		minWidth: 0,
+	},
+	card: {
+		borderWidth: StyleSheet.hairlineWidth,
+		overflow: "hidden",
+	},
+	padded: {
+		padding: Spacing.three,
+		gap: Spacing.three,
+	},
+	eyebrow: {
+		fontSize: 10,
+		lineHeight: 14,
+		fontWeight: "700",
+		letterSpacing: 1.4,
+		textTransform: "uppercase",
+	},
+	legend: {
+		fontSize: 10,
+		lineHeight: 14,
 	},
 	caption: {
 		fontSize: 12,
 		lineHeight: 16,
 	},
-	banner: {
-		borderWidth: 1,
+	headingRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: Spacing.two,
+	},
+	heroBody: {
 		padding: Spacing.three,
 		gap: Spacing.three,
-		overflow: "hidden",
 	},
-	bannerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
+	heroAvatar: {
+		alignSelf: "flex-start",
 	},
-	bannerLabel: {
-		flexDirection: "row",
+	heroAvatarRing: {
+		borderWidth: 2,
+		borderRadius: 10,
+		padding: 2,
+	},
+	crownBadge: {
+		position: "absolute",
+		top: -8,
+		right: -8,
+		width: 22,
+		height: 22,
+		borderRadius: 11,
 		alignItems: "center",
+		justifyContent: "center",
+	},
+	heroText: {
 		gap: Spacing.one,
 	},
 	championName: {
-		fontSize: 22,
-		lineHeight: 28,
+		fontSize: 26,
+		lineHeight: 32,
 		fontWeight: "700",
+	},
+	heroStats: {
+		borderTopWidth: StyleSheet.hairlineWidth,
+	},
+	heroStatsRow: {
+		flexDirection: "row",
+	},
+	heroStat: {
+		flex: 1,
+		gap: 4,
+		paddingHorizontal: Spacing.three,
+		paddingVertical: Spacing.two + 2,
+	},
+	heroStatValue: {
+		fontSize: 18,
+		lineHeight: 22,
+		fontWeight: "700",
+		fontVariant: ["tabular-nums"],
+	},
+	leftRule: {
+		borderLeftWidth: StyleSheet.hairlineWidth,
+	},
+	topRule: {
+		borderTopWidth: StyleSheet.hairlineWidth,
+	},
+	avatarStack: {
+		flexDirection: "row",
+		gap: 4,
 	},
 	podiumRow: {
 		flexDirection: "row",
+		alignItems: "flex-end",
+		gap: Spacing.two,
+	},
+	podiumColumn: {
+		flex: 1,
+		minWidth: 0,
+		alignItems: "center",
+	},
+	podiumIdentity: {
 		alignItems: "center",
 		gap: Spacing.two,
-		borderWidth: StyleSheet.hairlineWidth,
-		padding: Spacing.two,
-		marginBottom: Spacing.two,
+		paddingBottom: Spacing.two,
+		width: "100%",
 	},
-	podiumRank: {
-		flexDirection: "row",
+	podiumName: {
+		fontSize: 11,
+		lineHeight: 14,
+		fontWeight: "700",
+		textAlign: "center",
+	},
+	step: {
+		width: "100%",
 		alignItems: "center",
 		gap: 2,
-		width: 44,
+		paddingTop: Spacing.two,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderTopWidth: 2,
+		overflow: "hidden",
 	},
-	score: {
-		fontSize: 18,
+	stepRank: {
+		fontSize: 28,
+		lineHeight: 32,
+		fontWeight: "900",
+	},
+	stepScore: {
+		fontSize: 14,
+		lineHeight: 18,
 		fontWeight: "700",
+		fontVariant: ["tabular-nums"],
 	},
-	highlights: {
+	stepMeta: {
+		fontSize: 10,
+		lineHeight: 13,
+		fontVariant: ["tabular-nums"],
+	},
+	moments: {
 		gap: Spacing.two,
 	},
-	highlightRow: {
+	moment: {
+		gap: Spacing.two,
+	},
+	momentIcon: {
+		width: 26,
+		height: 26,
+		borderRadius: 6,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	momentValueRow: {
+		flexDirection: "row",
+		alignItems: "baseline",
+		gap: 6,
+	},
+	momentValue: {
+		fontSize: 28,
+		lineHeight: 34,
+		fontWeight: "700",
+		fontVariant: ["tabular-nums"],
+	},
+	momentFooter: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: Spacing.two,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		paddingTop: Spacing.two,
 	},
 });
