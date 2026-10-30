@@ -3,7 +3,7 @@ import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDb } from "../../src/db/index";
-import { playerAchievement } from "../../src/db/schema/league-schema";
+import { gameSession, playerAchievement } from "../../src/db/schema/league-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
@@ -112,6 +112,37 @@ describe("season router", () => {
 		});
 
 		expect(result.closed).toBe(true);
+	});
+
+	it("ends active sessions when season is closed", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Session Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+		const seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });
+		const session = await client.session.create.mutate({
+			seasonSlug: season.slug,
+			rotationMode: "winner-stays",
+			teamSize: 1,
+			maxConsecutiveGames: null,
+			seasonPlayerIds: seasonPlayers.map((p) => p.id),
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const [row] = await getDb(env.DB)
+			.select({ status: gameSession.status, endedAt: gameSession.endedAt })
+			.from(gameSession)
+			.where(eq(gameSession.id, session.id));
+		expect(row.status).toBe("ended");
+		expect(row.endedAt).toBeInstanceOf(Date);
 	});
 
 	it("checks slug availability within league scope", async () => {
