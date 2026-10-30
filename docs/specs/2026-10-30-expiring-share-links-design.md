@@ -219,8 +219,10 @@ Rate limit: `env.PUBLIC_API_RATE_LIMITER` with key
 `share:ip:<sha256(cf-connecting-ip || x-forwarded-for || "unknown")>`, ceiling
 60/min. No IP is stored in plain text.
 
-`view_count` / `last_viewed_at` update via `ctx.waitUntil` and a best-effort
-write; a failed counter never fails the request.
+`view_count` / `last_viewed_at` update inline, awaited and wrapped in
+`try/catch`: a failed counter never fails the request, but the write must not
+outlive the request (the Workers test runner treats late I/O as cross-request
+I/O and hangs).
 
 ## Shared page
 

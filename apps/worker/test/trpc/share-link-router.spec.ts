@@ -84,6 +84,9 @@ describe("share links", () => {
 		expect(body.standings[0]).not.toHaveProperty("isGuest");
 		expect(body.standings[0]).not.toHaveProperty("playerId");
 		expect(body.recentMatches).toEqual([]);
+
+		const afterView = await client.shareLink.list.query({ seasonSlug });
+		expect(afterView[0].viewCount).toBe(1);
 	});
 
 	it("stores only the token hash", async () => {

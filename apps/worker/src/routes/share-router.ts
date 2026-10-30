@@ -101,11 +101,13 @@ export const sharePublicRouter = new Hono<HonoEnv>()
 			form: row.form,
 		}));
 
-		c.executionCtx.waitUntil(
-			shareLinkRepository
-				.recordShareLinkView({ db: c.var.db, id: link.id })
-				.catch((error) => console.error("[Share] Failed to record view", error))
-		);
+		// Await the counter so the write never outlives the request context, which
+		// the Workers test runner treats as cross-request I/O.
+		try {
+			await shareLinkRepository.recordShareLinkView({ db: c.var.db, id: link.id });
+		} catch (error) {
+			console.error("[Share] Failed to record view", error);
+		}
 
 		return c.json({
 			link: { createdAt: link.createdAt, expiresAt: link.expiresAt },
