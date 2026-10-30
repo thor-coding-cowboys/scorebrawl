@@ -369,7 +369,7 @@ function MomentCard({
 							<ThemedText
 								themeColor="mutedForeground"
 								style={styles.momentDetail}
-								numberOfLines={2}
+								numberOfLines={3}
 							>
 								{detail}
 							</ThemedText>

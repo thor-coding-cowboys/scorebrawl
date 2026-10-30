@@ -328,7 +328,7 @@ function MomentCard({
 						</span>
 						{detail && (
 							<span
-								className="line-clamp-2 text-[11px] leading-snug text-muted-foreground"
+								className="line-clamp-3 text-[11px] leading-snug text-muted-foreground"
 								title={detail}
 							>
 								{detail}
