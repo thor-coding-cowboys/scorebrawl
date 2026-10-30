@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial — `season_winner` achievement is granted on close (PR #661, idempotently, to all players tied at top score). The ceremony/podium view is not started.
+Done — `season_winner` granted on close (#661); ceremony view with champion banner, player/team podium, biggest moments and "Start next season" CTA on web and mobile (#753). Plan: [`03-season-close-ceremony-plan.md`](03-season-close-ceremony-plan.md).
 
 ## Summary
 
