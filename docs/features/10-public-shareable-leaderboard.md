@@ -24,7 +24,7 @@ turns bragging into a funnel without exposing a league forever.
 - `share_link` table: hashed 128-bit token, league + season scoped, `expires_at`
   (nullable = never), `revoked_at`, `created_by`, `view_count`, `last_viewed_at`
 - `league_setting.allow_public_shares` — league-level, owner-only, default `false`;
-  turning it off revokes every active link
+  toggled in the season share dialog, and turning it off revokes every active link
 - Explicit creation from the season page: `1h` / `24h` / `7d` / `30d` / `never`
   (default `7d`); duration is immutable, change = revoke + new link
 - Link shown once at creation (only the hash is stored); per-season management

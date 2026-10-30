@@ -50,9 +50,10 @@ have that same link stop working, with the page clearly saying so.
 
 ## Flows
 
-1. **Enable.** Owner opens league settings (edit-league dialog), turns on
-   "Allow public share links". Off by default; confirmation states that turning
-   it off later revokes every active link.
+1. **Enable.** Owner opens the share dialog from a season and turns on
+   "Allow public share links" (the toggle lives there, next to the links it
+   controls). Off by default; the copy states that turning it off later revokes
+   every active link.
 2. **Create.** Owner or editor opens a season, presses _Share standings_, picks a
    duration (`1h / 24h / 7d / 30d / never`, default `7d`). If sharing is still
    off, the dialog offers to enable it inline (owner only) instead of dead-ending.
@@ -152,8 +153,10 @@ Pipeline (no N+1; three queries max):
    `league_setting`. Validate the path `leagueId`/`seasonId` against the token
    row and return `404` on any mismatch, so a token cannot be repurposed by
    editing the URL.
-2. If not found → `404`. If `revoked_at` → `410 revoked`. If `expires_at <= now`
-   → `410 expired`. If `allow_public_shares` is false → `403 sharing_disabled`.
+2. If not found → `404`. If `allow_public_shares` is false →
+   `403 sharing_disabled` (a disabled league shows the kill switch, not
+   per-link history). If `revoked_at` → `410 revoked`. If `expires_at <= now` →
+   `410 expired`.
 3. `seasonPlayerRepository.getStanding({ seasonId })` for rows (existing single
    raw SQL query), sorted with `sortStandings` and ranked server-side.
 4. `matchRepository.getBySeasonId({ seasonId, limit: 5, offset: 0 })` for recent
