@@ -20,7 +20,9 @@ test.describe("Mobile season ceremony", () => {
 		await setSeasonClosed(page, false);
 	});
 
-	test("shows the season recap hero on a closed season", async ({ page }) => {
+	test("shows the season recap hero and its full-screen view on a closed season", async ({
+		page,
+	}) => {
 		await page.goto(`/seasons/${SEED_SEASON.slug}`);
 
 		const hero = page.getByTestId("season-ceremony");
@@ -29,5 +31,12 @@ test.describe("Mobile season ceremony", () => {
 		await expect(hero.getByText("Champion", { exact: true })).toBeVisible();
 		await expect(hero.getByText("Start next season")).toBeVisible();
 		await expect(hero.getByRole("button", { name: /Go to slide/ })).not.toHaveCount(0);
+
+		await hero.getByTestId("recap-full-screen-button").click();
+		const fullScreen = page.getByTestId("season-recap-full-screen");
+		await expect(fullScreen).toBeVisible();
+		await expect(fullScreen.getByText("By the numbers")).toBeAttached();
+		await fullScreen.getByRole("button", { name: "Close" }).click();
+		await expect(fullScreen).toBeHidden();
 	});
 });

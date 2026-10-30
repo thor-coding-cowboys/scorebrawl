@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+	Modal,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -11,14 +12,19 @@ import {
 	type NativeScrollEvent,
 	type NativeSyntheticEvent,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
 import { Avatar } from "@/components/avatar";
 import { CreateSeasonForm } from "@/components/create-season-form";
 import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/button";
+import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spacing } from "@/constants/theme";
+import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
+import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 import { formatDate } from "@coding-cowboys/scorebrawl-core/league";
 import { FORM_COLORS } from "@coding-cowboys/scorebrawl-core/presentation";
@@ -27,6 +33,8 @@ type Summary = RouterOutput["season"]["getSummary"];
 type PlayerRef = Summary["champions"][number];
 type Standing = Summary["podium"][number];
 type SymbolName = Parameters<typeof SymbolView>[0]["name"];
+type Theme = ReturnType<typeof useTheme>;
+type Point = [number, number];
 
 interface SeasonInfo {
 	name: string;
@@ -51,23 +59,10 @@ interface Slide {
 	content: ReactNode;
 }
 
-const INK = {
-	background: "#09090b",
-	card: "rgba(255,255,255,0.04)",
-	border: "rgba(255,255,255,0.1)",
-	text: "#fafafa",
-	muted: "#a1a1aa",
-	dim: "#71717a",
-	gold: "#fcd34d",
-	goldDeep: "#f59e0b",
-	silver: "#e4e4e7",
-	bronze: "#fb923c",
-	fuchsia: "#c026d3",
-} as const;
-
 const SLIDE_GAP = Spacing.three;
 const SLIDE_HEIGHT = 340;
-const GUTTER = Spacing.three;
+const GUTTER = Spacing.three + 4;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MAX_WIDTH: Record<SlideWidth, { ratio: number; max: number }> = {
 	wide: { ratio: 0.86, max: 440 },
@@ -75,15 +70,15 @@ const MAX_WIDTH: Record<SlideWidth, { ratio: number; max: number }> = {
 	narrow: { ratio: 0.78, max: 280 },
 };
 
-const MEDAL_COLOR: Record<number, string> = { 1: INK.gold, 2: INK.silver, 3: INK.bronze };
 const STEP_HEIGHT: Record<number, number> = { 1: 112, 2: 80, 3: 58 };
+
+const medalColor = (theme: Theme, rank: number) =>
+	rank === 1 ? theme.glowAmberSolid : rank === 2 ? theme.mutedForeground : theme.avatar6Text;
 
 const names = (players: PlayerRef[]) => players.map((p) => p.name).join(" & ");
 
 const record = ({ winCount, drawCount, lossCount }: Standing) =>
 	drawCount > 0 ? `${winCount}-${drawCount}-${lossCount}` : `${winCount}-${lossCount}`;
-
-type Point = [number, number];
 
 function Gradient({
 	from,
@@ -120,9 +115,13 @@ function Gradient({
 	);
 }
 
-function Eyebrow({ children, color = INK.muted }: { children: ReactNode; color?: string }) {
+function Eyebrow({ children, color }: { children: ReactNode; color?: string }) {
 	return (
-		<ThemedText style={[styles.eyebrow, { color }]} numberOfLines={1}>
+		<ThemedText
+			themeColor="mutedForeground"
+			style={[styles.eyebrow, color ? { color } : null]}
+			numberOfLines={1}
+		>
 			{children}
 		</ThemedText>
 	);
@@ -152,6 +151,7 @@ function AvatarPair({
 }
 
 function ChampionSlide({ summary }: { summary: Summary }) {
+	const theme = useTheme();
 	const { headers } = useUserAvatar();
 	const champion = summary.podium[0];
 	const isTie = summary.champions.length > 1;
@@ -161,7 +161,7 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 			<View style={styles.centered}>
 				<Eyebrow>Champion</Eyebrow>
 				<ThemedText style={styles.championName}>No champion crowned</ThemedText>
-				<ThemedText style={[styles.caption, { color: INK.muted }]}>
+				<ThemedText themeColor="mutedForeground" style={styles.caption}>
 					No matches were played this season.
 				</ThemedText>
 			</View>
@@ -182,18 +182,23 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 				from={[1, 0]}
 				to={[0, 1]}
 				stops={[
-					{ color: INK.goldDeep, opacity: 0.32, offset: 0 },
-					{ color: INK.goldDeep, opacity: 0, offset: 0.6 },
+					{ color: theme.glowAmberSolid, opacity: 0.28, offset: 0 },
+					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.6 },
 				]}
 			/>
 			<View style={styles.slideBody}>
-				<View style={[styles.chip, { borderColor: "rgba(252,211,77,0.3)" }]}>
+				<View
+					style={[
+						styles.chip,
+						{ borderColor: theme.glowAmberBorder, backgroundColor: theme.glowAmberBackground },
+					]}
+				>
 					<SymbolView
 						name={{ ios: "crown.fill", android: "emoji_events", web: "emoji_events" }}
 						size={11}
-						tintColor={INK.gold}
+						tintColor={theme.glowAmberText}
 					/>
-					<ThemedText style={[styles.chipText, { color: INK.gold }]}>
+					<ThemedText style={[styles.chipText, { color: theme.glowAmberText }]}>
 						{isTie ? "Co-champions" : "Champion"}
 					</ThemedText>
 				</View>
@@ -202,7 +207,7 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 					{isTie ? (
 						<AvatarPair players={summary.champions} size={48} />
 					) : (
-						<View style={styles.championRing}>
+						<View style={[styles.championRing, { borderColor: theme.glowAmberSolid }]}>
 							<Avatar
 								name={champion.name}
 								image={getAvatarUri(champion.image)}
@@ -217,7 +222,9 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 						</ThemedText>
 						{!isTie && champion.form.length > 0 ? (
 							<View style={styles.formRow}>
-								<ThemedText style={[styles.microLabel, { color: INK.dim }]}>Form</ThemedText>
+								<ThemedText themeColor="mutedForeground" style={styles.microLabel}>
+									Form
+								</ThemedText>
 								{[...champion.form].reverse().map((result, i) => (
 									<View
 										key={`${result}-${String(i)}`}
@@ -231,18 +238,23 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 
 				<ThemedText style={styles.story}>{story}</ThemedText>
 
-				<View style={styles.statStrip}>
+				<View
+					style={[styles.statStrip, { borderColor: theme.border, backgroundColor: theme.muted }]}
+				>
 					{[
 						{ label: "Points", value: String(champion.score) },
 						{ label: "Record", value: record(champion) },
 						{ label: "Win rate", value: `${champion.winRate}%` },
 						{ label: "Matches", value: String(champion.matchCount) },
 					].map((stat, i) => (
-						<View key={stat.label} style={[styles.stat, i > 0 && styles.statRule]}>
+						<View
+							key={stat.label}
+							style={[styles.stat, i > 0 && [styles.statRule, { borderLeftColor: theme.border }]]}
+						>
 							<ThemedText style={styles.statValue} numberOfLines={1}>
 								{stat.value}
 							</ThemedText>
-							<ThemedText style={[styles.microLabel, { color: INK.dim }]} numberOfLines={1}>
+							<ThemedText themeColor="mutedForeground" style={styles.microLabel} numberOfLines={1}>
 								{stat.label}
 							</ThemedText>
 						</View>
@@ -254,6 +266,7 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 }
 
 function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[] }) {
+	const theme = useTheme();
 	const { headers } = useUserAvatar();
 	const ordered = [2, 1, 3]
 		.map((rank) => entries.find((e) => e.rank === rank))
@@ -264,15 +277,15 @@ function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[]
 				from={[0, 0]}
 				to={[0, 1]}
 				stops={[
-					{ color: INK.goldDeep, opacity: 0, offset: 0.4 },
-					{ color: INK.goldDeep, opacity: 0.14, offset: 1 },
+					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.4 },
+					{ color: theme.glowAmberSolid, opacity: 0.12, offset: 1 },
 				]}
 			/>
 			<View style={styles.slideBody}>
 				<Eyebrow>{title}</Eyebrow>
 				<View style={styles.podiumRow}>
 					{ordered.map((entry) => {
-						const color = MEDAL_COLOR[entry.rank] ?? INK.bronze;
+						const color = medalColor(theme, entry.rank);
 						const isWinner = entry.rank === 1;
 						return (
 							<View key={entry.id} style={styles.podiumColumn}>
@@ -299,7 +312,7 @@ function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[]
 										from={[0, 0]}
 										to={[0, 1]}
 										stops={[
-											{ color, opacity: 0.5, offset: 0 },
+											{ color, opacity: 0.4, offset: 0 },
 											{ color, opacity: 0, offset: 1 },
 										]}
 									/>
@@ -319,6 +332,7 @@ function MomentSlide({
 	label,
 	icon,
 	accent,
+	glow,
 	value,
 	unit,
 	players,
@@ -328,43 +342,49 @@ function MomentSlide({
 	label: string;
 	icon: SymbolName;
 	accent: string;
+	glow: string;
 	value: string;
 	unit: string;
 	players: PlayerRef[];
 	caption: string;
 	detail?: string;
 }) {
+	const theme = useTheme();
 	return (
 		<>
 			<Gradient
 				from={[1, 0]}
 				to={[0, 1]}
 				stops={[
-					{ color: accent, opacity: 0.26, offset: 0 },
-					{ color: accent, opacity: 0, offset: 0.55 },
+					{ color: glow, opacity: 0.22, offset: 0 },
+					{ color: glow, opacity: 0, offset: 0.55 },
 				]}
 			/>
 			<View style={styles.slideBody}>
 				<View style={styles.slideHeader}>
 					<Eyebrow>{label}</Eyebrow>
-					<View style={styles.iconChip}>
-						<SymbolView name={icon} size={15} tintColor={accent} />
-					</View>
+					<SymbolView name={icon} size={16} tintColor={accent} />
 				</View>
 				<View style={styles.momentValueBlock}>
 					<ThemedText style={[styles.momentValue, { color: accent }]} numberOfLines={1}>
 						{value}
 					</ThemedText>
-					<ThemedText style={[styles.caption, { color: INK.muted }]}>{unit}</ThemedText>
+					<ThemedText themeColor="mutedForeground" style={styles.caption}>
+						{unit}
+					</ThemedText>
 				</View>
-				<View style={styles.momentFooter}>
+				<View style={[styles.momentFooter, { borderTopColor: theme.border }]}>
 					<AvatarPair players={players} size={26} />
 					<View style={styles.flex}>
 						<ThemedText style={styles.momentCaption} numberOfLines={2}>
 							{caption}
 						</ThemedText>
 						{detail ? (
-							<ThemedText style={[styles.momentDetail, { color: INK.dim }]} numberOfLines={2}>
+							<ThemedText
+								themeColor="mutedForeground"
+								style={styles.momentDetail}
+								numberOfLines={2}
+							>
 								{detail}
 							</ThemedText>
 						) : null}
@@ -375,9 +395,8 @@ function MomentSlide({
 	);
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInfo }) {
+	const theme = useTheme();
 	const [champion, runnerUp] = summary.podium;
 	const rows: { label: string; value: string }[] = [
 		{ label: "Matches played", value: String(summary.matchCount) },
@@ -401,16 +420,24 @@ function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInf
 				from={[0, 0]}
 				to={[1, 1]}
 				stops={[
-					{ color: "#38bdf8", opacity: 0, offset: 0.45 },
-					{ color: "#38bdf8", opacity: 0.18, offset: 1 },
+					{ color: theme.glowBlueSolid, opacity: 0, offset: 0.45 },
+					{ color: theme.glowBlueSolid, opacity: 0.14, offset: 1 },
 				]}
 			/>
 			<View style={styles.slideBody}>
 				<Eyebrow>By the numbers</Eyebrow>
 				<View style={styles.numbers}>
 					{rows.map((row, i) => (
-						<View key={row.label} style={[styles.numberRow, i > 0 && styles.numberRule]}>
-							<ThemedText style={[styles.caption, { color: INK.muted }]}>{row.label}</ThemedText>
+						<View
+							key={row.label}
+							style={[
+								styles.numberRow,
+								i > 0 && [styles.numberRule, { borderTopColor: theme.border }],
+							]}
+						>
+							<ThemedText themeColor="mutedForeground" style={styles.caption}>
+								{row.label}
+							</ThemedText>
 							<ThemedText style={styles.numberValue}>{row.value}</ThemedText>
 						</View>
 					))}
@@ -420,7 +447,7 @@ function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInf
 	);
 }
 
-function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
+function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[] {
 	const slides: Slide[] = [
 		{ key: "champion", width: "wide", content: <ChampionSlide summary={summary} /> },
 	];
@@ -462,7 +489,8 @@ function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
 						android: "local_fire_department",
 						web: "local_fire_department",
 					}}
-					accent="#fda4af"
+					accent={theme.glowRedText}
+					glow={theme.glowRedSolid}
 					value={String(longestWinStreak.length)}
 					unit="wins in a row"
 					players={[longestWinStreak.player]}
@@ -479,7 +507,8 @@ function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
 				<MomentSlide
 					label="Biggest upset"
 					icon={{ ios: "bolt.fill", android: "bolt", web: "bolt" }}
-					accent="#c4b5fd"
+					accent={theme.glowPurpleText}
+					glow={theme.glowPurpleSolid}
 					value={`${Math.round(biggestUpset.winnerOdds * 100)}%`}
 					unit="chance to win — and they did"
 					players={biggestUpset.winners}
@@ -497,7 +526,8 @@ function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
 				<MomentSlide
 					label="Biggest swing"
 					icon={{ ios: "chart.line.uptrend.xyaxis", android: "trending_up", web: "trending_up" }}
-					accent="#6ee7b7"
+					accent={theme.glowEmeraldText}
+					glow={theme.glowEmeraldSolid}
 					value={`+${biggestGain.gain}`}
 					unit="points in a single match"
 					players={[biggestGain.player]}
@@ -514,7 +544,8 @@ function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
 				<MomentSlide
 					label="Iron player"
 					icon={{ ios: "gamecontroller.fill", android: "sports_esports", web: "sports_esports" }}
-					accent="#7dd3fc"
+					accent={theme.glowBlueText}
+					glow={theme.glowBlueSolid}
 					value={String(mostMatches.matchCount)}
 					unit="matches played"
 					players={[mostMatches.player]}
@@ -531,6 +562,58 @@ function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
 	return slides;
 }
 
+function Backdrop() {
+	const theme = useTheme();
+	return (
+		<>
+			<Gradient
+				from={[0, 0]}
+				to={[1, 1]}
+				stops={[
+					{ color: theme.glowAmberSolid, opacity: 0.2, offset: 0 },
+					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.45 },
+				]}
+			/>
+			<Gradient
+				from={[1, 1]}
+				to={[0, 0]}
+				stops={[
+					{ color: theme.glowPinkSolid, opacity: 0.12, offset: 0 },
+					{ color: theme.glowPinkSolid, opacity: 0, offset: 0.5 },
+				]}
+			/>
+		</>
+	);
+}
+
+function RecapHeader({
+	season,
+	summary,
+	actions,
+}: {
+	season: SeasonInfo;
+	summary: Summary;
+	actions: ReactNode;
+}) {
+	const theme = useTheme();
+	const dateRange = `${formatDate(season.startDate)}${season.endDate ? ` – ${formatDate(season.endDate)}` : ""}`;
+	return (
+		<View style={styles.header}>
+			<View style={styles.recapLabel}>
+				<View style={[styles.recapDot, { backgroundColor: theme.glowAmberSolid }]} />
+				<Eyebrow color={theme.glowAmberText}>Season recap</Eyebrow>
+			</View>
+			<ThemedText style={styles.seasonName} numberOfLines={2}>
+				{season.name}
+			</ThemedText>
+			<ThemedText themeColor="mutedForeground" style={styles.caption}>
+				{dateRange} · {summary.matchCount} matches · {summary.playerCount} players
+			</ThemedText>
+			<View style={styles.actions}>{actions}</View>
+		</View>
+	);
+}
+
 export function SeasonCeremony({
 	seasonSlug,
 	season,
@@ -541,13 +624,19 @@ export function SeasonCeremony({
 	canStartNextSeason: boolean;
 }) {
 	const trpc = useTRPC();
+	const theme = useTheme();
+	const insets = useSafeAreaInsets();
 	const scrollRef = useRef<ScrollView>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
 	const [active, setActive] = useState(0);
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
+	const [isFullScreen, setIsFullScreen] = useState(false);
 	const { data: summary } = useQuery(trpc.season.getSummary.queryOptions({ seasonSlug }));
 
-	const slides = useMemo(() => (summary ? buildSlides(summary, season) : []), [summary, season]);
+	const slides = useMemo(
+		() => (summary ? buildSlides(summary, season, theme) : []),
+		[summary, season, theme]
+	);
 	const widths = slides.map(({ width }) =>
 		Math.min(Math.round(containerWidth * MAX_WIDTH[width].ratio), MAX_WIDTH[width].max)
 	);
@@ -560,8 +649,7 @@ export function SeasonCeremony({
 
 	const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
-		const atEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 4;
-		if (atEnd) {
+		if (contentOffset.x + layoutMeasurement.width >= contentSize.width - 4) {
 			setActive(slides.length - 1);
 			return;
 		}
@@ -574,107 +662,137 @@ export function SeasonCeremony({
 
 	if (!summary) return <Skeleton width="100%" height={520} />;
 
-	const dateRange = `${formatDate(season.startDate)}${season.endDate ? ` – ${formatDate(season.endDate)}` : ""}`;
+	const startNextSeason = canStartNextSeason ? (
+		<Button
+			variant="glow"
+			size="sm"
+			icon={{ ios: "plus", android: "add", web: "add" }}
+			onPress={() => {
+				setIsFullScreen(false);
+				setIsCreateOpen(true);
+			}}
+		>
+			Start next season
+		</Button>
+	) : null;
+
+	const slideFrame = { backgroundColor: theme.background, borderColor: theme.border };
 
 	return (
-		<View style={styles.hero} onLayout={onLayout} testID="season-ceremony">
-			<Gradient
-				from={[0, 0]}
-				to={[1, 1]}
-				stops={[
-					{ color: INK.goldDeep, opacity: 0.3, offset: 0 },
-					{ color: INK.goldDeep, opacity: 0, offset: 0.45 },
-				]}
-			/>
-			<Gradient
-				from={[1, 1]}
-				to={[0, 0]}
-				stops={[
-					{ color: INK.fuchsia, opacity: 0.22, offset: 0 },
-					{ color: INK.fuchsia, opacity: 0, offset: 0.5 },
-				]}
-			/>
+		<>
+			<View
+				style={[styles.hero, { backgroundColor: theme.card, borderColor: theme.border }]}
+				onLayout={onLayout}
+				testID="season-ceremony"
+			>
+				<Backdrop />
+				<RecapHeader
+					season={season}
+					summary={summary}
+					actions={
+						<>
+							{startNextSeason}
+							<Button
+								variant="outline"
+								size="sm"
+								icon={{
+									ios: "arrow.up.left.and.arrow.down.right",
+									android: "fullscreen",
+									web: "fullscreen",
+								}}
+								onPress={() => setIsFullScreen(true)}
+								testID="recap-full-screen-button"
+							>
+								Full screen
+							</Button>
+						</>
+					}
+				/>
 
-			<View style={styles.header}>
-				<View style={styles.recapLabel}>
-					<View style={styles.recapDot} />
-					<Eyebrow color="rgba(253,230,138,0.85)">Season recap</Eyebrow>
-				</View>
-				<ThemedText style={styles.seasonName} numberOfLines={2}>
-					{season.name}
-				</ThemedText>
-				<ThemedText style={[styles.caption, { color: INK.muted }]}>
-					{dateRange} · {summary.matchCount} matches · {summary.playerCount} players
-				</ThemedText>
-				{canStartNextSeason ? (
-					<Pressable
-						accessibilityRole="button"
-						onPress={() => setIsCreateOpen(true)}
-						style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+				{containerWidth > 0 ? (
+					<ScrollView
+						ref={scrollRef}
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						snapToOffsets={offsets}
+						decelerationRate="fast"
+						disableIntervalMomentum
+						onScroll={onScroll}
+						scrollEventThrottle={32}
+						contentContainerStyle={styles.track}
 					>
-						<SymbolView
-							name={{ ios: "plus", android: "add", web: "add" }}
-							size={14}
-							tintColor={INK.background}
-						/>
-						<ThemedText style={styles.ctaText}>Start next season</ThemedText>
-					</Pressable>
-				) : null}
-			</View>
+						{slides.map((slide, index) => (
+							<View
+								key={slide.key}
+								style={[styles.slide, slideFrame, { width: widths[index] }]}
+								accessibilityLabel={`${index + 1} of ${slides.length}`}
+							>
+								{slide.content}
+							</View>
+						))}
+					</ScrollView>
+				) : (
+					<View style={{ height: SLIDE_HEIGHT }} />
+				)}
 
-			{containerWidth > 0 ? (
-				<ScrollView
-					ref={scrollRef}
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					snapToOffsets={offsets}
-					snapToEnd={false}
-					decelerationRate="fast"
-					disableIntervalMomentum
-					onScroll={onScroll}
-					scrollEventThrottle={32}
-					contentContainerStyle={styles.track}
-				>
+				<View style={styles.progress}>
 					{slides.map((slide, index) => (
-						<View
+						<Pressable
 							key={slide.key}
-							style={[styles.slide, { width: widths[index] }]}
-							accessibilityLabel={`${index + 1} of ${slides.length}`}
+							accessibilityRole="button"
+							accessibilityLabel={`Go to slide ${index + 1}`}
+							onPress={() => goTo(index)}
+							hitSlop={8}
+							style={styles.progressHit}
 						>
-							{slide.content}
-						</View>
+							<View
+								style={[
+									styles.progressBar,
+									{
+										backgroundColor:
+											index === active
+												? theme.glowAmberSolid
+												: index < active
+													? theme.mutedForeground
+													: theme.border,
+									},
+								]}
+							/>
+						</Pressable>
 					))}
-				</ScrollView>
-			) : (
-				<View style={{ height: SLIDE_HEIGHT }} />
-			)}
-
-			<View style={styles.progress}>
-				{slides.map((slide, index) => (
-					<Pressable
-						key={slide.key}
-						accessibilityRole="button"
-						accessibilityLabel={`Go to slide ${index + 1}`}
-						onPress={() => goTo(index)}
-						hitSlop={8}
-						style={styles.progressHit}
-					>
-						<View
-							style={[
-								styles.progressBar,
-								{
-									backgroundColor:
-										index === active
-											? INK.gold
-											: index < active
-												? "rgba(255,255,255,0.4)"
-												: "rgba(255,255,255,0.15)",
-								},
-							]}
-						/>
-					</Pressable>
-				))}
+				</View>
 			</View>
+
+			<Modal
+				visible={isFullScreen}
+				animationType="slide"
+				onRequestClose={() => setIsFullScreen(false)}
+			>
+				<ThemedView style={styles.fullScreen} testID="season-recap-full-screen">
+					<Backdrop />
+					<ScrollView
+						contentContainerStyle={[
+							styles.fullScreenContent,
+							{
+								paddingTop: insets.top + Spacing.three,
+								paddingBottom: insets.bottom + Spacing.five,
+							},
+						]}
+					>
+						<View style={styles.fullScreenClose}>
+							<ModalCloseButton onPress={() => setIsFullScreen(false)} />
+						</View>
+						<RecapHeader season={season} summary={summary} actions={startNextSeason} />
+						<View style={styles.fullScreenSlides}>
+							{slides.map((slide) => (
+								<View key={slide.key} style={[styles.slide, slideFrame]}>
+									{slide.content}
+								</View>
+							))}
+						</View>
+					</ScrollView>
+				</ThemedView>
+			</Modal>
 
 			{canStartNextSeason ? (
 				<CreateSeasonForm
@@ -688,7 +806,7 @@ export function SeasonCeremony({
 					}
 				/>
 			) : null}
-		</View>
+		</>
 	);
 }
 
@@ -698,14 +816,11 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 	},
 	hero: {
-		backgroundColor: INK.background,
-		borderRadius: 18,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: INK.border,
 		overflow: "hidden",
 	},
 	header: {
-		paddingHorizontal: GUTTER + 4,
+		paddingHorizontal: GUTTER,
 		paddingTop: Spacing.four,
 		gap: Spacing.two,
 	},
@@ -718,45 +833,27 @@ const styles = StyleSheet.create({
 		width: 7,
 		height: 7,
 		borderRadius: 4,
-		backgroundColor: INK.goldDeep,
 	},
 	seasonName: {
-		color: INK.text,
 		fontSize: 34,
 		lineHeight: 38,
 		fontWeight: "900",
 		letterSpacing: -1,
 	},
-	cta: {
-		alignSelf: "flex-start",
+	actions: {
 		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
+		flexWrap: "wrap",
+		gap: Spacing.two,
 		marginTop: Spacing.one,
-		paddingHorizontal: Spacing.three,
-		height: 38,
-		borderRadius: 19,
-		backgroundColor: INK.gold,
-	},
-	ctaText: {
-		color: INK.background,
-		fontSize: 13,
-		fontWeight: "700",
-	},
-	pressed: {
-		opacity: 0.75,
 	},
 	track: {
-		paddingHorizontal: GUTTER + 4,
+		paddingHorizontal: GUTTER,
 		paddingTop: Spacing.three,
 		gap: SLIDE_GAP,
 	},
 	slide: {
 		height: SLIDE_HEIGHT,
-		borderRadius: 16,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: INK.border,
-		backgroundColor: INK.card,
 		overflow: "hidden",
 	},
 	slideBody: {
@@ -797,10 +894,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 5,
 		paddingHorizontal: 10,
-		paddingVertical: 4,
+		paddingVertical: 3,
 		borderRadius: 999,
 		borderWidth: 1,
-		backgroundColor: "rgba(252,211,77,0.12)",
 	},
 	chipText: {
 		fontSize: 10,
@@ -817,12 +913,10 @@ const styles = StyleSheet.create({
 	},
 	championRing: {
 		borderWidth: 2,
-		borderColor: INK.gold,
-		borderRadius: 12,
+		borderRadius: 10,
 		padding: 2,
 	},
 	championName: {
-		color: INK.text,
 		fontSize: 24,
 		lineHeight: 27,
 		fontWeight: "900",
@@ -840,18 +934,15 @@ const styles = StyleSheet.create({
 		borderRadius: 4,
 	},
 	story: {
-		color: "#d4d4d8",
 		fontSize: 13,
 		lineHeight: 19,
 		marginTop: Spacing.three,
+		opacity: 0.85,
 	},
 	statStrip: {
 		marginTop: "auto",
 		flexDirection: "row",
-		borderRadius: 12,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: INK.border,
-		backgroundColor: "rgba(255,255,255,0.04)",
 		paddingVertical: Spacing.two + 2,
 	},
 	stat: {
@@ -862,10 +953,8 @@ const styles = StyleSheet.create({
 	},
 	statRule: {
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: INK.border,
 	},
 	statValue: {
-		color: INK.text,
 		fontSize: 15,
 		lineHeight: 19,
 		fontWeight: "800",
@@ -888,7 +977,6 @@ const styles = StyleSheet.create({
 		gap: 6,
 	},
 	podiumName: {
-		color: INK.text,
 		fontSize: 11,
 		lineHeight: 14,
 		fontWeight: "700",
@@ -900,8 +988,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		paddingTop: 6,
 		borderTopWidth: 2,
-		borderTopLeftRadius: 8,
-		borderTopRightRadius: 8,
 		overflow: "hidden",
 	},
 	stepRank: {
@@ -910,21 +996,10 @@ const styles = StyleSheet.create({
 		fontWeight: "900",
 	},
 	stepScore: {
-		color: INK.silver,
 		fontSize: 11,
 		lineHeight: 14,
 		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
-	},
-	iconChip: {
-		width: 30,
-		height: 30,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: INK.border,
-		backgroundColor: "rgba(255,255,255,0.06)",
 	},
 	momentValueBlock: {
 		marginTop: Spacing.four,
@@ -943,11 +1018,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.two + 2,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: INK.border,
 		paddingTop: Spacing.three,
 	},
 	momentCaption: {
-		color: INK.text,
 		fontSize: 12,
 		lineHeight: 16,
 		fontWeight: "700",
@@ -968,10 +1041,8 @@ const styles = StyleSheet.create({
 	},
 	numberRule: {
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: INK.border,
 	},
 	numberValue: {
-		color: INK.text,
 		fontSize: 22,
 		lineHeight: 26,
 		fontWeight: "900",
@@ -980,7 +1051,7 @@ const styles = StyleSheet.create({
 	progress: {
 		flexDirection: "row",
 		gap: 6,
-		paddingHorizontal: GUTTER + 4,
+		paddingHorizontal: GUTTER,
 		paddingTop: Spacing.three,
 		paddingBottom: Spacing.four,
 	},
@@ -990,6 +1061,22 @@ const styles = StyleSheet.create({
 	},
 	progressBar: {
 		height: 3,
-		borderRadius: 2,
+	},
+	fullScreen: {
+		flex: 1,
+	},
+	fullScreenContent: {
+		width: "100%",
+		maxWidth: MaxContentWidth,
+		alignSelf: "center",
+	},
+	fullScreenClose: {
+		alignItems: "flex-end",
+		paddingHorizontal: GUTTER,
+	},
+	fullScreenSlides: {
+		paddingHorizontal: GUTTER,
+		paddingTop: Spacing.four,
+		gap: Spacing.three,
 	},
 });
