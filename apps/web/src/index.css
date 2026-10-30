@@ -158,6 +158,11 @@
     background-image: radial-gradient(circle at top right, var(--glow-pink-radial), transparent 60%);
 }
 
+/* Ambient page glow: a single soft pool behind a public shared page. */
+@utility page-glow {
+    background-image: radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--glow-purple-solid) 22%, transparent), transparent 68%);
+}
+
 @utility card-halo-purple {
     box-shadow: 0 0 120px 60px color-mix(in oklab, var(--glow-purple-solid) 15%, transparent);
 }

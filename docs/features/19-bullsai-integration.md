@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 (ScoreBrawl side) implemented on `feat/bullsai-oauth-integration`. Remaining: BullsAI-side work (#328) and Phase 2–3.
+Phase 1 (ScoreBrawl side) shipped in #663: OAuth provider, `POST /api/v1/leagues/:leagueId/seasons/:seasonId/matches`, participant identity resolution, admin OAuth-client UI. Remaining: BullsAI-side work (#328) and Phase 2–3.
 
 ## Summary
 

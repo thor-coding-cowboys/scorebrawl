@@ -14,7 +14,7 @@ import {
 	sortStandings,
 	winPct,
 } from "@coding-cowboys/scorebrawl-core/presentation";
-import { FormBar } from "./form-bar";
+import { FormBar } from "@/components/standings/form-bar";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";

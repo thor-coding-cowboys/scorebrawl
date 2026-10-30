@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
-import { Add01Icon, PlayIcon } from "@hugeicons/core-free-icons";
+import { Add01Icon, PlayIcon, Share01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "../-components/season/dashboard-cards";
@@ -20,6 +20,7 @@ import { CreateOneVnGameDialog } from "../-components/match/create-one-vn-game-d
 import { WeeklyPerformers } from "../-components/season/weekly-performers";
 import { SessionHistory } from "../-components/session/session-history";
 import { SessionConfigDialog } from "../-components/session/session-config-dialog";
+import { ShareStandingsDialog } from "../-components/share/share-standings-dialog";
 import { z } from "zod";
 
 const seasonDashboardSearchSchema = z.object({
@@ -71,6 +72,9 @@ function SeasonDashboardPage() {
 		enabled: !!season,
 	});
 
+	const canShare = role === "owner" || role === "editor";
+	const [isShareOpen, setIsShareOpen] = useState(false);
+
 	const { addMatch, startSession } = Route.useSearch();
 	const isCreateMatchOpen = addMatch === true;
 	const setIsCreateMatchOpen = (open: boolean) => {
@@ -100,6 +104,18 @@ function SeasonDashboardPage() {
 				]}
 				rightContent={
 					<div className="flex items-center gap-2">
+						{canShare && (
+							<Button
+								size="sm"
+								variant="ghost"
+								className="gap-1.5"
+								onClick={() => setIsShareOpen(true)}
+								data-testid="share-standings-button"
+							>
+								<HugeiconsIcon icon={Share01Icon} className="size-3.5" />
+								Share
+							</Button>
+						)}
 						{canCreateMatches &&
 							!isSeasonLocked &&
 							season?.scoreType !== "1-v-n-elo" &&
@@ -206,6 +222,13 @@ function SeasonDashboardPage() {
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
 					seasonId={seasonId}
+					seasonSlug={seasonSlug}
+				/>
+			)}
+			{canShare && (
+				<ShareStandingsDialog
+					isOpen={isShareOpen}
+					onClose={() => setIsShareOpen(false)}
 					seasonSlug={seasonSlug}
 				/>
 			)}
