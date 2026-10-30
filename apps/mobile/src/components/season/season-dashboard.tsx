@@ -118,7 +118,7 @@ export function SeasonDashboard({ season }: { season: Season }) {
 					{season.closed ? (
 						<SeasonCeremony
 							seasonSlug={seasonSlug}
-							seasonName={season.name}
+							season={season}
 							canStartNextSeason={canCreateSeasons}
 						/>
 					) : null}

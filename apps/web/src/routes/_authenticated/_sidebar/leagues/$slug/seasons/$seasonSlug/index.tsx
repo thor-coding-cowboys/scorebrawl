@@ -152,7 +152,7 @@ function SeasonDashboardPage() {
 				{season?.closed && (
 					<SeasonCeremony
 						seasonSlug={seasonSlug}
-						seasonName={season.name}
+						season={season}
 						leagueSlug={slug}
 						canStartNextSeason={canCreateSeasons}
 					/>

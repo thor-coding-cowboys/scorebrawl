@@ -1,9 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type ReactNode,
+} from "react";
 import {
 	Add01Icon,
-	ChampionIcon,
+	ArrowLeft01Icon,
+	ArrowRight01Icon,
 	ChartIncreaseIcon,
 	CrownIcon,
 	FireIcon,
@@ -11,10 +19,10 @@ import {
 	GameController01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { formatDate } from "@coding-cowboys/scorebrawl-core/league";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PlayerAvatarGroupInline } from "@/components/ui/player-avatar-group";
+import { FormDots } from "@/components/ui/form-dots";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -22,322 +30,538 @@ import { CreateSeasonForm } from "../seasons/create-season-form";
 
 type Summary = RouterOutput["season"]["getSummary"];
 type PlayerRef = Summary["champions"][number];
+type Standing = Summary["podium"][number];
 
 interface PodiumEntry {
 	id: string;
 	rank: number;
 	name: string;
-	image: string | null;
 	score: number;
-	matchCount: number;
-	winCount: number;
-	lossCount: number;
-	drawCount: number;
-	winRate: number;
-	players?: { id: string; name: string; image: string | null }[];
+	image: string | null;
+	players: { id: string; name: string; image: string | null }[];
 }
 
-const places = {
+interface SeasonInfo {
+	name: string;
+	startDate: Date;
+	endDate: Date | null;
+}
+
+interface Slide {
+	key: string;
+	label: string;
+	width: "wide" | "medium" | "narrow";
+	content: ReactNode;
+}
+
+const GRAIN =
+	"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+const medals = {
 	1: {
-		step: "h-32 sm:h-36",
-		accent: "border-t-amber-500",
-		fill: "from-amber-500/15",
-		numeral: "text-amber-500",
-		order: "order-2",
+		bar: "h-28 from-amber-300/70 via-amber-400/25 to-amber-500/0 border-amber-300/70",
+		text: "text-amber-200",
 	},
 	2: {
-		step: "h-24 sm:h-28",
-		accent: "border-t-slate-400",
-		fill: "from-slate-400/15",
-		numeral: "text-slate-400",
-		order: "order-1",
+		bar: "h-20 from-zinc-200/50 via-zinc-300/15 to-zinc-400/0 border-zinc-200/60",
+		text: "text-zinc-200",
 	},
 	3: {
-		step: "h-20 sm:h-24",
-		accent: "border-t-orange-600",
-		fill: "from-orange-600/15",
-		numeral: "text-orange-600",
-		order: "order-3",
+		bar: "h-14 from-orange-400/55 via-orange-500/15 to-orange-600/0 border-orange-400/60",
+		text: "text-orange-200",
 	},
 } as const;
 
-const record = ({ winCount, drawCount, lossCount }: PodiumEntry) =>
+const slideWidth = {
+	wide: "w-[min(84vw,440px)]",
+	medium: "w-[min(84vw,330px)]",
+	narrow: "w-[min(76vw,280px)]",
+} as const;
+
+const names = (players: PlayerRef[]) => players.map((p) => p.name).join(" & ");
+
+const record = ({ winCount, drawCount, lossCount }: Standing) =>
 	drawCount > 0 ? `${winCount}-${drawCount}-${lossCount}` : `${winCount}-${lossCount}`;
 
-function SectionHeading({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
 	return (
-		<div className="flex items-baseline justify-between gap-3">
-			<h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-				{children}
-			</h3>
-			{aside && <span className="text-[11px] text-muted-foreground">{aside}</span>}
-		</div>
-	);
-}
-
-function HeroStat({ label, value }: { label: string; value: ReactNode }) {
-	return (
-		<div className="flex flex-col gap-1.5 px-5 py-3.5 sm:px-6">
-			<span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-				{label}
-			</span>
-			<span className="text-lg font-bold tabular-nums leading-none">{value}</span>
-		</div>
-	);
-}
-
-function ChampionHero({
-	seasonName,
-	summary,
-	canStartNextSeason,
-	onStartNextSeason,
-}: {
-	seasonName: string;
-	summary: Summary;
-	canStartNextSeason: boolean;
-	onStartNextSeason: () => void;
-}) {
-	const champion = summary.podium[0];
-	const hasChampion = summary.champions.length > 0 && !!champion;
-	const isTie = summary.champions.length > 1;
-
-	return (
-		<Card
-			className="relative gap-0 overflow-hidden py-0 ring-amber-500/30"
-			data-testid="champion-banner"
+		<span
+			className={cn(
+				"text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400",
+				className
+			)}
 		>
-			<div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/12 via-amber-500/[0.03] to-transparent" />
+			{children}
+		</span>
+	);
+}
+
+function AvatarPair({
+	players,
+	size,
+}: {
+	players: { id: string; name: string; image: string | null }[];
+	size: "sm" | "md" | "lg";
+}) {
+	return (
+		<div className="flex gap-1">
+			{players.slice(0, 2).map((p) => (
+				<div key={p.id} className="rounded-lg">
+					<AvatarWithFallback src={p.image} name={p.name} size={size} />
+				</div>
+			))}
+		</div>
+	);
+}
+
+function ChampionSlide({ summary }: { summary: Summary }) {
+	const champion = summary.podium[0];
+	const runnerUp = summary.podium.find((p) => p.score < (champion?.score ?? 0));
+	const isTie = summary.champions.length > 1;
+	if (!champion || summary.champions.length === 0) {
+		return (
+			<div className="flex h-full flex-col justify-center gap-3">
+				<Eyebrow>Champion</Eyebrow>
+				<p className="text-2xl font-black tracking-tight">No champion crowned</p>
+				<p className="text-xs text-zinc-400">No matches were played this season.</p>
+			</div>
+		);
+	}
+	return (
+		<>
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_85%_0%,rgba(251,191,36,0.38),transparent_60%)]" />
+			<div className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent motion-safe:animate-[recap-sheen_5s_ease-in-out_2s_infinite]" />
 			<HugeiconsIcon
-				icon={ChampionIcon}
+				icon={CrownIcon}
 				strokeWidth={1}
-				className="pointer-events-none absolute -right-6 -top-4 size-56 text-amber-500/[0.07]"
+				className="pointer-events-none absolute -right-8 -top-6 size-52 rotate-12 text-amber-200/[0.07]"
 			/>
-			<div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
-				{hasChampion && (
-					<div className="relative shrink-0 self-start sm:self-center">
-						{isTie ? (
-							<PlayerAvatarGroupInline players={summary.champions} size="xl" max={3} />
-						) : (
-							<div className="rounded-lg ring-2 ring-amber-500/70 ring-offset-2 ring-offset-card">
-								<AvatarWithFallback src={champion.image} name={champion.name} size="xl" />
+			<div className="relative flex h-full flex-col">
+				<div className="flex items-center gap-2">
+					<span className="inline-flex items-center gap-1.5 rounded-full bg-amber-300/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200 ring-1 ring-amber-300/30">
+						<HugeiconsIcon icon={CrownIcon} className="size-3" />
+						{isTie ? "Co-champions" : "Champion"}
+					</span>
+				</div>
+				<div className="mt-5 flex items-center gap-4">
+					{isTie ? (
+						<AvatarPair players={summary.champions} size="lg" />
+					) : (
+						<div className="rounded-xl p-0.5 shadow-[0_0_48px_-6px_rgba(251,191,36,0.65)] ring-2 ring-amber-300/80">
+							<AvatarWithFallback src={champion.image} name={champion.name} size="xl" />
+						</div>
+					)}
+					<div className="flex min-w-0 flex-col gap-2">
+						<h3 className="line-clamp-2 text-2xl font-black leading-[1.05] tracking-tight [overflow-wrap:anywhere] sm:text-3xl">
+							{names(summary.champions)}
+						</h3>
+						{!isTie && champion.form.length > 0 && (
+							<div className="flex items-center gap-2">
+								<span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Form</span>
+								<FormDots form={champion.form} />
 							</div>
 						)}
-						<span className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm">
-							<HugeiconsIcon icon={CrownIcon} className="size-3.5" />
-						</span>
 					</div>
-				)}
-				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-					<span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400">
-						{seasonName} · {isTie ? "Co-champions" : "Champion"}
-					</span>
-					<h2 className="text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-3xl">
-						{hasChampion ? summary.champions.map((c) => c.name).join(" & ") : "No champion crowned"}
-					</h2>
-					{!hasChampion && (
-						<p className="text-xs text-muted-foreground">No matches were played this season.</p>
-					)}
 				</div>
-				{canStartNextSeason && (
-					<Button
-						className="w-full gap-1.5 sm:w-auto sm:self-start"
-						onClick={onStartNextSeason}
-						data-testid="start-next-season-button"
-					>
-						<HugeiconsIcon icon={Add01Icon} className="size-4" />
-						Start next season
-					</Button>
-				)}
+				<p className="mt-5 max-w-[34ch] text-sm leading-relaxed text-zinc-300">
+					{isTie
+						? `Shared the title on ${champion.score} points.`
+						: runnerUp
+							? `Finished ${champion.score - runnerUp.score} ${champion.score - runnerUp.score === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
+							: `Took the title with ${champion.score} points.`}
+				</p>
+				<div className="mt-auto grid grid-cols-4 divide-x divide-white/10 rounded-xl bg-white/[0.04] py-3 ring-1 ring-white/10">
+					{[
+						{ label: "Points", value: champion.score },
+						{ label: "Record", value: record(champion) },
+						{ label: "Win rate", value: `${champion.winRate}%` },
+						{ label: "Matches", value: champion.matchCount },
+					].map((stat) => (
+						<div key={stat.label} className="flex flex-col items-center gap-1 px-1">
+							<span className="text-base font-bold tabular-nums tracking-tight sm:text-lg">
+								{stat.value}
+							</span>
+							<span className="text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+								{stat.label}
+							</span>
+						</div>
+					))}
+				</div>
 			</div>
-			{hasChampion && (
-				<div className="relative grid grid-cols-2 border-t border-amber-500/20 bg-background/50 sm:grid-cols-4 [&>*:nth-child(even)]:border-l [&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+2)]:border-l sm:[&>*:nth-child(n+3)]:border-t-0">
-					<HeroStat label="Points" value={champion.score} />
-					<HeroStat label="Record" value={record(champion)} />
-					<HeroStat label="Win rate" value={`${champion.winRate}%`} />
-					<HeroStat label="Matches" value={champion.matchCount} />
-				</div>
-			)}
-		</Card>
+		</>
 	);
 }
 
-function PodiumColumn({ entry }: { entry: PodiumEntry }) {
-	const place = places[entry.rank as 1 | 2 | 3] ?? places[3];
-	const isWinner = entry.rank === 1;
+function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[] }) {
+	const ordered = [2, 1, 3]
+		.map((rank) => entries.find((e) => e.rank === rank))
+		.filter((e): e is PodiumEntry => !!e);
 	return (
-		<div
-			data-testid={`podium-place-${entry.rank}`}
-			className={cn("flex min-w-0 flex-col items-center", place.order)}
-		>
-			<div className="flex w-full flex-col items-center gap-2 pb-3">
-				{entry.players && entry.players.length > 0 ? (
-					<PlayerAvatarGroupInline
-						players={entry.players}
-						size={isWinner ? "lg" : "md"}
-						max={2}
-						className="gap-1"
-					/>
-				) : (
-					<AvatarWithFallback src={entry.image} name={entry.name} size={isWinner ? "xl" : "lg"} />
-				)}
-				<span
-					className="line-clamp-3 min-h-[2.5em] w-full text-center text-[11px] font-semibold leading-tight [overflow-wrap:anywhere] sm:line-clamp-2 sm:text-sm"
-					title={entry.name}
-				>
-					{entry.name}
-				</span>
-			</div>
-			<div
-				className={cn(
-					"flex w-full flex-col items-center justify-start gap-1 border border-t-2 bg-gradient-to-b to-transparent pt-3",
-					place.step,
-					place.accent,
-					place.fill
-				)}
-			>
-				<span className={cn("text-3xl font-black leading-none tabular-nums", place.numeral)}>
-					{entry.rank}
-				</span>
-				<span className="text-sm font-bold tabular-nums">{entry.score}</span>
-				<span className="text-[10px] tabular-nums text-muted-foreground">
-					{record(entry)} · {entry.winRate}%
-				</span>
+		<div className="relative flex h-full flex-col">
+			<div className="pointer-events-none absolute -inset-5 bg-[radial-gradient(90%_60%_at_50%_100%,rgba(251,191,36,0.14),transparent_70%)]" />
+			<Eyebrow>{title}</Eyebrow>
+			<div className="relative mt-auto grid grid-cols-3 items-end gap-2">
+				{ordered.map((entry) => {
+					const medal = medals[entry.rank as 1 | 2 | 3];
+					return (
+						<div key={entry.id} className="flex min-w-0 flex-col items-center gap-2">
+							{entry.players.length > 0 ? (
+								<AvatarPair players={entry.players} size={entry.rank === 1 ? "md" : "sm"} />
+							) : (
+								<AvatarWithFallback
+									src={entry.image}
+									name={entry.name}
+									size={entry.rank === 1 ? "lg" : "md"}
+								/>
+							)}
+							<span
+								className="line-clamp-2 min-h-[2.4em] w-full text-center text-[11px] font-semibold leading-tight text-zinc-100 [overflow-wrap:anywhere]"
+								title={entry.name}
+							>
+								{entry.name}
+							</span>
+							<div
+								className={cn(
+									"flex w-full flex-col items-center justify-start rounded-t-lg border-t-2 bg-gradient-to-b pt-2",
+									medal.bar
+								)}
+							>
+								<span className={cn("text-2xl font-black leading-none", medal.text)}>
+									{entry.rank}
+								</span>
+								<span className="mt-1 text-[11px] font-semibold tabular-nums text-zinc-200">
+									{entry.score}
+								</span>
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);
 }
 
-function Podium({ title, entries }: { title: string; entries: PodiumEntry[] }) {
-	return (
-		<Card className="gap-4 px-4 py-4 sm:px-5">
-			<SectionHeading aside="pts · W-L · win %">{title}</SectionHeading>
-			<div className="grid grid-cols-3 items-end gap-2 sm:gap-3">
-				{entries.map((entry) => (
-					<PodiumColumn key={entry.id} entry={entry} />
-				))}
-			</div>
-		</Card>
-	);
-}
-
-interface Moment {
-	key: string;
+function MomentSlide({
+	label,
+	icon,
+	glow,
+	accent,
+	gradient,
+	value,
+	unit,
+	players,
+	caption,
+	detail,
+}: {
 	label: string;
 	icon: IconSvgElement;
-	tone: string;
-	value: ReactNode;
+	glow: string;
+	accent: string;
+	gradient: string;
+	value: string;
 	unit: string;
 	players: PlayerRef[];
 	caption: string;
 	detail?: string;
-}
-
-function MomentTile({ moment }: { moment: Moment }) {
+}) {
 	return (
-		<Card size="sm" className="gap-3 px-4">
-			<div className="flex items-center justify-between">
-				<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-					{moment.label}
-				</span>
-				<span className={cn("flex size-7 items-center justify-center rounded-md", moment.tone)}>
-					<HugeiconsIcon icon={moment.icon} className="size-4" />
-				</span>
-			</div>
-			<div className="flex items-baseline gap-1.5">
-				<span className="text-3xl font-bold leading-none tabular-nums tracking-tight">
-					{moment.value}
-				</span>
-				<span className="text-xs text-muted-foreground">{moment.unit}</span>
-			</div>
-			<div className="mt-auto flex items-center gap-2 border-t pt-3">
-				<PlayerAvatarGroupInline players={moment.players} size="sm" max={2} className="gap-1" />
-				<div className="flex min-w-0 flex-col">
-					<span className="line-clamp-2 text-xs font-medium leading-snug" title={moment.caption}>
-						{moment.caption}
+		<>
+			<div className={cn("pointer-events-none absolute inset-0", glow)} />
+			<HugeiconsIcon
+				icon={icon}
+				strokeWidth={1}
+				className={cn(
+					"pointer-events-none absolute -bottom-6 -right-6 size-40 -rotate-12 opacity-[0.07]",
+					accent
+				)}
+			/>
+			<div className="relative flex h-full flex-col">
+				<div className="flex items-center justify-between">
+					<Eyebrow>{label}</Eyebrow>
+					<span
+						className={cn(
+							"flex size-8 items-center justify-center rounded-lg bg-white/[0.06] ring-1 ring-white/10",
+							accent
+						)}
+					>
+						<HugeiconsIcon icon={icon} className="size-4" />
 					</span>
-					{moment.detail && (
+				</div>
+				<div className="mt-6 flex flex-col">
+					<span
+						className={cn(
+							"bg-gradient-to-br from-white bg-clip-text text-7xl font-black leading-none tracking-tighter text-transparent tabular-nums",
+							gradient
+						)}
+					>
+						{value}
+					</span>
+					<span className="mt-2 text-xs text-zinc-400">{unit}</span>
+				</div>
+				<div className="mt-auto flex items-center gap-3 border-t border-white/10 pt-4">
+					<AvatarPair players={players} size="sm" />
+					<div className="flex min-w-0 flex-col">
 						<span
-							className="line-clamp-2 text-[11px] leading-snug text-muted-foreground"
-							title={moment.detail}
+							className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-100"
+							title={caption}
 						>
-							{moment.detail}
+							{caption}
 						</span>
-					)}
+						{detail && (
+							<span className="line-clamp-2 text-[11px] leading-snug text-zinc-500" title={detail}>
+								{detail}
+							</span>
+						)}
+					</div>
 				</div>
 			</div>
-		</Card>
+		</>
 	);
 }
 
-const names = (players: PlayerRef[]) => players.map((p) => p.name).join(" & ");
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function buildMoments({
-	longestWinStreak,
-	biggestUpset,
-	biggestGain,
-	mostMatches,
-}: Summary["highlights"]) {
-	const moments: Moment[] = [];
+function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInfo }) {
+	const [champion, runnerUp] = summary.podium;
+	const rows: { label: string; value: string | number }[] = [
+		{ label: "Matches played", value: summary.matchCount },
+		{ label: "Players", value: summary.playerCount },
+	];
+	if (champion && runnerUp) {
+		rows.push({ label: "Title decided by", value: `${champion.score - runnerUp.score} pts` });
+	}
+	if (season.endDate) {
+		const days = Math.max(
+			1,
+			Math.round(
+				(new Date(season.endDate).getTime() - new Date(season.startDate).getTime()) / DAY_MS
+			)
+		);
+		rows.push({ label: "Season length", value: `${days} ${days === 1 ? "day" : "days"}` });
+	}
+	return (
+		<>
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_70%_at_0%_100%,rgba(56,189,248,0.18),transparent_65%)]" />
+			<div className="relative flex h-full flex-col">
+				<Eyebrow>By the numbers</Eyebrow>
+				<div className="mt-auto flex flex-col divide-y divide-white/10">
+					{rows.map((row) => (
+						<div key={row.label} className="flex items-baseline justify-between gap-3 py-3">
+							<span className="text-xs text-zinc-400">{row.label}</span>
+							<span className="text-2xl font-black tabular-nums tracking-tight">{row.value}</span>
+						</div>
+					))}
+				</div>
+			</div>
+		</>
+	);
+}
+
+function buildSlides(summary: Summary, season: SeasonInfo): Slide[] {
+	const slides: Slide[] = [
+		{
+			key: "champion",
+			label: "Champion",
+			width: "wide",
+			content: <ChampionSlide summary={summary} />,
+		},
+	];
+	if (summary.matchCount === 0) return slides;
+
+	slides.push({
+		key: "podium",
+		label: "Player podium",
+		width: "medium",
+		content: (
+			<PodiumSlide
+				title="Player podium"
+				entries={summary.podium.map((p) => ({ ...p, players: [] }))}
+			/>
+		),
+	});
+	if (summary.teamPodium.length > 0) {
+		slides.push({
+			key: "team-podium",
+			label: "Team podium",
+			width: "medium",
+			content: (
+				<PodiumSlide
+					title="Team podium"
+					entries={summary.teamPodium.map((t) => ({ ...t, image: t.logo }))}
+				/>
+			),
+		});
+	}
+
+	const { longestWinStreak, biggestUpset, biggestGain, mostMatches } = summary.highlights;
 	if (longestWinStreak) {
-		moments.push({
+		slides.push({
 			key: "streak",
 			label: "Longest streak",
-			icon: FireIcon,
-			tone: "bg-red-500/10 text-red-600 dark:text-red-400",
-			value: longestWinStreak.length,
-			unit: "wins in a row",
-			players: [longestWinStreak.player],
-			caption: longestWinStreak.player.name,
+			width: "narrow",
+			content: (
+				<MomentSlide
+					label="Longest streak"
+					icon={FireIcon}
+					glow="bg-[radial-gradient(110%_70%_at_100%_0%,rgba(248,113,113,0.28),transparent_60%)]"
+					accent="text-rose-300"
+					gradient="to-rose-300"
+					value={String(longestWinStreak.length)}
+					unit="wins in a row"
+					players={[longestWinStreak.player]}
+					caption={longestWinStreak.player.name}
+				/>
+			),
 		});
 	}
 	if (biggestUpset) {
-		moments.push({
+		slides.push({
 			key: "upset",
 			label: "Biggest upset",
-			icon: FlashIcon,
-			tone: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-			value: `${Math.round(biggestUpset.winnerOdds * 100)}%`,
-			unit: "win odds",
-			players: biggestUpset.winners,
-			caption: names(biggestUpset.winners),
-			detail: `${biggestUpset.winnerScore}–${biggestUpset.loserScore} vs ${names(biggestUpset.losers)}`,
+			width: "narrow",
+			content: (
+				<MomentSlide
+					label="Biggest upset"
+					icon={FlashIcon}
+					glow="bg-[radial-gradient(110%_70%_at_100%_0%,rgba(192,132,252,0.3),transparent_60%)]"
+					accent="text-violet-300"
+					gradient="to-violet-300"
+					value={`${Math.round(biggestUpset.winnerOdds * 100)}%`}
+					unit="chance to win — and they did"
+					players={biggestUpset.winners}
+					caption={names(biggestUpset.winners)}
+					detail={`${biggestUpset.winnerScore}–${biggestUpset.loserScore} vs ${names(biggestUpset.losers)}`}
+				/>
+			),
 		});
 	}
 	if (biggestGain) {
-		moments.push({
+		slides.push({
 			key: "gain",
 			label: "Biggest swing",
-			icon: ChartIncreaseIcon,
-			tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-			value: `+${biggestGain.gain}`,
-			unit: "pts in one match",
-			players: [biggestGain.player],
-			caption: biggestGain.player.name,
+			width: "narrow",
+			content: (
+				<MomentSlide
+					label="Biggest swing"
+					icon={ChartIncreaseIcon}
+					glow="bg-[radial-gradient(110%_70%_at_100%_0%,rgba(52,211,153,0.26),transparent_60%)]"
+					accent="text-emerald-300"
+					gradient="to-emerald-300"
+					value={`+${biggestGain.gain}`}
+					unit="points in a single match"
+					players={[biggestGain.player]}
+					caption={biggestGain.player.name}
+				/>
+			),
 		});
 	}
 	if (mostMatches) {
-		moments.push({
+		slides.push({
 			key: "matches",
 			label: "Iron player",
-			icon: GameController01Icon,
-			tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-			value: mostMatches.matchCount,
-			unit: "matches played",
-			players: [mostMatches.player],
-			caption: mostMatches.player.name,
+			width: "narrow",
+			content: (
+				<MomentSlide
+					label="Iron player"
+					icon={GameController01Icon}
+					glow="bg-[radial-gradient(110%_70%_at_100%_0%,rgba(96,165,250,0.28),transparent_60%)]"
+					accent="text-sky-300"
+					gradient="to-sky-300"
+					value={String(mostMatches.matchCount)}
+					unit="matches played"
+					players={[mostMatches.player]}
+					caption={mostMatches.player.name}
+				/>
+			),
 		});
 	}
-	return moments;
+	slides.push({
+		key: "numbers",
+		label: "By the numbers",
+		width: "narrow",
+		content: <NumbersSlide summary={summary} season={season} />,
+	});
+	return slides;
+}
+
+function useCarousel(count: number) {
+	const trackRef = useRef<HTMLDivElement>(null);
+	const [active, setActive] = useState(0);
+	const [edges, setEdges] = useState({ start: true, end: count <= 1 });
+
+	const measure = useCallback(() => {
+		const track = trackRef.current;
+		if (!track) return;
+		const slides = Array.from(track.querySelectorAll<HTMLElement>("[data-slide]"));
+		const origin =
+			track.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(track).paddingLeft);
+		const distances = slides.map((slide) => Math.abs(slide.getBoundingClientRect().left - origin));
+		const nearest = distances.indexOf(Math.min(...distances));
+		const left = track.scrollLeft;
+		const atEnd = left + track.clientWidth >= track.scrollWidth - 4;
+		setActive(atEnd ? slides.length - 1 : Math.max(0, nearest));
+		setEdges({ start: left <= 4, end: atEnd });
+	}, []);
+
+	useEffect(() => {
+		const track = trackRef.current;
+		if (!track) return;
+		measure();
+		track.addEventListener("scroll", measure, { passive: true });
+		window.addEventListener("resize", measure);
+		return () => {
+			track.removeEventListener("scroll", measure);
+			window.removeEventListener("resize", measure);
+		};
+	}, [measure, count]);
+
+	const goTo = useCallback((index: number) => {
+		const track = trackRef.current;
+		const slide = track?.querySelectorAll<HTMLElement>("[data-slide]")[index];
+		if (!track || !slide) return;
+		const origin =
+			track.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(track).paddingLeft);
+		track.scrollTo({
+			left: track.scrollLeft + slide.getBoundingClientRect().left - origin,
+			behavior: "smooth",
+		});
+	}, []);
+
+	return { trackRef, active, edges, goTo };
+}
+
+function NavButton({
+	icon,
+	label,
+	disabled,
+	onClick,
+}: {
+	icon: IconSvgElement;
+	label: string;
+	disabled: boolean;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			aria-label={label}
+			disabled={disabled}
+			onClick={onClick}
+			className="flex size-9 items-center justify-center rounded-full bg-white/[0.06] text-zinc-200 ring-1 ring-white/10 transition hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:pointer-events-none disabled:opacity-30"
+		>
+			<HugeiconsIcon icon={icon} className="size-4" />
+		</button>
+	);
 }
 
 export function SeasonCeremony({
 	seasonSlug,
-	seasonName,
+	season,
 	leagueSlug,
 	canStartNextSeason,
 }: {
 	seasonSlug: string;
-	seasonName: string;
+	season: SeasonInfo;
 	leagueSlug: string;
 	canStartNextSeason: boolean;
 }) {
@@ -345,47 +569,129 @@ export function SeasonCeremony({
 	const navigate = useNavigate();
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const { data: summary } = useQuery(trpc.season.getSummary.queryOptions({ seasonSlug }));
+	const slides = summary ? buildSlides(summary, season) : [];
+	const { trackRef, active, edges, goTo } = useCarousel(slides.length);
 
-	if (!summary) return <Skeleton className="h-48 w-full" />;
+	if (!summary) return <Skeleton className="h-[520px] w-full rounded-2xl" />;
 
-	const moments = buildMoments(summary.highlights);
-	const hasTeamPodium = summary.teamPodium.length > 0;
+	const dateRange = `${formatDate(season.startDate)}${season.endDate ? ` – ${formatDate(season.endDate)}` : ""}`;
 
 	return (
-		<section className="flex flex-col gap-4" data-testid="season-ceremony">
-			<ChampionHero
-				seasonName={seasonName}
-				summary={summary}
-				canStartNextSeason={canStartNextSeason}
-				onStartNextSeason={() => setIsCreateOpen(true)}
+		<section
+			className="relative isolate w-full overflow-clip rounded-2xl bg-zinc-950 [contain:inline-size] text-zinc-50 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.6)] ring-1 ring-white/10"
+			data-testid="season-ceremony"
+			aria-label={`${season.name} recap`}
+		>
+			<div className="pointer-events-none absolute -top-48 left-[20%] -z-10 size-[560px] rounded-full bg-amber-500/25 blur-[130px]" />
+			<div className="pointer-events-none absolute -bottom-56 right-[-10%] -z-10 size-[520px] rounded-full bg-fuchsia-600/20 blur-[130px]" />
+			<div className="pointer-events-none absolute -left-32 top-1/3 -z-10 size-[380px] rounded-full bg-sky-500/10 blur-[110px]" />
+			<div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:36px_36px] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
+			<div
+				className="pointer-events-none absolute inset-0 -z-10 opacity-[0.07] mix-blend-overlay"
+				style={{ backgroundImage: GRAIN }}
 			/>
-			{summary.matchCount > 0 && (
-				<>
-					<div className={cn("grid gap-4", hasTeamPodium && "lg:grid-cols-2")}>
-						<Podium title="Player podium" entries={summary.podium} />
-						{hasTeamPodium && (
-							<Podium
-								title="Team podium"
-								entries={summary.teamPodium.map((t) => ({ ...t, image: t.logo }))}
-							/>
-						)}
+
+			<header className="flex flex-col gap-4 px-5 pt-6 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:pt-7">
+				<div className="flex min-w-0 flex-col gap-2">
+					<div className="flex items-center gap-2">
+						<span className="relative flex size-2">
+							<span className="absolute inline-flex size-full rounded-full bg-amber-400 opacity-60 motion-safe:animate-ping" />
+							<span className="relative inline-flex size-2 rounded-full bg-amber-400" />
+						</span>
+						<Eyebrow className="text-amber-200/80">Season recap</Eyebrow>
 					</div>
-					{moments.length > 0 && (
-						<div className="flex flex-col gap-3" data-testid="season-highlights">
-							<SectionHeading
-								aside={`${summary.matchCount} matches · ${summary.playerCount} players`}
-							>
-								Season highlights
-							</SectionHeading>
-							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-								{moments.map((moment) => (
-									<MomentTile key={moment.key} moment={moment} />
-								))}
-							</div>
+					<h2 className="text-3xl font-black leading-none tracking-tighter [overflow-wrap:anywhere] sm:text-5xl">
+						{season.name}
+					</h2>
+					<p className="text-xs text-zinc-400">
+						{dateRange}
+						<span className="mx-2 text-zinc-600">/</span>
+						{summary.matchCount} matches
+						<span className="mx-2 text-zinc-600">/</span>
+						{summary.playerCount} players
+					</p>
+				</div>
+				<div className="flex items-center gap-2">
+					{canStartNextSeason && (
+						<Button
+							onClick={() => setIsCreateOpen(true)}
+							className="h-9 gap-1.5 rounded-full bg-amber-300 px-4 font-semibold text-zinc-950 shadow-[0_0_30px_-8px_rgba(251,191,36,0.8)] hover:bg-amber-200"
+							data-testid="start-next-season-button"
+						>
+							<HugeiconsIcon icon={Add01Icon} className="size-4" />
+							Start next season
+						</Button>
+					)}
+					{slides.length > 1 && (
+						<div className="hidden items-center gap-2 sm:flex">
+							<NavButton
+								icon={ArrowLeft01Icon}
+								label="Previous slide"
+								disabled={edges.start}
+								onClick={() => goTo(Math.max(0, active - 1))}
+							/>
+							<NavButton
+								icon={ArrowRight01Icon}
+								label="Next slide"
+								disabled={edges.end}
+								onClick={() => goTo(Math.min(slides.length - 1, active + 1))}
+							/>
 						</div>
 					)}
-				</>
-			)}
+				</div>
+			</header>
+
+			<div
+				ref={trackRef}
+				tabIndex={0}
+				role="region"
+				aria-roledescription="carousel"
+				aria-label={`${season.name} highlights`}
+				className="mt-6 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto overscroll-x-contain px-5 pb-2 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] [scrollbar-width:none] focus-visible:outline-none sm:scroll-px-7 sm:px-7 [&::-webkit-scrollbar]:hidden"
+			>
+				{slides.map((slide, index) => (
+					<article
+						key={slide.key}
+						data-slide
+						role="group"
+						aria-roledescription="slide"
+						aria-label={`${index + 1} of ${slides.length}: ${slide.label}`}
+						style={{ animationDelay: `${index * 70}ms` } as CSSProperties}
+						className={cn(
+							"relative flex h-[340px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-white/[0.035] p-5 ring-1 ring-white/10 backdrop-blur-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:ring-white/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-8 motion-safe:duration-700 motion-safe:fill-mode-both",
+							slideWidth[slide.width]
+						)}
+					>
+						{slide.content}
+					</article>
+				))}
+				<div aria-hidden className="w-1 shrink-0" />
+			</div>
+
+			<div className="flex items-center gap-1.5 px-5 pb-6 pt-4 sm:px-7">
+				{slides.map((slide, index) => (
+					<button
+						key={slide.key}
+						type="button"
+						aria-label={`Go to ${slide.label}`}
+						aria-current={index === active}
+						onClick={() => goTo(index)}
+						className="group/dot flex h-4 flex-1 items-center focus-visible:outline-none"
+					>
+						<span
+							className={cn(
+								"h-[3px] w-full rounded-full transition-colors duration-300 group-focus-visible/dot:ring-2 group-focus-visible/dot:ring-amber-300",
+								index === active
+									? "bg-amber-300"
+									: index < active
+										? "bg-white/40"
+										: "bg-white/15 group-hover/dot:bg-white/30"
+							)}
+						/>
+					</button>
+				))}
+			</div>
+
 			{canStartNextSeason && (
 				<CreateSeasonForm
 					isOpen={isCreateOpen}

@@ -20,12 +20,14 @@ test.describe("Mobile season ceremony", () => {
 		await setSeasonClosed(page, false);
 	});
 
-	test("shows the champion, podiums and highlights on a closed season", async ({ page }) => {
+	test("shows the season recap hero on a closed season", async ({ page }) => {
 		await page.goto(`/seasons/${SEED_SEASON.slug}`);
 
-		await expect(page.getByText(`${SEED_SEASON.name} · Champion`)).toBeVisible({ timeout: 30_000 });
-		await expect(page.getByText("Player podium")).toBeVisible();
-		await expect(page.getByText("Season highlights")).toBeVisible();
-		await expect(page.getByText("Start next season")).toBeVisible();
+		const hero = page.getByTestId("season-ceremony");
+		await expect(hero).toBeVisible({ timeout: 30_000 });
+		await expect(hero.getByText("Season recap")).toBeVisible();
+		await expect(hero.getByText("Champion", { exact: true })).toBeVisible();
+		await expect(hero.getByText("Start next season")).toBeVisible();
+		await expect(hero.getByRole("button", { name: /Go to slide/ })).not.toHaveCount(0);
 	});
 });
