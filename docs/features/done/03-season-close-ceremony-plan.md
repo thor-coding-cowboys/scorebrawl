@@ -15,6 +15,7 @@
 - Champions = all players tied at the top score (same rule as `awardSeasonWinner`). Empty when the season has no matches.
 - Team-based seasons: player podium always; team podium only when team standings with matches exist.
 - Ceremony shows above the normal dashboard when `season.closed`. The dashboard stays below.
+- Layout: one recap section that follows the app theme (light/dark, sharp corners, app buttons). A fixed champion banner (avatar, story line, form, stat strip, "Start next season") sits on top; below it a two-row grid scrolls sideways: podiums in the first column, highlight cards in pairs, "By the numbers" last. No separate title row and no full-screen view.
 - "Start next season" (owner/editor) opens the existing create-season dialog and navigates to the new season. Mobile `CreateSeasonForm` got an optional `onSuccess(slug)`.
 - `season_winner` stays as is (unique per player + type, `onConflictDoNothing`).
 

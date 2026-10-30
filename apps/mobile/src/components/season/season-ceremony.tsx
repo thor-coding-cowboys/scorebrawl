@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import {
-	Modal,
-	Pressable,
 	ScrollView,
 	StyleSheet,
 	View,
@@ -12,21 +10,17 @@ import {
 	type NativeScrollEvent,
 	type NativeSyntheticEvent,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
 import { Avatar } from "@/components/avatar";
 import { CreateSeasonForm } from "@/components/create-season-form";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { getAvatarUri, useUserAvatar } from "@/hooks/use-user-avatar";
 import { useTheme } from "@/hooks/use-theme";
 import { useTRPC, type RouterOutput } from "@/lib/trpc";
-import { formatDate } from "@coding-cowboys/scorebrawl-core/league";
 import { FORM_COLORS } from "@coding-cowboys/scorebrawl-core/presentation";
 
 type Summary = RouterOutput["season"]["getSummary"];
@@ -51,26 +45,28 @@ interface PodiumEntry {
 	players: { id: string; name: string; image: string | null }[];
 }
 
-type SlideWidth = "wide" | "medium" | "narrow";
-
-interface Slide {
+interface Card {
 	key: string;
-	width: SlideWidth;
 	content: ReactNode;
 }
 
-const SLIDE_GAP = Spacing.three;
-const SLIDE_HEIGHT = 340;
+interface Column {
+	key: string;
+	width: "wide" | "narrow";
+	cards: Card[];
+}
+
 const GUTTER = Spacing.three + 4;
+const GAP = Spacing.two + 4;
+const COLUMN_HEIGHT = 452;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const MAX_WIDTH: Record<SlideWidth, { ratio: number; max: number }> = {
-	wide: { ratio: 0.86, max: 440 },
-	medium: { ratio: 0.86, max: 330 },
-	narrow: { ratio: 0.78, max: 280 },
+const COLUMN_WIDTH: Record<Column["width"], { ratio: number; max: number }> = {
+	wide: { ratio: 0.88, max: 380 },
+	narrow: { ratio: 0.7, max: 270 },
 };
 
-const STEP_HEIGHT: Record<number, number> = { 1: 112, 2: 80, 3: 58 };
+const STEP_HEIGHT: Record<number, number> = { 1: 72, 2: 56, 3: 46 };
 
 const medalColor = (theme: Theme, rank: number) =>
 	rank === 1 ? theme.glowAmberSolid : rank === 2 ? theme.mutedForeground : theme.avatar6Text;
@@ -115,13 +111,9 @@ function Gradient({
 	);
 }
 
-function Eyebrow({ children, color }: { children: ReactNode; color?: string }) {
+function Eyebrow({ children }: { children: ReactNode }) {
 	return (
-		<ThemedText
-			themeColor="mutedForeground"
-			style={[styles.eyebrow, color ? { color } : null]}
-			numberOfLines={1}
-		>
+		<ThemedText themeColor="mutedForeground" style={styles.eyebrow} numberOfLines={1}>
 			{children}
 		</ThemedText>
 	);
@@ -150,61 +142,35 @@ function AvatarPair({
 	);
 }
 
-function ChampionSlide({ summary }: { summary: Summary }) {
+function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNode }) {
 	const theme = useTheme();
 	const { headers } = useUserAvatar();
 	const champion = summary.podium[0];
+	const hasChampion = !!champion && summary.champions.length > 0;
 	const isTie = summary.champions.length > 1;
-
-	if (!champion || summary.champions.length === 0) {
-		return (
-			<View style={styles.centered}>
-				<Eyebrow>Champion</Eyebrow>
-				<ThemedText style={styles.championName}>No champion crowned</ThemedText>
-				<ThemedText themeColor="mutedForeground" style={styles.caption}>
-					No matches were played this season.
-				</ThemedText>
-			</View>
-		);
-	}
-
-	const runnerUp = summary.podium.find((p) => p.score < champion.score);
-	const margin = runnerUp ? champion.score - runnerUp.score : 0;
-	const story = isTie
-		? `Shared the title on ${champion.score} points.`
-		: runnerUp
-			? `Finished ${margin} ${margin === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
-			: `Took the title with ${champion.score} points.`;
+	const runnerUp = champion ? summary.podium.find((p) => p.score < champion.score) : undefined;
+	const margin = champion && runnerUp ? champion.score - runnerUp.score : 0;
+	const story = !hasChampion
+		? "No matches were played this season."
+		: isTie
+			? `Shared the title on ${champion.score} points.`
+			: runnerUp
+				? `Finished ${margin} ${margin === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
+				: `Took the title with ${champion.score} points.`;
 
 	return (
-		<>
+		<View style={[styles.banner, { borderBottomColor: theme.border }]} testID="champion-banner">
 			<Gradient
-				from={[1, 0]}
-				to={[0, 1]}
+				from={[0, 0]}
+				to={[1, 1]}
 				stops={[
-					{ color: theme.glowAmberSolid, opacity: 0.28, offset: 0 },
-					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.6 },
+					{ color: theme.glowAmberSolid, opacity: 0.24, offset: 0 },
+					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.65 },
 				]}
 			/>
-			<View style={styles.slideBody}>
-				<View
-					style={[
-						styles.chip,
-						{ borderColor: theme.glowAmberBorder, backgroundColor: theme.glowAmberBackground },
-					]}
-				>
-					<SymbolView
-						name={{ ios: "crown.fill", android: "emoji_events", web: "emoji_events" }}
-						size={11}
-						tintColor={theme.glowAmberText}
-					/>
-					<ThemedText style={[styles.chipText, { color: theme.glowAmberText }]}>
-						{isTie ? "Co-champions" : "Champion"}
-					</ThemedText>
-				</View>
-
-				<View style={styles.championRow}>
-					{isTie ? (
+			<View style={styles.bannerRow}>
+				{hasChampion ? (
+					isTie ? (
 						<AvatarPair players={summary.champions} size={48} />
 					) : (
 						<View style={[styles.championRing, { borderColor: theme.glowAmberSolid }]}>
@@ -215,31 +181,50 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 								size={60}
 							/>
 						</View>
-					)}
-					<View style={styles.flex}>
-						<ThemedText style={styles.championName} numberOfLines={2}>
-							{names(summary.champions)}
+					)
+				) : null}
+				<View style={styles.flex}>
+					<View
+						style={[
+							styles.chip,
+							{ borderColor: theme.glowAmberBorder, backgroundColor: theme.glowAmberBackground },
+						]}
+					>
+						<SymbolView
+							name={{ ios: "crown.fill", android: "emoji_events", web: "emoji_events" }}
+							size={11}
+							tintColor={theme.glowAmberText}
+						/>
+						<ThemedText style={[styles.chipText, { color: theme.glowAmberText }]}>
+							{isTie ? "Season co-champions" : "Season champion"}
 						</ThemedText>
-						{!isTie && champion.form.length > 0 ? (
-							<View style={styles.formRow}>
-								<ThemedText themeColor="mutedForeground" style={styles.microLabel}>
-									Form
-								</ThemedText>
-								{[...champion.form].reverse().map((result, i) => (
-									<View
-										key={`${result}-${String(i)}`}
-										style={[styles.formDot, { backgroundColor: FORM_COLORS[result] }]}
-									/>
-								))}
-							</View>
-						) : null}
 					</View>
+					<ThemedText style={styles.championName} numberOfLines={2}>
+						{hasChampion ? names(summary.champions) : "No champion crowned"}
+					</ThemedText>
 				</View>
+			</View>
 
+			<View style={styles.storyRow}>
 				<ThemedText style={styles.story}>{story}</ThemedText>
+				{hasChampion && !isTie && champion.form.length > 0 ? (
+					<View style={styles.formRow}>
+						{[...champion.form].reverse().map((result, i) => (
+							<View
+								key={`${result}-${String(i)}`}
+								style={[styles.formDot, { backgroundColor: FORM_COLORS[result] }]}
+							/>
+						))}
+					</View>
+				) : null}
+			</View>
 
+			{hasChampion ? (
 				<View
-					style={[styles.statStrip, { borderColor: theme.border, backgroundColor: theme.muted }]}
+					style={[
+						styles.statStrip,
+						{ borderColor: theme.border, backgroundColor: theme.background },
+					]}
 				>
 					{[
 						{ label: "Points", value: String(champion.score) },
@@ -260,12 +245,14 @@ function ChampionSlide({ summary }: { summary: Summary }) {
 						</View>
 					))}
 				</View>
-			</View>
-		</>
+			) : null}
+
+			{action}
+		</View>
 	);
 }
 
-function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[] }) {
+function PodiumCard({ title, entries }: { title: string; entries: PodiumEntry[] }) {
 	const theme = useTheme();
 	const { headers } = useUserAvatar();
 	const ordered = [2, 1, 3]
@@ -278,34 +265,33 @@ function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[]
 				to={[0, 1]}
 				stops={[
 					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.4 },
-					{ color: theme.glowAmberSolid, opacity: 0.12, offset: 1 },
+					{ color: theme.glowAmberSolid, opacity: 0.1, offset: 1 },
 				]}
 			/>
-			<View style={styles.slideBody}>
+			<View style={[styles.cardBody, styles.podiumBody]}>
 				<Eyebrow>{title}</Eyebrow>
 				<View style={styles.podiumRow}>
 					{ordered.map((entry) => {
 						const color = medalColor(theme, entry.rank);
-						const isWinner = entry.rank === 1;
 						return (
 							<View key={entry.id} style={styles.podiumColumn}>
 								{entry.players.length > 0 ? (
-									<AvatarPair players={entry.players} size={isWinner ? 30 : 26} />
+									<AvatarPair players={entry.players} size={24} />
 								) : (
 									<Avatar
 										name={entry.name}
 										image={getAvatarUri(entry.image)}
 										headers={headers}
-										size={isWinner ? 44 : 34}
+										size={entry.rank === 1 ? 32 : 26}
 									/>
 								)}
-								<ThemedText style={styles.podiumName} numberOfLines={2}>
+								<ThemedText style={styles.podiumName} numberOfLines={3}>
 									{entry.name}
 								</ThemedText>
 								<View
 									style={[
 										styles.step,
-										{ height: STEP_HEIGHT[entry.rank] ?? 58, borderTopColor: color },
+										{ height: STEP_HEIGHT[entry.rank] ?? 46, borderTopColor: color },
 									]}
 								>
 									<Gradient
@@ -328,7 +314,7 @@ function PodiumSlide({ title, entries }: { title: string; entries: PodiumEntry[]
 	);
 }
 
-function MomentSlide({
+function MomentCard({
 	label,
 	icon,
 	accent,
@@ -356,25 +342,25 @@ function MomentSlide({
 				from={[1, 0]}
 				to={[0, 1]}
 				stops={[
-					{ color: glow, opacity: 0.22, offset: 0 },
+					{ color: glow, opacity: 0.2, offset: 0 },
 					{ color: glow, opacity: 0, offset: 0.55 },
 				]}
 			/>
-			<View style={styles.slideBody}>
-				<View style={styles.slideHeader}>
+			<View style={styles.cardBody}>
+				<View style={styles.cardHeader}>
 					<Eyebrow>{label}</Eyebrow>
-					<SymbolView name={icon} size={16} tintColor={accent} />
+					<SymbolView name={icon} size={15} tintColor={accent} />
 				</View>
-				<View style={styles.momentValueBlock}>
+				<View style={styles.momentValueRow}>
 					<ThemedText style={[styles.momentValue, { color: accent }]} numberOfLines={1}>
 						{value}
 					</ThemedText>
-					<ThemedText themeColor="mutedForeground" style={styles.caption}>
+					<ThemedText themeColor="mutedForeground" style={[styles.caption, styles.flex]}>
 						{unit}
 					</ThemedText>
 				</View>
 				<View style={[styles.momentFooter, { borderTopColor: theme.border }]}>
-					<AvatarPair players={players} size={26} />
+					<AvatarPair players={players} size={24} />
 					<View style={styles.flex}>
 						<ThemedText style={styles.momentCaption} numberOfLines={2}>
 							{caption}
@@ -395,15 +381,15 @@ function MomentSlide({
 	);
 }
 
-function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInfo }) {
+function NumbersCard({ summary, season }: { summary: Summary; season: SeasonInfo }) {
 	const theme = useTheme();
-	const [champion, runnerUp] = summary.podium;
-	const rows: { label: string; value: string }[] = [
-		{ label: "Matches played", value: String(summary.matchCount) },
+	const stats: { label: string; value: string }[] = [
+		{ label: "Matches", value: String(summary.matchCount) },
 		{ label: "Players", value: String(summary.playerCount) },
 	];
+	const [champion, runnerUp] = summary.podium;
 	if (champion && runnerUp) {
-		rows.push({ label: "Title decided by", value: `${champion.score - runnerUp.score} pts` });
+		stats.push({ label: "Title margin", value: `+${champion.score - runnerUp.score}` });
 	}
 	if (season.endDate) {
 		const days = Math.max(
@@ -412,7 +398,7 @@ function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInf
 				(new Date(season.endDate).getTime() - new Date(season.startDate).getTime()) / DAY_MS
 			)
 		);
-		rows.push({ label: "Season length", value: `${days} ${days === 1 ? "day" : "days"}` });
+		stats.push({ label: days === 1 ? "Day" : "Days", value: String(days) });
 	}
 	return (
 		<>
@@ -421,24 +407,18 @@ function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInf
 				to={[1, 1]}
 				stops={[
 					{ color: theme.glowBlueSolid, opacity: 0, offset: 0.45 },
-					{ color: theme.glowBlueSolid, opacity: 0.14, offset: 1 },
+					{ color: theme.glowBlueSolid, opacity: 0.12, offset: 1 },
 				]}
 			/>
-			<View style={styles.slideBody}>
+			<View style={styles.cardBody}>
 				<Eyebrow>By the numbers</Eyebrow>
-				<View style={styles.numbers}>
-					{rows.map((row, i) => (
-						<View
-							key={row.label}
-							style={[
-								styles.numberRow,
-								i > 0 && [styles.numberRule, { borderTopColor: theme.border }],
-							]}
-						>
-							<ThemedText themeColor="mutedForeground" style={styles.caption}>
-								{row.label}
+				<View style={styles.numbersGrid}>
+					{stats.map((stat) => (
+						<View key={stat.label} style={styles.numberCell}>
+							<ThemedText style={styles.numberValue}>{stat.value}</ThemedText>
+							<ThemedText themeColor="mutedForeground" style={styles.microLabel}>
+								{stat.label}
 							</ThemedText>
-							<ThemedText style={styles.numberValue}>{row.value}</ThemedText>
 						</View>
 					))}
 				</View>
@@ -447,28 +427,23 @@ function NumbersSlide({ summary, season }: { summary: Summary; season: SeasonInf
 	);
 }
 
-function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[] {
-	const slides: Slide[] = [
-		{ key: "champion", width: "wide", content: <ChampionSlide summary={summary} /> },
-	];
-	if (summary.matchCount === 0) return slides;
-
-	slides.push({
-		key: "podium",
-		width: "medium",
-		content: (
-			<PodiumSlide
-				title="Player podium"
-				entries={summary.podium.map((p) => ({ ...p, players: [] }))}
-			/>
-		),
-	});
-	if (summary.teamPodium.length > 0) {
-		slides.push({
-			key: "team-podium",
-			width: "medium",
+function buildColumns(summary: Summary, season: SeasonInfo, theme: Theme): Column[] {
+	const podiums: Card[] = [
+		{
+			key: "podium",
 			content: (
-				<PodiumSlide
+				<PodiumCard
+					title="Player podium"
+					entries={summary.podium.map((p) => ({ ...p, players: [] }))}
+				/>
+			),
+		},
+	];
+	if (summary.teamPodium.length > 0) {
+		podiums.push({
+			key: "team-podium",
+			content: (
+				<PodiumCard
 					title="Team podium"
 					entries={summary.teamPodium.map((t) => ({ ...t, image: t.logo }))}
 				/>
@@ -477,12 +452,12 @@ function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[
 	}
 
 	const { longestWinStreak, biggestUpset, biggestGain, mostMatches } = summary.highlights;
+	const moments: Card[] = [];
 	if (longestWinStreak) {
-		slides.push({
+		moments.push({
 			key: "streak",
-			width: "narrow",
 			content: (
-				<MomentSlide
+				<MomentCard
 					label="Longest streak"
 					icon={{
 						ios: "flame.fill",
@@ -500,17 +475,16 @@ function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[
 		});
 	}
 	if (biggestUpset) {
-		slides.push({
+		moments.push({
 			key: "upset",
-			width: "narrow",
 			content: (
-				<MomentSlide
+				<MomentCard
 					label="Biggest upset"
 					icon={{ ios: "bolt.fill", android: "bolt", web: "bolt" }}
 					accent={theme.glowPurpleText}
 					glow={theme.glowPurpleSolid}
 					value={`${Math.round(biggestUpset.winnerOdds * 100)}%`}
-					unit="chance to win — and they did"
+					unit="odds to win"
 					players={biggestUpset.winners}
 					caption={names(biggestUpset.winners)}
 					detail={`${biggestUpset.winnerScore}–${biggestUpset.loserScore} vs ${names(biggestUpset.losers)}`}
@@ -519,17 +493,16 @@ function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[
 		});
 	}
 	if (biggestGain) {
-		slides.push({
+		moments.push({
 			key: "gain",
-			width: "narrow",
 			content: (
-				<MomentSlide
+				<MomentCard
 					label="Biggest swing"
 					icon={{ ios: "chart.line.uptrend.xyaxis", android: "trending_up", web: "trending_up" }}
 					accent={theme.glowEmeraldText}
 					glow={theme.glowEmeraldSolid}
 					value={`+${biggestGain.gain}`}
-					unit="points in a single match"
+					unit="pts in one match"
 					players={[biggestGain.player]}
 					caption={biggestGain.player.name}
 				/>
@@ -537,11 +510,10 @@ function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[
 		});
 	}
 	if (mostMatches) {
-		slides.push({
+		moments.push({
 			key: "matches",
-			width: "narrow",
 			content: (
-				<MomentSlide
+				<MomentCard
 					label="Iron player"
 					icon={{ ios: "gamecontroller.fill", android: "sports_esports", web: "sports_esports" }}
 					accent={theme.glowBlueText}
@@ -554,64 +526,22 @@ function buildSlides(summary: Summary, season: SeasonInfo, theme: Theme): Slide[
 			),
 		});
 	}
-	slides.push({
+	const numbers: Card = {
 		key: "numbers",
-		width: "narrow",
-		content: <NumbersSlide summary={summary} season={season} />,
-	});
-	return slides;
-}
+		content: <NumbersCard summary={summary} season={season} />,
+	};
 
-function Backdrop() {
-	const theme = useTheme();
-	return (
-		<>
-			<Gradient
-				from={[0, 0]}
-				to={[1, 1]}
-				stops={[
-					{ color: theme.glowAmberSolid, opacity: 0.2, offset: 0 },
-					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.45 },
-				]}
-			/>
-			<Gradient
-				from={[1, 1]}
-				to={[0, 0]}
-				stops={[
-					{ color: theme.glowPinkSolid, opacity: 0.12, offset: 0 },
-					{ color: theme.glowPinkSolid, opacity: 0, offset: 0.5 },
-				]}
-			/>
-		</>
-	);
-}
-
-function RecapHeader({
-	season,
-	summary,
-	actions,
-}: {
-	season: SeasonInfo;
-	summary: Summary;
-	actions: ReactNode;
-}) {
-	const theme = useTheme();
-	const dateRange = `${formatDate(season.startDate)}${season.endDate ? ` – ${formatDate(season.endDate)}` : ""}`;
-	return (
-		<View style={styles.header}>
-			<View style={styles.recapLabel}>
-				<View style={[styles.recapDot, { backgroundColor: theme.glowAmberSolid }]} />
-				<Eyebrow color={theme.glowAmberText}>Season recap</Eyebrow>
-			</View>
-			<ThemedText style={styles.seasonName} numberOfLines={2}>
-				{season.name}
-			</ThemedText>
-			<ThemedText themeColor="mutedForeground" style={styles.caption}>
-				{dateRange} · {summary.matchCount} matches · {summary.playerCount} players
-			</ThemedText>
-			<View style={styles.actions}>{actions}</View>
-		</View>
-	);
+	const columns: Column[] = [{ key: "podiums", width: "wide", cards: podiums }];
+	for (let i = 0; i < moments.length; i += 2) {
+		columns.push({ key: `moments-${i}`, width: "narrow", cards: moments.slice(i, i + 2) });
+	}
+	const last = columns[columns.length - 1];
+	if (last.width === "narrow" && last.cards.length === 1) {
+		last.cards.push(numbers);
+	} else {
+		columns.push({ key: "numbers", width: "narrow", cards: [numbers] });
+	}
+	return columns;
 }
 
 export function SeasonCeremony({
@@ -625,23 +555,20 @@ export function SeasonCeremony({
 }) {
 	const trpc = useTRPC();
 	const theme = useTheme();
-	const insets = useSafeAreaInsets();
-	const scrollRef = useRef<ScrollView>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
-	const [active, setActive] = useState(0);
+	const [scroll, setScroll] = useState({ visible: 1, position: 0 });
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
-	const [isFullScreen, setIsFullScreen] = useState(false);
 	const { data: summary } = useQuery(trpc.season.getSummary.queryOptions({ seasonSlug }));
 
-	const slides = useMemo(
-		() => (summary ? buildSlides(summary, season, theme) : []),
+	const columns = useMemo(
+		() => (summary && summary.matchCount > 0 ? buildColumns(summary, season, theme) : []),
 		[summary, season, theme]
 	);
-	const widths = slides.map(({ width }) =>
-		Math.min(Math.round(containerWidth * MAX_WIDTH[width].ratio), MAX_WIDTH[width].max)
+	const widths = columns.map(({ width }) =>
+		Math.min(Math.round(containerWidth * COLUMN_WIDTH[width].ratio), COLUMN_WIDTH[width].max)
 	);
 	const offsets = widths.reduce<number[]>(
-		(acc, _, i) => [...acc, i === 0 ? 0 : acc[i - 1] + widths[i - 1] + SLIDE_GAP],
+		(acc, _, i) => [...acc, i === 0 ? 0 : acc[i - 1] + widths[i - 1] + GAP],
 		[]
 	);
 
@@ -649,150 +576,82 @@ export function SeasonCeremony({
 
 	const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
-		if (contentOffset.x + layoutMeasurement.width >= contentSize.width - 4) {
-			setActive(slides.length - 1);
-			return;
-		}
-		const distances = offsets.map((offset) => Math.abs(offset - contentOffset.x));
-		setActive(distances.indexOf(Math.min(...distances)));
+		const overflow = contentSize.width - layoutMeasurement.width;
+		setScroll({
+			visible: Math.min(1, layoutMeasurement.width / contentSize.width),
+			position: overflow > 0 ? Math.min(1, Math.max(0, contentOffset.x / overflow)) : 0,
+		});
 	};
 
-	const goTo = (index: number) =>
-		scrollRef.current?.scrollTo({ x: offsets[index] ?? 0, animated: true });
+	if (!summary) return <Skeleton width="100%" height={640} />;
 
-	if (!summary) return <Skeleton width="100%" height={520} />;
-
-	const startNextSeason = canStartNextSeason ? (
-		<Button
-			variant="glow"
-			size="sm"
-			icon={{ ios: "plus", android: "add", web: "add" }}
-			onPress={() => {
-				setIsFullScreen(false);
-				setIsCreateOpen(true);
-			}}
-		>
-			Start next season
-		</Button>
-	) : null;
-
-	const slideFrame = { backgroundColor: theme.background, borderColor: theme.border };
+	const cardFrame = { backgroundColor: theme.background, borderColor: theme.border };
 
 	return (
-		<>
-			<View
-				style={[styles.hero, { backgroundColor: theme.card, borderColor: theme.border }]}
-				onLayout={onLayout}
-				testID="season-ceremony"
-			>
-				<Backdrop />
-				<RecapHeader
-					season={season}
-					summary={summary}
-					actions={
-						<>
-							{startNextSeason}
-							<Button
-								variant="outline"
-								size="sm"
-								icon={{
-									ios: "arrow.up.left.and.arrow.down.right",
-									android: "fullscreen",
-									web: "fullscreen",
-								}}
-								onPress={() => setIsFullScreen(true)}
-								testID="recap-full-screen-button"
-							>
-								Full screen
-							</Button>
-						</>
-					}
-				/>
+		<View
+			style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}
+			onLayout={onLayout}
+			testID="season-ceremony"
+		>
+			<ChampionBanner
+				summary={summary}
+				action={
+					canStartNextSeason ? (
+						<Button
+							variant="glow"
+							size="sm"
+							icon={{ ios: "plus", android: "add", web: "add" }}
+							onPress={() => setIsCreateOpen(true)}
+							style={styles.cta}
+						>
+							Start next season
+						</Button>
+					) : null
+				}
+			/>
 
-				{containerWidth > 0 ? (
+			{columns.length > 0 && containerWidth > 0 ? (
+				<>
 					<ScrollView
-						ref={scrollRef}
 						horizontal
 						showsHorizontalScrollIndicator={false}
 						snapToOffsets={offsets}
 						decelerationRate="fast"
-						disableIntervalMomentum
 						onScroll={onScroll}
+						onContentSizeChange={(width) =>
+							setScroll((prev) => ({ ...prev, visible: Math.min(1, containerWidth / width) }))
+						}
 						scrollEventThrottle={32}
 						contentContainerStyle={styles.track}
 					>
-						{slides.map((slide, index) => (
-							<View
-								key={slide.key}
-								style={[styles.slide, slideFrame, { width: widths[index] }]}
-								accessibilityLabel={`${index + 1} of ${slides.length}`}
-							>
-								{slide.content}
+						{columns.map((column, index) => (
+							<View key={column.key} style={[styles.column, { width: widths[index] }]}>
+								{column.cards.map((card) => (
+									<View key={card.key} style={[styles.card, cardFrame]}>
+										{card.content}
+									</View>
+								))}
 							</View>
 						))}
 					</ScrollView>
-				) : (
-					<View style={{ height: SLIDE_HEIGHT }} />
-				)}
-
-				<View style={styles.progress}>
-					{slides.map((slide, index) => (
-						<Pressable
-							key={slide.key}
-							accessibilityRole="button"
-							accessibilityLabel={`Go to slide ${index + 1}`}
-							onPress={() => goTo(index)}
-							hitSlop={8}
-							style={styles.progressHit}
-						>
-							<View
-								style={[
-									styles.progressBar,
-									{
-										backgroundColor:
-											index === active
-												? theme.glowAmberSolid
-												: index < active
-													? theme.mutedForeground
-													: theme.border,
-									},
-								]}
-							/>
-						</Pressable>
-					))}
-				</View>
-			</View>
-
-			<Modal
-				visible={isFullScreen}
-				animationType="slide"
-				onRequestClose={() => setIsFullScreen(false)}
-			>
-				<ThemedView style={styles.fullScreen} testID="season-recap-full-screen">
-					<Backdrop />
-					<ScrollView
-						contentContainerStyle={[
-							styles.fullScreenContent,
-							{
-								paddingTop: insets.top + Spacing.three,
-								paddingBottom: insets.bottom + Spacing.five,
-							},
-						]}
-					>
-						<View style={styles.fullScreenClose}>
-							<ModalCloseButton onPress={() => setIsFullScreen(false)} />
+					<View style={styles.progressWrap}>
+						<View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+							{scroll.visible < 0.999 ? (
+								<View
+									style={[
+										styles.progressThumb,
+										{
+											backgroundColor: theme.glowAmberSolid,
+											width: `${scroll.visible * 100}%`,
+											left: `${scroll.position * (1 - scroll.visible) * 100}%`,
+										},
+									]}
+								/>
+							) : null}
 						</View>
-						<RecapHeader season={season} summary={summary} actions={startNextSeason} />
-						<View style={styles.fullScreenSlides}>
-							{slides.map((slide) => (
-								<View key={slide.key} style={[styles.slide, slideFrame]}>
-									{slide.content}
-								</View>
-							))}
-						</View>
-					</ScrollView>
-				</ThemedView>
-			</Modal>
+					</View>
+				</>
+			) : null}
 
 			{canStartNextSeason ? (
 				<CreateSeasonForm
@@ -806,7 +665,7 @@ export function SeasonCeremony({
 					}
 				/>
 			) : null}
-		</>
+		</View>
 	);
 }
 
@@ -815,78 +674,26 @@ const styles = StyleSheet.create({
 		flex: 1,
 		minWidth: 0,
 	},
-	hero: {
+	section: {
 		borderWidth: StyleSheet.hairlineWidth,
 		overflow: "hidden",
 	},
-	header: {
+	banner: {
 		paddingHorizontal: GUTTER,
-		paddingTop: Spacing.four,
-		gap: Spacing.two,
-	},
-	recapLabel: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.two,
-	},
-	recapDot: {
-		width: 7,
-		height: 7,
-		borderRadius: 4,
-	},
-	seasonName: {
-		fontSize: 34,
-		lineHeight: 38,
-		fontWeight: "900",
-		letterSpacing: -1,
-	},
-	actions: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: Spacing.two,
-		marginTop: Spacing.one,
-	},
-	track: {
-		paddingHorizontal: GUTTER,
-		paddingTop: Spacing.three,
-		gap: SLIDE_GAP,
-	},
-	slide: {
-		height: SLIDE_HEIGHT,
-		borderWidth: StyleSheet.hairlineWidth,
+		paddingVertical: Spacing.four,
+		gap: Spacing.three,
+		borderBottomWidth: StyleSheet.hairlineWidth,
 		overflow: "hidden",
 	},
-	slideBody: {
-		flex: 1,
-		padding: Spacing.three + 4,
-	},
-	slideHeader: {
+	bannerRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-between",
+		gap: Spacing.three,
 	},
-	centered: {
-		flex: 1,
-		justifyContent: "center",
-		gap: Spacing.two,
-		padding: Spacing.three + 4,
-	},
-	eyebrow: {
-		fontSize: 10,
-		lineHeight: 14,
-		fontWeight: "700",
-		letterSpacing: 2,
-		textTransform: "uppercase",
-	},
-	microLabel: {
-		fontSize: 9,
-		lineHeight: 12,
-		letterSpacing: 1.5,
-		textTransform: "uppercase",
-	},
-	caption: {
-		fontSize: 12,
-		lineHeight: 17,
+	championRing: {
+		borderWidth: 2,
+		borderRadius: 10,
+		padding: 2,
 	},
 	chip: {
 		alignSelf: "flex-start",
@@ -897,50 +704,39 @@ const styles = StyleSheet.create({
 		paddingVertical: 3,
 		borderRadius: 999,
 		borderWidth: 1,
+		marginBottom: 6,
 	},
 	chipText: {
 		fontSize: 10,
 		lineHeight: 13,
 		fontWeight: "700",
-		letterSpacing: 1.8,
+		letterSpacing: 1.6,
 		textTransform: "uppercase",
 	},
-	championRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: Spacing.three,
-		marginTop: Spacing.three,
-	},
-	championRing: {
-		borderWidth: 2,
-		borderRadius: 10,
-		padding: 2,
-	},
 	championName: {
-		fontSize: 24,
-		lineHeight: 27,
+		fontSize: 26,
+		lineHeight: 30,
 		fontWeight: "900",
 		letterSpacing: -0.5,
 	},
+	storyRow: {
+		gap: Spacing.two,
+	},
+	story: {
+		fontSize: 13,
+		lineHeight: 19,
+		opacity: 0.85,
+	},
 	formRow: {
 		flexDirection: "row",
-		alignItems: "center",
 		gap: 4,
-		marginTop: 6,
 	},
 	formDot: {
 		width: 7,
 		height: 7,
 		borderRadius: 4,
 	},
-	story: {
-		fontSize: 13,
-		lineHeight: 19,
-		marginTop: Spacing.three,
-		opacity: 0.85,
-	},
 	statStrip: {
-		marginTop: "auto",
 		flexDirection: "row",
 		borderWidth: StyleSheet.hairlineWidth,
 		paddingVertical: Spacing.two + 2,
@@ -960,25 +756,71 @@ const styles = StyleSheet.create({
 		fontWeight: "800",
 		fontVariant: ["tabular-nums"],
 	},
+	cta: {
+		alignSelf: "flex-start",
+	},
+	eyebrow: {
+		fontSize: 10,
+		lineHeight: 14,
+		fontWeight: "700",
+		letterSpacing: 2,
+		textTransform: "uppercase",
+	},
+	microLabel: {
+		fontSize: 9,
+		lineHeight: 12,
+		letterSpacing: 1.4,
+		textTransform: "uppercase",
+	},
+	caption: {
+		fontSize: 12,
+		lineHeight: 16,
+	},
+	track: {
+		paddingHorizontal: GUTTER,
+		paddingTop: Spacing.three + 4,
+		gap: GAP,
+	},
+	column: {
+		height: COLUMN_HEIGHT,
+		gap: GAP,
+	},
+	card: {
+		flex: 1,
+		borderWidth: StyleSheet.hairlineWidth,
+		overflow: "hidden",
+	},
+	cardBody: {
+		flex: 1,
+		padding: Spacing.three,
+	},
+	cardHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
 	avatarPair: {
 		flexDirection: "row",
 		gap: 4,
+	},
+	podiumBody: {
+		paddingHorizontal: Spacing.two + 4,
 	},
 	podiumRow: {
 		marginTop: "auto",
 		flexDirection: "row",
 		alignItems: "flex-end",
-		gap: Spacing.two,
+		gap: 4,
 	},
 	podiumColumn: {
 		flex: 1,
 		minWidth: 0,
 		alignItems: "center",
-		gap: 6,
+		gap: 5,
 	},
 	podiumName: {
-		fontSize: 11,
-		lineHeight: 14,
+		fontSize: 10,
+		lineHeight: 13,
 		fontWeight: "700",
 		textAlign: "center",
 		minHeight: 28,
@@ -986,13 +828,13 @@ const styles = StyleSheet.create({
 	step: {
 		width: "100%",
 		alignItems: "center",
-		paddingTop: 6,
+		paddingTop: 5,
 		borderTopWidth: 2,
 		overflow: "hidden",
 	},
 	stepRank: {
-		fontSize: 24,
-		lineHeight: 28,
+		fontSize: 20,
+		lineHeight: 24,
 		fontWeight: "900",
 	},
 	stepScore: {
@@ -1001,15 +843,17 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
 	},
-	momentValueBlock: {
-		marginTop: Spacing.four,
-		gap: 4,
+	momentValueRow: {
+		marginTop: Spacing.two + 4,
+		flexDirection: "row",
+		alignItems: "baseline",
+		gap: Spacing.two,
 	},
 	momentValue: {
-		fontSize: 64,
-		lineHeight: 70,
+		fontSize: 44,
+		lineHeight: 50,
 		fontWeight: "900",
-		letterSpacing: -3,
+		letterSpacing: -2,
 		fontVariant: ["tabular-nums"],
 	},
 	momentFooter: {
@@ -1018,7 +862,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: Spacing.two + 2,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		paddingTop: Spacing.three,
+		paddingTop: Spacing.two + 4,
 	},
 	momentCaption: {
 		fontSize: 12,
@@ -1029,54 +873,33 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 		lineHeight: 15,
 	},
-	numbers: {
+	numbersGrid: {
 		marginTop: "auto",
-	},
-	numberRow: {
 		flexDirection: "row",
-		alignItems: "baseline",
-		justifyContent: "space-between",
-		gap: Spacing.two,
-		paddingVertical: Spacing.two + 2,
+		flexWrap: "wrap",
+		rowGap: Spacing.three + 4,
 	},
-	numberRule: {
-		borderTopWidth: StyleSheet.hairlineWidth,
+	numberCell: {
+		width: "50%",
+		gap: 4,
 	},
 	numberValue: {
-		fontSize: 22,
-		lineHeight: 26,
+		fontSize: 28,
+		lineHeight: 32,
 		fontWeight: "900",
 		fontVariant: ["tabular-nums"],
 	},
-	progress: {
-		flexDirection: "row",
-		gap: 6,
+	progressWrap: {
 		paddingHorizontal: GUTTER,
 		paddingTop: Spacing.three,
 		paddingBottom: Spacing.four,
 	},
-	progressHit: {
-		flex: 1,
-		paddingVertical: 6,
-	},
-	progressBar: {
+	progressTrack: {
 		height: 3,
 	},
-	fullScreen: {
-		flex: 1,
-	},
-	fullScreenContent: {
-		width: "100%",
-		maxWidth: MaxContentWidth,
-		alignSelf: "center",
-	},
-	fullScreenClose: {
-		alignItems: "flex-end",
-		paddingHorizontal: GUTTER,
-	},
-	fullScreenSlides: {
-		paddingHorizontal: GUTTER,
-		paddingTop: Spacing.four,
-		gap: Spacing.three,
+	progressThumb: {
+		position: "absolute",
+		top: 0,
+		bottom: 0,
 	},
 });

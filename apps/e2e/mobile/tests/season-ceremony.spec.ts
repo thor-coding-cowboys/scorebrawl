@@ -20,23 +20,15 @@ test.describe("Mobile season ceremony", () => {
 		await setSeasonClosed(page, false);
 	});
 
-	test("shows the season recap hero and its full-screen view on a closed season", async ({
-		page,
-	}) => {
+	test("shows the champion banner and season highlights on a closed season", async ({ page }) => {
 		await page.goto(`/seasons/${SEED_SEASON.slug}`);
 
-		const hero = page.getByTestId("season-ceremony");
-		await expect(hero).toBeVisible({ timeout: 30_000 });
-		await expect(hero.getByText("Season recap")).toBeVisible();
-		await expect(hero.getByText("Champion", { exact: true })).toBeVisible();
-		await expect(hero.getByText("Start next season")).toBeVisible();
-		await expect(hero.getByRole("button", { name: /Go to slide/ })).not.toHaveCount(0);
-
-		await hero.getByTestId("recap-full-screen-button").click();
-		const fullScreen = page.getByTestId("season-recap-full-screen");
-		await expect(fullScreen).toBeVisible();
-		await expect(fullScreen.getByText("By the numbers")).toBeAttached();
-		await fullScreen.getByRole("button", { name: "Close" }).click();
-		await expect(fullScreen).toBeHidden();
+		const recap = page.getByTestId("season-ceremony");
+		await expect(recap).toBeVisible({ timeout: 30_000 });
+		const banner = recap.getByTestId("champion-banner");
+		await expect(banner.getByText("Season champion")).toBeVisible();
+		await expect(banner.getByText("Start next season")).toBeVisible();
+		await expect(recap.getByText("Player podium")).toBeVisible();
+		await expect(recap.getByText("By the numbers")).toBeAttached();
 	});
 });

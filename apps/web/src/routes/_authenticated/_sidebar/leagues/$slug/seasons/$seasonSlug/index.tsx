@@ -26,7 +26,6 @@ import { z } from "zod";
 const seasonDashboardSearchSchema = z.object({
 	addMatch: z.boolean().optional(),
 	startSession: z.boolean().optional(),
-	recap: z.literal("full").optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/")(
@@ -74,14 +73,7 @@ function SeasonDashboardPage() {
 		enabled: !!season,
 	});
 
-	const { addMatch, startSession, recap } = Route.useSearch();
-	const setIsRecapFullScreen = (open: boolean) => {
-		navigate({
-			to: ".",
-			search: open ? { recap: "full" } : {},
-			replace: !open,
-		});
-	};
+	const { addMatch, startSession } = Route.useSearch();
 	const isCreateMatchOpen = addMatch === true;
 	const setIsCreateMatchOpen = (open: boolean) => {
 		navigate({
@@ -163,8 +155,6 @@ function SeasonDashboardPage() {
 						season={season}
 						leagueSlug={slug}
 						canStartNextSeason={canCreateSeasons}
-						isFullScreen={recap === "full"}
-						onFullScreenChange={setIsRecapFullScreen}
 					/>
 				)}
 				<DashboardCards seasonSlug={seasonSlug} />
