@@ -9,6 +9,7 @@
 		"./achievements": "./src/achievements/index.ts",
 		"./league": "./src/league/index.ts",
 		"./presentation": "./src/presentation/index.ts",
+		"./realtime": "./src/realtime/index.ts",
 		"./session": "./src/session/index.ts",
 		"./slug": "./src/slug/index.ts",
 		"./theme": "./src/theme/index.ts"

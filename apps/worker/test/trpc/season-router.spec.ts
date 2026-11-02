@@ -3,7 +3,7 @@ import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDb } from "../../src/db/index";
-import { playerAchievement } from "../../src/db/schema/league-schema";
+import { gameSession, playerAchievement } from "../../src/db/schema/league-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
@@ -112,6 +112,37 @@ describe("season router", () => {
 		});
 
 		expect(result.closed).toBe(true);
+	});
+
+	it("ends active sessions when season is closed", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Session Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+		const seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });
+		const session = await client.session.create.mutate({
+			seasonSlug: season.slug,
+			rotationMode: "winner-stays",
+			teamSize: 1,
+			maxConsecutiveGames: null,
+			seasonPlayerIds: seasonPlayers.map((p) => p.id),
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const [row] = await getDb(env.DB)
+			.select({ status: gameSession.status, endedAt: gameSession.endedAt })
+			.from(gameSession)
+			.where(eq(gameSession.id, session.id));
+		expect(row.status).toBe("ended");
+		expect(row.endedAt).toBeInstanceOf(Date);
 	});
 
 	it("checks slug availability within league scope", async () => {
@@ -244,5 +275,193 @@ describe("season router — season_winner", () => {
 		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: false });
 		const reopenedTypes = await getAchievementTypes(standings[0].playerId);
 		expect(reopenedTypes).toContain("season_winner");
+	});
+
+	it("does not duplicate season_winner when closing, reopening and closing again", async () => {
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Winner Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 0,
+			homeTeamPlayerIds: [standings[0].id],
+			awayTeamPlayerIds: [standings[1].id],
+		});
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: false });
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+
+		const types = await getAchievementTypes(standings[0].playerId);
+		expect(types.filter((t) => t === "season_winner")).toHaveLength(1);
+	});
+});
+
+describe("season router — getSummary", () => {
+	let ctx: Awaited<ReturnType<typeof createAuthContext>>;
+	let client: ReturnType<typeof createTRPCTestClient>;
+
+	beforeEach(async () => {
+		ctx = await createAuthContext();
+		client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+	});
+
+	const createEloSeason = () =>
+		client.season.create.mutate({
+			name: "Summary Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+	it("returns empty champions and highlights for a season without matches", async () => {
+		await createPlayers(ctx, 2);
+		const season = await createEloSeason();
+
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+
+		expect(summary.matchCount).toBe(0);
+		expect(summary.playerCount).toBe(2);
+		expect(summary.champions).toHaveLength(0);
+		expect(summary.podium).toHaveLength(2);
+		expect(summary.teamPodium).toHaveLength(0);
+		expect(summary.championStats).toBeNull();
+		expect(summary.highlights).toEqual({
+			longestWinStreak: null,
+			biggestUpset: null,
+			biggestGain: null,
+			mostMatches: null,
+			biggestWin: null,
+			mostWins: null,
+			bestWinRate: null,
+		});
+	});
+
+	it("returns podium, champion and highlights", async () => {
+		await createPlayers(ctx, 3);
+		const season = await createEloSeason();
+		const [a, b, c] = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		const play = (home: string, away: string) =>
+			client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 0,
+				homeTeamPlayerIds: [home],
+				awayTeamPlayerIds: [away],
+			});
+		await play(a.id, b.id);
+		await play(a.id, c.id);
+		await play(a.id, b.id);
+		await play(c.id, a.id);
+
+		await client.season.updateClosedStatus.mutate({ seasonSlug: season.slug, closed: true });
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		expect(summary.matchCount).toBe(4);
+		expect(summary.podium.map((p) => p.id)).toEqual(standings.slice(0, 3).map((p) => p.id));
+		expect(summary.champions.map((p) => p.id)).toEqual([standings[0].id]);
+
+		const champion = summary.podium[0];
+		expect(champion.id).toBe(a.id);
+		expect(champion.matchCount).toBe(4);
+		expect(champion.winRate).toBe(75);
+
+		expect(summary.highlights.longestWinStreak).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			length: 3,
+		});
+		expect(summary.highlights.mostMatches).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			matchCount: 4,
+		});
+		expect(summary.highlights.biggestUpset?.winners.map((p) => p.id)).toEqual([c.id]);
+		expect(summary.highlights.biggestUpset?.losers.map((p) => p.id)).toEqual([a.id]);
+		expect(summary.highlights.biggestUpset?.winnerOdds).toBeLessThan(0.5);
+		expect(summary.highlights.biggestGain?.player.id).toBe(c.id);
+		expect(summary.highlights.biggestWin).toMatchObject({ winnerScore: 2, loserScore: 0 });
+		expect(summary.highlights.mostWins).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			winCount: 3,
+		});
+		expect(summary.highlights.bestWinRate).toBeNull();
+
+		expect(summary.championStats).toMatchObject({
+			longestStreak: 3,
+			pointsGained: champion.score - 1000,
+			biggestWin: { winnerScore: 2, loserScore: 0 },
+		});
+		expect(summary.championStats?.peakScore).toBeGreaterThanOrEqual(champion.score);
+		expect(summary.championStats?.biggestWin?.opponents).toHaveLength(1);
+	});
+
+	it("returns team podium when team standings exist", async () => {
+		await createPlayers(ctx, 4);
+		const season = await createEloSeason();
+		const [a, b, c, d] = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		await client.match.create.mutate({
+			seasonSlug: season.slug,
+			homeScore: 2,
+			awayScore: 1,
+			homeTeamPlayerIds: [a.id, b.id],
+			awayTeamPlayerIds: [c.id, d.id],
+		});
+
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+
+		expect(summary.teamPodium).toHaveLength(2);
+		expect(summary.teamPodium[0].winRate).toBe(100);
+		expect(summary.teamPodium[1].winRate).toBe(0);
+	});
+});
+
+describe("season router — getSummary win rate", () => {
+	it("picks the best win rate among players with at least five matches", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+		await createPlayers(ctx, 2);
+		const season = await client.season.create.mutate({
+			name: "Win Rate Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+		const [a, b] = await client.seasonPlayer.getStanding.query({ seasonSlug: season.slug });
+
+		for (const [home, away] of [
+			[a.id, b.id],
+			[a.id, b.id],
+			[a.id, b.id],
+			[a.id, b.id],
+			[b.id, a.id],
+		]) {
+			await client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 3,
+				awayScore: 1,
+				homeTeamPlayerIds: [home],
+				awayTeamPlayerIds: [away],
+			});
+		}
+
+		const summary = await client.season.getSummary.query({ seasonSlug: season.slug });
+
+		expect(summary.highlights.bestWinRate).toEqual({
+			player: expect.objectContaining({ id: a.id }),
+			winRate: 80,
+			matchCount: 5,
+		});
 	});
 });

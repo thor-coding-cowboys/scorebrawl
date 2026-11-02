@@ -7,7 +7,6 @@ import { matchScoreSchema } from "../../lib/match-score";
 import * as sessionRepository from "../../repositories/session";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as sessionActions from "../../services/session/session-actions";
-import type { SessionActionContext } from "../../services/session/session-actions";
 
 type SessionDb = Parameters<typeof sessionRepository.getActiveSession>[0]["db"];
 
@@ -33,26 +32,6 @@ async function getSessionForOrg(db: SessionDb, sessionId: string, organizationId
 	return info;
 }
 
-function toActionContext(ctx: {
-	db: SessionDb;
-	env: SessionActionContext["env"];
-	organization: { id: string; slug: string; name: string };
-	authentication: { user: { id: string; name: string } };
-	waitUntil: SessionActionContext["waitUntil"];
-}): SessionActionContext {
-	return {
-		db: ctx.db,
-		env: ctx.env,
-		organization: {
-			id: ctx.organization.id,
-			slug: ctx.organization.slug,
-			name: ctx.organization.name,
-		},
-		user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
-		waitUntil: ctx.waitUntil,
-	};
-}
-
 export const sessionRouter = {
 	create: leagueMemberProcedure
 		.input(
@@ -70,14 +49,14 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.startSession(toActionContext(ctx), input);
+			return sessionActions.startSession(sessionActions.toActionContext(ctx), input);
 		}),
 
 	getActive: leagueMemberProcedure
 		.input(z.object({ seasonSlug: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const s = await getSeasonBySlug(ctx.db, input.seasonSlug, ctx.organizationId);
-			await sessionActions.closeExpiredSessionsForSeason(toActionContext(ctx), {
+			await sessionActions.closeExpiredSessionsForSeason(sessionActions.toActionContext(ctx), {
 				seasonId: s.id,
 				seasonSlug: input.seasonSlug,
 			});
@@ -99,9 +78,13 @@ export const sessionRouter = {
 			}
 
 			if (session.status === "active" && isSessionAutoCloseExpired(session.autoEndsAt)) {
-				await sessionActions.closeExpiredSession(toActionContext(ctx), ctx.organizationId, {
-					sessionId: info.sessionId,
-				});
+				await sessionActions.closeExpiredSession(
+					sessionActions.toActionContext(ctx),
+					ctx.organizationId,
+					{
+						sessionId: info.sessionId,
+					}
+				);
 
 				session = await sessionRepository.getSessionById({
 					db: ctx.db,
@@ -119,19 +102,31 @@ export const sessionRouter = {
 	joinSelf: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.joinSelf(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.joinSelf(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	addPlayer: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string(), seasonPlayerId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.addPlayer(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.addPlayer(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	removePlayer: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string(), sessionPlayerId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.removePlayer(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.removePlayer(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	startNextMatch: leagueMemberProcedure
@@ -143,11 +138,15 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.startNextMatch(toActionContext(ctx), ctx.organizationId, {
-				sessionId: input.sessionId,
-				home: input.homeSeasonPlayerIds,
-				away: input.awaySeasonPlayerIds,
-			});
+			return sessionActions.startNextMatch(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				{
+					sessionId: input.sessionId,
+					home: input.homeSeasonPlayerIds,
+					away: input.awaySeasonPlayerIds,
+				}
+			);
 		}),
 
 	recordResult: leagueMemberProcedure
@@ -160,7 +159,7 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.logMatch(toActionContext(ctx), ctx.organizationId, {
+			return sessionActions.logMatch(sessionActions.toActionContext(ctx), ctx.organizationId, {
 				sessionId: input.sessionId,
 				sessionMatchId: input.sessionMatchId,
 				home: input.homeScore,
@@ -171,13 +170,17 @@ export const sessionRouter = {
 	resolveCoinToss: leagueMemberProcedure
 		.input(z.object({ coinTossId: z.string(), resolvedWinnerIds: z.array(z.string()) }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.resolveCoinToss(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.resolveCoinToss(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	end: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.endSession(toActionContext(ctx), ctx.organizationId, {
+			return sessionActions.endSession(sessionActions.toActionContext(ctx), ctx.organizationId, {
 				sessionId: input.sessionId,
 			});
 		}),
@@ -185,7 +188,7 @@ export const sessionRouter = {
 	extend: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.extendSession(toActionContext(ctx), ctx.organizationId, {
+			return sessionActions.extendSession(sessionActions.toActionContext(ctx), ctx.organizationId, {
 				sessionId: input.sessionId,
 			});
 		}),
@@ -221,13 +224,21 @@ export const sessionRouter = {
 	cancelMatch: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.cancelMatch(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.cancelMatch(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	deleteLastMatch: leagueMemberProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.deleteLastMatch(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.deleteLastMatch(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	updateMatchScore: leagueMemberProcedure
@@ -240,7 +251,11 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.updateMatchScore(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.updateMatchScore(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	updateTeamSelection: leagueMemberProcedure
@@ -253,7 +268,11 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.updateTeamSelection(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.updateTeamSelection(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	updateProposedLineup: leagueMemberProcedure
@@ -276,7 +295,11 @@ export const sessionRouter = {
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			return sessionActions.updateProposedLineup(toActionContext(ctx), ctx.organizationId, input);
+			return sessionActions.updateProposedLineup(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				input
+			);
 		}),
 
 	updateSettings: leagueMemberProcedure
@@ -294,9 +317,13 @@ export const sessionRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { sessionId, ...settings } = input;
-			return sessionActions.updateSettings(toActionContext(ctx), ctx.organizationId, {
-				sessionId,
-				settings,
-			});
+			return sessionActions.updateSettings(
+				sessionActions.toActionContext(ctx),
+				ctx.organizationId,
+				{
+					sessionId,
+					settings,
+				}
+			);
 		}),
 } satisfies TRPCRouterRecord;

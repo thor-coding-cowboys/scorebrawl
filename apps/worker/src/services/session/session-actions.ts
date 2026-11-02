@@ -13,7 +13,7 @@ import {
 import * as sessionRepository from "../../repositories/session";
 import * as matchRepository from "../../repositories/match-repository";
 import * as seasonRepository from "../../repositories/season-repository";
-import { broadcastSeasonEvent } from "../../routes/sse-router";
+import { broadcastSeasonEvent, broadcastStandingsUpdate } from "../../routes/sse-router";
 import {
 	recordResult as recordResultService,
 	resolveCoinToss as resolveCoinTossService,
@@ -32,6 +32,26 @@ export type SessionActionContext = {
 	user: { id: string; name: string };
 	waitUntil: (promise: Promise<unknown>) => void;
 };
+
+export function toActionContext(ctx: {
+	db: DrizzleDB;
+	env: SessionActionContext["env"];
+	organization: { id: string; slug: string; name: string };
+	authentication: { user: { id: string; name: string } };
+	waitUntil: SessionActionContext["waitUntil"];
+}): SessionActionContext {
+	return {
+		db: ctx.db,
+		env: ctx.env,
+		organization: {
+			id: ctx.organization.id,
+			slug: ctx.organization.slug,
+			name: ctx.organization.name,
+		},
+		user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+		waitUntil: ctx.waitUntil,
+	};
+}
 
 export type StartSessionInput = {
 	seasonSlug: string;
@@ -374,6 +394,17 @@ export async function closeExpiredSessionsForSeason(
 	return ended;
 }
 
+export async function endActiveSessionsForSeason(
+	ctx: SessionActionContext,
+	{ seasonId, seasonSlug }: { seasonId: string; seasonSlug: string }
+) {
+	const active = await sessionRepository.findActiveSessionsForSeason({ db: ctx.db, seasonId });
+
+	return Promise.all(
+		active.map((session) => endActiveSession(ctx, { id: session.id, seasonSlug }, ctx.user))
+	);
+}
+
 export async function extendSession(
 	ctx: SessionActionContext,
 	leagueId: string,
@@ -486,6 +517,20 @@ export async function logMatch(
 			},
 			user: { id: ctx.user.id, name: ctx.user.name },
 		})
+	);
+
+	ctx.waitUntil(
+		broadcastStandingsUpdate(
+			ctx.env,
+			ctx.organization.slug,
+			session.seasonSlug,
+			{
+				reason: "session:record-result",
+				matchId: result.streakData.createdMatchId,
+				sessionId: session.id,
+			},
+			{ id: ctx.user.id, name: ctx.user.name }
+		)
 	);
 
 	const streakCheckPromise = (async () => {
@@ -918,6 +963,20 @@ export async function deleteLastMatch(
 			data: { matchId: result.deletedMatch.matchId },
 			user: { id: ctx.user.id, name: ctx.user.name },
 		})
+	);
+
+	ctx.waitUntil(
+		broadcastStandingsUpdate(
+			ctx.env,
+			ctx.organization.slug,
+			session.seasonSlug,
+			{
+				reason: "session:delete-last-match",
+				matchId: result.deletedMatch.matchId ?? undefined,
+				sessionId: session.id,
+			},
+			{ id: ctx.user.id, name: ctx.user.name }
+		)
 	);
 
 	return result;

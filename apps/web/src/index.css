@@ -138,6 +138,11 @@
   }
 }
 
+@keyframes recap-sheen {
+    0%, 60% { transform: translateX(0) skewX(-12deg); }
+    100% { transform: translateX(400%) skewX(-12deg); }
+}
+
 /* Radial card glows — shared tone + intensity from packages/core/theme. */
 @utility card-glow-red {
     background-image: radial-gradient(circle at top right, var(--glow-red-radial), transparent 60%);
