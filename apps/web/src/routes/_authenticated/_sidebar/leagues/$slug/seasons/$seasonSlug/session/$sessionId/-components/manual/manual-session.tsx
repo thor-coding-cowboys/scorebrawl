@@ -57,6 +57,7 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 			trpcClient.session.getById.query({ sessionId }) as unknown as Promise<
 				RouterOutput["session"]["getById"]
 			>,
+		refetchOnWindowFocus: "always",
 	});
 
 	const currentMatchRef = useRef<{ id: string } | null>(null);

@@ -65,6 +65,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		queryKey: ["session", sessionId],
 		queryFn: () =>
 			trpcClient.session.getById.query({ sessionId }) as unknown as Promise<GameSession>,
+		refetchOnWindowFocus: "always",
 	});
 
 	const currentMatchRef = useRef<{ id: string } | null>(null);
