@@ -473,7 +473,7 @@ function MomentCard({
 				<div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:mt-5">
 					<span
 						className={cn(
-							"bg-gradient-to-br from-foreground bg-clip-text text-5xl font-black leading-none tracking-tighter text-transparent tabular-nums lg:text-6xl",
+							"bg-gradient-to-br from-foreground bg-clip-text pr-[0.12em] text-5xl font-black leading-none tracking-tighter text-transparent tabular-nums lg:text-6xl",
 							tone.number
 						)}
 					>
