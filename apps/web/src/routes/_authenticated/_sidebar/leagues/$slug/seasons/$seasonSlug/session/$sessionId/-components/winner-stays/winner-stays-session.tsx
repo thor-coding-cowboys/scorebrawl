@@ -65,6 +65,7 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		queryKey: ["session", sessionId],
 		queryFn: () =>
 			trpcClient.session.getById.query({ sessionId }) as unknown as Promise<GameSession>,
+		refetchOnWindowFocus: "always",
 	});
 
 	const currentMatchRef = useRef<{ id: string } | null>(null);
@@ -165,6 +166,20 @@ export function WinnerStaysSession({ sessionId, slug, seasonSlug }: WinnerStaysS
 		setAwayScore(awayScoreRef.current);
 		debouncedUpdateScore(homeScoreRef.current, awayScoreRef.current);
 	};
+
+	useEffect(() => {
+		if (!currentMatch || shouldIgnoreRemoteScore()) return;
+		if (
+			currentMatch.homeSessionScore === homeScoreRef.current &&
+			currentMatch.awaySessionScore === awayScoreRef.current
+		) {
+			return;
+		}
+		homeScoreRef.current = currentMatch.homeSessionScore;
+		awayScoreRef.current = currentMatch.awaySessionScore;
+		setHomeScore(currentMatch.homeSessionScore);
+		setAwayScore(currentMatch.awaySessionScore);
+	}, [currentMatch, shouldIgnoreRemoteScore]);
 
 	useEffect(() => {
 		if (!session) return;

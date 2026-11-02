@@ -59,7 +59,10 @@ export function SessionView({ sessionId, seasonSlug }: { sessionId: string; seas
 	const theme = useTheme();
 	const navigation = useNavigation();
 
-	const sessionQuery = useQuery(trpc.session.getById.queryOptions({ sessionId }));
+	const sessionQuery = useQuery({
+		...trpc.session.getById.queryOptions({ sessionId }),
+		refetchOnWindowFocus: "always",
+	});
 	const session = sessionQuery.data as RouterOutput["session"]["getById"] | undefined;
 
 	const [showSettings, setShowSettings] = useState(false);

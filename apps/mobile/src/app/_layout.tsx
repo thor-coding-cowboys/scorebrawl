@@ -8,6 +8,7 @@ import { useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useAppStateFocus } from "@/hooks/use-app-state-focus";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { authClient } from "@/lib/auth-client";
@@ -80,6 +81,8 @@ function RootContent() {
 }
 
 export default function RootLayout() {
+	useAppStateFocus();
+
 	const { data, isPending } = authClient.useSession();
 	const session = data?.session ?? null;
 

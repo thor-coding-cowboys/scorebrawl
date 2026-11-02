@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AppState } from "react-native";
 
 import {
 	getSessionInvalidations,
@@ -133,8 +134,26 @@ export function useSessionRealtime({
 
 		connect();
 
+		const appStateSubscription = AppState.addEventListener("change", (status) => {
+			if (status !== "active") return;
+
+			attempts = 0;
+
+			// Reconnect right away on foreground unless a connection is already
+			// open or in progress. The focus refetch covers anything missed.
+			if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) {
+				return;
+			}
+			if (reconnectTimer) {
+				clearTimeout(reconnectTimer);
+				reconnectTimer = null;
+			}
+			connect();
+		});
+
 		return () => {
 			mounted = false;
+			appStateSubscription.remove();
 			if (reconnectTimer) clearTimeout(reconnectTimer);
 			if (stableTimer) clearTimeout(stableTimer);
 			socket?.close();
