@@ -71,6 +71,14 @@ const columnWidth = {
 	narrow: "w-[min(72vw,clamp(260px,22vw,340px))]",
 } as const;
 
+const cardClass =
+	"relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/70 p-4 ring-1 ring-foreground/10 backdrop-blur-sm transition-[box-shadow] duration-300 hover:ring-foreground/25 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:fill-mode-both lg:p-5";
+
+const gridFill = {
+	sm: { 0: "", 1: "sm:col-span-2" },
+	lg: { 0: "", 1: "lg:col-span-4", 2: "lg:col-span-3", 3: "lg:col-span-2" },
+} as const;
+
 const medals = {
 	1: {
 		step: "h-[104px] lg:h-[150px] from-amber-300/75 via-amber-400/30 to-amber-500/[0.04] dark:from-amber-300/50 dark:via-amber-400/15",
@@ -759,14 +767,53 @@ function useScrollArea(count: number) {
 	return { trackRef, ...state, page };
 }
 
+function RecapGrid({ columns, season }: { columns: Column[]; season: SeasonInfo }) {
+	const cards = columns.flatMap((column) =>
+		column.cards.map((card) => ({ ...card, wide: column.width === "wide" }))
+	);
+	const slots = cards.reduce((total, card) => total + (card.wide ? 2 : 1), 0);
+	const lastSm = gridFill.sm[(slots % 2) as 0 | 1];
+	const lastLg = gridFill.lg[(slots % 4) as 0 | 1 | 2 | 3];
+
+	return (
+		<div
+			role="region"
+			aria-label={`${season.name} highlights`}
+			className="grid grid-cols-1 gap-3 px-5 pt-6 pb-6 sm:grid-cols-2 sm:px-8 sm:pb-8 lg:grid-cols-4 lg:gap-4"
+		>
+			{cards.map((card, index) => {
+				const isLast = index === cards.length - 1;
+				return (
+					<article
+						key={card.key}
+						aria-label={card.label}
+						style={{ animationDelay: `${index * 60}ms` } as CSSProperties}
+						className={cn(
+							cardClass,
+							card.wide
+								? "h-[420px] sm:col-span-2 lg:h-[clamp(440px,52vh,540px)]"
+								: "min-h-[230px] lg:min-h-[260px]",
+							isLast && !card.wide && cn(lastSm, lastLg)
+						)}
+					>
+						{card.content}
+					</article>
+				);
+			})}
+		</div>
+	);
+}
+
 export function SeasonRecap({
 	summary,
 	season,
 	action,
+	layout = "scroll",
 }: {
 	summary: Summary;
 	season: SeasonInfo;
 	action?: ReactNode;
+	layout?: "scroll" | "grid";
 }) {
 	const columns = summary.matchCount > 0 ? buildColumns(summary, season) : [];
 	const { trackRef, visible, position, start, end, page } = useScrollArea(columns.length);
@@ -783,7 +830,9 @@ export function SeasonRecap({
 
 			<ChampionBanner summary={summary} season={season} action={action} />
 
-			{columns.length > 0 && (
+			{columns.length > 0 && layout === "grid" && <RecapGrid columns={columns} season={season} />}
+
+			{columns.length > 0 && layout === "scroll" && (
 				<>
 					<div
 						ref={trackRef}
@@ -807,7 +856,7 @@ export function SeasonRecap({
 										style={
 											{ animationDelay: `${(columnIndex * 2 + cardIndex) * 60}ms` } as CSSProperties
 										}
-										className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/70 p-4 ring-1 ring-foreground/10 backdrop-blur-sm transition-[box-shadow] duration-300 hover:ring-foreground/25 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:fill-mode-both lg:p-5"
+										className={cardClass}
 									>
 										{card.content}
 									</article>

@@ -9,7 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Link01Icon } from "@hugeicons/core-free-icons";
+import {
+	CheckmarkCircle02Icon,
+	Copy01Icon,
+	Link01Icon,
+	LockIcon,
+	Share01Icon,
+} from "@hugeicons/core-free-icons";
+import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import {
 	Dialog,
 	DialogContent,
@@ -31,12 +38,12 @@ import { cn } from "@/lib/utils";
 
 type ShareLinkExpiryPreset = "1h" | "24h" | "7d" | "30d" | "never";
 
-const EXPIRY_OPTIONS: { value: ShareLinkExpiryPreset; label: string }[] = [
-	{ value: "1h", label: "1 hour" },
-	{ value: "24h", label: "24 hours" },
-	{ value: "7d", label: "7 days" },
-	{ value: "30d", label: "30 days" },
-	{ value: "never", label: "Never" },
+const EXPIRY_OPTIONS: { value: ShareLinkExpiryPreset; short: string; unit: string }[] = [
+	{ value: "1h", short: "1", unit: "hour" },
+	{ value: "24h", short: "24", unit: "hours" },
+	{ value: "7d", short: "7", unit: "days" },
+	{ value: "30d", short: "30", unit: "days" },
+	{ value: "never", short: "∞", unit: "never" },
 ];
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
@@ -48,6 +55,14 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 function expiryLabel(expiresAt: string | Date | null) {
 	if (!expiresAt) return "Never expires";
 	return `Expires ${dateFormat.format(new Date(expiresAt))}`;
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+	return (
+		<span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+			{children}
+		</span>
+	);
 }
 
 interface ShareStandingsDialogProps {
@@ -137,12 +152,37 @@ export function ShareStandingsDialog({
 	return (
 		<>
 			<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-				<DialogContent className="sm:max-w-xl max-h-[90vh] overflow-hidden p-0">
-					<DialogHeader className="border-b border-border p-6 pb-4">
-						<DialogTitle className="flex items-center gap-2 text-xl font-bold">
-							<HugeiconsIcon icon={Link01Icon} className="size-5" />
-							{isClosedSeason ? "Share season recap" : "Share standings"}
-						</DialogTitle>
+				<DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-xl">
+					<DialogHeader className="relative isolate gap-3 overflow-hidden border-b border-foreground/10 p-6 pb-5">
+						<div
+							aria-hidden="true"
+							className={cn(
+								"pointer-events-none absolute inset-0 -z-10",
+								isClosedSeason
+									? "bg-[radial-gradient(70%_140%_at_0%_0%,rgba(245,158,11,0.18),transparent_60%)] dark:bg-[radial-gradient(70%_140%_at_0%_0%,rgba(251,191,36,0.2),transparent_60%)]"
+									: "bg-[radial-gradient(70%_140%_at_0%_0%,rgba(14,165,233,0.16),transparent_60%)] dark:bg-[radial-gradient(70%_140%_at_0%_0%,rgba(96,165,250,0.2),transparent_60%)]"
+							)}
+						/>
+						<div className="flex items-center gap-3">
+							<div
+								className={cn(
+									"flex size-10 shrink-0 items-center justify-center bg-background/70 ring-1 backdrop-blur-sm",
+									isClosedSeason
+										? "text-amber-600 ring-amber-500/40 dark:text-amber-300"
+										: "text-sky-600 ring-sky-500/40 dark:text-sky-300"
+								)}
+							>
+								<HugeiconsIcon icon={Link01Icon} className="size-5" />
+							</div>
+							<div className="flex min-w-0 flex-col gap-1">
+								<span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+									Public link
+								</span>
+								<DialogTitle className="text-xl font-black tracking-tight">
+									{isClosedSeason ? "Share season recap" : "Share standings"}
+								</DialogTitle>
+							</div>
+						</div>
 						<DialogDescription>
 							{isClosedSeason
 								? "Anyone with the link can view the champion, podium, highlights and final standings."
@@ -151,107 +191,168 @@ export function ShareStandingsDialog({
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="overflow-y-auto p-6 pt-4">
+					<div className="overflow-y-auto p-6">
 						{settingQuery.isPending ? (
-							<Skeleton className="h-24 w-full" />
+							<Skeleton className="h-32 w-full" />
 						) : !allowPublicShares ? (
-							<div className="flex flex-col gap-4 border border-border p-4">
-								<div>
-									<p className="text-sm font-medium">Public sharing is off for this league</p>
-									<p className="mt-1 text-sm text-muted-foreground">
-										{isOwner
-											? "Turn it on to create links. You can turn it off again at any time — doing so revokes every active link."
-											: "Ask a league owner to enable public sharing before creating a link."}
-									</p>
+							<div className="flex flex-col items-start gap-4 bg-muted/40 p-5 ring-1 ring-foreground/10">
+								<div className="flex items-start gap-3">
+									<div className="flex size-9 shrink-0 items-center justify-center bg-background ring-1 ring-foreground/10">
+										<HugeiconsIcon icon={LockIcon} className="size-4 text-muted-foreground" />
+									</div>
+									<div>
+										<p className="text-sm font-semibold">Public sharing is off for this league</p>
+										<p className="mt-1 text-sm text-muted-foreground">
+											{isOwner
+												? "Turn it on to create links. You can turn it off again at any time — doing so revokes every active link."
+												: "Ask a league owner to enable public sharing before creating a link."}
+										</p>
+									</div>
 								</div>
 								{isOwner && (
-									<Button
+									<GlowButton
+										icon={Share01Icon}
+										glowColor={glowColors.blue}
 										size="sm"
+										className="gap-1.5"
 										onClick={() => settingMutation.mutate(true)}
 										disabled={settingMutation.isPending}
 										data-testid="enable-public-sharing"
 									>
 										Enable sharing
-									</Button>
+									</GlowButton>
 								)}
 							</div>
 						) : (
 							<div className="flex flex-col gap-6">
-								<div className="flex flex-col gap-3">
-									<p className="text-sm font-medium">Link duration</p>
-									<div className="flex flex-wrap gap-2">
-										{EXPIRY_OPTIONS.map((option) => (
-											<Button
-												key={option.value}
-												type="button"
-												size="sm"
-												variant={expiresIn === option.value ? "default" : "outline"}
-												onClick={() => setExpiresIn(option.value)}
-												className={cn(expiresIn === option.value && "pointer-events-none")}
-												data-testid={`share-expiry-${option.value}`}
-											>
-												{option.label}
-											</Button>
-										))}
+								<section className="flex flex-col gap-3">
+									<SectionLabel>Link duration</SectionLabel>
+									<div className="grid grid-cols-5 gap-px bg-foreground/10 ring-1 ring-foreground/10">
+										{EXPIRY_OPTIONS.map((option) => {
+											const isSelected = expiresIn === option.value;
+											return (
+												<button
+													key={option.value}
+													type="button"
+													aria-pressed={isSelected}
+													onClick={() => setExpiresIn(option.value)}
+													className={cn(
+														"flex flex-col items-center gap-0.5 px-1 py-2.5 text-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
+														isSelected
+															? "bg-amber-500/12 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200"
+															: "bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+													)}
+													data-testid={`share-expiry-${option.value}`}
+												>
+													<span className="text-sm font-black tabular-nums tracking-tight">
+														{option.short}
+													</span>
+													<span className="text-[10px] uppercase tracking-[0.14em]">
+														{option.unit}
+													</span>
+												</button>
+											);
+										})}
 									</div>
 									{expiresIn === "never" && (
 										<p className="text-xs text-muted-foreground">
 											Never-expiring links stay live until you revoke them or disable sharing.
 										</p>
 									)}
-									<div className="flex items-center gap-2">
-										<Button
-											size="sm"
-											onClick={() => createMutation.mutate()}
-											disabled={createMutation.isPending}
-											data-testid="create-share-link"
-										>
-											{createMutation.isPending ? "Creating…" : "Create link"}
-										</Button>
-									</div>
-								</div>
+									<GlowButton
+										icon={Link01Icon}
+										glowColor={glowColors.amber}
+										size="sm"
+										className="gap-1.5 self-start"
+										onClick={() => createMutation.mutate()}
+										disabled={createMutation.isPending}
+										data-testid="create-share-link"
+									>
+										{createMutation.isPending ? "Creating…" : "Create link"}
+									</GlowButton>
+								</section>
 
 								{created && (
-									<div className="flex flex-col gap-2 border border-border bg-muted/40 p-3">
-										<p className="text-xs font-medium">Copy it now — it won't be shown again</p>
+									<section className="relative isolate flex flex-col gap-3 overflow-hidden p-4 ring-1 ring-emerald-500/30">
+										<div
+											aria-hidden="true"
+											className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_120%_at_100%_0%,rgba(16,185,129,0.14),transparent_60%)] dark:bg-[radial-gradient(90%_120%_at_100%_0%,rgba(52,211,153,0.18),transparent_60%)]"
+										/>
+										<div className="flex items-center justify-between gap-3">
+											<span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+												<HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4" />
+												Link ready — copy it now
+											</span>
+											<span className="text-[11px] text-muted-foreground">
+												{expiryLabel(created.expiresAt)}
+											</span>
+										</div>
 										<div className="flex gap-2">
-											<Input readOnly value={created.url} className="font-mono text-xs" />
+											<Input
+												readOnly
+												value={created.url}
+												onFocus={(event) => event.currentTarget.select()}
+												className="bg-background/80 font-mono text-xs"
+											/>
 											<Button
 												size="sm"
 												variant="outline"
+												className="gap-1.5"
 												onClick={() => void copyLink(created.url)}
 												data-testid="copy-share-link"
 											>
 												<HugeiconsIcon icon={Copy01Icon} className="size-4" />
+												<span className="hidden sm:inline">Copy</span>
 											</Button>
 										</div>
-										<p className="text-xs text-muted-foreground">
-											{expiryLabel(created.expiresAt)}
+										<p className="text-[11px] text-muted-foreground">
+											It won't be shown again — only a hash is stored.
 										</p>
-									</div>
+									</section>
 								)}
 
-								<div className="flex flex-col gap-2">
-									<p className="text-sm font-medium">Links for this season</p>
+								<section className="flex flex-col gap-3">
+									<div className="flex items-baseline justify-between gap-3">
+										<SectionLabel>Links for this season</SectionLabel>
+										{activeLinks.length > 0 && (
+											<span className="text-[11px] text-muted-foreground tabular-nums">
+												{activeLinks.length} active
+											</span>
+										)}
+									</div>
 									{linksQuery.isPending ? (
-										<Skeleton className="h-12 w-full" />
+										<Skeleton className="h-14 w-full" />
 									) : activeLinks.length === 0 && inactiveLinks.length === 0 ? (
-										<p className="text-sm text-muted-foreground">No links yet.</p>
+										<p className="border border-dashed border-foreground/15 px-4 py-5 text-center text-sm text-muted-foreground">
+											No links yet.
+										</p>
 									) : (
-										<ul className="flex flex-col divide-y divide-border border-y border-border">
+										<ul className="divide-y divide-border border">
 											{[...activeLinks, ...inactiveLinks].map((link) => (
 												<li
 													key={link.id}
-													className="flex items-center justify-between gap-3 py-2 text-sm"
+													className={cn(
+														"flex items-center justify-between gap-3 px-3 py-2.5 text-sm",
+														link.revokedAt && "opacity-60"
+													)}
 												>
-													<div className="min-w-0">
-														<p className="truncate">
-															{link.revokedAt ? "Revoked" : expiryLabel(link.expiresAt)}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{link.createdByName ?? "Unknown"} · {link.viewCount}{" "}
-															{link.viewCount === 1 ? "view" : "views"}
-														</p>
+													<div className="flex min-w-0 items-center gap-3">
+														<span
+															aria-hidden="true"
+															className={cn(
+																"size-2 shrink-0 rounded-full",
+																link.revokedAt ? "bg-muted-foreground/40" : "bg-emerald-500"
+															)}
+														/>
+														<div className="min-w-0">
+															<p className="truncate font-medium">
+																{link.revokedAt ? "Revoked" : expiryLabel(link.expiresAt)}
+															</p>
+															<p className="truncate text-xs text-muted-foreground">
+																{link.createdByName ?? "Unknown"} · {link.viewCount}{" "}
+																{link.viewCount === 1 ? "view" : "views"}
+															</p>
+														</div>
 													</div>
 													{link.revokedAt ? (
 														<Badge variant="outline">Revoked</Badge>
@@ -269,12 +370,12 @@ export function ShareStandingsDialog({
 											))}
 										</ul>
 									)}
-								</div>
+								</section>
 
 								{isOwner && (
-									<div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+									<section className="flex items-center justify-between gap-4 bg-muted/40 p-4 ring-1 ring-foreground/10">
 										<div>
-											<p className="text-sm font-medium">Allow public share links</p>
+											<p className="text-sm font-semibold">Allow public share links</p>
 											<p className="text-xs text-muted-foreground">
 												Turning this off revokes every active link for this league.
 											</p>
@@ -284,7 +385,7 @@ export function ShareStandingsDialog({
 											onCheckedChange={(checked) => settingMutation.mutate(checked)}
 											disabled={settingMutation.isPending}
 										/>
-									</div>
+									</section>
 								)}
 							</div>
 						)}

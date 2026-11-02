@@ -512,7 +512,7 @@ export function SharedStandingsPage({ shareKey }: { shareKey: string }) {
 			<Masthead data={data} />
 			<div className="flex flex-col gap-4 lg:gap-5">
 				{data.summary ? (
-					<SeasonRecap summary={data.summary} season={data.season} />
+					<SeasonRecap summary={data.summary} season={data.season} layout="grid" />
 				) : (
 					<LeaderBanner data={data} />
 				)}
