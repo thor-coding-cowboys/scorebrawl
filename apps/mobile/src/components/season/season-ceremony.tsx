@@ -32,6 +32,7 @@ type Point = [number, number];
 
 interface SeasonInfo {
 	name: string;
+	scoreType: string;
 	startDate: Date;
 	endDate: Date | null;
 }
@@ -58,7 +59,7 @@ interface Column {
 
 const GUTTER = Spacing.three + 4;
 const GAP = Spacing.two + 4;
-const COLUMN_HEIGHT = 452;
+const COLUMN_HEIGHT = 484;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const COLUMN_WIDTH: Record<Column["width"], { ratio: number; max: number }> = {
@@ -66,7 +67,7 @@ const COLUMN_WIDTH: Record<Column["width"], { ratio: number; max: number }> = {
 	narrow: { ratio: 0.7, max: 270 },
 };
 
-const STEP_HEIGHT: Record<number, number> = { 1: 72, 2: 56, 3: 46 };
+const STEP_HEIGHT: Record<number, number> = { 1: 62, 2: 44, 3: 32 };
 
 const medalColor = (theme: Theme, rank: number) =>
 	rank === 1 ? theme.glowAmberSolid : rank === 2 ? theme.mutedForeground : theme.avatar6Text;
@@ -142,7 +143,15 @@ function AvatarPair({
 	);
 }
 
-function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNode }) {
+function ChampionBanner({
+	summary,
+	season,
+	action,
+}: {
+	summary: Summary;
+	season: SeasonInfo;
+	action: ReactNode;
+}) {
 	const theme = useTheme();
 	const { headers } = useUserAvatar();
 	const champion = summary.podium[0];
@@ -157,6 +166,35 @@ function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNo
 			: runnerUp
 				? `Finished ${margin} ${margin === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
 				: `Took the title with ${champion.score} points.`;
+	const stats = !isTie ? summary.championStats : null;
+	const isElo = season.scoreType !== "3-1-0";
+	const extraFacts: { label: string; value: string; detail?: string }[] = [];
+	if (stats) {
+		if (isElo && stats.peakScore !== null) {
+			extraFacts.push({ label: "Peak rating", value: String(stats.peakScore) });
+		}
+		if (isElo) {
+			extraFacts.push({
+				label: "Season gain",
+				value: stats.pointsGained > 0 ? `+${stats.pointsGained}` : String(stats.pointsGained),
+				detail: "points",
+			});
+		}
+		extraFacts.push({
+			label: "Best streak",
+			value: String(stats.longestStreak),
+			detail: stats.longestStreak === 1 ? "win" : "wins in a row",
+		});
+		if (stats.biggestWin) {
+			extraFacts.push({
+				label: "Biggest win",
+				value: `${stats.biggestWin.winnerScore}–${stats.biggestWin.loserScore}`,
+				detail: stats.biggestWin.opponents.length
+					? `vs ${names(stats.biggestWin.opponents)}`
+					: undefined,
+			});
+		}
+	}
 
 	return (
 		<View style={[styles.banner, { borderBottomColor: theme.border }]} testID="champion-banner">
@@ -196,7 +234,7 @@ function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNo
 							tintColor={theme.glowAmberText}
 						/>
 						<ThemedText style={[styles.chipText, { color: theme.glowAmberText }]}>
-							{isTie ? "Season co-champions" : "Season champion"}
+							{isTie ? "Season co-champions" : `${season.name} champion`}
 						</ThemedText>
 					</View>
 					<ThemedText style={styles.championName} numberOfLines={2}>
@@ -247,6 +285,32 @@ function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNo
 				</View>
 			) : null}
 
+			{extraFacts.length > 0 ? (
+				<View
+					style={[styles.factsGrid, { borderColor: theme.border, backgroundColor: theme.border }]}
+				>
+					{extraFacts.map((fact) => (
+						<View key={fact.label} style={[styles.factCell, { backgroundColor: theme.background }]}>
+							<ThemedText themeColor="mutedForeground" style={styles.microLabel} numberOfLines={1}>
+								{fact.label}
+							</ThemedText>
+							<ThemedText style={styles.factValue} numberOfLines={1}>
+								{fact.value}
+							</ThemedText>
+							{fact.detail ? (
+								<ThemedText
+									themeColor="mutedForeground"
+									style={styles.momentDetail}
+									numberOfLines={3}
+								>
+									{fact.detail}
+								</ThemedText>
+							) : null}
+						</View>
+					))}
+				</View>
+			) : null}
+
 			{action}
 		</View>
 	);
@@ -264,50 +328,80 @@ function PodiumCard({ title, entries }: { title: string; entries: PodiumEntry[] 
 				from={[0, 0]}
 				to={[0, 1]}
 				stops={[
-					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.4 },
+					{ color: theme.glowAmberSolid, opacity: 0, offset: 0.35 },
 					{ color: theme.glowAmberSolid, opacity: 0.1, offset: 1 },
 				]}
 			/>
 			<View style={[styles.cardBody, styles.podiumBody]}>
 				<Eyebrow>{title}</Eyebrow>
-				<View style={styles.podiumRow}>
-					{ordered.map((entry) => {
-						const color = medalColor(theme, entry.rank);
-						return (
-							<View key={entry.id} style={styles.podiumColumn}>
-								{entry.players.length > 0 ? (
-									<AvatarPair players={entry.players} size={24} />
-								) : (
-									<Avatar
-										name={entry.name}
-										image={getAvatarUri(entry.image)}
-										headers={headers}
-										size={entry.rank === 1 ? 32 : 26}
-									/>
-								)}
-								<ThemedText style={styles.podiumName} numberOfLines={3}>
-									{entry.name}
-								</ThemedText>
-								<View
-									style={[
-										styles.step,
-										{ height: STEP_HEIGHT[entry.rank] ?? 46, borderTopColor: color },
-									]}
-								>
-									<Gradient
-										from={[0, 0]}
-										to={[0, 1]}
-										stops={[
-											{ color, opacity: 0.4, offset: 0 },
-											{ color, opacity: 0, offset: 1 },
-										]}
-									/>
-									<ThemedText style={[styles.stepRank, { color }]}>{entry.rank}</ThemedText>
-									<ThemedText style={styles.stepScore}>{entry.score}</ThemedText>
+				<View style={styles.podiumStage}>
+					<View style={styles.podiumRow}>
+						{ordered.map((entry) => {
+							const color = medalColor(theme, entry.rank);
+							const isWinner = entry.rank === 1;
+							return (
+								<View key={entry.id} style={styles.podiumColumn}>
+									<View>
+										{isWinner ? (
+											<View style={styles.podiumCrown}>
+												<SymbolView
+													name={{ ios: "crown.fill", android: "emoji_events", web: "emoji_events" }}
+													size={14}
+													tintColor={theme.glowAmberSolid}
+												/>
+											</View>
+										) : null}
+										<View
+											style={[
+												styles.podiumRing,
+												{ borderColor: color, backgroundColor: theme.background },
+											]}
+										>
+											{entry.players.length > 0 ? (
+												<AvatarPair players={entry.players} size={isWinner ? 26 : 22} />
+											) : (
+												<Avatar
+													name={entry.name}
+													image={getAvatarUri(entry.image)}
+													headers={headers}
+													size={isWinner ? 36 : 28}
+												/>
+											)}
+										</View>
+										<View
+											style={[
+												styles.rankBadge,
+												{ backgroundColor: color, borderColor: theme.background },
+											]}
+										>
+											<ThemedText style={styles.rankBadgeText}>{entry.rank}</ThemedText>
+										</View>
+									</View>
+									<ThemedText style={styles.podiumName} numberOfLines={3}>
+										{entry.name}
+									</ThemedText>
+									<View style={[styles.scorePill, { backgroundColor: `${color}22` }]}>
+										<ThemedText style={[styles.scorePillText, { color }]}>
+											{entry.score} pts
+										</ThemedText>
+									</View>
+									<View style={[styles.step, { height: STEP_HEIGHT[entry.rank] ?? 32 }]}>
+										<Gradient
+											from={[0, 0]}
+											to={[0, 1]}
+											stops={[
+												{ color, opacity: 0.5, offset: 0 },
+												{ color, opacity: 0.04, offset: 1 },
+											]}
+										/>
+										<View style={[styles.stepFace, { backgroundColor: color }]} />
+										<ThemedText style={[styles.stepRank, { color }]}>{entry.rank}</ThemedText>
+									</View>
 								</View>
-							</View>
-						);
-					})}
+							);
+						})}
+					</View>
+					<View style={[styles.podiumFloor, { backgroundColor: theme.border }]} />
 				</View>
 			</View>
 		</>
@@ -451,7 +545,15 @@ function buildColumns(summary: Summary, season: SeasonInfo, theme: Theme): Colum
 		});
 	}
 
-	const { longestWinStreak, biggestUpset, biggestGain, mostMatches } = summary.highlights;
+	const {
+		longestWinStreak,
+		biggestUpset,
+		biggestWin,
+		biggestGain,
+		mostWins,
+		bestWinRate,
+		mostMatches,
+	} = summary.highlights;
 	const moments: Card[] = [];
 	if (longestWinStreak) {
 		moments.push({
@@ -492,6 +594,24 @@ function buildColumns(summary: Summary, season: SeasonInfo, theme: Theme): Colum
 			),
 		});
 	}
+	if (biggestWin) {
+		moments.push({
+			key: "biggest-win",
+			content: (
+				<MomentCard
+					label="Biggest win"
+					icon={{ ios: "target", android: "track_changes", web: "track_changes" }}
+					accent={theme.glowAmberText}
+					glow={theme.glowAmberSolid}
+					value={`${biggestWin.winnerScore}–${biggestWin.loserScore}`}
+					unit="widest margin"
+					players={biggestWin.winners}
+					caption={names(biggestWin.winners)}
+					detail={`vs ${names(biggestWin.losers)}`}
+				/>
+			),
+		});
+	}
 	if (biggestGain) {
 		moments.push({
 			key: "gain",
@@ -505,6 +625,40 @@ function buildColumns(summary: Summary, season: SeasonInfo, theme: Theme): Colum
 					unit="pts in one match"
 					players={[biggestGain.player]}
 					caption={biggestGain.player.name}
+				/>
+			),
+		});
+	}
+	if (mostWins) {
+		moments.push({
+			key: "most-wins",
+			content: (
+				<MomentCard
+					label="Most wins"
+					icon={{ ios: "medal.fill", android: "military_tech", web: "military_tech" }}
+					accent={theme.glowPinkText}
+					glow={theme.glowPinkSolid}
+					value={String(mostWins.winCount)}
+					unit="matches won"
+					players={[mostWins.player]}
+					caption={mostWins.player.name}
+				/>
+			),
+		});
+	}
+	if (bestWinRate) {
+		moments.push({
+			key: "best-win-rate",
+			content: (
+				<MomentCard
+					label="Best win rate"
+					icon={{ ios: "percent", android: "percent", web: "percent" }}
+					accent={theme.glowEmeraldText}
+					glow={theme.glowEmeraldSolid}
+					value={`${bestWinRate.winRate}%`}
+					unit={`over ${bestWinRate.matchCount} matches`}
+					players={[bestWinRate.player]}
+					caption={bestWinRate.player.name}
 				/>
 			),
 		});
@@ -595,6 +749,7 @@ export function SeasonCeremony({
 		>
 			<ChampionBanner
 				summary={summary}
+				season={season}
 				action={
 					canStartNextSeason ? (
 						<Button
@@ -803,11 +958,83 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 4,
 	},
+	factsGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: StyleSheet.hairlineWidth,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	factCell: {
+		width: "49.8%",
+		flexGrow: 1,
+		gap: 3,
+		paddingHorizontal: Spacing.three,
+		paddingVertical: Spacing.two + 4,
+	},
+	factValue: {
+		fontSize: 22,
+		lineHeight: 26,
+		fontWeight: "900",
+		fontVariant: ["tabular-nums"],
+	},
+	podiumStage: {
+		marginTop: "auto",
+	},
+	podiumCrown: {
+		position: "absolute",
+		top: -18,
+		left: 0,
+		right: 0,
+		alignItems: "center",
+	},
+	podiumRing: {
+		borderWidth: 2,
+		borderRadius: 10,
+		padding: 2,
+	},
+	rankBadge: {
+		position: "absolute",
+		right: -7,
+		bottom: -7,
+		width: 20,
+		height: 20,
+		borderRadius: 10,
+		borderWidth: 2,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	rankBadgeText: {
+		color: "#ffffff",
+		fontSize: 10,
+		lineHeight: 12,
+		fontWeight: "800",
+	},
+	scorePill: {
+		borderRadius: 999,
+		paddingHorizontal: 7,
+		paddingVertical: 2,
+		marginBottom: 6,
+	},
+	scorePillText: {
+		fontSize: 10,
+		lineHeight: 13,
+		fontWeight: "700",
+		fontVariant: ["tabular-nums"],
+	},
+	stepFace: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		height: 4,
+	},
+	podiumFloor: {
+		height: StyleSheet.hairlineWidth * 2,
+	},
 	podiumBody: {
 		paddingHorizontal: Spacing.two + 4,
 	},
 	podiumRow: {
-		marginTop: "auto",
 		flexDirection: "row",
 		alignItems: "flex-end",
 		gap: 4,
@@ -816,32 +1043,27 @@ const styles = StyleSheet.create({
 		flex: 1,
 		minWidth: 0,
 		alignItems: "center",
-		gap: 5,
 	},
 	podiumName: {
 		fontSize: 10,
 		lineHeight: 13,
 		fontWeight: "700",
 		textAlign: "center",
-		minHeight: 28,
+		minHeight: 26,
+		marginTop: Spacing.two + 4,
+		marginBottom: 3,
 	},
 	step: {
 		width: "100%",
 		alignItems: "center",
-		paddingTop: 5,
-		borderTopWidth: 2,
+		justifyContent: "flex-end",
 		overflow: "hidden",
 	},
 	stepRank: {
-		fontSize: 20,
-		lineHeight: 24,
+		fontSize: 26,
+		lineHeight: 30,
 		fontWeight: "900",
-	},
-	stepScore: {
-		fontSize: 11,
-		lineHeight: 14,
-		fontWeight: "700",
-		fontVariant: ["tabular-nums"],
+		opacity: 0.75,
 	},
 	momentValueRow: {
 		marginTop: Spacing.two + 4,

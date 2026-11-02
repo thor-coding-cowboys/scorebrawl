@@ -434,7 +434,7 @@ export const slugifySeasonName = async ({ db, name }: { db: DrizzleDB; name: str
 };
 
 export const getHighlights = async ({ db, seasonId }: { db: DrizzleDB; seasonId: string }) => {
-	const [streakRows, upsetRows, gainRows] = await Promise.all([
+	const [streakRows, upsetRows, gainRows, marginRows] = await Promise.all([
 		db.all<{ seasonPlayerId: string; length: number }>(sql`
 			SELECT season_player_id as seasonPlayerId, COUNT(*) as length
 			FROM (
@@ -492,9 +492,31 @@ export const getHighlights = async ({ db, seasonId }: { db: DrizzleDB; seasonId:
 			ORDER BY gain DESC
 			LIMIT 1
 		`),
+		db.all<{
+			homeScore: number;
+			awayScore: number;
+			homeIds: string | null;
+			awayIds: string | null;
+		}>(sql`
+			SELECT
+				u.home_score as homeScore,
+				u.away_score as awayScore,
+				GROUP_CONCAT(CASE WHEN mp.home_team = 1 THEN mp.season_player_id END) as homeIds,
+				GROUP_CONCAT(CASE WHEN mp.home_team = 0 THEN mp.season_player_id END) as awayIds
+			FROM (
+				SELECT m.id, m.home_score, m.away_score
+				FROM match m
+				WHERE m.season_id = ${seasonId} AND m.home_score != m.away_score
+				ORDER BY ABS(m.home_score - m.away_score) DESC, m.created_at DESC
+				LIMIT 1
+			) u
+			INNER JOIN match_player mp ON mp.match_id = u.id
+			GROUP BY u.id
+		`),
 	]);
 
 	const upset = upsetRows[0];
+	const margin = marginRows[0];
 	return {
 		longestWinStreak: streakRows[0] ?? null,
 		biggestUpset: upset
@@ -508,5 +530,73 @@ export const getHighlights = async ({ db, seasonId }: { db: DrizzleDB; seasonId:
 				}
 			: null,
 		biggestGain: gainRows[0] && gainRows[0].gain > 0 ? gainRows[0] : null,
+		biggestWin: margin
+			? {
+					homeScore: margin.homeScore,
+					awayScore: margin.awayScore,
+					homeSeasonPlayerIds: margin.homeIds?.split(",") ?? [],
+					awaySeasonPlayerIds: margin.awayIds?.split(",") ?? [],
+				}
+			: null,
+	};
+};
+
+export const getChampionStats = async ({
+	db,
+	seasonPlayerId,
+}: {
+	db: DrizzleDB;
+	seasonPlayerId: string;
+}) => {
+	const [peakRows, streakRows, winRows] = await Promise.all([
+		db.all<{ peakScore: number | null }>(sql`
+			SELECT MAX(score_after) as peakScore
+			FROM match_player
+			WHERE season_player_id = ${seasonPlayerId} AND score_after >= 0
+		`),
+		db.all<{ length: number }>(sql`
+			SELECT COUNT(*) as length
+			FROM (
+				SELECT
+					result,
+					ROW_NUMBER() OVER (ORDER BY created_at, rowid)
+						- ROW_NUMBER() OVER (PARTITION BY result ORDER BY created_at, rowid) as grp
+				FROM match_player
+				WHERE season_player_id = ${seasonPlayerId}
+			)
+			WHERE result = 'W'
+			GROUP BY grp
+			ORDER BY length DESC
+			LIMIT 1
+		`),
+		db.all<{ homeScore: number; awayScore: number; opponentIds: string | null }>(sql`
+			SELECT
+				u.home_score as homeScore,
+				u.away_score as awayScore,
+				GROUP_CONCAT(CASE WHEN mp.home_team != u.home_team THEN mp.season_player_id END) as opponentIds
+			FROM (
+				SELECT m.id, m.home_score, m.away_score, own.home_team
+				FROM match_player own
+				INNER JOIN match m ON m.id = own.match_id
+				WHERE own.season_player_id = ${seasonPlayerId} AND own.result = 'W'
+				ORDER BY ABS(m.home_score - m.away_score) DESC, m.created_at DESC
+				LIMIT 1
+			) u
+			INNER JOIN match_player mp ON mp.match_id = u.id
+			GROUP BY u.id
+		`),
+	]);
+
+	const win = winRows[0];
+	return {
+		peakScore: peakRows[0]?.peakScore ?? null,
+		longestStreak: streakRows[0]?.length ?? 0,
+		biggestWin: win
+			? {
+					winnerScore: Math.max(win.homeScore, win.awayScore),
+					loserScore: Math.min(win.homeScore, win.awayScore),
+					opponentSeasonPlayerIds: win.opponentIds?.split(",") ?? [],
+				}
+			: null,
 	};
 };

@@ -17,6 +17,9 @@ import {
 	FireIcon,
 	FlashIcon,
 	GameController01Icon,
+	Medal01Icon,
+	PercentCircleIcon,
+	Target01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
@@ -34,6 +37,7 @@ type Standing = Summary["podium"][number];
 
 interface SeasonInfo {
 	name: string;
+	scoreType: string;
 	startDate: Date;
 	endDate: Date | null;
 }
@@ -59,23 +63,41 @@ interface Column {
 	cards: Card[];
 }
 
+interface Fact {
+	label: string;
+	value: ReactNode;
+	detail?: string;
+}
+
 const columnWidth = {
-	wide: "w-[min(84vw,380px)]",
-	narrow: "w-[min(70vw,270px)]",
+	wide: "w-[min(84vw,clamp(340px,34vw,520px))]",
+	narrow: "w-[min(72vw,clamp(260px,22vw,340px))]",
 } as const;
 
 const medals = {
 	1: {
-		bar: "h-[68px] border-amber-500 from-amber-400/45 dark:from-amber-300/50",
-		text: "text-amber-600 dark:text-amber-300",
+		step: "h-[104px] lg:h-[150px] from-amber-300/75 via-amber-400/30 to-amber-500/[0.04] dark:from-amber-300/50 dark:via-amber-400/15",
+		face: "bg-amber-300 dark:bg-amber-300/85",
+		ring: "ring-amber-400 dark:ring-amber-300",
+		badge: "bg-amber-500 text-white",
+		pill: "bg-amber-500/12 text-amber-700 dark:text-amber-200",
+		numeral: "text-amber-700/60 dark:text-amber-100/70",
 	},
 	2: {
-		bar: "h-[50px] border-zinc-400 from-zinc-400/35 dark:from-zinc-300/35",
-		text: "text-zinc-500 dark:text-zinc-200",
+		step: "h-[76px] lg:h-[108px] from-zinc-300/80 via-zinc-300/30 to-zinc-400/[0.04] dark:from-zinc-300/40 dark:via-zinc-300/12",
+		face: "bg-zinc-300 dark:bg-zinc-300/80",
+		ring: "ring-zinc-400 dark:ring-zinc-300",
+		badge: "bg-zinc-500 text-white",
+		pill: "bg-zinc-500/12 text-zinc-700 dark:text-zinc-200",
+		numeral: "text-zinc-600/50 dark:text-zinc-100/60",
 	},
 	3: {
-		bar: "h-[38px] border-orange-500 from-orange-400/40 dark:from-orange-400/45",
-		text: "text-orange-600 dark:text-orange-300",
+		step: "h-[54px] lg:h-[78px] from-orange-300/75 via-orange-400/25 to-orange-500/[0.04] dark:from-orange-400/45 dark:via-orange-400/12",
+		face: "bg-orange-300 dark:bg-orange-400/80",
+		ring: "ring-orange-400 dark:ring-orange-300",
+		badge: "bg-orange-500 text-white",
+		pill: "bg-orange-500/12 text-orange-700 dark:text-orange-200",
+		numeral: "text-orange-700/50 dark:text-orange-100/60",
 	},
 } as const;
 
@@ -90,10 +112,20 @@ const tones = {
 		icon: "text-violet-600 dark:text-violet-300",
 		number: "to-violet-500 dark:to-violet-300",
 	},
+	amber: {
+		glow: "bg-[radial-gradient(110%_80%_at_100%_0%,rgba(245,158,11,0.16),transparent_60%)] dark:bg-[radial-gradient(110%_80%_at_100%_0%,rgba(251,191,36,0.22),transparent_60%)]",
+		icon: "text-amber-600 dark:text-amber-300",
+		number: "to-amber-500 dark:to-amber-300",
+	},
 	emerald: {
 		glow: "bg-[radial-gradient(110%_80%_at_100%_0%,rgba(16,185,129,0.16),transparent_60%)] dark:bg-[radial-gradient(110%_80%_at_100%_0%,rgba(52,211,153,0.22),transparent_60%)]",
 		icon: "text-emerald-600 dark:text-emerald-300",
 		number: "to-emerald-500 dark:to-emerald-300",
+	},
+	pink: {
+		glow: "bg-[radial-gradient(110%_80%_at_100%_0%,rgba(236,72,153,0.14),transparent_60%)] dark:bg-[radial-gradient(110%_80%_at_100%_0%,rgba(244,114,182,0.22),transparent_60%)]",
+		icon: "text-pink-600 dark:text-pink-300",
+		number: "to-pink-500 dark:to-pink-300",
 	},
 	sky: {
 		glow: "bg-[radial-gradient(110%_80%_at_100%_0%,rgba(14,165,233,0.16),transparent_60%)] dark:bg-[radial-gradient(110%_80%_at_100%_0%,rgba(96,165,250,0.24),transparent_60%)]",
@@ -111,6 +143,8 @@ const names = (players: PlayerRef[]) => players.map((p) => p.name).join(" & ");
 const record = ({ winCount, drawCount, lossCount }: Standing) =>
 	drawCount > 0 ? `${winCount}-${drawCount}-${lossCount}` : `${winCount}-${lossCount}`;
 
+const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
+
 function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
 	return (
 		<span
@@ -127,97 +161,179 @@ function Eyebrow({ children, className }: { children: ReactNode; className?: str
 function AvatarPair({
 	players,
 	size,
+	className,
 }: {
 	players: { id: string; name: string; image: string | null }[];
-	size: "sm" | "md" | "lg";
+	size: "sm" | "md" | "lg" | "xl";
+	className?: string;
 }) {
 	return (
 		<div className="flex gap-1">
 			{players.slice(0, 2).map((p) => (
-				<AvatarWithFallback key={p.id} src={p.image} name={p.name} size={size} />
+				<AvatarWithFallback
+					key={p.id}
+					src={p.image}
+					name={p.name}
+					size={size}
+					className={className}
+				/>
 			))}
 		</div>
 	);
 }
 
-function ChampionBanner({ summary, action }: { summary: Summary; action: ReactNode }) {
+function championFacts(summary: Summary, season: SeasonInfo): Fact[] {
+	const champion = summary.podium[0];
+	if (!champion) return [];
+	if (summary.champions.length > 1) {
+		return [
+			{ label: "Points", value: champion.score },
+			{ label: "Matches", value: summary.matchCount },
+		];
+	}
+	const stats = summary.championStats;
+	const isElo = season.scoreType !== "3-1-0";
+	const facts: Fact[] = [
+		{ label: "Points", value: champion.score },
+		{ label: "Record", value: record(champion), detail: "W-D-L" },
+		{ label: "Win rate", value: `${champion.winRate}%` },
+		{ label: "Matches", value: champion.matchCount },
+	];
+	if (stats) {
+		if (isElo && stats.peakScore !== null) {
+			facts.push({ label: "Peak rating", value: stats.peakScore });
+		}
+		if (isElo) {
+			facts.push({ label: "Season gain", value: signed(stats.pointsGained), detail: "points" });
+		}
+		facts.push({
+			label: "Best streak",
+			value: stats.longestStreak,
+			detail: stats.longestStreak === 1 ? "win" : "wins in a row",
+		});
+		if (stats.biggestWin) {
+			facts.push({
+				label: "Biggest win",
+				value: `${stats.biggestWin.winnerScore}–${stats.biggestWin.loserScore}`,
+				detail: stats.biggestWin.opponents.length
+					? `vs ${names(stats.biggestWin.opponents)}`
+					: undefined,
+			});
+		}
+	}
+	return facts;
+}
+
+function ChampionBanner({
+	summary,
+	season,
+	action,
+}: {
+	summary: Summary;
+	season: SeasonInfo;
+	action: ReactNode;
+}) {
 	const champion = summary.podium[0];
 	const hasChampion = !!champion && summary.champions.length > 0;
 	const isTie = summary.champions.length > 1;
 	const runnerUp = champion ? summary.podium.find((p) => p.score < champion.score) : undefined;
 	const margin = champion && runnerUp ? champion.score - runnerUp.score : 0;
+	const facts = hasChampion ? championFacts(summary, season) : [];
 
 	return (
 		<div
-			className="relative overflow-hidden border-b border-foreground/10 px-5 py-6 sm:px-7"
+			className="relative overflow-hidden border-b border-foreground/10 px-5 py-7 sm:px-8 lg:py-9"
 			data-testid="champion-banner"
 		>
-			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_140%_at_0%_0%,rgba(245,158,11,0.22),transparent_60%)] dark:bg-[radial-gradient(70%_140%_at_0%_0%,rgba(251,191,36,0.24),transparent_60%)]" />
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_140%_at_0%_0%,rgba(245,158,11,0.22),transparent_60%)] dark:bg-[radial-gradient(60%_140%_at_0%_0%,rgba(251,191,36,0.24),transparent_60%)]" />
 			<div className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent motion-safe:animate-[recap-sheen_6s_ease-in-out_2s_infinite] dark:via-white/[0.07]" />
 			<HugeiconsIcon
 				icon={CrownIcon}
 				strokeWidth={1}
-				className="pointer-events-none absolute -right-10 -top-12 size-64 rotate-12 text-amber-500/[0.08] dark:text-amber-200/[0.06]"
+				className="pointer-events-none absolute -left-10 -bottom-16 size-72 -rotate-12 text-amber-500/[0.07] dark:text-amber-200/[0.05]"
 			/>
-			<div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-				<div className="flex min-w-0 items-center gap-5">
-					{hasChampion &&
-						(isTie ? (
-							<AvatarPair players={summary.champions} size="lg" />
-						) : (
-							<div className="shrink-0 rounded-lg p-0.5 shadow-[0_0_44px_-8px_rgba(245,158,11,0.7)] ring-2 ring-amber-500/80 dark:ring-amber-300/80">
-								<AvatarWithFallback src={champion.image} name={champion.name} size="xl" />
-							</div>
-						))}
-					<div className="flex min-w-0 flex-col gap-2">
-						<span className="inline-flex items-center gap-1.5 self-start rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
-							<HugeiconsIcon icon={CrownIcon} className="size-3" />
-							{isTie ? "Season co-champions" : "Season champion"}
-						</span>
-						<h3 className="text-3xl font-black leading-[1.05] tracking-tight [overflow-wrap:anywhere] sm:text-4xl">
-							{hasChampion ? names(summary.champions) : "No champion crowned"}
-						</h3>
-						<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-foreground/80">
-							<span>
-								{!hasChampion
-									? "No matches were played this season."
-									: isTie
-										? `Shared the title on ${champion.score} points.`
-										: runnerUp
-											? `Finished ${margin} ${margin === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
-											: `Took the title with ${champion.score} points.`}
-							</span>
-							{hasChampion && !isTie && champion.form.length > 0 && (
-								<FormDots form={champion.form} />
-							)}
-						</div>
-					</div>
-				</div>
-				<div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-end">
-					{hasChampion && (
-						<div className="grid w-full grid-cols-4 divide-x divide-foreground/10 bg-background/60 py-2.5 ring-1 ring-foreground/10 sm:w-auto sm:min-w-[340px]">
-							{[
-								{ label: "Points", value: champion.score },
-								{ label: "Record", value: record(champion) },
-								{ label: "Win rate", value: `${champion.winRate}%` },
-								{ label: "Matches", value: champion.matchCount },
-							].map((stat) => (
-								<div
-									key={stat.label}
-									className="flex min-w-0 flex-col items-center gap-1 px-1 sm:px-3"
-								>
-									<span className="whitespace-nowrap text-base font-bold tabular-nums tracking-tight sm:text-lg">
-										{stat.value}
-									</span>
-									<span className="whitespace-nowrap text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:tracking-[0.18em]">
-										{stat.label}
-									</span>
+			<div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:items-center">
+				<div className="flex min-w-0 flex-col gap-5">
+					<div className="flex min-w-0 items-center gap-5">
+						{hasChampion &&
+							(isTie ? (
+								<AvatarPair players={summary.champions} size="xl" />
+							) : (
+								<div className="shrink-0 rounded-lg p-0.5 shadow-[0_0_56px_-10px_rgba(245,158,11,0.75)] ring-2 ring-amber-500/80 dark:ring-amber-300/80">
+									<AvatarWithFallback
+										src={champion.image}
+										name={champion.name}
+										size="xl"
+										className="size-20 text-2xl sm:size-24 sm:text-3xl"
+									/>
 								</div>
 							))}
+						<div className="flex min-w-0 flex-col gap-2">
+							<span className="inline-flex items-center gap-1.5 self-start rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
+								<HugeiconsIcon icon={CrownIcon} className="size-3" />
+								{isTie ? "Season co-champions" : `${season.name} champion`}
+							</span>
+							<h3 className="text-3xl font-black leading-[1.02] tracking-tight [overflow-wrap:anywhere] sm:text-5xl">
+								{hasChampion ? names(summary.champions) : "No champion crowned"}
+							</h3>
 						</div>
-					)}
+					</div>
+					<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/80 sm:text-base">
+						<span>
+							{!hasChampion
+								? "No matches were played this season."
+								: isTie
+									? `Shared the title on ${champion.score} points.`
+									: runnerUp
+										? `Finished ${margin} ${margin === 1 ? "point" : "points"} clear of ${runnerUp.name}.`
+										: `Took the title with ${champion.score} points.`}
+						</span>
+						{hasChampion && !isTie && champion.form.length > 0 && (
+							<span className="inline-flex items-center gap-2">
+								<span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+									Last 5
+								</span>
+								<FormDots form={champion.form} />
+							</span>
+						)}
+					</div>
 					{action}
 				</div>
+
+				{facts.length > 0 && (
+					<dl
+						className={cn(
+							"grid grid-cols-2 gap-px overflow-hidden bg-foreground/10 ring-1 ring-foreground/10",
+							facts.length > 6
+								? "sm:grid-cols-4"
+								: facts.length > 4
+									? "sm:grid-cols-3"
+									: "sm:grid-cols-4"
+						)}
+					>
+						{facts.map((fact) => (
+							<div
+								key={fact.label}
+								className="flex min-w-0 flex-col gap-1.5 bg-background/75 px-4 py-4 backdrop-blur-sm"
+							>
+								<dt className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+									{fact.label}
+								</dt>
+								<dd className="whitespace-nowrap text-2xl font-black leading-none tabular-nums tracking-tight">
+									{fact.value}
+								</dd>
+								{fact.detail && (
+									<dd
+										className="line-clamp-3 text-[11px] leading-snug text-muted-foreground"
+										title={fact.detail}
+									>
+										{fact.detail}
+									</dd>
+								)}
+							</div>
+						))}
+					</dl>
+				)}
 			</div>
 		</div>
 	);
@@ -229,45 +345,90 @@ function PodiumCard({ title, entries }: { title: string; entries: PodiumEntry[] 
 		.filter((e): e is PodiumEntry => !!e);
 	return (
 		<>
-			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_100%,rgba(245,158,11,0.12),transparent_70%)]" />
+			<div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-[conic-gradient(from_180deg_at_50%_-10%,transparent_42%,rgba(245,158,11,0.16)_50%,transparent_58%)] dark:bg-[conic-gradient(from_180deg_at_50%_-10%,transparent_42%,rgba(251,191,36,0.14)_50%,transparent_58%)]" />
 			<div className="relative flex h-full flex-col">
 				<Eyebrow>{title}</Eyebrow>
-				<div className="mt-auto grid grid-cols-3 items-end gap-2">
-					{ordered.map((entry) => {
-						const medal = medals[entry.rank as 1 | 2 | 3];
-						return (
-							<div key={entry.id} className="flex min-w-0 flex-col items-center gap-1.5">
-								{entry.players.length > 0 ? (
-									<AvatarPair players={entry.players} size="sm" />
-								) : (
-									<AvatarWithFallback
-										src={entry.image}
-										name={entry.name}
-										size={entry.rank === 1 ? "md" : "sm"}
-									/>
-								)}
-								<span
-									className="line-clamp-2 min-h-[2.4em] w-full text-center text-[11px] font-semibold leading-tight [overflow-wrap:anywhere]"
-									title={entry.name}
-								>
-									{entry.name}
-								</span>
-								<div
-									className={cn(
-										"flex w-full flex-col items-center border-t-2 bg-gradient-to-b to-transparent pt-1.5",
-										medal.bar
-									)}
-								>
-									<span className={cn("text-xl font-black leading-none", medal.text)}>
-										{entry.rank}
+				<div className="relative mt-auto">
+					<div className="grid grid-cols-3 items-end gap-1.5 lg:gap-2.5">
+						{ordered.map((entry) => {
+							const medal = medals[entry.rank as 1 | 2 | 3];
+							const isWinner = entry.rank === 1;
+							return (
+								<div key={entry.id} className="flex min-w-0 flex-col items-center">
+									<div className="relative">
+										{isWinner && (
+											<HugeiconsIcon
+												icon={CrownIcon}
+												className="absolute -top-6 left-1/2 size-5 -translate-x-1/2 text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.7)] lg:-top-7 lg:size-6 dark:text-amber-300"
+											/>
+										)}
+										<div
+											className={cn(
+												"rounded-lg bg-background p-0.5 ring-2",
+												medal.ring,
+												isWinner && "shadow-[0_0_28px_-6px_rgba(245,158,11,0.7)]"
+											)}
+										>
+											{entry.players.length > 0 ? (
+												<AvatarPair
+													players={entry.players}
+													size={isWinner ? "lg" : "md"}
+													className={isWinner ? "lg:size-12" : "lg:size-10"}
+												/>
+											) : (
+												<AvatarWithFallback
+													src={entry.image}
+													name={entry.name}
+													size={isWinner ? "xl" : "lg"}
+													className={isWinner ? "lg:size-20 lg:text-xl" : "lg:size-14 lg:text-base"}
+												/>
+											)}
+										</div>
+										<span
+											className={cn(
+												"absolute -right-2 -bottom-2 flex size-6 items-center justify-center rounded-full text-[11px] font-bold ring-2 ring-background",
+												medal.badge
+											)}
+										>
+											{entry.rank}
+										</span>
+									</div>
+									<span
+										className="mt-3 line-clamp-2 min-h-[2.4em] w-full text-center text-xs font-semibold leading-tight [overflow-wrap:anywhere] lg:text-sm"
+										title={entry.name}
+									>
+										{entry.name}
 									</span>
-									<span className="mt-0.5 text-[11px] font-semibold tabular-nums">
-										{entry.score}
+									<span
+										className={cn(
+											"mt-1.5 mb-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums lg:text-xs",
+											medal.pill
+										)}
+									>
+										{entry.score} pts
 									</span>
+									<div
+										className={cn(
+											"relative flex w-full items-end justify-center overflow-hidden bg-gradient-to-b shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
+											medal.step
+										)}
+									>
+										<div className={cn("absolute inset-x-0 top-0 h-1.5", medal.face)} />
+										<span
+											className={cn(
+												"pb-2 text-4xl font-black leading-none tabular-nums lg:pb-3 lg:text-6xl",
+												medal.numeral
+											)}
+										>
+											{entry.rank}
+										</span>
+									</div>
 								</div>
-							</div>
-						);
-					})}
+							);
+						})}
+					</div>
+					<div className="h-px w-full bg-foreground/20" />
+					<div className="pointer-events-none mx-auto -mt-px h-3 w-11/12 rounded-[50%] bg-black/15 blur-md dark:bg-black/60" />
 				</div>
 			</div>
 		</>
@@ -300,7 +461,7 @@ function MomentCard({
 				icon={icon}
 				strokeWidth={1}
 				className={cn(
-					"pointer-events-none absolute -bottom-5 -right-5 size-28 -rotate-12 opacity-[0.08]",
+					"pointer-events-none absolute -bottom-5 -right-5 size-28 -rotate-12 opacity-[0.08] lg:size-36",
 					tone.icon
 				)}
 			/>
@@ -309,26 +470,29 @@ function MomentCard({
 					<Eyebrow>{label}</Eyebrow>
 					<HugeiconsIcon icon={icon} className={cn("size-4", tone.icon)} />
 				</div>
-				<div className="mt-3 flex items-baseline gap-2">
+				<div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:mt-5">
 					<span
 						className={cn(
-							"bg-gradient-to-br from-foreground bg-clip-text text-5xl font-black leading-none tracking-tighter text-transparent tabular-nums",
+							"bg-gradient-to-br from-foreground bg-clip-text text-5xl font-black leading-none tracking-tighter text-transparent tabular-nums lg:text-6xl",
 							tone.number
 						)}
 					>
 						{value}
 					</span>
-					<span className="text-xs text-muted-foreground">{unit}</span>
+					<span className="text-xs text-muted-foreground lg:text-sm">{unit}</span>
 				</div>
 				<div className="mt-auto flex items-center gap-3 border-t border-foreground/10 pt-3">
-					<AvatarPair players={players} size="sm" />
+					<AvatarPair players={players} size="sm" className="lg:size-8" />
 					<div className="flex min-w-0 flex-col">
-						<span className="line-clamp-2 text-xs font-semibold leading-snug" title={caption}>
+						<span
+							className="line-clamp-2 text-xs font-semibold leading-snug lg:text-sm"
+							title={caption}
+						>
 							{caption}
 						</span>
 						{detail && (
 							<span
-								className="line-clamp-3 text-[11px] leading-snug text-muted-foreground"
+								className="line-clamp-3 text-[11px] leading-snug text-muted-foreground lg:text-xs"
 								title={detail}
 							>
 								{detail}
@@ -367,7 +531,7 @@ function NumbersCard({ summary, season }: { summary: Summary; season: SeasonInfo
 				<div className="mt-auto grid grid-cols-2 gap-x-4 gap-y-5 pt-3">
 					{stats.map((stat) => (
 						<div key={stat.label} className="flex flex-col gap-1">
-							<span className="text-3xl font-black leading-none tabular-nums tracking-tight">
+							<span className="text-3xl font-black leading-none tabular-nums tracking-tight lg:text-4xl">
 								{stat.value}
 							</span>
 							<span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -407,7 +571,15 @@ function buildColumns(summary: Summary, season: SeasonInfo): Column[] {
 		});
 	}
 
-	const { longestWinStreak, biggestUpset, biggestGain, mostMatches } = summary.highlights;
+	const {
+		longestWinStreak,
+		biggestUpset,
+		biggestWin,
+		biggestGain,
+		mostWins,
+		bestWinRate,
+		mostMatches,
+	} = summary.highlights;
 	const moments: Card[] = [];
 	if (longestWinStreak) {
 		moments.push({
@@ -444,6 +616,24 @@ function buildColumns(summary: Summary, season: SeasonInfo): Column[] {
 			),
 		});
 	}
+	if (biggestWin) {
+		moments.push({
+			key: "biggest-win",
+			label: "Biggest win",
+			content: (
+				<MomentCard
+					label="Biggest win"
+					icon={Target01Icon}
+					tone={tones.amber}
+					value={`${biggestWin.winnerScore}–${biggestWin.loserScore}`}
+					unit="widest margin"
+					players={biggestWin.winners}
+					caption={names(biggestWin.winners)}
+					detail={`vs ${names(biggestWin.losers)}`}
+				/>
+			),
+		});
+	}
 	if (biggestGain) {
 		moments.push({
 			key: "gain",
@@ -457,6 +647,40 @@ function buildColumns(summary: Summary, season: SeasonInfo): Column[] {
 					unit="pts in one match"
 					players={[biggestGain.player]}
 					caption={biggestGain.player.name}
+				/>
+			),
+		});
+	}
+	if (mostWins) {
+		moments.push({
+			key: "most-wins",
+			label: "Most wins",
+			content: (
+				<MomentCard
+					label="Most wins"
+					icon={Medal01Icon}
+					tone={tones.pink}
+					value={String(mostWins.winCount)}
+					unit="matches won"
+					players={[mostWins.player]}
+					caption={mostWins.player.name}
+				/>
+			),
+		});
+	}
+	if (bestWinRate) {
+		moments.push({
+			key: "best-win-rate",
+			label: "Best win rate",
+			content: (
+				<MomentCard
+					label="Best win rate"
+					icon={PercentCircleIcon}
+					tone={tones.emerald}
+					value={`${bestWinRate.winRate}%`}
+					unit={`over ${bestWinRate.matchCount} matches`}
+					players={[bestWinRate.player]}
+					caption={bestWinRate.player.name}
 				/>
 			),
 		});
@@ -484,12 +708,16 @@ function buildColumns(summary: Summary, season: SeasonInfo): Column[] {
 		content: <NumbersCard summary={summary} season={season} />,
 	};
 
-	const columns: Column[] = [{ key: "podiums", width: "wide", cards: podiums }];
+	const columns: Column[] = podiums.map((card) => ({
+		key: card.key,
+		width: "wide",
+		cards: [card],
+	}));
 	for (let i = 0; i < moments.length; i += 2) {
 		columns.push({ key: `moments-${i}`, width: "narrow", cards: moments.slice(i, i + 2) });
 	}
 	const last = columns[columns.length - 1];
-	if (last.width === "narrow" && last.cards.length === 1) {
+	if (last && last.width === "narrow" && last.cards.length === 1) {
 		last.cards.push(numbers);
 	} else {
 		columns.push({ key: "numbers", width: "narrow", cards: [numbers] });
@@ -552,7 +780,7 @@ export function SeasonCeremony({
 	const columns = summary && summary.matchCount > 0 ? buildColumns(summary, season) : [];
 	const { trackRef, visible, position, start, end, page } = useScrollArea(columns.length);
 
-	if (!summary) return <Skeleton className="h-[640px] w-full" />;
+	if (!summary) return <Skeleton className="h-[760px] w-full" />;
 
 	const canScroll = visible < 0.999;
 
@@ -567,13 +795,14 @@ export function SeasonCeremony({
 
 			<ChampionBanner
 				summary={summary}
+				season={season}
 				action={
 					canStartNextSeason && (
 						<GlowButton
 							icon={Add01Icon}
 							glowColor={glowColors.amber}
 							size="sm"
-							className="gap-1.5 self-start lg:self-end"
+							className="gap-1.5 self-start"
 							onClick={() => setIsCreateOpen(true)}
 							data-testid="start-next-season-button"
 						>
@@ -590,13 +819,13 @@ export function SeasonCeremony({
 						tabIndex={0}
 						role="region"
 						aria-label={`${season.name} highlights`}
-						className="flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto overscroll-x-contain px-5 pt-5 pb-1 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] [scrollbar-width:none] focus-visible:outline-none sm:scroll-px-7 sm:px-7 [&::-webkit-scrollbar]:hidden"
+						className="flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto overscroll-x-contain px-5 pt-6 pb-1 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] [scrollbar-width:none] focus-visible:outline-none sm:scroll-px-8 sm:px-8 lg:gap-4 [&::-webkit-scrollbar]:hidden"
 					>
 						{columns.map((column, columnIndex) => (
 							<div
 								key={column.key}
 								className={cn(
-									"flex h-[452px] shrink-0 snap-start flex-col gap-3",
+									"flex h-[452px] shrink-0 snap-start flex-col gap-3 lg:h-[clamp(500px,56vh,600px)] lg:gap-4",
 									columnWidth[column.width]
 								)}
 							>
@@ -607,7 +836,7 @@ export function SeasonCeremony({
 										style={
 											{ animationDelay: `${(columnIndex * 2 + cardIndex) * 60}ms` } as CSSProperties
 										}
-										className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/70 p-4 ring-1 ring-foreground/10 backdrop-blur-sm transition-[box-shadow] duration-300 hover:ring-foreground/25 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:fill-mode-both"
+										className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/70 p-4 ring-1 ring-foreground/10 backdrop-blur-sm transition-[box-shadow] duration-300 hover:ring-foreground/25 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:fill-mode-both lg:p-5"
 									>
 										{card.content}
 									</article>
@@ -617,7 +846,7 @@ export function SeasonCeremony({
 						<div aria-hidden className="w-1 shrink-0" />
 					</div>
 
-					<div className="flex items-center gap-3 px-5 pt-3 pb-5 sm:px-7">
+					<div className="flex items-center gap-3 px-5 pt-3 pb-6 sm:px-8">
 						<div className="relative h-[3px] flex-1 bg-foreground/10" aria-hidden>
 							{canScroll && (
 								<div

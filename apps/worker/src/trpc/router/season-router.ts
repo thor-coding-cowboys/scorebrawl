@@ -18,6 +18,8 @@ const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endD
 	}
 };
 
+const MIN_MATCHES_FOR_WIN_RATE = 5;
+
 // Schema for optional season ID validation
 const seasonIdSchema = createOptionalIdSchema("season");
 
@@ -105,13 +107,35 @@ export const seasonRouter = {
 			});
 		const resolvePlayer = (id: string) => resolvePlayers([id])[0] ?? null;
 
+		const championStats =
+			players[0] && countInfo.matchCount > 0
+				? await seasonRepository.getChampionStats({ db: ctx.db, seasonPlayerId: players[0].id })
+				: null;
+
 		const topScore = players[0]?.score;
 		const mostActive = players.reduce<(typeof players)[number] | null>(
 			(best, p) => (p.matchCount > (best?.matchCount ?? 0) ? p : best),
 			null
 		);
-		const { longestWinStreak, biggestUpset, biggestGain } = highlights;
+		const mostWinsPlayer = players.reduce<(typeof players)[number] | null>(
+			(best, p) => (p.winCount > (best?.winCount ?? 0) ? p : best),
+			null
+		);
+		const bestRatePlayer = players
+			.filter((p) => p.matchCount >= MIN_MATCHES_FOR_WIN_RATE)
+			.map(toStat)
+			.reduce<ReturnType<typeof toStat<(typeof players)[number]>> | null>(
+				(best, p) =>
+					!best ||
+					p.winRate > best.winRate ||
+					(p.winRate === best.winRate && p.matchCount > best.matchCount)
+						? p
+						: best,
+				null
+			);
+		const { longestWinStreak, biggestUpset, biggestGain, biggestWin } = highlights;
 		const upsetHomeWon = biggestUpset ? biggestUpset.homeScore > biggestUpset.awayScore : false;
+		const marginHomeWon = biggestWin ? biggestWin.homeScore > biggestWin.awayScore : false;
 		const streakPlayer = longestWinStreak && resolvePlayer(longestWinStreak.seasonPlayerId);
 		const gainPlayer = biggestGain && resolvePlayer(biggestGain.seasonPlayerId);
 
@@ -123,6 +147,21 @@ export const seasonRouter = {
 					? players.filter((p) => p.score === topScore).map(toPlayerRef)
 					: [],
 			podium: players.slice(0, 3).map(toStat),
+			championStats:
+				championStats && players[0]
+					? {
+							peakScore: championStats.peakScore,
+							longestStreak: championStats.longestStreak,
+							pointsGained: players[0].score - ctx.season.initialScore,
+							biggestWin: championStats.biggestWin
+								? {
+										winnerScore: championStats.biggestWin.winnerScore,
+										loserScore: championStats.biggestWin.loserScore,
+										opponents: resolvePlayers(championStats.biggestWin.opponentSeasonPlayerIds),
+									}
+								: null,
+						}
+					: null,
 			teamPodium: teams
 				.filter((t) => t.matchCount > 0)
 				.slice(0, 3)
@@ -151,6 +190,29 @@ export const seasonRouter = {
 					mostActive && mostActive.matchCount > 0
 						? { player: toPlayerRef(mostActive), matchCount: mostActive.matchCount }
 						: null,
+				biggestWin: biggestWin
+					? {
+							winners: resolvePlayers(
+								marginHomeWon ? biggestWin.homeSeasonPlayerIds : biggestWin.awaySeasonPlayerIds
+							),
+							losers: resolvePlayers(
+								marginHomeWon ? biggestWin.awaySeasonPlayerIds : biggestWin.homeSeasonPlayerIds
+							),
+							winnerScore: Math.max(biggestWin.homeScore, biggestWin.awayScore),
+							loserScore: Math.min(biggestWin.homeScore, biggestWin.awayScore),
+						}
+					: null,
+				mostWins:
+					mostWinsPlayer && mostWinsPlayer.winCount > 0
+						? { player: toPlayerRef(mostWinsPlayer), winCount: mostWinsPlayer.winCount }
+						: null,
+				bestWinRate: bestRatePlayer
+					? {
+							player: toPlayerRef(bestRatePlayer),
+							winRate: bestRatePlayer.winRate,
+							matchCount: bestRatePlayer.matchCount,
+						}
+					: null,
 			},
 		};
 	}),
