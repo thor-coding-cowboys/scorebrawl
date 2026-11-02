@@ -89,6 +89,44 @@ describe("share links", () => {
 		expect(afterView[0].viewCount).toBe(1);
 	});
 
+	it("includes the season recap only once the season is closed", async () => {
+		await enableSharing(ctx);
+		const created = await client.shareLink.create.mutate({ seasonSlug, expiresIn: "7d" });
+		const key = created.url.split("/").pop() as string;
+
+		const open = (await (await resolve(key)).json()) as { summary: unknown };
+		expect(open.summary).toBeNull();
+
+		const standings = await client.seasonPlayer.getStanding.query({ seasonSlug });
+		await client.match.create.mutate({
+			seasonSlug,
+			homeScore: 3,
+			awayScore: 1,
+			homeTeamPlayerIds: [standings[0].id],
+			awayTeamPlayerIds: [standings[1].id],
+		});
+		await client.season.updateClosedStatus.mutate({ seasonSlug, closed: true });
+
+		const response = await resolve(key);
+		expect(response.status).toBe(200);
+		const raw = await response.text();
+		const closed = JSON.parse(raw) as {
+			season: { closed: boolean; scoreType: string };
+			summary: {
+				matchCount: number;
+				champions: { name: string }[];
+				podium: Array<Record<string, unknown>>;
+				highlights: { biggestWin: { winnerScore: number; loserScore: number } | null };
+			};
+		};
+
+		expect(closed.season).toMatchObject({ closed: true, scoreType: "elo" });
+		expect(closed.summary.matchCount).toBe(1);
+		expect(closed.summary.champions).toHaveLength(1);
+		expect(closed.summary.highlights.biggestWin).toMatchObject({ winnerScore: 3, loserScore: 1 });
+		expect(raw).not.toMatch(/"(userId|isGuest|playerId|seasonId)"/);
+	});
+
 	it("stores only the token hash", async () => {
 		await enableSharing(ctx);
 		const created = await client.shareLink.create.mutate({ seasonSlug, expiresIn: "never" });

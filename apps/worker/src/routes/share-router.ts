@@ -5,6 +5,7 @@ import { hashRateLimitKey } from "../public-api/rate-limit";
 import * as matchRepository from "../repositories/match-repository";
 import * as seasonPlayerRepository from "../repositories/season-player-repository";
 import * as shareLinkRepository from "../repositories/share-link-repository";
+import { getSeasonSummary } from "../services/season-summary";
 import { sortStandings, winPct } from "@coding-cowboys/scorebrawl-core/presentation";
 
 const RECENT_MATCH_LIMIT = 5;
@@ -76,7 +77,7 @@ export const sharePublicRouter = new Hono<HonoEnv>()
 			});
 		}
 
-		const [standingRows, recentMatches] = await Promise.all([
+		const [standingRows, recentMatches, summary] = await Promise.all([
 			seasonPlayerRepository.getStanding({ db: c.var.db, seasonId: link.seasonId }),
 			matchRepository.getBySeasonId({
 				db: c.var.db,
@@ -84,6 +85,12 @@ export const sharePublicRouter = new Hono<HonoEnv>()
 				limit: RECENT_MATCH_LIMIT,
 				offset: 0,
 			}),
+			link.seasonClosed
+				? getSeasonSummary({
+						db: c.var.db,
+						season: { id: link.seasonId, initialScore: link.seasonInitialScore },
+					})
+				: null,
 		]);
 
 		const standings = sortStandings(standingRows).map((row, index) => ({
@@ -116,10 +123,13 @@ export const sharePublicRouter = new Hono<HonoEnv>()
 				id: link.seasonId,
 				name: link.seasonName,
 				startDate: link.seasonStartDate,
+				endDate: link.seasonEndDate,
+				scoreType: link.seasonScoreType,
 				closed: link.seasonClosed,
 				archived: link.seasonArchived,
 			},
 			standings,
+			summary,
 			recentMatches: recentMatches.matches.map((match) => ({
 				id: match.id,
 				playedAt: match.createdAt,

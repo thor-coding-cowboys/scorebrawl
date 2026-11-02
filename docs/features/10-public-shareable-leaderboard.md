@@ -33,8 +33,12 @@ turns bragging into a funnel without exposing a league forever.
   `/shared/leagues/:leagueId/seasons/:seasonId/standings/:key` with no app chrome
 - Unauthenticated resolve endpoint `GET /api/share/links/:key`: `404` unknown,
   `410` expired/revoked, `403` sharing disabled, `429` per-IP rate limited
-- Shared page: hero card, ambient glow centred on desktop, standing rows matching
-  the season page, pager at 10 rows, recent results, sign-up CTA
+- Shared page in the season ceremony style: league masthead, leader banner for
+  open seasons, standing rows matching the season page, pager at 10 rows,
+  recent results, sign-up CTA
+- Closed seasons share the full season recap (champion banner, podiums,
+  highlights) above the final standings; "Share recap" sits in the ceremony
+  banner and opens the same share dialog
 - Obvious expired/revoked/disabled states — no standings rendered in error states
 - Only display data exposed: names, ELO/score, W/D/L, form, recent results
 
@@ -49,7 +53,11 @@ turns bragging into a funnel without exposing a league forever.
   `editorRoles`, `leagueEditorProcedure` / `leagueOwnerProcedure` in
   `apps/worker/src/trpc/trpc.ts`
 - Data: reuse `seasonPlayerRepository.getStanding` (single query) and
-  `matchRepository.getBySeasonId`; sort/rank with `core/presentation`
+  `matchRepository.getBySeasonId`; sort/rank with `core/presentation`. Closed
+  seasons add `services/season-summary.ts` (shared with `season.getSummary`),
+  which returns display fields only
+- Recap UI: `routes/-components/season-recap/season-recap.tsx`, used by the
+  season page ceremony and the shared page
 - Web: `apps/web/src/routes/_public/shared/...`; extract standings rows from
   `seasons/-components/season/standing.tsx` into
   `routes/-components/standings/` so season and share pages share visuals and the

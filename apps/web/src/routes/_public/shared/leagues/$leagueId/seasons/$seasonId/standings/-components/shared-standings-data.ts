@@ -1,3 +1,5 @@
+import type { SeasonRecapSummary } from "@/components/season-recap/season-recap";
+
 export type SharedStandingRow = {
 	id: string;
 	rank: number;
@@ -23,8 +25,17 @@ export type SharedMatch = {
 export type SharedStandingsData = {
 	link: { createdAt: string; expiresAt: string | null };
 	league: { id: string; name: string; logo: string | null };
-	season: { id: string; name: string; startDate: string; closed: boolean; archived: boolean };
+	season: {
+		id: string;
+		name: string;
+		startDate: string;
+		endDate: string | null;
+		scoreType: string;
+		closed: boolean;
+		archived: boolean;
+	};
 	standings: SharedStandingRow[];
+	summary: SeasonRecapSummary | null;
 	recentMatches: SharedMatch[];
 	generatedAt: string;
 };

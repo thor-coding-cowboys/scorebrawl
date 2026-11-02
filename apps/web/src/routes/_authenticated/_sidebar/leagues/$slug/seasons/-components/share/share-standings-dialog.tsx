@@ -54,9 +54,15 @@ interface ShareStandingsDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
 	seasonSlug: string;
+	isClosedSeason?: boolean;
 }
 
-export function ShareStandingsDialog({ isOpen, onClose, seasonSlug }: ShareStandingsDialogProps) {
+export function ShareStandingsDialog({
+	isOpen,
+	onClose,
+	seasonSlug,
+	isClosedSeason = false,
+}: ShareStandingsDialogProps) {
 	const queryClient = useQueryClient();
 	const { data: activeMember } = authClient.useActiveMember();
 	const isOwner = activeMember?.role === "owner";
@@ -135,10 +141,12 @@ export function ShareStandingsDialog({ isOpen, onClose, seasonSlug }: ShareStand
 					<DialogHeader className="border-b border-border p-6 pb-4">
 						<DialogTitle className="flex items-center gap-2 text-xl font-bold">
 							<HugeiconsIcon icon={Link01Icon} className="size-5" />
-							Share standings
+							{isClosedSeason ? "Share season recap" : "Share standings"}
 						</DialogTitle>
 						<DialogDescription>
-							Anyone with the link can view this season's standings — names, points and recent form.
+							{isClosedSeason
+								? "Anyone with the link can view the champion, podium, highlights and final standings."
+								: "Anyone with the link can view this season's standings — names, points and recent form."}{" "}
 							Revoke it at any time.
 						</DialogDescription>
 					</DialogHeader>

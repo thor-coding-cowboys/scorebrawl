@@ -4,10 +4,9 @@ import { z } from "zod";
 import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util";
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
-import * as seasonPlayerRepository from "../../repositories/season-player-repository";
-import * as seasonTeamRepository from "../../repositories/season-team-repository";
 import * as achievementRepository from "../../repositories/achievement-repository";
 import * as sessionActions from "../../services/session/session-actions";
+import { getSeasonSummary } from "../../services/season-summary";
 import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
@@ -18,8 +17,6 @@ const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endD
 		});
 	}
 };
-
-const MIN_MATCHES_FOR_WIN_RATE = 5;
 
 // Schema for optional season ID validation
 const seasonIdSchema = createOptionalIdSchema("season");
@@ -82,141 +79,9 @@ export const seasonRouter = {
 			}
 		}),
 
-	getSummary: seasonProcedure.query(async ({ ctx }) => {
-		const [players, teams, highlights, countInfo] = await Promise.all([
-			seasonPlayerRepository.getStanding({ db: ctx.db, seasonId: ctx.season.id }),
-			seasonTeamRepository.getStanding({ db: ctx.db, seasonId: ctx.season.id }),
-			seasonRepository.getHighlights({ db: ctx.db, seasonId: ctx.season.id }),
-			seasonRepository.getCountInfoById({ db: ctx.db, seasonId: ctx.season.id }),
-		]);
-
-		const toStat = <T extends { matchCount: number; winCount: number }>(entry: T) => ({
-			...entry,
-			winRate: entry.matchCount > 0 ? Math.round((entry.winCount / entry.matchCount) * 100) : 0,
-		});
-		const toPlayerRef = ({ id, playerId, name, image }: (typeof players)[number]) => ({
-			id,
-			playerId,
-			name,
-			image,
-		});
-		const playersById = new Map(players.map((p) => [p.id, p]));
-		const resolvePlayers = (ids: string[]) =>
-			ids.flatMap((id) => {
-				const found = playersById.get(id);
-				return found ? [toPlayerRef(found)] : [];
-			});
-		const resolvePlayer = (id: string) => resolvePlayers([id])[0] ?? null;
-
-		const championStats =
-			players[0] && countInfo.matchCount > 0
-				? await seasonRepository.getChampionStats({ db: ctx.db, seasonPlayerId: players[0].id })
-				: null;
-
-		const topScore = players[0]?.score;
-		const mostActive = players.reduce<(typeof players)[number] | null>(
-			(best, p) => (p.matchCount > (best?.matchCount ?? 0) ? p : best),
-			null
-		);
-		const mostWinsPlayer = players.reduce<(typeof players)[number] | null>(
-			(best, p) => (p.winCount > (best?.winCount ?? 0) ? p : best),
-			null
-		);
-		const bestRatePlayer = players
-			.filter((p) => p.matchCount >= MIN_MATCHES_FOR_WIN_RATE)
-			.map(toStat)
-			.reduce<ReturnType<typeof toStat<(typeof players)[number]>> | null>(
-				(best, p) =>
-					!best ||
-					p.winRate > best.winRate ||
-					(p.winRate === best.winRate && p.matchCount > best.matchCount)
-						? p
-						: best,
-				null
-			);
-		const { longestWinStreak, biggestUpset, biggestGain, biggestWin } = highlights;
-		const upsetHomeWon = biggestUpset ? biggestUpset.homeScore > biggestUpset.awayScore : false;
-		const marginHomeWon = biggestWin ? biggestWin.homeScore > biggestWin.awayScore : false;
-		const streakPlayer = longestWinStreak && resolvePlayer(longestWinStreak.seasonPlayerId);
-		const gainPlayer = biggestGain && resolvePlayer(biggestGain.seasonPlayerId);
-
-		return {
-			matchCount: countInfo.matchCount,
-			playerCount: countInfo.playerCount,
-			champions:
-				countInfo.matchCount > 0
-					? players.filter((p) => p.score === topScore).map(toPlayerRef)
-					: [],
-			podium: players.slice(0, 3).map(toStat),
-			championStats:
-				championStats && players[0]
-					? {
-							peakScore: championStats.peakScore,
-							longestStreak: championStats.longestStreak,
-							pointsGained: players[0].score - ctx.season.initialScore,
-							biggestWin: championStats.biggestWin
-								? {
-										winnerScore: championStats.biggestWin.winnerScore,
-										loserScore: championStats.biggestWin.loserScore,
-										opponents: resolvePlayers(championStats.biggestWin.opponentSeasonPlayerIds),
-									}
-								: null,
-						}
-					: null,
-			teamPodium: teams
-				.filter((t) => t.matchCount > 0)
-				.slice(0, 3)
-				.map(toStat),
-			highlights: {
-				longestWinStreak:
-					longestWinStreak && streakPlayer
-						? { player: streakPlayer, length: longestWinStreak.length }
-						: null,
-				biggestUpset: biggestUpset
-					? {
-							winners: resolvePlayers(
-								upsetHomeWon ? biggestUpset.homeSeasonPlayerIds : biggestUpset.awaySeasonPlayerIds
-							),
-							losers: resolvePlayers(
-								upsetHomeWon ? biggestUpset.awaySeasonPlayerIds : biggestUpset.homeSeasonPlayerIds
-							),
-							winnerScore: Math.max(biggestUpset.homeScore, biggestUpset.awayScore),
-							loserScore: Math.min(biggestUpset.homeScore, biggestUpset.awayScore),
-							winnerOdds: biggestUpset.winnerOdds,
-						}
-					: null,
-				biggestGain:
-					biggestGain && gainPlayer ? { player: gainPlayer, gain: biggestGain.gain } : null,
-				mostMatches:
-					mostActive && mostActive.matchCount > 0
-						? { player: toPlayerRef(mostActive), matchCount: mostActive.matchCount }
-						: null,
-				biggestWin: biggestWin
-					? {
-							winners: resolvePlayers(
-								marginHomeWon ? biggestWin.homeSeasonPlayerIds : biggestWin.awaySeasonPlayerIds
-							),
-							losers: resolvePlayers(
-								marginHomeWon ? biggestWin.awaySeasonPlayerIds : biggestWin.homeSeasonPlayerIds
-							),
-							winnerScore: Math.max(biggestWin.homeScore, biggestWin.awayScore),
-							loserScore: Math.min(biggestWin.homeScore, biggestWin.awayScore),
-						}
-					: null,
-				mostWins:
-					mostWinsPlayer && mostWinsPlayer.winCount > 0
-						? { player: toPlayerRef(mostWinsPlayer), winCount: mostWinsPlayer.winCount }
-						: null,
-				bestWinRate: bestRatePlayer
-					? {
-							player: toPlayerRef(bestRatePlayer),
-							winRate: bestRatePlayer.winRate,
-							matchCount: bestRatePlayer.matchCount,
-						}
-					: null,
-			},
-		};
-	}),
+	getSummary: seasonProcedure.query(({ ctx }) =>
+		getSeasonSummary({ db: ctx.db, season: ctx.season })
+	),
 
 	getFixtures: seasonProcedure.query(async ({ ctx }) => {
 		return seasonRepository.findFixtures({

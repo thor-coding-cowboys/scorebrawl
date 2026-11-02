@@ -171,6 +171,7 @@ function SeasonDashboardPage() {
 						season={season}
 						leagueSlug={slug}
 						canStartNextSeason={canCreateSeasons}
+						onShare={canShare ? () => setIsShareOpen(true) : undefined}
 					/>
 				)}
 				<DashboardCards seasonSlug={seasonSlug} />
@@ -240,6 +241,7 @@ function SeasonDashboardPage() {
 					isOpen={isShareOpen}
 					onClose={() => setIsShareOpen(false)}
 					seasonSlug={seasonSlug}
+					isClosedSeason={!!season?.closed}
 				/>
 			)}
 			{canCreateMatches &&
