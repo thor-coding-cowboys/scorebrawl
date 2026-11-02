@@ -275,6 +275,19 @@ export const findExpiredSession = async ({
 	return session ?? null;
 };
 
+export const findActiveSessionsForSeason = async ({
+	db,
+	seasonId,
+}: {
+	db: DrizzleDB;
+	seasonId: string;
+}) => {
+	return db
+		.select({ id: gameSession.id })
+		.from(gameSession)
+		.where(and(eq(gameSession.seasonId, seasonId), eq(gameSession.status, "active")));
+};
+
 export const findExpiredActiveSessions = async ({
 	db,
 	seasonId,

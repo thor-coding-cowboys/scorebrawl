@@ -5,6 +5,7 @@ import { createOptionalIdSchema } from "@coding-cowboys/scorebrawl-util/id-util"
 import * as seasonRepository from "../../repositories/season-repository";
 import * as playerRepository from "../../repositories/player-repository";
 import * as achievementRepository from "../../repositories/achievement-repository";
+import * as sessionActions from "../../services/session/session-actions";
 import { seasonProcedure, leagueEditorProcedure, leagueProcedure } from "../trpc";
 
 const validateStartBeforeEnd = ({ startDate, endDate }: { startDate?: Date; endDate?: Date }) => {
@@ -233,6 +234,10 @@ export const seasonRouter = {
 			});
 
 			if (input.closed) {
+				await sessionActions.endActiveSessionsForSeason(sessionActions.toActionContext(ctx), {
+					seasonId: comp.id,
+					seasonSlug: comp.slug,
+				});
 				await achievementRepository.awardSeasonWinner({
 					db: ctx.db,
 					seasonId: comp.id,

@@ -33,6 +33,26 @@ export type SessionActionContext = {
 	waitUntil: (promise: Promise<unknown>) => void;
 };
 
+export function toActionContext(ctx: {
+	db: DrizzleDB;
+	env: SessionActionContext["env"];
+	organization: { id: string; slug: string; name: string };
+	authentication: { user: { id: string; name: string } };
+	waitUntil: SessionActionContext["waitUntil"];
+}): SessionActionContext {
+	return {
+		db: ctx.db,
+		env: ctx.env,
+		organization: {
+			id: ctx.organization.id,
+			slug: ctx.organization.slug,
+			name: ctx.organization.name,
+		},
+		user: { id: ctx.authentication.user.id, name: ctx.authentication.user.name },
+		waitUntil: ctx.waitUntil,
+	};
+}
+
 export type StartSessionInput = {
 	seasonSlug: string;
 	rotationMode?: "winner-stays" | "manual";
@@ -372,6 +392,17 @@ export async function closeExpiredSessionsForSeason(
 	);
 
 	return ended;
+}
+
+export async function endActiveSessionsForSeason(
+	ctx: SessionActionContext,
+	{ seasonId, seasonSlug }: { seasonId: string; seasonSlug: string }
+) {
+	const active = await sessionRepository.findActiveSessionsForSeason({ db: ctx.db, seasonId });
+
+	return Promise.all(
+		active.map((session) => endActiveSession(ctx, { id: session.id, seasonSlug }, ctx.user))
+	);
 }
 
 export async function extendSession(
