@@ -81,6 +81,47 @@ test.describe("Session live match", () => {
 			await expect(secondPage.getByTestId("session-home-score")).toHaveText("3", {
 				timeout: 10000,
 			});
+
+			// Wake-from-sleep: a suspended device can miss realtime events, so
+			// becoming visible again must refetch the session and resync the score.
+			const sleepingContext = await browser.newContext({ ignoreHTTPSErrors: true });
+			const sleepingPage = await sleepingContext.newPage();
+			await sleepingContext.routeWebSocket(/\/api\/sse\//, (ws) => ws.close());
+			try {
+				await signIn(sleepingPage);
+				await sleepingPage.goto(sessionUrl);
+				await expect(sleepingPage.getByTestId("session-home-score")).toHaveText("3", {
+					timeout: 15000,
+				});
+
+				await sleepingPage.evaluate(() => {
+					Object.defineProperty(document, "visibilityState", {
+						configurable: true,
+						get: () => "hidden",
+					});
+					window.dispatchEvent(new Event("visibilitychange"));
+				});
+
+				await page.getByTestId("session-home-increment").click();
+				await expect(page.getByTestId("session-home-score")).toHaveText("4");
+				await expect(secondPage.getByTestId("session-home-score")).toHaveText("4", {
+					timeout: 10000,
+				});
+
+				await sleepingPage.evaluate(() => {
+					Object.defineProperty(document, "visibilityState", {
+						configurable: true,
+						get: () => "visible",
+					});
+					window.dispatchEvent(new Event("visibilitychange"));
+				});
+
+				await expect(sleepingPage.getByTestId("session-home-score")).toHaveText("4", {
+					timeout: 10000,
+				});
+			} finally {
+				await sleepingContext.close();
+			}
 		} finally {
 			await secondContext.close();
 		}

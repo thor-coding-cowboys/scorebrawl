@@ -133,16 +133,23 @@ export function NextMatchTab({
 
 	useEffect(() => {
 		const id = currentMatch?.id ?? null;
-		if (id !== prevMatchIdRef.current) {
+		const nextHome = currentMatch?.homeSessionScore ?? 0;
+		const nextAway = currentMatch?.awaySessionScore ?? 0;
+		const matchChanged = id !== prevMatchIdRef.current;
+
+		if (matchChanged) {
 			prevMatchIdRef.current = id;
-			const nextHome = currentMatch?.homeSessionScore ?? 0;
-			const nextAway = currentMatch?.awaySessionScore ?? 0;
-			homeScoreRef.current = nextHome;
-			awayScoreRef.current = nextAway;
-			setHomeScore(nextHome);
-			setAwayScore(nextAway);
+		} else if (nextHome === homeScoreRef.current && nextAway === awayScoreRef.current) {
+			return;
+		} else if (shouldIgnoreRemoteScore()) {
+			return;
 		}
-	}, [currentMatch]);
+
+		homeScoreRef.current = nextHome;
+		awayScoreRef.current = nextAway;
+		setHomeScore(nextHome);
+		setAwayScore(nextAway);
+	}, [currentMatch, shouldIgnoreRemoteScore]);
 
 	useEffect(() => {
 		if (!scoreUpdate) return;

@@ -46,7 +46,10 @@ function SessionLivePage() {
 	const [showAddPlayer, setShowAddPlayer] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 
-	const { data: session, isLoading } = useQuery(trpc.session.getById.queryOptions({ sessionId }));
+	const { data: session, isLoading } = useQuery({
+		...trpc.session.getById.queryOptions({ sessionId }),
+		refetchOnWindowFocus: "always",
+	});
 
 	const endSession = useMutation({
 		mutationFn: () => client.session.end.mutate({ sessionId }) as Promise<unknown>,

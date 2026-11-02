@@ -149,6 +149,20 @@ export function ManualSession({ sessionId, slug, seasonSlug }: ManualSessionProp
 	};
 
 	useEffect(() => {
+		if (!currentMatch || shouldIgnoreRemoteScore()) return;
+		if (
+			currentMatch.homeSessionScore === homeScoreRef.current &&
+			currentMatch.awaySessionScore === awayScoreRef.current
+		) {
+			return;
+		}
+		homeScoreRef.current = currentMatch.homeSessionScore;
+		awayScoreRef.current = currentMatch.awaySessionScore;
+		setHomeScore(currentMatch.homeSessionScore);
+		setAwayScore(currentMatch.awaySessionScore);
+	}, [currentMatch, shouldIgnoreRemoteScore]);
+
+	useEffect(() => {
 		if (!session) return;
 		setTeamAssignment((prev) => {
 			const activeMatch = session.matches.find((m) => m.result === null);
