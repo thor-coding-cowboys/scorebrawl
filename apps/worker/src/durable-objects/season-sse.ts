@@ -1,23 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
+import type { SeasonRealtimeEvent } from "@coding-cowboys/scorebrawl-core/realtime";
 
-export interface SeasonSSEEvent {
-	type:
-		| "match:insert"
-		| "match:delete"
-		| "standings:update"
-		| "streak"
-		| "session:start"
-		| "session:end"
-		| "session:update"
-		| "session:score-update"
-		| "achievement:unlock"
-		| "connected";
-	data: unknown;
-	user?: {
-		id: string;
-		name: string;
-	};
-}
+export type SeasonSSEEvent = SeasonRealtimeEvent;
 
 export class SeasonSSE extends DurableObject {
 	async fetch(request: Request): Promise<Response> {

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SkeletonStandingRow } from "@/components/ui/skeleton-rows";
 import { Spacing } from "@/constants/theme";
 import { useActiveLeague } from "@/hooks/use-active-league";
+import { useSeasonRealtime } from "@/hooks/use-season-realtime";
 import { getSeasonStatus } from "@coding-cowboys/scorebrawl-core/league";
 import { setLastViewedSeason } from "@/lib/last-viewed-season";
 import { useTRPC } from "@/lib/trpc";
@@ -19,6 +20,8 @@ export default function SeasonOverviewScreen() {
 	const { activeLeague } = useActiveLeague();
 	const seasonQuery = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
 	const season = seasonQuery.data;
+
+	useSeasonRealtime({ leagueSlug: activeLeague?.slug, seasonSlug, seasonId: season?.id });
 
 	useEffect(() => {
 		if (season && activeLeague && getSeasonStatus(season) === "active") {
