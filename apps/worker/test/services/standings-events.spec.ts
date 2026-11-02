@@ -31,9 +31,12 @@ function createBroadcastRecorder() {
 		}),
 	};
 
+	const achievementQueue = { send: async () => {} };
+
 	const env = new Proxy(realEnv, {
 		get(target, property, receiver) {
 			if (property === "SEASON_SSE") return seasonSse;
+			if (property === "ACHIEVEMENT_QUEUE") return achievementQueue;
 			return Reflect.get(target, property, receiver);
 		},
 	}) as Env;
