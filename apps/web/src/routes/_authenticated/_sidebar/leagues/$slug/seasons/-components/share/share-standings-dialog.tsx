@@ -153,37 +153,32 @@ export function ShareStandingsDialog({
 		<>
 			<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 				<DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-xl">
-					<DialogHeader className="relative isolate gap-3 overflow-hidden border-b border-foreground/10 p-6 pb-5">
+					<div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.02]">
 						<div
-							aria-hidden="true"
-							className={cn(
-								"pointer-events-none absolute inset-0 -z-10",
-								isClosedSeason
-									? "bg-[radial-gradient(70%_140%_at_0%_0%,rgba(245,158,11,0.18),transparent_60%)] dark:bg-[radial-gradient(70%_140%_at_0%_0%,rgba(251,191,36,0.2),transparent_60%)]"
-									: "bg-[radial-gradient(70%_140%_at_0%_0%,rgba(14,165,233,0.16),transparent_60%)] dark:bg-[radial-gradient(70%_140%_at_0%_0%,rgba(96,165,250,0.2),transparent_60%)]"
-							)}
+							className="h-full w-full"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+								backgroundSize: "24px 24px",
+							}}
 						/>
+					</div>
+
+					<DialogHeader className="relative z-10 border-b border-border p-6 pb-4">
 						<div className="flex items-center gap-3">
 							<div
 								className={cn(
-									"flex size-10 shrink-0 items-center justify-center bg-background/70 ring-1 backdrop-blur-sm",
+									"h-6 w-2 rounded-full shadow-lg",
 									isClosedSeason
-										? "text-amber-600 ring-amber-500/40 dark:text-amber-300"
-										: "text-sky-600 ring-sky-500/40 dark:text-sky-300"
+										? "bg-amber-500 shadow-amber-500/25"
+										: "bg-sky-500 shadow-sky-500/25"
 								)}
-							>
-								<HugeiconsIcon icon={Link01Icon} className="size-5" />
-							</div>
-							<div className="flex min-w-0 flex-col gap-1">
-								<span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-									Public link
-								</span>
-								<DialogTitle className="text-xl font-black tracking-tight">
-									{isClosedSeason ? "Share season recap" : "Share standings"}
-								</DialogTitle>
-							</div>
+							/>
+							<DialogTitle className="font-mono text-xl font-bold tracking-tight">
+								{isClosedSeason ? "Share Season Recap" : "Share Standings"}
+							</DialogTitle>
 						</div>
-						<DialogDescription>
+						<DialogDescription className="mt-2">
 							{isClosedSeason
 								? "Anyone with the link can view the champion, podium, highlights and final standings."
 								: "Anyone with the link can view this season's standings — names, points and recent form."}{" "}
@@ -191,14 +186,14 @@ export function ShareStandingsDialog({
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="overflow-y-auto p-6">
+					<div className="relative z-10 overflow-y-auto p-6">
 						{settingQuery.isPending ? (
 							<Skeleton className="h-32 w-full" />
 						) : !allowPublicShares ? (
-							<div className="flex flex-col items-start gap-4 bg-muted/40 p-5 ring-1 ring-foreground/10">
+							<div className="flex flex-col items-start gap-4 border border-sky-500/20 bg-sky-500/10 p-4">
 								<div className="flex items-start gap-3">
-									<div className="flex size-9 shrink-0 items-center justify-center bg-background ring-1 ring-foreground/10">
-										<HugeiconsIcon icon={LockIcon} className="size-4 text-muted-foreground" />
+									<div className="flex size-9 shrink-0 items-center justify-center bg-background/70">
+										<HugeiconsIcon icon={LockIcon} className="size-4 text-sky-500" />
 									</div>
 									<div>
 										<p className="text-sm font-semibold">Public sharing is off for this league</p>
@@ -227,7 +222,7 @@ export function ShareStandingsDialog({
 							<div className="flex flex-col gap-6">
 								<section className="flex flex-col gap-3">
 									<SectionLabel>Link duration</SectionLabel>
-									<div className="grid grid-cols-5 gap-px bg-foreground/10 ring-1 ring-foreground/10">
+									<div className="grid grid-cols-5 gap-px border border-border bg-border">
 										{EXPIRY_OPTIONS.map((option) => {
 											const isSelected = expiresIn === option.value;
 											return (
@@ -273,11 +268,7 @@ export function ShareStandingsDialog({
 								</section>
 
 								{created && (
-									<section className="relative isolate flex flex-col gap-3 overflow-hidden p-4 ring-1 ring-emerald-500/30">
-										<div
-											aria-hidden="true"
-											className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_120%_at_100%_0%,rgba(16,185,129,0.14),transparent_60%)] dark:bg-[radial-gradient(90%_120%_at_100%_0%,rgba(52,211,153,0.18),transparent_60%)]"
-										/>
+									<section className="flex flex-col gap-3 border border-emerald-500/20 bg-emerald-500/10 p-4">
 										<div className="flex items-center justify-between gap-3">
 											<span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
 												<HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4" />
@@ -373,7 +364,7 @@ export function ShareStandingsDialog({
 								</section>
 
 								{isOwner && (
-									<section className="flex items-center justify-between gap-4 bg-muted/40 p-4 ring-1 ring-foreground/10">
+									<section className="flex items-center justify-between gap-4 border border-border bg-muted/40 p-4">
 										<div>
 											<p className="text-sm font-semibold">Allow public share links</p>
 											<p className="text-xs text-muted-foreground">
