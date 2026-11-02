@@ -30,7 +30,15 @@ function parseDate(value: string) {
 	return new Date(y, m - 1, d);
 }
 
-export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function CreateSeasonForm({
+	isOpen,
+	onClose,
+	onSuccess,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+	onSuccess?: (seasonSlug: string) => void;
+}) {
 	const insets = useSafeAreaInsets();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
@@ -189,7 +197,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 		setApiError("");
 		setIsSubmitting(true);
 		try {
-			await trpcClient.season.create.mutate({
+			const created = await trpcClient.season.create.mutate({
 				name,
 				slug,
 				scoreType,
@@ -201,6 +209,7 @@ export function CreateSeasonForm({ isOpen, onClose }: { isOpen: boolean; onClose
 			});
 			await queryClient.invalidateQueries({ queryKey: ["season"] });
 			onClose();
+			onSuccess?.(created.slug);
 		} catch (err) {
 			setApiError(
 				err instanceof Error ? err.message : "Failed to create season. Please try again."
