@@ -26,7 +26,9 @@ test.describe("Mobile season ceremony", () => {
 		const recap = page.getByTestId("season-ceremony");
 		await expect(recap).toBeVisible({ timeout: 30_000 });
 		const banner = recap.getByTestId("champion-banner");
-		await expect(banner.getByText(`${SEED_SEASON.name} champion`)).toBeVisible();
+		await expect(
+			banner.getByText(new RegExp(`^${SEED_SEASON.name} (champion|co-champions)$`))
+		).toBeVisible();
 		await expect(banner.getByText("Start next season")).toBeVisible();
 		await expect(recap.getByText("Player podium")).toBeVisible();
 		await expect(recap.getByText("By the numbers")).toBeAttached();

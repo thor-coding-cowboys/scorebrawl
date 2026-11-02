@@ -271,7 +271,7 @@ function ChampionBanner({
 						<div className="flex min-w-0 flex-col gap-2">
 							<span className="inline-flex items-center gap-1.5 self-start rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
 								<HugeiconsIcon icon={CrownIcon} className="size-3" />
-								{isTie ? "Season co-champions" : `${season.name} champion`}
+								{isTie ? `${season.name} co-champions` : `${season.name} champion`}
 							</span>
 							<h3 className="text-3xl font-black leading-[1.02] tracking-tight [overflow-wrap:anywhere] sm:text-5xl">
 								{hasChampion ? names(summary.champions) : "No champion crowned"}

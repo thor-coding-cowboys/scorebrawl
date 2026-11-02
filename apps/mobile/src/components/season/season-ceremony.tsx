@@ -234,7 +234,7 @@ function ChampionBanner({
 							tintColor={theme.glowAmberText}
 						/>
 						<ThemedText style={[styles.chipText, { color: theme.glowAmberText }]}>
-							{isTie ? "Season co-champions" : `${season.name} champion`}
+							{isTie ? `${season.name} co-champions` : `${season.name} champion`}
 						</ThemedText>
 					</View>
 					<ThemedText style={styles.championName} numberOfLines={2}>
