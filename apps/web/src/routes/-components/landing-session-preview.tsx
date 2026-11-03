@@ -190,7 +190,9 @@ export const SessionPreview = () => {
 								<div className="text-muted-foreground text-xs">Players</div>
 							</div>
 							<div className="min-w-0">
-								<div className="text-[0.7rem] leading-5 font-bold">Winner stays</div>
+								<div className="text-[0.65rem] leading-5 font-bold whitespace-nowrap">
+									Winner stays
+								</div>
 								<div className="text-muted-foreground text-xs">Mode</div>
 							</div>
 						</div>

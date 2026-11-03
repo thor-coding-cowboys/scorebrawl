@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-/** Tracks which anchored section currently owns the middle of the viewport. */
+/** Tracks which anchored section owns the middle of the viewport. */
 export function useActiveSection(ids: readonly string[]) {
 	const [active, setActive] = useState<string | null>(null);
 
@@ -11,19 +11,37 @@ export function useActiveSection(ids: readonly string[]) {
 
 		if (elements.length === 0) return;
 
-		const observer = new IntersectionObserver(
-			(entries) => {
-				const visible = entries
-					.filter((entry) => entry.isIntersecting)
-					.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+		let frame = 0;
 
-				if (visible) setActive(visible.target.id);
-			},
-			{ rootMargin: "-32% 0px -58% 0px", threshold: [0, 0.2, 0.5, 1] }
-		);
+		const update = () => {
+			frame = 0;
+			const line = window.innerHeight * 0.35;
+			let current: string | null = null;
 
-		for (const element of elements) observer.observe(element);
-		return () => observer.disconnect();
+			for (const element of elements) {
+				if (element.getBoundingClientRect().top <= line) current = element.id;
+			}
+
+			if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 4) {
+				current = elements[elements.length - 1]?.id ?? current;
+			}
+
+			setActive(current);
+		};
+
+		const schedule = () => {
+			if (frame === 0) frame = window.requestAnimationFrame(update);
+		};
+
+		update();
+		window.addEventListener("scroll", schedule, { passive: true });
+		window.addEventListener("resize", schedule);
+
+		return () => {
+			window.removeEventListener("scroll", schedule);
+			window.removeEventListener("resize", schedule);
+			if (frame !== 0) window.cancelAnimationFrame(frame);
+		};
 	}, [ids]);
 
 	return active;
