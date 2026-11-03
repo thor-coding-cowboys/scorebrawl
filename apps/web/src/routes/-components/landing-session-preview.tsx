@@ -82,9 +82,11 @@ const MATCHES: SessionMatch[] = [
 const byId = (id: string) => PLAYERS.find((p) => p.id === id);
 const homePlayers = PLAYERS.filter((p) => ["lena", "priya"].includes(p.id));
 const awayPlayers = PLAYERS.filter((p) => ["omar", "jonas"].includes(p.id));
+const toRoster = (players: SessionPlayer[]) =>
+	players.map((p) => ({ ...p, displayName: p.displayName.split(" ")[0] ?? p.displayName }));
 
 const LatestResultRow = ({ ids, won }: { ids: string[]; won: boolean }) => (
-	<div className="flex items-center justify-between">
+	<div className="flex items-center justify-between gap-3">
 		<div className="flex min-w-0 items-center gap-2">
 			<div className="flex -space-x-1">
 				{ids.map((id) => (
@@ -98,7 +100,9 @@ const LatestResultRow = ({ ids, won }: { ids: string[]; won: boolean }) => (
 			</div>
 			<span
 				className={
-					won ? "truncate text-xs font-semibold" : "text-muted-foreground truncate text-xs"
+					won
+						? "min-w-0 text-xs font-semibold break-words"
+						: "text-muted-foreground min-w-0 text-xs break-words"
 				}
 			>
 				{ids.map((id) => byId(id)?.displayName.split(" ")[0]).join(" & ")}
@@ -114,125 +118,134 @@ const LatestResultRow = ({ ids, won }: { ids: string[]; won: boolean }) => (
 
 export const SessionPreview = () => {
 	return (
-		<div inert className="flex flex-col gap-4 text-left">
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-				<DashboardCard
-					title="Hot Streak"
-					icon={FireIcon}
-					glowColor="card-glow-red"
-					iconColor="text-red-600"
-				>
-					<div className="flex min-w-0 items-center gap-3">
-						<AvatarWithFallback src={landingAvatar("Lena")} name="Lena Haugen" size="md" />
-						<div className="flex min-w-0 flex-1 flex-col">
-							<span className="truncate text-sm font-medium">Lena Haugen</span>
-							<div className="flex items-center gap-1.5">
-								<span className="flex items-center gap-0.5">
-									{[1, 2, 3, 4].map((dot) => (
-										<span key={dot} className="size-1.5 rounded-full bg-emerald-500" />
-									))}
+		<figure
+			aria-label="Product preview: a live Scorebrawl session scoreboard with a match in progress, the player queue and session awards"
+			className="text-left"
+		>
+			<div className="text-muted-foreground mb-3 flex items-end justify-between gap-3 font-mono text-[0.6rem] tracking-[0.2em] uppercase">
+				<span>Live session preview / sample data</span>
+				<span className="hidden sm:inline">Winner stays</span>
+			</div>
+			<div inert aria-hidden="true" className="flex flex-col gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+					<DashboardCard
+						title="Hot Streak"
+						icon={FireIcon}
+						iconColor="text-red-600 dark:text-red-400"
+					>
+						<div className="flex min-w-0 items-start gap-3">
+							<AvatarWithFallback src={landingAvatar("Lena Haugen")} name="Lena Haugen" size="md" />
+							<div className="min-w-0 flex-1">
+								<span className="text-sm leading-tight font-medium break-words">Lena Haugen</span>
+								<div className="mt-1 flex items-center gap-1.5">
+									<span className="flex items-center gap-0.5">
+										{[1, 2, 3, 4].map((dot) => (
+											<span key={dot} className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+										))}
+									</span>
+									<span className="text-muted-foreground text-xs whitespace-nowrap">
+										4 wins in a row
+									</span>
+								</div>
+							</div>
+						</div>
+					</DashboardCard>
+					<DashboardCard
+						title="Session MVP"
+						icon={Crown02Icon}
+						iconColor="text-amber-600 dark:text-amber-400"
+					>
+						<div className="flex min-w-0 items-start gap-3">
+							<AvatarWithFallback src={landingAvatar("Lena Haugen")} name="Lena Haugen" size="md" />
+							<div className="min-w-0 flex-1">
+								<span className="text-sm leading-tight font-medium break-words">Lena Haugen</span>
+								<span className="text-muted-foreground mt-1 block font-mono text-xs whitespace-nowrap">
+									1412 pts / 6g
 								</span>
-								<span className="text-muted-foreground text-xs">4 wins in a row</span>
 							</div>
 						</div>
-					</div>
-				</DashboardCard>
-				<DashboardCard
-					title="Session MVP"
-					icon={Crown02Icon}
-					glowColor="card-glow-amber"
-					iconColor="text-amber-600"
-				>
-					<div className="flex min-w-0 items-center gap-3">
-						<AvatarWithFallback src={landingAvatar("Lena")} name="Lena Haugen" size="md" />
-						<div className="flex min-w-0 flex-1 flex-col">
-							<span className="truncate text-sm font-medium">Lena Haugen</span>
-							<span className="text-muted-foreground text-xs">1412 pts · 6g</span>
+					</DashboardCard>
+					<DashboardCard
+						title="Latest Result"
+						icon={Award01Icon}
+						iconColor="text-blue-600 dark:text-blue-400"
+					>
+						<div className="space-y-1.5">
+							<LatestResultRow ids={["lena", "priya"]} won />
+							<LatestResultRow ids={["omar", "jonas"]} won={false} />
 						</div>
-					</div>
-				</DashboardCard>
-				<DashboardCard
-					title="Latest Result"
-					icon={Award01Icon}
-					glowColor="card-glow-blue"
-					iconColor="text-blue-600"
-				>
-					<div className="space-y-1.5">
-						<LatestResultRow ids={["lena", "priya"]} won />
-						<LatestResultRow ids={["omar", "jonas"]} won={false} />
-					</div>
-				</DashboardCard>
-				<DashboardCard
-					title="Session Info"
-					icon={BarChartIcon}
-					glowColor="card-glow-emerald"
-					iconColor="text-emerald-600"
-				>
-					<div className="grid grid-cols-3 gap-2 text-center">
-						<div>
-							<div className="text-lg font-bold">11</div>
-							<div className="text-muted-foreground text-xs">Matches</div>
+					</DashboardCard>
+					<DashboardCard
+						title="Session Info"
+						icon={BarChartIcon}
+						iconColor="text-emerald-600 dark:text-emerald-400"
+					>
+						<div className="grid grid-cols-3 gap-2 text-center">
+							<div>
+								<div className="font-mono text-lg font-bold tabular-nums">11</div>
+								<div className="text-muted-foreground text-xs">Matches</div>
+							</div>
+							<div>
+								<div className="font-mono text-lg font-bold tabular-nums">6</div>
+								<div className="text-muted-foreground text-xs">Players</div>
+							</div>
+							<div className="min-w-0">
+								<div className="text-[0.7rem] leading-5 font-bold">Winner stays</div>
+								<div className="text-muted-foreground text-xs">Mode</div>
+							</div>
 						</div>
-						<div>
-							<div className="text-lg font-bold">6</div>
-							<div className="text-muted-foreground text-xs">Players</div>
-						</div>
-						<div>
-							<div className="text-xs leading-6 font-bold">Winner stays</div>
-							<div className="text-muted-foreground text-xs">Mode</div>
-						</div>
-					</div>
-				</DashboardCard>
-			</div>
+					</DashboardCard>
+				</div>
 
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-				<Card className="p-4">
-					<div className="mb-4 flex items-center justify-between">
-						<h3 className="font-mono text-sm font-bold">Match #12</h3>
-						<Badge variant="secondary" className="text-xs">
-							In Progress
-						</Badge>
-					</div>
-					<div className="flex flex-col gap-4">
-						<div className="bg-muted/30">
-							<div className="grid grid-cols-2">
-								<ScoreStepper
-									label="Home"
-									score={7}
-									onIncrement={() => undefined}
-									onDecrement={() => undefined}
-								/>
-								<ScoreStepper
-									label="Away"
-									score={5}
-									onIncrement={() => undefined}
-									onDecrement={() => undefined}
-								/>
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					<Card className="p-4">
+						<div className="mb-4 flex items-center justify-between gap-3">
+							<h3 className="font-mono text-sm font-bold">Match #12</h3>
+							<Badge variant="secondary" className="text-xs">
+								In Progress
+							</Badge>
+						</div>
+						<div className="flex flex-col gap-4">
+							<div className="bg-muted/30">
+								<div className="grid grid-cols-1 sm:grid-cols-2">
+									<ScoreStepper
+										label="Home"
+										score={7}
+										onIncrement={() => undefined}
+										onDecrement={() => undefined}
+									/>
+									<ScoreStepper
+										label="Away"
+										score={5}
+										onIncrement={() => undefined}
+										onDecrement={() => undefined}
+									/>
+								</div>
+							</div>
+							<div className="grid grid-cols-2 gap-4">
+								<TeamRosterCard label="Home" players={toRoster(homePlayers)} />
+								<TeamRosterCard label="Away" players={toRoster(awayPlayers)} />
+							</div>
+							<div className="flex flex-col gap-2">
+								<GlowButton glowColor={glowColors.blue} className="w-full gap-2">
+									<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
+									Record Result
+								</GlowButton>
+								<Button variant="ghost" className="text-muted-foreground w-full gap-1.5">
+									<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
+									Cancel Match
+								</Button>
 							</div>
 						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<TeamRosterCard label="Home" players={homePlayers} />
-							<TeamRosterCard label="Away" players={awayPlayers} />
+					</Card>
+					<Card className="p-4">
+						<div className="px-4 pt-1 pb-2">
+							<span className="text-sm font-semibold">Players</span>
 						</div>
-						<div className="flex flex-col gap-2">
-							<GlowButton glowColor={glowColors.blue} className="w-full gap-2">
-								<HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
-								Record Result
-							</GlowButton>
-							<Button variant="ghost" className="text-muted-foreground w-full gap-1.5">
-								<HugeiconsIcon icon={ArrowTurnBackwardIcon} className="size-4" />
-								Cancel Match
-							</Button>
-						</div>
-					</div>
-				</Card>
-				<Card className="p-4">
-					<div className="px-4 pt-1 pb-2">
-						<span className="text-sm font-semibold">Players</span>
-					</div>
-					<QueueList session={{ players: PLAYERS, matches: MATCHES }} />
-				</Card>
+						<QueueList session={{ players: PLAYERS, matches: MATCHES }} />
+					</Card>
+				</div>
 			</div>
-		</div>
+		</figure>
 	);
 };
