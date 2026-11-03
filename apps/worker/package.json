@@ -51,7 +51,7 @@
 		"zod-openapi": "^4"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.11.1",
+		"@cloudflare/vitest-pool-workers": "0.12.21",
 		"@cloudflare/workers-types": "catalog:",
 		"@ngneat/falso": "^8.0.2",
 		"@types/bun": "^1.3.4",

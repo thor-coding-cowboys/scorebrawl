@@ -94,6 +94,17 @@ if (wranglerConfig.queues) {
 	wranglerConfig.queues.consumers = undefined;
 }
 
+// Drop the cross-request promise flag for tests. It makes any promise that resolves
+// after its originating request throw "Cannot perform I/O on behalf of a different
+// request", and the worker test pool reuses one worker across every test file, so a
+// single late `waitUntil`/queue callback kills the runner channel and vitest then
+// waits forever. Production keeps the flag; tests need the default behaviour.
+if (Array.isArray(wranglerConfig.compatibility_flags)) {
+	wranglerConfig.compatibility_flags = wranglerConfig.compatibility_flags.filter(
+		(flag: string) => flag !== "no_handle_cross_request_promise_resolution"
+	);
+}
+
 // Write temporary test config
 const testConfigPath = path.join(__dirname, ".wrangler.test.json");
 fs.writeFileSync(testConfigPath, JSON.stringify(wranglerConfig, null, 2));
