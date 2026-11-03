@@ -14,7 +14,7 @@ const SIZES: Record<LandingCtaSize, string> = {
 
 const VARIANTS: Record<LandingCtaVariant, string> = {
 	primary:
-		"border-primary bg-primary text-primary-foreground hover:brightness-110 active:brightness-95",
+		"border-[var(--glow-blue-border)] bg-[var(--glow-blue-background)] text-[var(--glow-blue-text)] hover:brightness-125 active:brightness-100",
 	quiet:
 		"border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:underline hover:underline-offset-4",
 };

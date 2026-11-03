@@ -943,9 +943,7 @@ const Landing = () => {
 						</span>
 						<h1 className="mx-auto mt-6 max-w-4xl font-mono text-[clamp(2rem,10.5vw,5.5rem)] leading-[0.9] font-bold tracking-[-0.055em] uppercase">
 							<span className="block">Settle</span>
-							<span className="block text-[var(--blue-600)] dark:text-[var(--blue-300)]">
-								every rivalry.
-							</span>
+							<span className="block text-primary">every rivalry.</span>
 						</h1>
 						<p className="text-muted-foreground mx-auto mt-6 max-w-xl text-pretty text-sm leading-relaxed sm:text-base">
 							<span className="text-foreground font-semibold">
