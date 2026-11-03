@@ -13,7 +13,7 @@
 		"build": "tsc -b",
 		"wrangler-typecheck": "wrangler deploy --dry-run",
 		"typecheck": "tsgo --noEmit",
-		"test": "vitest run",
+		"test": "vitest run --shard=1/2 && vitest run --shard=2/2",
 		"lint": "oxlint .",
 		"cf-typegen": "wrangler types",
 		"db:generate": "drizzle-kit generate",

@@ -43,6 +43,7 @@ import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRouteImpo
 import { Route as AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/index'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugMatchesRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/matches'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/index'
+import { Route as PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRouteImport } from './routes/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
 import { Route as AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRouteImport } from './routes/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/index'
 
 const ConsentRoute = ConsentRouteImport.update({
@@ -243,6 +244,12 @@ const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRoute =
         AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute,
     } as any,
   )
+const PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute =
+  PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRouteImport.update({
+    id: '/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key',
+    path: '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRoute =
   AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRouteImport.update(
     {
@@ -284,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/leagues/$slug/players/$leaguePlayerId': typeof AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRoute
   '/leagues/$slug/seasons/$seasonSlug/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
   '/leagues/$slug/teams/$teamId': typeof AuthenticatedSidebarLeaguesSlugTeamsTeamIdIndexRoute
+  '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key': typeof PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute
   '/leagues/$slug/seasons/$seasonSlug/session': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRoute
   '/leagues/$slug/seasons/$seasonSlug/session/$sessionId': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRoute
 }
@@ -315,6 +323,7 @@ export interface FileRoutesByTo {
   '/leagues/$slug/players/$leaguePlayerId': typeof AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRoute
   '/leagues/$slug/seasons/$seasonSlug': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
   '/leagues/$slug/teams/$teamId': typeof AuthenticatedSidebarLeaguesSlugTeamsTeamIdIndexRoute
+  '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key': typeof PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute
   '/leagues/$slug/seasons/$seasonSlug/session': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRoute
   '/leagues/$slug/seasons/$seasonSlug/session/$sessionId': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRoute
 }
@@ -353,6 +362,7 @@ export interface FileRoutesById {
   '/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/': typeof AuthenticatedSidebarLeaguesSlugPlayersLeaguePlayerIdIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/teams/$teamId/': typeof AuthenticatedSidebarLeaguesSlugTeamsTeamIdIndexRoute
+  '/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key': typeof PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRoute
   '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/': typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionSessionIdIndexRoute
 }
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/leagues/$slug/players/$leaguePlayerId'
     | '/leagues/$slug/seasons/$seasonSlug/'
     | '/leagues/$slug/teams/$teamId'
+    | '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
     | '/leagues/$slug/seasons/$seasonSlug/session'
     | '/leagues/$slug/seasons/$seasonSlug/session/$sessionId'
   fileRoutesByTo: FileRoutesByTo
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/leagues/$slug/players/$leaguePlayerId'
     | '/leagues/$slug/seasons/$seasonSlug'
     | '/leagues/$slug/teams/$teamId'
+    | '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
     | '/leagues/$slug/seasons/$seasonSlug/session'
     | '/leagues/$slug/seasons/$seasonSlug/session/$sessionId'
   id:
@@ -457,6 +469,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_sidebar/leagues/$slug/players/$leaguePlayerId/'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/'
     | '/_authenticated/_sidebar/leagues/$slug/teams/$teamId/'
+    | '/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/'
     | '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/'
   fileRoutesById: FileRoutesById
@@ -469,6 +482,7 @@ export interface RootRouteChildren {
   PublicHomeRoute: typeof PublicHomeRoute
   AcceptInvitationInvitationIdRoute: typeof AcceptInvitationInvitationIdRoute
   DeviceIndexRoute: typeof DeviceIndexRoute
+  PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute: typeof PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -711,6 +725,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugSessionIndexRouteImport
       parentRoute: typeof AuthenticatedSidebarLeaguesSlugSeasonsSeasonSlugRouteRoute
     }
+    '/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key': {
+      id: '/_public/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
+      path: '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
+      fullPath: '/shared/leagues/$leagueId/seasons/$seasonId/standings/$key'
+      preLoaderRoute: typeof PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/': {
       id: '/_authenticated/_sidebar/leagues/$slug/seasons/$seasonSlug/session/$sessionId/'
       path: '/session/$sessionId'
@@ -884,6 +905,8 @@ const rootRouteChildren: RootRouteChildren = {
   PublicHomeRoute: PublicHomeRoute,
   AcceptInvitationInvitationIdRoute: AcceptInvitationInvitationIdRoute,
   DeviceIndexRoute: DeviceIndexRoute,
+  PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute:
+    PublicSharedLeaguesLeagueIdSeasonsSeasonIdStandingsKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

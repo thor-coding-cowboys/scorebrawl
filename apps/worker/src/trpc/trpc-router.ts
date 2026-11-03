@@ -14,6 +14,7 @@ import { leagueTeamRouter } from "./router/league-team-router";
 import { sessionRouter } from "./router/session-router";
 import { apiKeyRouter } from "./router/api-key-router";
 import { personalApiKeyRouter } from "./router/personal-api-key-router";
+import { shareLinkRouter, shareSettingRouter } from "./router/share-link-router";
 import { createTRPCRouter } from "./trpc";
 
 export const trpcRouter = createTRPCRouter({
@@ -33,6 +34,8 @@ export const trpcRouter = createTRPCRouter({
 	seasonPlayer: seasonPlayerRouter,
 	seasonTeam: seasonTeamRouter,
 	session: sessionRouter,
+	shareLink: shareLinkRouter,
+	shareSetting: shareSettingRouter,
 });
 
 export type TRPCRouter = typeof trpcRouter;

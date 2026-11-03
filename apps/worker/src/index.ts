@@ -15,6 +15,7 @@ import { publicApiApp } from "./public-api/app";
 import { mcpRouter } from "./public-api/mcp";
 import { mcpWellKnownRouter } from "./public-api/mcp/well-known";
 import { matchesV1Router } from "./routes/matches-v1";
+import { sharePublicRouter } from "./routes/share-router";
 import { sseRouter, broadcastSeasonEvent } from "./routes/sse-router";
 import { userAssetsRouter } from "./routes/user-assets-router";
 import { wellKnownRouter } from "./routes/well-known";
@@ -51,6 +52,7 @@ const app = new Hono<HonoEnv>()
 	.route("/.well-known", wellKnownRouter)
 	.route("/api/auth", authRouter)
 	.route("/api/sse", sseRouter)
+	.route("/api/share", sharePublicRouter)
 	.route("/api/v1/leagues/:leagueId/seasons/:seasonId/matches", matchesV1Router)
 	.route("/", publicApiApp)
 	.route("/api/v1/leagues", leaguesV1Router)

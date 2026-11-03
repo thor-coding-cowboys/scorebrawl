@@ -1,5 +1,11 @@
 # API Key Management UI
 
+## Status
+
+Shipped. League keys (`sbk_`, owner-only, `/leagues/:slug/api-keys`) and personal
+keys (`sbp_`, tRPC `personalApiKey`) are live; screenshots in [`docs/api-keys/`](../../api-keys).
+This story is kept for traceability.
+
 ## Summary
 
 Provide a UI to create and manage API keys. The better-auth admin plugin and `apikey` table exist; there is no user-facing key management surface.
