@@ -228,11 +228,19 @@ export const recordMatchResult = async ({
 		const orderedLosers = loserSessionPlayers
 			.filter((p) => !overrideIds.has(p.id))
 			.sort(sortByConsecutiveThenQueue);
-		const orderedOverrides = overridePlayers.sort((a, b) =>
-			a.consecutiveGames !== b.consecutiveGames
-				? a.consecutiveGames - b.consecutiveGames
-				: a.queuePosition - b.queuePosition
-		);
+		// Overrides sit at the bottom, so the last one is the player who drops. When
+		// several players hit the max in the same game, the just-finished losers must
+		// drop before the winners instead of being ranked by their stale queue position.
+		const overrideLoserIds = new Set(loserSessionPlayers.map((p) => p.id));
+		const orderedOverrides = overridePlayers.sort((a, b) => {
+			if (a.consecutiveGames !== b.consecutiveGames) {
+				return a.consecutiveGames - b.consecutiveGames;
+			}
+			const aLost = overrideLoserIds.has(a.id);
+			const bLost = overrideLoserIds.has(b.id);
+			if (aLost !== bLost) return aLost ? 1 : -1;
+			return a.queuePosition - b.queuePosition;
+		});
 
 		const maxWaiting = maxWaitingPos?.max ?? -1;
 		let winnerCountForShift = 0;
