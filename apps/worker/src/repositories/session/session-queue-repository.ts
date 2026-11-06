@@ -345,8 +345,15 @@ async function recalcQueuePositions(db: DrizzleDB | TransactionClient, sessionId
 		const orderedLosers = loserSPIds
 			.filter((id) => !overrideSet.has(id))
 			.sort(sortByConsecutiveThenQueuePos);
+		// Overrides sit at the bottom, so the last one is the player who drops. When
+		// several players hit the max in the same game, the just-finished losers must
+		// drop before the winners instead of being ranked by their stale queue position.
+		const loserSet = new Set(loserSPIds);
 		const orderedOverrides = overrides.sort((a, b) => {
 			if (cgFor(a) !== cgFor(b)) return cgFor(a) - cgFor(b);
+			const aLost = loserSet.has(a);
+			const bLost = loserSet.has(b);
+			if (aLost !== bLost) return aLost ? 1 : -1;
 			return queue.indexOf(a) - queue.indexOf(b);
 		});
 

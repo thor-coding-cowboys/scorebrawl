@@ -1094,6 +1094,63 @@ describe("session router", () => {
 				// selected for subsequent games. The key behavior (higher cg = lower queue position)
 				// is implicitly tested by the maxConsecutiveEnabled tests above.
 			});
+
+			it("when several players reach maxConsecutive together, the current-game loser drops first", async () => {
+				const { client, season, seasonPlayers } = await setupSeasonWithPlayers(5);
+				const [p0, p1, p2, p3, p4] = seasonPlayers;
+
+				const session = await client.session.create.mutate({
+					seasonSlug: season.slug,
+					rotationMode: "winner-stays",
+					teamSize: 2,
+					maxConsecutiveGames: 2,
+					maxConsecutiveEnabled: true,
+					winnersTakePriority: false,
+					randomizerType: "off",
+					seasonPlayerIds: seasonPlayers.map((p) => p.id),
+				});
+
+				const record = async (
+					homeSeasonPlayerIds: string[],
+					awaySeasonPlayerIds: string[],
+					homeScore: number,
+					awayScore: number
+				) => {
+					await client.session.startNextMatch.mutate({
+						sessionId: session.id,
+						homeSeasonPlayerIds,
+						awaySeasonPlayerIds,
+					});
+					const current = await client.session.getById.query({ sessionId: session.id });
+					const match = current.matches.find((m) => m.result === null)!;
+					return client.session.recordResult.mutate({
+						sessionId: session.id,
+						sessionMatchId: match.id,
+						homeScore,
+						awayScore,
+					});
+				};
+
+				// Game 1: p2/p3 beat p0/p1. All four have 1 consecutive game, but the
+				// winners get better queue positions than the losers.
+				await record([p0.id, p1.id], [p2.id, p3.id], 0, 1);
+
+				// Game 2: p0/p1 beat p2/p3. All four reach maxConsecutiveGames=2, so
+				// one has to drop. The just-finished losers (p2/p3) must drop before the
+				// just-finished winners (p0/p1), whose pre-game queue positions are worse.
+				const result = await record([p0.id, p1.id], [p2.id, p3.id], 1, 0);
+
+				const bySeasonId = new Map(result.players.map((p) => [p.seasonPlayerId, p]));
+				const lineup = result.proposedLineup!;
+				const lineupSessionIds = new Set([...lineup.homePlayerIds, ...lineup.awayPlayerIds]);
+
+				expect(lineupSessionIds.has(bySeasonId.get(p0.id)!.id)).toBe(true);
+				expect(lineupSessionIds.has(bySeasonId.get(p1.id)!.id)).toBe(true);
+				expect(lineupSessionIds.has(bySeasonId.get(p4.id)!.id)).toBe(true);
+
+				const dropped = result.players.find((p) => !lineupSessionIds.has(p.id))!;
+				expect([p2.id, p3.id]).toContain(dropped.seasonPlayerId);
+			});
 		});
 	});
 
