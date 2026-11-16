@@ -21,6 +21,8 @@ interface UseSeasonSSEOptions {
 	seasonId: string;
 	currentUserId?: string;
 	enabled?: boolean;
+	/** Session open in the session view, which toasts its own end; stays silent for that one. */
+	viewedSessionId?: string;
 }
 
 export function useSeasonSSE({
@@ -29,6 +31,7 @@ export function useSeasonSSE({
 	seasonId,
 	currentUserId,
 	enabled = true,
+	viewedSessionId,
 }: UseSeasonSSEOptions) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -37,7 +40,7 @@ export function useSeasonSSE({
 	const stableTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reconnectAttemptsRef = useRef(0);
 	const enabledRef = useRef(enabled);
-	const paramsRef = useRef({ leagueSlug, seasonSlug, seasonId, currentUserId });
+	const paramsRef = useRef({ leagueSlug, seasonSlug, seasonId, currentUserId, viewedSessionId });
 	const [connectionStatus, setConnectionStatus] = useState<
 		"connecting" | "connected" | "disconnected"
 	>("connecting");
@@ -50,7 +53,7 @@ export function useSeasonSSE({
 	queryClientRef.current = queryClient;
 
 	enabledRef.current = enabled;
-	paramsRef.current = { leagueSlug, seasonSlug, seasonId, currentUserId };
+	paramsRef.current = { leagueSlug, seasonSlug, seasonId, currentUserId, viewedSessionId };
 
 	useEffect(() => {
 		let isMounted = true;
@@ -69,7 +72,7 @@ export function useSeasonSSE({
 			if (!enabledRef.current || !isMounted) return;
 
 			setConnectionStatus("connecting");
-			const { leagueSlug, seasonSlug, seasonId, currentUserId } = paramsRef.current;
+			const { leagueSlug, seasonSlug, seasonId } = paramsRef.current;
 			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 			const wsUrl = `${protocol}//${window.location.host}/api/sse/${leagueSlug}/${seasonSlug}`;
 			const ws = new WebSocket(wsUrl);
@@ -102,7 +105,8 @@ export function useSeasonSSE({
 
 					const t = trpcRef.current;
 					const qc = queryClientRef.current;
-					const isOwnEvent = "user" in parsed && parsed.user?.id === currentUserId;
+					const live = paramsRef.current;
+					const isOwnEvent = "user" in parsed && parsed.user?.id === live.currentUserId;
 
 					if (parsed.type === "streak" && parsed.data) {
 						window.dispatchEvent(
@@ -131,7 +135,7 @@ export function useSeasonSSE({
 								</span>
 							</span>
 						);
-						if (player.id === currentUserId) {
+						if (player.id === live.currentUserId) {
 							window.dispatchEvent(
 								new CustomEvent("achievement-event", {
 									detail: {
@@ -197,7 +201,7 @@ export function useSeasonSSE({
 						if (!isOwnEvent) {
 							if (parsed.type === "session:start" && parsed.user) {
 								toast.info(`${parsed.user.name} started a session`);
-							} else if (parsed.type === "session:end") {
+							} else if (parsed.type === "session:end" && sessionId !== live.viewedSessionId) {
 								toast.info(
 									parsed.user ? `${parsed.user.name} ended a session` : "Session auto-closed"
 								);

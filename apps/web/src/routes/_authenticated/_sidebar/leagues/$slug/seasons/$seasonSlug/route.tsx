@@ -70,6 +70,7 @@ function SeasonLayout() {
 		seasonId: season?.id ?? "",
 		currentUserId: authSession?.user.id,
 		enabled: !!season?.id,
+		viewedSessionId: isSessionRoute ? isSessionRoute.sessionId : undefined,
 	});
 
 	const reconnecting = hasConnected && connectionStatus !== "connected";
