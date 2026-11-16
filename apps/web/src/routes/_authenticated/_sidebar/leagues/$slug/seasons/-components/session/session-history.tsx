@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useTRPC } from "@/lib/trpc";
+import { fromHandle, type inferQueryHandle } from "@trpc/tanstack-react-query/unstable-handles";
+import { useTRPC, type TRPC } from "@/lib/trpc";
 import { formatDuration, rotationLabel } from "@coding-cowboys/scorebrawl-core/presentation";
 import { OverviewCard } from "../season/overview-card";
 import {
@@ -18,12 +19,18 @@ function formatSessionDate(d: Date): string {
 	});
 }
 
-export function SessionHistory({ seasonSlug, slug }: { seasonSlug: string; slug: string }) {
+export function SessionHistory({
+	seasonSlug,
+	slug,
+	handle,
+}: {
+	seasonSlug: string;
+	slug: string;
+	handle: inferQueryHandle<TRPC["session"]["listEnded"]>;
+}) {
 	const trpc = useTRPC();
 
-	const { data: sessions, isLoading } = useQuery(
-		trpc.session.listEnded.queryOptions({ seasonSlug, limit: 10 })
-	);
+	const { data: sessions, isLoading } = useQuery(fromHandle(trpc, handle));
 
 	if (isLoading) {
 		return (

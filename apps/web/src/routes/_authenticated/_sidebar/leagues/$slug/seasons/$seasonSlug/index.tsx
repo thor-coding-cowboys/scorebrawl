@@ -1,8 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GlowButton, glowColors } from "@/components/ui/glow-button";
 import { useQuery } from "@tanstack/react-query";
+import {
+	ensureEntry,
+	fromHandle,
+	loadHandles,
+	prefetchEntry,
+} from "@trpc/tanstack-react-query/unstable-handles";
 import { useTRPC } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
 import { truncateSlug } from "@coding-cowboys/scorebrawl-core/presentation";
@@ -33,14 +39,37 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 	{
 		component: SeasonDashboardPage,
 		validateSearch: seasonDashboardSearchSchema,
-		loader: async ({ params }) => {
-			return { slug: params.slug, seasonSlug: params.seasonSlug };
+		loader: async ({ context, params }) => {
+			const trpc = context.trpc;
+			const { seasonSlug } = params;
+
+			const [handles] = await loadHandles(trpc, {
+				season: ensureEntry(trpc.season.getBySlug, { seasonSlug }),
+				countInfo: ensureEntry(trpc.season.getCountInfo, { seasonSlug }),
+				activeSession: prefetchEntry(trpc.session.getActive, { seasonSlug }),
+				latestMatch: prefetchEntry(trpc.match.getLatest, { seasonSlug }),
+				topPlayer: prefetchEntry(trpc.seasonPlayer.getTop, { seasonSlug }),
+				standings: prefetchEntry(trpc.seasonPlayer.getStanding, { seasonSlug }),
+				players: prefetchEntry(trpc.seasonPlayer.getAll, { seasonSlug }),
+				fixtures: prefetchEntry(trpc.season.getFixtures, { seasonSlug }),
+				recentMatches: prefetchEntry(trpc.match.getAll, {
+					seasonSlug,
+					limit: 5,
+					offset: 0,
+				}),
+				weeklyPlayerStats: prefetchEntry(trpc.seasonPlayer.getWeeklyStats, { seasonSlug }),
+				weeklyTeamStats: prefetchEntry(trpc.seasonTeam.getWeeklyStats, { seasonSlug }),
+				endedSessions: prefetchEntry(trpc.session.listEnded, { seasonSlug, limit: 10 }),
+			});
+
+			return handles;
 		},
 	}
 );
 
 function SeasonDashboardPage() {
-	const { slug, seasonSlug } = Route.useLoaderData();
+	const handles = Route.useLoaderData();
+	const { slug, seasonSlug } = Route.useParams();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const trpc = useTRPC();
 
@@ -49,30 +78,15 @@ function SeasonDashboardPage() {
 	const canCreateMatches = role === "owner" || role === "editor" || role === "member";
 	const canCreateSeasons = role === "owner" || role === "editor";
 
-	const { data: season, error } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+	const { data: season } = useQuery(fromHandle(trpc, handles.season));
 
-	const seasonId = season?.id;
-
-	// Fetch team count to determine layout
-	const { data: countInfo } = useQuery(trpc.season.getCountInfo.queryOptions({ seasonSlug }));
+	const { data: countInfo } = useQuery(fromHandle(trpc, handles.countInfo));
 	const hasTeams = (countInfo?.teamCount ?? 0) > 0;
-
-	useEffect(() => {
-		if (error) {
-			navigate({
-				to: "/leagues/$slug/seasons",
-				params: { slug },
-			});
-		}
-	}, [error, navigate, slug]);
 
 	const isEloSeason = season?.scoreType === "elo" || season?.scoreType === "1-v-n-elo";
 	const isSeasonLocked = season?.closed || season?.archived;
 
-	const { data: activeSession } = useQuery({
-		...trpc.session.getActive.queryOptions({ seasonSlug }),
-		enabled: !!season,
-	});
+	const { data: activeSession } = useQuery(fromHandle(trpc, handles.activeSession));
 
 	const canShare = role === "owner" || role === "editor";
 	const [isShareOpen, setIsShareOpen] = useState(false);
@@ -174,7 +188,7 @@ function SeasonDashboardPage() {
 						onShare={canShare ? () => setIsShareOpen(true) : undefined}
 					/>
 				)}
-				<DashboardCards seasonSlug={seasonSlug} />
+				<DashboardCards seasonSlug={seasonSlug} handles={handles} />
 
 				{hasTeams ? (
 					<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
@@ -182,22 +196,20 @@ function SeasonDashboardPage() {
 							<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
 							{!isEloSeason && season && (
 								<OverviewCard title="Fixtures">
-									<Fixtures seasonSlug={seasonSlug} />
+									<Fixtures seasonSlug={seasonSlug} handles={handles} />
 								</OverviewCard>
 							)}
-							{seasonId && (
-								<LatestMatches
-									seasonId={seasonId}
-									seasonSlug={seasonSlug}
-									slug={slug}
-									canDelete={canCreateMatches && !isSeasonLocked}
-								/>
-							)}
-							<SessionHistory seasonSlug={seasonSlug} slug={slug} />
+							<LatestMatches
+								seasonSlug={seasonSlug}
+								slug={slug}
+								canDelete={canCreateMatches && !isSeasonLocked}
+								handle={handles.recentMatches}
+							/>
+							<SessionHistory seasonSlug={seasonSlug} slug={slug} handle={handles.endedSessions} />
 						</div>
 						<div className="hidden lg:flex flex-col gap-4">
 							<TeamStandingCard seasonSlug={seasonSlug} leagueSlug={slug} />
-							<WeeklyPerformers seasonSlug={seasonSlug} />
+							<WeeklyPerformers handles={handles} />
 						</div>
 					</div>
 				) : (
@@ -205,34 +217,30 @@ function SeasonDashboardPage() {
 						<StandingTabs seasonSlug={seasonSlug} leagueSlug={slug} />
 						{!isEloSeason && season && (
 							<OverviewCard title="Fixtures">
-								<Fixtures seasonSlug={seasonSlug} />
+								<Fixtures seasonSlug={seasonSlug} handles={handles} />
 							</OverviewCard>
 						)}
-						{seasonId && (
-							<LatestMatches
-								seasonId={seasonId}
-								seasonSlug={seasonSlug}
-								slug={slug}
-								canDelete={canCreateMatches && !isSeasonLocked}
-							/>
-						)}
-						<SessionHistory seasonSlug={seasonSlug} slug={slug} />
+						<LatestMatches
+							seasonSlug={seasonSlug}
+							slug={slug}
+							canDelete={canCreateMatches && !isSeasonLocked}
+							handle={handles.recentMatches}
+						/>
+						<SessionHistory seasonSlug={seasonSlug} slug={slug} handle={handles.endedSessions} />
 					</div>
 				)}
 			</div>
-			{isEloSeason && seasonId && season?.scoreType === "1-v-n-elo" && (
+			{season?.scoreType === "1-v-n-elo" && (
 				<CreateOneVnGameDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
-					seasonId={seasonId}
 					seasonSlug={seasonSlug}
 				/>
 			)}
-			{isEloSeason && seasonId && season?.scoreType === "elo" && (
+			{season?.scoreType === "elo" && (
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
-					seasonId={seasonId}
 					seasonSlug={seasonSlug}
 				/>
 			)}

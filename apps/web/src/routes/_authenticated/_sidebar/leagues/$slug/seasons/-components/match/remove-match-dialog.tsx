@@ -24,7 +24,6 @@ interface RemoveMatchDialogProps {
 	matchId: string | null;
 	matchInfo?: MatchInfo;
 	seasonSlug: string;
-	seasonId: string;
 }
 
 export function RemoveMatchDialog({
@@ -34,7 +33,6 @@ export function RemoveMatchDialog({
 	matchId,
 	matchInfo,
 	seasonSlug,
-	seasonId,
 }: RemoveMatchDialogProps) {
 	const trpc = useTRPC();
 	const [apiError, setApiError] = useState<string>("");
@@ -58,7 +56,7 @@ export function RemoveMatchDialog({
 		onSuccess: () => {
 			// Minimal invalidation for immediate UI feedback.
 			// SSE broadcasts handle the full invalidation for all connected users.
-			queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+			queryClient.invalidateQueries(trpc.match.getAll.queryFilter({ seasonSlug }));
 			queryClient.invalidateQueries({
 				queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 			});

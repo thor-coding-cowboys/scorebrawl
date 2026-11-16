@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { fromHandle, type inferQueryHandle } from "@trpc/tanstack-react-query/unstable-handles";
+import { trpcClient, useTRPC, type TRPC } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
@@ -17,6 +18,10 @@ import { toast } from "sonner";
 
 interface FixturesProps {
 	seasonSlug: string;
+	handles: {
+		fixtures: inferQueryHandle<TRPC["season"]["getFixtures"]>;
+		players: inferQueryHandle<TRPC["seasonPlayer"]["getAll"]>;
+	};
 }
 
 interface Fixture {
@@ -266,13 +271,11 @@ const FixtureRow = ({ fixture, seasonSlug }: { fixture: Fixture; seasonSlug: str
 	);
 };
 
-export function Fixtures({ seasonSlug }: FixturesProps) {
+export function Fixtures({ seasonSlug, handles }: FixturesProps) {
 	const trpc = useTRPC();
-	const { data: fixtures, isLoading } = useQuery(
-		trpc.season.getFixtures.queryOptions({ seasonSlug })
-	);
+	const { data: fixtures, isLoading } = useQuery(fromHandle(trpc, handles.fixtures));
 
-	const { data: players } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
+	const { data: players } = useQuery(fromHandle(trpc, handles.players));
 
 	const [showPrev, setShowPrev] = useState(false);
 	const [showNext, setShowNext] = useState(false);

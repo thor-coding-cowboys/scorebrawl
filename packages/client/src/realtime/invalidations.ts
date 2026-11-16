@@ -64,7 +64,7 @@ export function getSeasonInvalidations(
 	];
 
 	if (seasonId) {
-		keys.push(["infinite-matches", seasonId], ["matches", seasonId]);
+		keys.push(["infinite-matches", seasonId]);
 	}
 
 	return keys;

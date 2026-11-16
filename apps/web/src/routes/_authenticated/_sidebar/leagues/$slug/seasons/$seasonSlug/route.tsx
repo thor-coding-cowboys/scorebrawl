@@ -8,6 +8,12 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	ensureEntry,
+	fromHandle,
+	loadHandlesSettled,
+	prefetchEntry,
+} from "@trpc/tanstack-react-query/unstable-handles";
 import { fetchSessionForRoute, useSession } from "@/hooks/useSession";
 import { useTRPC } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -25,13 +31,24 @@ export const Route = createFileRoute("/_authenticated/_sidebar/leagues/$slug/sea
 			throw redirect({ to: "/auth/sign-in" });
 		}
 	},
-	loader: async ({ params }) => {
-		return { slug: params.slug, seasonSlug: params.seasonSlug };
+	loader: async ({ context, params }) => {
+		const [handles, results] = await loadHandlesSettled(context.trpc, {
+			season: ensureEntry(context.trpc.season.getBySlug, { seasonSlug: params.seasonSlug }),
+			activeSession: prefetchEntry(context.trpc.session.getActive, {
+				seasonSlug: params.seasonSlug,
+			}),
+		});
+
+		if (results.season.status === "error") {
+			throw redirect({ to: "/leagues/$slug/seasons", params: { slug: params.slug } });
+		}
+
+		return { slug: params.slug, seasonSlug: params.seasonSlug, handles };
 	},
 });
 
 function SeasonLayout() {
-	const { slug, seasonSlug } = Route.useParams();
+	const { slug, seasonSlug, handles } = Route.useLoaderData();
 	const queryClient = useQueryClient();
 	const trpc = useTRPC();
 	const matchRoute = useMatchRoute();
@@ -42,9 +59,9 @@ function SeasonLayout() {
 		fuzzy: true,
 	});
 
-	const { data: activeSession } = useQuery(trpc.session.getActive.queryOptions({ seasonSlug }));
+	const { data: activeSession } = useQuery(fromHandle(trpc, handles.activeSession));
 
-	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+	const { data: season } = useQuery(fromHandle(trpc, handles.season));
 	const { data: authSession } = useSession();
 
 	const { connectionStatus, hasConnected } = useSeasonSSE({

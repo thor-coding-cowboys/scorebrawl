@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { trpcClient } from "@/lib/trpc";
+import { fromHandle, type inferQueryHandle } from "@trpc/tanstack-react-query/unstable-handles";
+import { useTRPC, type TRPC } from "@/lib/trpc";
 import { OverviewCard } from "./overview-card";
 import { MatchRow } from "../match/match-row";
 import { Button } from "@/components/ui/button";
@@ -10,36 +11,28 @@ import { ArrowRight01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { RemoveMatchDialog } from "../match/remove-match-dialog";
 
 interface LatestMatchesProps {
-	seasonId: string;
 	seasonSlug: string;
 	slug: string;
 	canDelete?: boolean;
+	handle: inferQueryHandle<TRPC["match"]["getAll"]>;
 }
 
-export function LatestMatches({ seasonId, seasonSlug, slug, canDelete }: LatestMatchesProps) {
+export function LatestMatches({ seasonSlug, slug, canDelete, handle }: LatestMatchesProps) {
 	const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+	const trpc = useTRPC();
 
-	const { data: matchesData } = useQuery({
-		queryKey: ["matches", seasonId],
-		queryFn: async () => {
-			return await trpcClient.match.getAll.query({ seasonSlug, limit: 5, offset: 0 });
-		},
-		staleTime: 5 * 60 * 1000,
-		refetchOnWindowFocus: false,
-	});
+	const { data: matchesData } = useQuery(
+		fromHandle(trpc, handle, { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false })
+	);
 	const matches = matchesData?.matches ?? [];
-
-	const latestMatches = matches;
-	const latestMatch = latestMatches[0];
-	const showEmptyState = latestMatches.length < 1;
-	const showMatches = latestMatches.length > 0;
+	const latestMatch = matches[0];
 
 	return (
 		<>
 			<OverviewCard
 				title="Latest Matches"
 				action={
-					showMatches && (
+					matches.length > 0 && (
 						<div className="flex items-center gap-2">
 							{canDelete && latestMatch && (
 								<Button
@@ -68,16 +61,16 @@ export function LatestMatches({ seasonId, seasonSlug, slug, canDelete }: LatestM
 					)
 				}
 			>
-				{showMatches ? (
-					<MatchTable matches={latestMatches} seasonSlug={seasonSlug} seasonId={seasonId} />
-				) : showEmptyState ? (
+				{matches.length > 0 ? (
+					<MatchTable matches={matches} />
+				) : (
 					<div
 						className="flex items-center justify-center h-40 text-muted-foreground"
 						data-testid="latest-matches-empty"
 					>
 						No registered matches
 					</div>
-				) : null}
+				)}
 			</OverviewCard>
 			{latestMatch && (
 				<RemoveMatchDialog
@@ -86,7 +79,6 @@ export function LatestMatches({ seasonId, seasonSlug, slug, canDelete }: LatestM
 					matchId={latestMatch.id}
 					matchInfo={latestMatch}
 					seasonSlug={seasonSlug}
-					seasonId={seasonId}
 				/>
 			)}
 		</>
@@ -109,8 +101,6 @@ interface MatchTeam {
 
 function MatchTable({
 	matches,
-	seasonSlug,
-	seasonId,
 }: {
 	matches: {
 		id: string;
@@ -120,14 +110,12 @@ function MatchTable({
 		homeTeam: MatchTeam;
 		awayTeam: MatchTeam;
 	}[];
-	seasonSlug: string;
-	seasonId: string;
 }) {
 	return (
 		<div className="divide-y divide-border overflow-hidden" data-testid="latest-matches-table">
 			{matches.map((match) => (
 				<div key={match.id} className="py-3 px-2" data-testid={`latest-match-row-${match.id}`}>
-					<MatchRow match={match} seasonSlug={seasonSlug} seasonId={seasonId} />
+					<MatchRow match={match} />
 				</div>
 			))}
 		</div>

@@ -61,7 +61,6 @@ describe("getSeasonInvalidations", () => {
 			["match", "getAll", { seasonSlug: "season-1" }],
 			["session", "getActive", { seasonSlug: "season-1" }],
 			["infinite-matches", "id-1"],
-			["matches", "id-1"],
 		]);
 	});
 
