@@ -10,7 +10,8 @@ import {
 	Calendar03Icon,
 } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { trpcClient, useTRPC } from "@/lib/trpc";
+import { fromHandle, type inferQueryHandle } from "@trpc/tanstack-react-query/unstable-handles";
+import { trpcClient, useTRPC, type TRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { FormDots } from "@/components/ui/form-dots";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -59,6 +60,15 @@ function TeamIcon({ logo, name }: { logo: string | null; name: string }) {
 
 interface DashboardCardsProps {
 	seasonSlug: string;
+	handles: {
+		season: inferQueryHandle<TRPC["season"]["getBySlug"]>;
+		topPlayer: inferQueryHandle<TRPC["seasonPlayer"]["getTop"]>;
+		standings: inferQueryHandle<TRPC["seasonPlayer"]["getStanding"]>;
+		countInfo: inferQueryHandle<TRPC["season"]["getCountInfo"]>;
+		latestMatch: inferQueryHandle<TRPC["match"]["getLatest"]>;
+		fixtures: inferQueryHandle<TRPC["season"]["getFixtures"]>;
+		players: inferQueryHandle<TRPC["seasonPlayer"]["getAll"]>;
+	};
 }
 
 function PlayerStatCard({
@@ -101,9 +111,9 @@ function PlayerStatCard({
 	);
 }
 
-function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
+function OnFireCard({ handle }: { handle: DashboardCardsProps["handles"]["topPlayer"] }) {
 	const trpc = useTRPC();
-	const { data, isLoading } = useQuery(trpc.seasonPlayer.getTop.queryOptions({ seasonSlug }));
+	const { data, isLoading } = useQuery(fromHandle(trpc, handle));
 	return (
 		<PlayerStatCard
 			title="On Fire"
@@ -117,9 +127,9 @@ function OnFireCard({ seasonSlug }: { seasonSlug: string }) {
 	);
 }
 
-function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
+function StrugglingCard({ handle }: { handle: DashboardCardsProps["handles"]["standings"] }) {
 	const trpc = useTRPC();
-	const { data: standings } = useQuery(trpc.seasonPlayer.getStanding.queryOptions({ seasonSlug }));
+	const { data: standings } = useQuery(fromHandle(trpc, handle));
 	const player = standings?.length
 		? (standings.filter((p) => p.matchCount >= 3).sort((a, b) => a.score - b.score)[0] ?? null)
 		: null;
@@ -136,9 +146,9 @@ function StrugglingCard({ seasonSlug }: { seasonSlug: string }) {
 	);
 }
 
-function InfoCard({ seasonSlug }: { seasonSlug: string }) {
+function InfoCard({ handle }: { handle: DashboardCardsProps["handles"]["countInfo"] }) {
 	const trpc = useTRPC();
-	const { data, isLoading } = useQuery(trpc.season.getCountInfo.queryOptions({ seasonSlug }));
+	const { data, isLoading } = useQuery(fromHandle(trpc, handle));
 
 	return (
 		<DashboardCard
@@ -207,11 +217,9 @@ function SideDisplay({ players, isWinner }: { players: MatchPlayer[]; isWinner?:
 	);
 }
 
-function LatestMatchCard({ seasonSlug }: { seasonSlug: string }) {
+function LatestMatchCard({ handle }: { handle: DashboardCardsProps["handles"]["latestMatch"] }) {
 	const trpc = useTRPC();
-	const { data: latestMatch, isLoading } = useQuery(
-		trpc.match.getLatest.queryOptions({ seasonSlug })
-	);
+	const { data: latestMatch, isLoading } = useQuery(fromHandle(trpc, handle));
 
 	const homePlayers = latestMatch?.players?.filter((p: MatchPlayer) => p.homeTeam) ?? [];
 	const awayPlayers = latestMatch?.players?.filter((p: MatchPlayer) => !p.homeTeam) ?? [];
@@ -297,7 +305,13 @@ function ScoreStepper({ score, setScore }: { score: number; setScore: (score: nu
 	);
 }
 
-function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
+function NextMatchCard({
+	seasonSlug,
+	handles,
+}: {
+	seasonSlug: string;
+	handles: Pick<DashboardCardsProps["handles"], "fixtures" | "players">;
+}) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [isEditing, setIsEditing] = useState(false);
@@ -305,9 +319,9 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	const [awayScore, setAwayScore] = useState(0);
 
 	const { data: fixtures, isLoading: fixturesLoading } = useQuery(
-		trpc.season.getFixtures.queryOptions({ seasonSlug })
+		fromHandle(trpc, handles.fixtures)
 	);
-	const { data: players } = useQuery(trpc.seasonPlayer.getAll.queryOptions({ seasonSlug }));
+	const { data: players } = useQuery(fromHandle(trpc, handles.players));
 
 	const { mutate: createFromFixture, isPending } = useMutation({
 		mutationFn: (data: {
@@ -433,9 +447,9 @@ function NextMatchCard({ seasonSlug }: { seasonSlug: string }) {
 	);
 }
 
-export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
+export function DashboardCards({ seasonSlug, handles }: DashboardCardsProps) {
 	const trpc = useTRPC();
-	const { data: season } = useQuery(trpc.season.getBySlug.queryOptions({ seasonSlug }));
+	const { data: season } = useQuery(fromHandle(trpc, handles.season));
 	const { scrollRef, activeIndex, onScroll, onTouchStart, onTouchEnd, containerStyle } =
 		useCarousel(4);
 
@@ -453,19 +467,19 @@ export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
 					onScroll={onScroll}
 				>
 					<div className="snap-start shrink-0 w-full">
-						<LatestMatchCard seasonSlug={seasonSlug} />
+						<LatestMatchCard handle={handles.latestMatch} />
 					</div>
 					<div className="snap-start shrink-0 w-full">
-						<OnFireCard seasonSlug={seasonSlug} />
+						<OnFireCard handle={handles.topPlayer} />
 					</div>
 					<div className="snap-start shrink-0 w-full">
-						<StrugglingCard seasonSlug={seasonSlug} />
+						<StrugglingCard handle={handles.standings} />
 					</div>
 					<div className="snap-start shrink-0 w-full">
 						{isFixtureSeason ? (
-							<NextMatchCard seasonSlug={seasonSlug} />
+							<NextMatchCard seasonSlug={seasonSlug} handles={handles} />
 						) : (
-							<InfoCard seasonSlug={seasonSlug} />
+							<InfoCard handle={handles.countInfo} />
 						)}
 					</div>
 				</div>
@@ -482,14 +496,14 @@ export function DashboardCards({ seasonSlug }: DashboardCardsProps) {
 				</div>
 			</div>
 			<div className="hidden md:grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-				<OnFireCard seasonSlug={seasonSlug} />
-				<StrugglingCard seasonSlug={seasonSlug} />
+				<OnFireCard handle={handles.topPlayer} />
+				<StrugglingCard handle={handles.standings} />
 				{isFixtureSeason ? (
-					<NextMatchCard seasonSlug={seasonSlug} />
+					<NextMatchCard seasonSlug={seasonSlug} handles={handles} />
 				) : (
-					<InfoCard seasonSlug={seasonSlug} />
+					<InfoCard handle={handles.countInfo} />
 				)}
-				<LatestMatchCard seasonSlug={seasonSlug} />
+				<LatestMatchCard handle={handles.latestMatch} />
 			</div>
 		</>
 	);

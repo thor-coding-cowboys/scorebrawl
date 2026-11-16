@@ -59,18 +59,12 @@ type CreateMatchFormValues = z.infer<typeof createMatchSchema>;
 interface CreateMatchDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	seasonId: string;
 	seasonSlug: string;
 }
 
 // --- Main Component ---
 
-export function CreateMatchDialog({
-	isOpen,
-	onClose,
-	seasonId,
-	seasonSlug,
-}: CreateMatchDialogProps) {
+export function CreateMatchDialog({ isOpen, onClose, seasonSlug }: CreateMatchDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
@@ -150,7 +144,7 @@ export function CreateMatchDialog({
 
 				// Minimal invalidation for immediate UI feedback.
 				// SSE broadcasts handle the full invalidation for all connected users.
-				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries(trpc.match.getAll.queryFilter({ seasonSlug }));
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});

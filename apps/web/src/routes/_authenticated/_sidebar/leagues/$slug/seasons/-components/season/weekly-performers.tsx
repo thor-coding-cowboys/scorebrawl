@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc";
+import { fromHandle, type inferQueryHandle } from "@trpc/tanstack-react-query/unstable-handles";
+import { useTRPC, type TRPC } from "@/lib/trpc";
 import { AvatarWithFallback } from "@/components/ui/avatar-with-fallback";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserMultipleIcon, ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
@@ -135,18 +136,21 @@ function EmptyState({ message }: { message: string }) {
 }
 
 interface WeeklyPerformersProps {
-	seasonSlug: string;
+	handles: {
+		weeklyPlayerStats: inferQueryHandle<TRPC["seasonPlayer"]["getWeeklyStats"]>;
+		weeklyTeamStats: inferQueryHandle<TRPC["seasonTeam"]["getWeeklyStats"]>;
+	};
 }
 
-export function WeeklyPerformers({ seasonSlug }: WeeklyPerformersProps) {
+export function WeeklyPerformers({ handles }: WeeklyPerformersProps) {
 	const trpc = useTRPC();
 
 	const { data: playerStats, isLoading: playersLoading } = useQuery(
-		trpc.seasonPlayer.getWeeklyStats.queryOptions({ seasonSlug })
+		fromHandle(trpc, handles.weeklyPlayerStats)
 	);
 
 	const { data: teamStats, isLoading: teamsLoading } = useQuery(
-		trpc.seasonTeam.getWeeklyStats.queryOptions({ seasonSlug })
+		fromHandle(trpc, handles.weeklyTeamStats)
 	);
 
 	const isLoading = playersLoading || teamsLoading;

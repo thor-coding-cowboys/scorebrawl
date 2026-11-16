@@ -232,11 +232,7 @@ function MatchesPage() {
 													}}
 													className="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0 py-3 px-2 overflow-hidden"
 												>
-													<MatchRow
-														match={match}
-														seasonSlug={seasonSlug}
-														seasonId={seasonId ?? ""}
-													/>
+													<MatchRow match={match} />
 												</div>
 											);
 										})}
@@ -255,7 +251,6 @@ function MatchesPage() {
 				<CreateOneVnGameDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
-					seasonId={seasonId}
 					seasonSlug={seasonSlug}
 				/>
 			)}
@@ -263,7 +258,6 @@ function MatchesPage() {
 				<CreateMatchDialog
 					isOpen={isCreateMatchOpen}
 					onClose={() => setIsCreateMatchOpen(false)}
-					seasonId={seasonId}
 					seasonSlug={seasonSlug}
 				/>
 			)}
@@ -274,7 +268,6 @@ function MatchesPage() {
 					matchId={latestMatch.id}
 					matchInfo={latestMatch}
 					seasonSlug={seasonSlug}
-					seasonId={seasonId}
 				/>
 			)}
 		</>

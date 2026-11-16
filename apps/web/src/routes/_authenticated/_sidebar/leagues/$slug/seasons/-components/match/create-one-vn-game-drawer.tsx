@@ -24,16 +24,10 @@ type CreateOneVnFormValues = z.infer<typeof createOneVnSchema>;
 interface CreateOneVnGameDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	seasonId: string;
 	seasonSlug: string;
 }
 
-export function CreateOneVnGameDialog({
-	isOpen,
-	onClose,
-	seasonId,
-	seasonSlug,
-}: CreateOneVnGameDialogProps) {
+export function CreateOneVnGameDialog({ isOpen, onClose, seasonSlug }: CreateOneVnGameDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
@@ -64,7 +58,7 @@ export function CreateOneVnGameDialog({
 		trpc.match.createOneVn.mutationOptions({
 			onSuccess: () => {
 				toast.success("Game recorded");
-				queryClient.invalidateQueries({ queryKey: ["matches", seasonId] });
+				queryClient.invalidateQueries(trpc.match.getAll.queryFilter({ seasonSlug }));
 				queryClient.invalidateQueries({
 					queryKey: trpc.seasonPlayer.getStanding.queryKey({ seasonSlug }),
 				});

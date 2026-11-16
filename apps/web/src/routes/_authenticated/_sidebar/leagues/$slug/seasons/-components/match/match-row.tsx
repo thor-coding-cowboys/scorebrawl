@@ -26,8 +26,6 @@ interface MatchRowProps {
 		homeTeam: MatchTeam;
 		awayTeam: MatchTeam;
 	};
-	seasonSlug: string;
-	seasonId: string;
 }
 
 export function MatchRow({ match }: MatchRowProps) {

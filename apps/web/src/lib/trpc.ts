@@ -1,12 +1,14 @@
 import type { RouterOutputOf, TRPCClientOf } from "@coding-cowboys/scorebrawl-client/trpc";
 import type { TRPCRouter } from "@coding-cowboys/scorebrawl-worker/trpc";
 import { createTRPCClient, httpLink, httpSubscriptionLink, splitLink } from "@trpc/client";
-import { createTRPCContext } from "@trpc/tanstack-react-query";
+import { createTRPCContext, type TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import superjson from "superjson";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<TRPCRouter>();
 
 export type RouterOutput = RouterOutputOf<TRPCRouter>;
+
+export type TRPC = TRPCOptionsProxy<TRPCRouter>;
 
 export const trpcClient = createTRPCClient<TRPCRouter>({
 	links: [
@@ -25,12 +27,6 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 });
 
 export type TRPCClient = TRPCClientOf<TRPCRouter>;
-
-export type SessionRouter = TRPCRouter["session"];
-
-export function createSessionQueryKey(sessionId: string) {
-	return ["session", sessionId] as const;
-}
 
 // biome-ignore lint: escape hatch for tRPC route type inference gaps in Cloudflare Workers
 export type AnyTRPC = any;
