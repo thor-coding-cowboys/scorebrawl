@@ -181,12 +181,12 @@ Password sign-in is gone. Run `bun dev` (the emulated GitHub/Google providers ar
 
 ## Git Hooks
 
-Native git `pre-commit` hook (no husky). Runs `fmt:check` and `lint:check` on **staged files only**; any failure blocks the commit.
+Managed by [lefthook](https://github.com/evilmartians/lefthook). The `pre-push` hook runs `fmt:check` and `lint:check` across the whole repo; any failure blocks the push.
 
-- Script: `scripts/git-hooks/pre-commit.ts`
-- Installer: `scripts/git-hooks/install.ts`, wired to the root `prepare` script (runs on `bun install`); reinstall with `bun scripts/git-hooks/install.ts`
-- Installed to `.git/hooks/pre-commit` (symlink); does not use `core.hooksPath`
-- Fix failures with `bun fmt` / `bun lint`; bypass with `git commit --no-verify`
+- Config: `lefthook.yml`
+- Installed by the root `prepare` script (`lefthook install`, runs on `bun install`); reinstall with `bun x lefthook install`
+- Only `pre-push` is configured; there is no `pre-commit` hook
+- Fix failures with `bun fmt` / `bun lint`; bypass with `git push --no-verify` or `LEFTHOOK=0 git push`
 
 ## Deployment
 

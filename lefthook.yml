@@ -1,0 +1,7 @@
+pre-push:
+  parallel: true
+  jobs:
+    - name: format
+      run: bun fmt:check
+    - name: lint
+      run: bun lint:check
