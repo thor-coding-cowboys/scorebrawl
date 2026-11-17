@@ -20,7 +20,7 @@
 		"fmt": "oxfmt . *.md",
 		"fmt:check": "oxfmt --check . *.md",
 		"check": "bun typecheck && bun lint:check && bun fmt:check",
-		"prepare": "bun scripts/git-hooks/install.ts",
+		"prepare": "lefthook install",
 		"wrangler-typecheck": "turbo run wrangler-typecheck",
 		"db:generate": "bun --cwd apps/worker db:generate",
 		"db:migrate": "bun --cwd apps/worker db:migrate",
@@ -37,6 +37,7 @@
 	"devDependencies": {
 		"@opencode-ai/sdk": "^1.3.1",
 		"@typescript/native-preview": "^7.0.0-dev.20260112.1",
+		"lefthook": "^2.2.2",
 		"oxfmt": "0.34.0",
 		"oxlint": "^1.49.0",
 		"turbo": "^2.8.7",
