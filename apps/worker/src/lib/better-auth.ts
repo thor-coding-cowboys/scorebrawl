@@ -214,12 +214,15 @@ export function createAuth({
 		baseURL,
 		trustedOrigins: origin ? [origin, "scorebrawl://"] : undefined,
 		session: {
-			// get-session is the hottest auth path. A short signed-cookie cache
-			// serves warm sessions without touching D1; maxAge bounds how long a
-			// server-side revoke or organization switch can take to apply.
+			// get-session is the hottest auth path. A signed-cookie cache serves
+			// warm sessions without touching D1. maxAge matches the web client's
+			// 5 minute staleTime (apps/web/src/hooks/useSession.ts) so a refetch in
+			// that window is still warm instead of falling through to D1. Tradeoff:
+			// a server-side revoke, ban, membership removal or active-organization
+			// switch from another device can take up to 5 minutes to apply.
 			cookieCache: {
 				enabled: true,
-				maxAge: 60,
+				maxAge: 300,
 			},
 		},
 		databaseHooks: {
