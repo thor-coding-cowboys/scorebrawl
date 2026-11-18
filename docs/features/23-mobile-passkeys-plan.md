@@ -349,6 +349,8 @@ import { buildPasskeyConfig } from "../lib/passkey-config";
 
 Replace the `// Get origin from request for passkey configuration` comment and the `origin` constant with:
 
+> Superseded: the origin is now resolved by `resolveRequestOrigin()` in `apps/worker/src/lib/request-origin.ts`, which uses the request URL on public hosts and only honours `x-forwarded-*` for local proxies.
+
 ```ts
 // Native clients send no Origin header, so this falls back to the request
 // host — in production `https://scorebrawl.com`, which keeps the passkey

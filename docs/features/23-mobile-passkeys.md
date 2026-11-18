@@ -17,7 +17,7 @@ Two blockers make it non-trivial:
 1. `@better-auth/passkey/client` calls `startAuthentication` from `@simplewebauthn/browser` (`node_modules/@better-auth/passkey/dist/client.mjs:19`), which requires `navigator.credentials`. Unavailable in React Native, and the plugin exposes no injection point for a custom authenticator. A native WebAuthn module is required.
 2. No platform association config exists anywhere in the repo — no `apple-app-site-association`, no `assetlinks.json`, and `apps/mobile/ios/Scorebrawl/Scorebrawl.entitlements` has only `aps-environment`.
 
-The server is already mobile-compatible. rpID is derived per-request from the `Origin` header with a host fallback (`apps/worker/src/middleware/context.ts:58`). Native fetch sends no `Origin`, so it falls back to `https://scorebrawl.com` → rpID `scorebrawl.com`, which is the same rpID the web app uses. **One passkey therefore works on both surfaces — no data migration.**
+The server is already mobile-compatible. rpID is derived per-request from the request URL (`resolveRequestOrigin` in `apps/worker/src/lib/request-origin.ts`, called by `apps/worker/src/middleware/context.ts`). Forwarded headers are only honoured for local dev proxies, so a client cannot choose its own rpID. Native fetch sends no `Origin` and the request URL is `https://scorebrawl.com` → rpID `scorebrawl.com`, which is the same rpID the web app uses. **One passkey therefore works on both surfaces — no data migration.**
 
 ## Prerequisites (cannot be satisfied in code)
 

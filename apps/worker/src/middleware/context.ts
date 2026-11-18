@@ -1,8 +1,10 @@
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
+import { getAuthInstance } from "../lib/auth-instance";
 import { buildPasskeyConfig } from "../lib/passkey-config";
-import { publicOrigin, resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
+import { resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
+import { resolveRequestOrigin } from "../lib/request-origin";
 import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
@@ -30,89 +32,52 @@ export type HonoEnv = {
 };
 
 export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
-	// Initialize database
-	const {
-		DB,
-		USER_ASSETS_BUCKET: userAssetsBucket,
-		VITE_GITHUB_CLIENT_ID: githubClientId,
-		GITHUB_CLIENT_SECRET: githubClientSecret,
-		VITE_GOOGLE_CLIENT_ID: googleClientId,
-		GOOGLE_CLIENT_SECRET: googleClientSecret,
-		BETTER_AUTH_SECRET: betterAuthSecret,
-		RESEND_API_KEY: resendApiKey,
-		ADMIN_USER_IDS: adminUserIdsEnv,
-		OAUTH_RESOURCE: oauthResource,
-	} = c.env;
+	const db = getDb(c.env.DB);
 
-	const adminUserIds = adminUserIdsEnv
-		? adminUserIdsEnv
-				.split(",")
-				.map((id) => id.trim())
-				.filter(Boolean)
-		: undefined;
-
-	const db = getDb(DB);
-
-	// Native clients send no Origin header, so this falls back to the request
-	// host — in production `https://scorebrawl.com`, which keeps the passkey
-	// rpID identical to the web app's.
-	const origin =
-		c.req.header("origin") ||
-		`${c.req.header("x-forwarded-proto") || "https"}://${c.req.header("host") || "localhost"}`;
+	// Derived from the request URL (not the Origin header, and not a
+	// client-supplied x-forwarded-host on public hosts) so a caller cannot pick
+	// its own trusted origin, passkey rpID, MCP resource, or mint cache entries.
+	const publicRequestOrigin = resolveRequestOrigin(c.req.raw);
+	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
 
 	// Unset in wrangler.jsonc by design (see docs/features/23-mobile-passkeys.md).
 	const passkey = buildPasskeyConfig({
-		requestOrigin: origin,
+		requestOrigin: publicRequestOrigin,
 		rpIdOverride: (c.env as { PASSKEY_RP_ID?: string }).PASSKEY_RP_ID,
 		androidKeyHashes: c.env.PASSKEY_ANDROID_APK_KEY_HASHES,
 	});
 
-	const publicRequestOrigin = publicOrigin(c.req.raw);
-	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
-
-	// Optional local emulation (see apps/worker/src/emulate). Both are unset in
-	// production, which keeps the built-in GitHub/Google providers.
-	const emulatedEnv = c.env as {
-		EMULATE_GOOGLE_URL?: string;
-		EMULATE_GITHUB_URL?: string;
-	};
-
-	const auth = createAuth({
-		db,
-		betterAuthSecret,
-		githubClientId,
-		githubClientSecret,
-		googleClientId,
-		googleClientSecret,
-		origin,
-		passkey,
-		resendApiKey,
-		adminUserIds,
-		oauthResource,
-		baseURL: authBaseURL,
-		mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
-		emulate: {
-			googleUrl: stripTrailingSlash(emulatedEnv.EMULATE_GOOGLE_URL),
-			githubUrl: stripTrailingSlash(emulatedEnv.EMULATE_GITHUB_URL),
+	const { auth, ready } = getAuthInstance(
+		c.env,
+		{
+			baseURL: authBaseURL,
+			origin: publicRequestOrigin,
+			passkey,
+			mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
 		},
-	});
-	// Ensure plugin init (e.g. OAuth resource seeding) completes inside the
-	// request so no storage work is left floating after the response.
-	await auth.$context;
+		{
+			waitUntil: (promise) => {
+				try {
+					c.executionCtx.waitUntil(promise);
+				} catch {
+					// No ExecutionContext (unit tests calling the app directly).
+				}
+			},
+		}
+	);
+
+	// Resolved for every request after the first one that built the instance.
+	await ready;
+
 	c.set("db", db);
 	c.set("betterAuth", auth);
 	c.set("userAssets", {
 		bucketName: "scorebrawl-user-assets",
-		bucket: userAssetsBucket,
+		bucket: c.env.USER_ASSETS_BUCKET,
 	});
 
 	await next();
 });
-
-function stripTrailingSlash(value?: string) {
-	if (!value) return undefined;
-	return value.replace(/\/+$/, "");
-}
 
 export type AuthType = {
 	user: ReturnType<typeof createAuth>["$Infer"]["Session"]["user"];

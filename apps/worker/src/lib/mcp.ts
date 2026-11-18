@@ -11,6 +11,10 @@ function hostnameOf(url: string | undefined): string | undefined {
  * Public origin the client used, not the internal one the Worker sees. Proxies
  * (portless, Cloudflare) terminate TLS and forward plain HTTP, so honour the
  * forwarded headers and fall back to the request URL.
+ *
+ * Not for security-sensitive config: a client can send `x-forwarded-host`.
+ * Use `resolveRequestOrigin` from `./request-origin` for baseURL, trusted
+ * origins, passkey rpID and the MCP resource.
  */
 export function publicOrigin(request: Request): string {
 	const url = new URL(request.url);
