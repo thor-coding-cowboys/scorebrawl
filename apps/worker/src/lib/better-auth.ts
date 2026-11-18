@@ -1,8 +1,7 @@
 import { expo } from "@better-auth/expo";
 import { passkey as passkeyPlugin } from "@better-auth/passkey";
-import { mcp } from "@better-auth/mcp";
 import { apiKey } from "@better-auth/api-key";
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { type DB, drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
 	type GenericOAuthConfig,
@@ -164,9 +163,8 @@ export function createAuth({
 	origin,
 	resendApiKey,
 	adminUserIds,
-	oauthResource,
 	passkey,
-	mcpResource,
+	mcpPlugin,
 	baseURL,
 	emulate,
 }: {
@@ -181,6 +179,12 @@ export function createAuth({
 	adminUserIds?: string[];
 	oauthResource?: string;
 	passkey?: PasskeyConfig;
+	/**
+	 * Added only by the lazily built MCP instance (`auth-instance.ts`), so
+	 * ordinary requests skip constructing it.
+	 */
+	mcpPlugin?: BetterAuthPlugin;
+	/** Only shapes the MCP instance's resource; carried in the shared options. */
 	mcpResource?: string;
 	baseURL?: string;
 	/** Set only for local dev / e2e: routes social providers to `emulate`. */
@@ -495,26 +499,7 @@ export function createAuth({
 					disablePrivateKeyEncryption: true,
 				},
 			}),
-			mcp({
-				loginPage: "/auth/sign-in",
-				consentPage: "/consent",
-				resource: mcpResource ?? `${baseURL ?? origin ?? "http://localhost"}/mcp`,
-				resources: oauthResource ? [oauthResource] : [],
-				scopes: [
-					"openid",
-					"profile",
-					"email",
-					"offline_access",
-					"create:matches",
-					"read:matches",
-					"read:leagues",
-					"read:seasons",
-					"mcp:tools",
-				],
-				enforcePerClientResources: false,
-				allowDynamicClientRegistration: true,
-				allowUnauthenticatedClientRegistration: true,
-			}),
+			...(mcpPlugin ? [mcpPlugin] : []),
 		],
 	});
 }

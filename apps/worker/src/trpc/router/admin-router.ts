@@ -257,7 +257,8 @@ export const adminRouter = createTRPCRouter({
 				})
 			)
 			.mutation(async ({ ctx, input }) => {
-				const api = ctx.betterAuth.api as unknown as {
+				const mcpAuth = await ctx.getMcpAuth();
+				const api = mcpAuth.api as unknown as {
 					adminCreateOAuthClient: (opts: {
 						headers: Headers;
 						body: {

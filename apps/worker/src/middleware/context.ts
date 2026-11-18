@@ -1,7 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
-import { getAuthInstance } from "../lib/auth-instance";
+import { getAuthInstance, getMcpAuthInstance } from "../lib/auth-instance";
+import { needsMcpAuthInstance } from "../lib/auth-mcp-paths";
 import { buildPasskeyConfig } from "../lib/passkey-config";
 import { resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
 import { resolveRequestOrigin } from "../lib/request-origin";
@@ -14,6 +15,8 @@ export type HonoEnv = {
 		// Uses createAuth (not betterAuth directly) for proper TypeScript inference
 		// of plugin methods like betterAuth.api.verifyApiKey, createApiKey, etc.
 		betterAuth: ReturnType<typeof createAuth>;
+		/** Lazily built MCP-enabled instance; only for OAuth client admin APIs. */
+		getMcpAuth: () => Promise<ReturnType<typeof createAuth>>;
 		authentication?: AuthType;
 		userAssets: R2BucketRef;
 		oauthToken?: { sub?: string; scope?: string };
@@ -47,30 +50,36 @@ export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 		androidKeyHashes: c.env.PASSKEY_ANDROID_APK_KEY_HASHES,
 	});
 
-	const { auth, ready } = getAuthInstance(
-		c.env,
-		{
-			baseURL: authBaseURL,
-			origin: publicRequestOrigin,
-			passkey,
-			mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
-		},
-		{
-			waitUntil: (promise) => {
-				try {
-					c.executionCtx.waitUntil(promise);
-				} catch {
-					// No ExecutionContext (unit tests calling the app directly).
-				}
-			},
+	const authInstanceConfig = {
+		baseURL: authBaseURL,
+		origin: publicRequestOrigin,
+		passkey,
+		mcpResource: resolveMcpResource(c.env, `${publicRequestOrigin}/mcp`),
+	};
+	const waitUntil = (promise: Promise<unknown>) => {
+		try {
+			c.executionCtx.waitUntil(promise);
+		} catch {
+			// No ExecutionContext (unit tests calling the app directly).
 		}
-	);
+	};
+
+	// Ordinary app auth uses the lean instance. OAuth/MCP endpoints (and the
+	// discovery documents that describe them) use the lazily built instance with
+	// the `@better-auth/mcp` plugin.
+	const { ready } = needsMcpAuthInstance(c.req.path)
+		? getMcpAuthInstance(c.env, authInstanceConfig, { waitUntil })
+		: getAuthInstance(c.env, authInstanceConfig, { waitUntil });
 
 	// Resolved for every request after the first one that built the instance.
-	await ready;
+	const auth = await ready;
 
 	c.set("db", db);
 	c.set("betterAuth", auth);
+	c.set(
+		"getMcpAuth",
+		async () => await getMcpAuthInstance(c.env, authInstanceConfig, { waitUntil }).ready
+	);
 	c.set("userAssets", {
 		bucketName: "scorebrawl-user-assets",
 		bucket: c.env.USER_ASSETS_BUCKET,

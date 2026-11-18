@@ -14,6 +14,7 @@ interface BaseContext {
 	authentication?: AuthType;
 	db: ReturnType<typeof getDb>;
 	betterAuth: ReturnType<typeof createAuth>;
+	getMcpAuth: () => Promise<ReturnType<typeof createAuth>>;
 	userAssets: R2BucketRef;
 	env: HonoEnv["Bindings"];
 	waitUntil: (promise: Promise<unknown>) => void;

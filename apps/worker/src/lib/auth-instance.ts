@@ -1,5 +1,6 @@
 import { getDb } from "../db";
 import { createAuth } from "./better-auth";
+import { loadMcpPluginModule } from "./auth-mcp-loader";
 import type { PasskeyConfig } from "./passkey-config";
 
 export type AuthInstanceConfig = {
@@ -13,14 +14,16 @@ type AuthOptions = Parameters<typeof createAuth>[0];
 type Auth = ReturnType<typeof createAuth>;
 
 export type AuthInstance = {
-	auth: Auth;
+	/** Resolves once the instance exists and its `$context` is ready. */
 	ready: Promise<Auth>;
 };
 
 /**
- * One Better Auth instance per isolate and deployment configuration. Building
- * the instance initializes every plugin (jwks, mcp, passkey, apiKey, ...), which
- * is far too much work to repeat on each request.
+ * Two Better Auth instances per isolate and deployment configuration: the lean
+ * one that serves ordinary app auth, and the MCP-enabled one that adds
+ * `@better-auth/mcp` (OAuth 2.1 / OIDC provider). Building either instance
+ * initializes every plugin (jwks, passkey, apiKey, ...), which is far too much
+ * work to repeat on each request.
  *
  * Bounded because the key includes the request origin: production has at most
  * two origins, and the cap keeps any unexpected variation from growing isolate
@@ -28,7 +31,13 @@ export type AuthInstance = {
  */
 export const MAX_CACHED_AUTH_INSTANCES = 4;
 
-const cache = new Map<string, AuthInstance>();
+type AuthInstanceKind = "app" | "mcp";
+
+/** Separate maps so the same config yields one lean and one MCP instance. */
+const caches: Record<AuthInstanceKind, Map<string, AuthInstance>> = {
+	app: new Map(),
+	mcp: new Map(),
+};
 
 function parseAdminUserIds(raw?: string): string[] | undefined {
 	if (!raw) return undefined;
@@ -79,7 +88,18 @@ export function authInstanceKey(options: Omit<AuthOptions, "db">): string {
 	return JSON.stringify(options);
 }
 
-function remember(key: string, entry: AuthInstance): void {
+function lookup(kind: AuthInstanceKind, key: string): AuthInstance | undefined {
+	const cache = caches[kind];
+	const found = cache.get(key);
+	if (!found) return undefined;
+	// Refresh recency: Map keeps insertion order, so re-insert at the end.
+	cache.delete(key);
+	cache.set(key, found);
+	return found;
+}
+
+function remember(kind: AuthInstanceKind, key: string, entry: AuthInstance): void {
+	const cache = caches[kind];
 	cache.delete(key);
 	cache.set(key, entry);
 	while (cache.size > MAX_CACHED_AUTH_INSTANCES) {
@@ -87,6 +107,32 @@ function remember(key: string, entry: AuthInstance): void {
 		if (oldest === undefined) break;
 		cache.delete(oldest);
 	}
+}
+
+/**
+ * Caches, anchors and evicts an initialization promise. `create` may be async
+ * (the MCP instance dynamically imports its plugin). The anchor matters because
+ * the Worker opts out of `handle_cross_request_promise_resolution`; on failure
+ * the entry is dropped so the next request retries instead of reusing a broken
+ * instance.
+ */
+function cacheInstance(
+	kind: AuthInstanceKind,
+	key: string,
+	create: () => Promise<Auth>,
+	waitUntil?: (promise: Promise<unknown>) => void
+): AuthInstance {
+	const ready = create().then(async (auth) => {
+		await auth.$context;
+		return auth;
+	});
+	const entry: AuthInstance = { ready };
+	remember(kind, key, entry);
+	waitUntil?.(ready.catch(() => {}));
+	void ready.catch(() => {
+		if (caches[kind].get(key) === entry) caches[kind].delete(key);
+	});
+	return entry;
 }
 
 export function getAuthInstance(
@@ -97,34 +143,52 @@ export function getAuthInstance(
 	const instanceOptions = authOptions(env, config);
 	const key = authInstanceKey(instanceOptions);
 
-	const cached = cache.get(key);
-	if (cached) {
-		remember(key, cached);
-		return cached;
-	}
+	const cached = lookup("app", key);
+	if (cached) return cached;
 
-	const auth = createAuth({ db: getDb(env.DB), ...instanceOptions });
-
-	// `ready` is created inside the first request that builds the instance and
-	// awaited by later ones. It is anchored with waitUntil below so the runtime
-	// keeps it alive across requests (the Worker opts out of
-	// `handle_cross_request_promise_resolution`). On failure the entry is dropped
-	// so the next request retries instead of reusing a broken instance.
-	const ready = auth.$context.then(
-		() => auth,
-		(error) => {
-			if (cache.get(key)?.auth === auth) cache.delete(key);
-			throw error;
-		}
+	return cacheInstance(
+		"app",
+		key,
+		async () => createAuth({ db: getDb(env.DB), ...instanceOptions }),
+		options.waitUntil
 	);
-	const entry: AuthInstance = { auth, ready };
-	remember(key, entry);
-	options.waitUntil?.(ready.catch(() => {}));
-	return entry;
+}
+
+/**
+ * MCP-enabled instance. Callers must route only MCP/OAuth paths here (see
+ * `auth-mcp-paths.ts`). The plugin is constructed from a dynamically imported
+ * module, so ordinary requests skip its factory, API method registration and
+ * init-time seeding. (`@better-auth/mcp` itself is already in the bundle
+ * because the `/mcp` route imports `createMcpProtectedRequestHandler`.)
+ */
+export function getMcpAuthInstance(
+	env: Env,
+	config: AuthInstanceConfig,
+	options: { waitUntil?: (promise: Promise<unknown>) => void } = {}
+): AuthInstance {
+	const instanceOptions = authOptions(env, config);
+	const key = authInstanceKey(instanceOptions);
+
+	const cached = lookup("mcp", key);
+	if (cached) return cached;
+
+	return cacheInstance(
+		"mcp",
+		key,
+		async () => {
+			const { createMcpPlugin } = await loadMcpPluginModule();
+			return createAuth({
+				db: getDb(env.DB),
+				...instanceOptions,
+				mcpPlugin: createMcpPlugin(instanceOptions),
+			});
+		},
+		options.waitUntil
+	);
 }
 
 /** Clears the per-isolate cache. Tests call this because isolated storage rolls
  * back between tests while a cached instance keeps plugin state from the previous one. */
 export function clearAuthInstanceCache(): void {
-	cache.clear();
+	for (const cache of Object.values(caches)) cache.clear();
 }
