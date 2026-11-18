@@ -132,6 +132,10 @@ export default defineWorkersConfig({
 			// to the ES module version, causing "does not provide an export named 'default'" errors.
 			// This alias ensures tslib resolves to the ES module file (tslib.es6.mjs).
 			tslib: path.resolve(__dirname, "../../node_modules/tslib/tslib.es6.mjs"),
+			// The Workers test pool cannot resolve a dynamic `import()` from a Durable
+			// Object event handler (see the known issues page). Bind the MCP plugin
+			// loader statically for tests; production keeps `import()` in the loader.
+			"./auth-mcp-loader": path.resolve(__dirname, "./test/setup/auth-mcp-loader.static.ts"),
 		},
 	},
 });

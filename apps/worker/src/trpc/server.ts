@@ -14,6 +14,7 @@ export const trpcServer = honoTrpcServer({
 			authentication,
 			db: c.get("db"),
 			betterAuth,
+			getMcpAuth: c.get("getMcpAuth"),
 			userAssets: c.get("userAssets"),
 			env: c.env,
 			waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),

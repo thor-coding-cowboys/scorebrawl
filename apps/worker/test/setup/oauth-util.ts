@@ -1,6 +1,7 @@
 import { SELF, env } from "cloudflare:test";
 import { getDb } from "../../src/db/index";
 import { createAuth } from "../../src/lib/better-auth";
+import { createMcpPlugin } from "../../src/lib/better-auth-mcp";
 import { authHeaders } from "./auth-context-util";
 
 export interface OAuthTestClient {
@@ -57,6 +58,12 @@ export async function registerOAuthClient({
 		betterAuthSecret: env.BETTER_AUTH_SECRET,
 		baseURL: "http://localhost",
 		oauthResource: "https://scorebrawl.com/api/v1",
+		mcpPlugin: createMcpPlugin({
+			baseURL: "http://localhost",
+			origin: "http://localhost",
+			mcpResource: "http://localhost/mcp",
+			oauthResource: "https://scorebrawl.com/api/v1",
+		}),
 	});
 	await auth.$context;
 
