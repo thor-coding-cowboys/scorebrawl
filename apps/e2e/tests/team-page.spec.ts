@@ -74,8 +74,9 @@ test.describe("Team Page", () => {
 		// Verify team roster section
 		await expect(page.getByText("Team Roster")).toBeVisible();
 
-		// Verify recent matches section
-		await expect(page.getByText("Recent Matches")).toBeVisible();
+		// Verify recent matches section. Exact: the empty state renders
+		// "No recent matches", which the default substring matcher also matches.
+		await expect(page.getByText("Recent Matches", { exact: true })).toBeVisible();
 	});
 
 	test("should navigate to team detail from team standings", async ({ page }) => {
