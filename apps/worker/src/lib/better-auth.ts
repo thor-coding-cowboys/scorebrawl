@@ -213,6 +213,15 @@ export function createAuth({
 		secret: betterAuthSecret,
 		baseURL,
 		trustedOrigins: origin ? [origin, "scorebrawl://"] : undefined,
+		session: {
+			// get-session is the hottest auth path. A short signed-cookie cache
+			// serves warm sessions without touching D1; maxAge bounds how long a
+			// server-side revoke or organization switch can take to apply.
+			cookieCache: {
+				enabled: true,
+				maxAge: 60,
+			},
+		},
 		databaseHooks: {
 			user: {
 				create: {
@@ -471,6 +480,10 @@ export function createAuth({
 				schema: {},
 			}),
 			jwt({
+				// Nothing reads the session JWT header. Emitting it on every
+				// get-session costs a jwks query, a key import and a signature.
+				// Signing/verification (`signJWT`, `/jwks`) is unaffected.
+				disableSettingJwtHeader: true,
 				jwks: {
 					// Preview deployments rotate BETTER_AUTH_SECRET on every deploy,
 					// which would make encrypted private keys undecryptable (500 on
