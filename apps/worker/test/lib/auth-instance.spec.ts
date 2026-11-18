@@ -1,6 +1,10 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { getAuthInstance, type AuthInstanceConfig } from "../../src/lib/auth-instance";
+import {
+	MAX_CACHED_AUTH_INSTANCES,
+	getAuthInstance,
+	type AuthInstanceConfig,
+} from "../../src/lib/auth-instance";
 import { buildPasskeyConfig } from "../../src/lib/passkey-config";
 
 function config(overrides: Partial<AuthInstanceConfig> = {}): AuthInstanceConfig {
@@ -66,5 +70,23 @@ describe("getAuthInstance", () => {
 
 		expect(anchored).toHaveLength(1);
 		await expect(anchored[0]).resolves.toBe(entry.auth);
+	});
+
+	it("bounds the cache and evicts the least recently used instance", async () => {
+		const configs = Array.from({ length: MAX_CACHED_AUTH_INSTANCES + 1 }, (_, index) => {
+			const baseURL = `https://cache-${index}.example`;
+			return config({
+				baseURL,
+				origin: baseURL,
+				passkey: buildPasskeyConfig({ requestOrigin: baseURL }),
+				mcpResource: `${baseURL}/mcp`,
+			});
+		});
+		const entries = configs.map((entry) => getAuthInstance(env, entry));
+
+		const rebuilt = getAuthInstance(env, configs[0]!);
+
+		expect(rebuilt.auth).not.toBe(entries[0]!.auth);
+		await Promise.all([...entries.map((entry) => entry.ready), rebuilt.ready]);
 	});
 });

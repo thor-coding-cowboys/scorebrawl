@@ -3,7 +3,8 @@ import { getDb } from "../db";
 import { createAuth } from "../lib/better-auth";
 import { getAuthInstance } from "../lib/auth-instance";
 import { buildPasskeyConfig } from "../lib/passkey-config";
-import { publicOrigin, resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
+import { resolveAuthBaseURL, resolveMcpResource } from "../lib/mcp";
+import { resolveRequestOrigin } from "../lib/request-origin";
 import type { R2BucketRef } from "../lib/asset-util";
 
 export type HonoEnv = {
@@ -33,11 +34,10 @@ export type HonoEnv = {
 export const contextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 	const db = getDb(c.env.DB);
 
-	// Derived from the request host, never the Origin header, so a request from
-	// another site cannot become its own trusted origin (or mint a new cached
-	// auth instance). Native clients send no Origin and land on the same origin
-	// as the web app; `scorebrawl://` is added by createAuth.
-	const publicRequestOrigin = publicOrigin(c.req.raw);
+	// Derived from the request URL (not the Origin header, and not a
+	// client-supplied x-forwarded-host on public hosts) so a caller cannot pick
+	// its own trusted origin, passkey rpID, MCP resource, or mint cache entries.
+	const publicRequestOrigin = resolveRequestOrigin(c.req.raw);
 	const authBaseURL = resolveAuthBaseURL(c.env, publicRequestOrigin);
 
 	// Unset in wrangler.jsonc by design (see docs/features/23-mobile-passkeys.md).

@@ -9,6 +9,7 @@ export type AuthInstanceConfig = {
 	mcpResource: string;
 };
 
+type AuthOptions = Parameters<typeof createAuth>[0];
 type Auth = ReturnType<typeof createAuth>;
 
 export type AuthInstance = {
@@ -20,7 +21,13 @@ export type AuthInstance = {
  * One Better Auth instance per isolate and deployment configuration. Building
  * the instance initializes every plugin (jwks, mcp, passkey, apiKey, ...), which
  * is far too much work to repeat on each request.
+ *
+ * Bounded because the key includes the request origin: production has at most
+ * two origins, and the cap keeps any unexpected variation from growing isolate
+ * memory.
  */
+export const MAX_CACHED_AUTH_INSTANCES = 4;
+
 const cache = new Map<string, AuthInstance>();
 
 function parseAdminUserIds(raw?: string): string[] | undefined {
@@ -37,7 +44,7 @@ function stripTrailingSlash(value?: string): string | undefined {
 	return value.replace(/\/+$/, "");
 }
 
-function emulateUrls(env: Env) {
+function emulateUrls(env: Env): NonNullable<AuthOptions["emulate"]> {
 	const emulated = env as Env & {
 		EMULATE_GOOGLE_URL?: string;
 		EMULATE_GITHUB_URL?: string;
@@ -48,41 +55,9 @@ function emulateUrls(env: Env) {
 	};
 }
 
-/**
- * Deployment values that shape the instance. Request-scoped values are part of
- * `config`, so a host, rpID or MCP resource change cannot reuse an instance
- * configured for another one.
- */
-export function authInstanceKey(env: Env, config: AuthInstanceConfig): string {
-	return JSON.stringify([
-		env.BETTER_AUTH_SECRET,
-		env.VITE_GITHUB_CLIENT_ID,
-		env.GITHUB_CLIENT_SECRET,
-		env.VITE_GOOGLE_CLIENT_ID,
-		env.GOOGLE_CLIENT_SECRET,
-		env.ADMIN_USER_IDS,
-		env.RESEND_API_KEY,
-		env.OAUTH_RESOURCE,
-		config.baseURL,
-		config.origin,
-		config.passkey.rpID,
-		config.passkey.origin,
-		config.mcpResource,
-		emulateUrls(env),
-	]);
-}
-
-export function getAuthInstance(
-	env: Env,
-	config: AuthInstanceConfig,
-	options: { waitUntil?: (promise: Promise<unknown>) => void } = {}
-): AuthInstance {
-	const key = authInstanceKey(env, config);
-	const cached = cache.get(key);
-	if (cached) return cached;
-
-	const auth = createAuth({
-		db: getDb(env.DB),
+/** Everything that shapes the instance except the D1 handle. */
+function authOptions(env: Env, config: AuthInstanceConfig): Omit<AuthOptions, "db"> {
+	return {
 		betterAuthSecret: env.BETTER_AUTH_SECRET,
 		githubClientId: env.VITE_GITHUB_CLIENT_ID,
 		githubClientSecret: env.GITHUB_CLIENT_SECRET,
@@ -96,12 +71,45 @@ export function getAuthInstance(
 		baseURL: config.baseURL,
 		mcpResource: config.mcpResource,
 		emulate: emulateUrls(env),
-	});
+	};
+}
 
-	// The init promise is created inside the first request that builds the
-	// instance. Anchor it so an aborted request cannot strand it, and drop the
-	// entry on failure so the next request retries instead of reusing a broken
-	// instance.
+/** Derived from the options object so a new option cannot be forgotten here. */
+export function authInstanceKey(options: Omit<AuthOptions, "db">): string {
+	return JSON.stringify(options);
+}
+
+function remember(key: string, entry: AuthInstance): void {
+	cache.delete(key);
+	cache.set(key, entry);
+	while (cache.size > MAX_CACHED_AUTH_INSTANCES) {
+		const oldest = cache.keys().next().value;
+		if (oldest === undefined) break;
+		cache.delete(oldest);
+	}
+}
+
+export function getAuthInstance(
+	env: Env,
+	config: AuthInstanceConfig,
+	options: { waitUntil?: (promise: Promise<unknown>) => void } = {}
+): AuthInstance {
+	const instanceOptions = authOptions(env, config);
+	const key = authInstanceKey(instanceOptions);
+
+	const cached = cache.get(key);
+	if (cached) {
+		remember(key, cached);
+		return cached;
+	}
+
+	const auth = createAuth({ db: getDb(env.DB), ...instanceOptions });
+
+	// `ready` is created inside the first request that builds the instance and
+	// awaited by later ones. It is anchored with waitUntil below so the runtime
+	// keeps it alive across requests (the Worker opts out of
+	// `handle_cross_request_promise_resolution`). On failure the entry is dropped
+	// so the next request retries instead of reusing a broken instance.
 	const ready = auth.$context.then(
 		() => auth,
 		(error) => {
@@ -110,7 +118,7 @@ export function getAuthInstance(
 		}
 	);
 	const entry: AuthInstance = { auth, ready };
-	cache.set(key, entry);
+	remember(key, entry);
 	options.waitUntil?.(ready.catch(() => {}));
 	return entry;
 }
