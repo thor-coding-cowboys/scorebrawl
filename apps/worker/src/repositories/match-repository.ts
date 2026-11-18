@@ -737,8 +737,8 @@ export const getBySeasonId = async ({
 	limit: number;
 	offset: number;
 }) => {
-	// Get matches and count in parallel
-	const [matchRows, [countResult]] = await Promise.all([
+	// Get matches and count in one D1 batch (one round trip)
+	const [matchRows, [countResult]] = await db.batch([
 		db
 			.select({
 				id: match.id,
@@ -766,8 +766,8 @@ export const getBySeasonId = async ({
 
 	const matchIds = matchRows.map((m) => m.id);
 
-	// Get players, teams in parallel
-	const [playerRows, teamRows] = await Promise.all([
+	// Get players and teams in one D1 batch (one round trip)
+	const [playerRows, teamRows] = await db.batch([
 		db
 			.select({
 				matchId: matchPlayer.matchId,
