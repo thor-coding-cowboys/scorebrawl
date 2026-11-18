@@ -156,8 +156,8 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 		INNER JOIN season_team st ON mt.season_team_id = st.id
 		INNER JOIN league_team lt ON st.league_team_id = lt.id
 		WHERE st.season_id = ${seasonId}
-		AND date(datetime(mt.created_at, 'unixepoch')) >= date('now', '-6 days')
-		AND date(datetime(mt.created_at, 'unixepoch')) <= date('now')
+		AND mt.created_at >= unixepoch('now', '-6 days', 'start of day')
+		AND mt.created_at < unixepoch('now', '+1 day', 'start of day')
 		GROUP BY mt.season_team_id, lt.name, lt.logo
 		HAVING COUNT(*) > 0
 	`);

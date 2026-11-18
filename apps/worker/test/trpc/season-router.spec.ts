@@ -465,3 +465,32 @@ describe("season router — getSummary win rate", () => {
 		});
 	});
 });
+
+describe("season router — access control", () => {
+	it("rejects a season slug from another league", async () => {
+		const owner = await createAuthContext();
+		const ownerClient = createTRPCTestClient({ sessionToken: owner.sessionToken });
+		await createPlayers(owner, 2);
+		const season = await ownerClient.season.create.mutate({
+			name: "Private Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+
+		const outsider = await createAuthContext();
+		const outsiderClient = createTRPCTestClient({ sessionToken: outsider.sessionToken });
+
+		await expect(
+			outsiderClient.season.getBySlug.query({ seasonSlug: season.slug })
+		).rejects.toThrow(/Season not found/i);
+		await expect(
+			outsiderClient.season.getCountInfo.query({ seasonSlug: season.slug })
+		).rejects.toThrow(/Season not found/i);
+
+		expect(
+			(await ownerClient.season.getBySlug.query({ seasonSlug: season.slug })).id
+		).toBeDefined();
+	});
+});

@@ -100,18 +100,27 @@ const leagueAccessMiddleware = t.middleware(async ({ ctx, next }) => {
 	});
 });
 
-// Season access middleware - verifies season exists in organization
+// Season access middleware - verifies league membership and resolves the season
+// in one D1 round trip. Every season-scoped query pays for this, so it is kept
+// to a single statement instead of one query per concern.
 const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
-	const typedInput = input as { seasonSlug: string };
-	const typedCtx = ctx as unknown as LeagueContext;
-	const seasonSlug = typedInput.seasonSlug;
-	const organizationId = typedCtx.organizationId;
+	const organizationId = ctx.authentication?.session.activeOrganizationId;
+	if (!organizationId || !ctx.authentication) {
+		throw new TRPCError({ code: "UNAUTHORIZED", message: "No active league" });
+	}
 
-	const comp = await ctx.db
+	const seasonSlug = (input as { seasonSlug: string }).seasonSlug;
+
+	const [row] = await ctx.db
 		.select({
-			id: season.id,
-			slug: season.slug,
-			name: season.name,
+			organizationId: organization.id,
+			organizationSlug: organization.slug,
+			organizationName: organization.name,
+			organizationLogo: organization.logo,
+			role: member.role,
+			seasonId: season.id,
+			seasonSlug: season.slug,
+			seasonName: season.name,
 			initialScore: season.initialScore,
 			scoreType: season.scoreType,
 			kFactor: season.kFactor,
@@ -120,19 +129,46 @@ const seasonAccessMiddleware = t.middleware(async ({ ctx, input, next }) => {
 			rounds: season.rounds,
 			closed: season.closed,
 			archived: season.archived,
-			organizationId: season.leagueId,
+			seasonLeagueId: season.leagueId,
 		})
 		.from(season)
+		.innerJoin(organization, eq(season.leagueId, organization.id))
+		.innerJoin(
+			member,
+			and(eq(member.organizationId, organization.id), eq(member.userId, ctx.authentication.user.id))
+		)
 		.where(and(eq(season.slug, seasonSlug), eq(season.leagueId, organizationId)))
 		.limit(1);
 
-	if (comp.length === 0) {
+	if (!row) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
 	}
 
 	return next({
 		ctx: {
-			season: comp[0],
+			organization: {
+				id: row.organizationId,
+				slug: row.organizationSlug,
+				name: row.organizationName,
+				logo: row.organizationLogo,
+				role: row.role,
+			},
+			role: row.role,
+			organizationId,
+			season: {
+				id: row.seasonId,
+				slug: row.seasonSlug,
+				name: row.seasonName,
+				initialScore: row.initialScore,
+				scoreType: row.scoreType,
+				kFactor: row.kFactor,
+				startDate: row.startDate,
+				endDate: row.endDate,
+				rounds: row.rounds,
+				closed: row.closed,
+				archived: row.archived,
+				organizationId: row.seasonLeagueId,
+			},
 		},
 	});
 });
@@ -175,7 +211,6 @@ export const leagueProcedure = t.procedure.use(enforceUserIsAuthed).use(leagueAc
 export const seasonProcedure = t.procedure
 	.input(z.object({ seasonSlug: z.string() }))
 	.use(enforceUserIsAuthed)
-	.use(leagueAccessMiddleware)
 	.use(seasonAccessMiddleware);
 
 export const leagueEditorProcedure = t.procedure
