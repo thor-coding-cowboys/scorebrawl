@@ -298,7 +298,7 @@ export const findExpiredActiveSessions = async ({
 	now: Date;
 }) => {
 	return db
-		.select()
+		.select({ id: gameSession.id })
 		.from(gameSession)
 		.where(
 			and(

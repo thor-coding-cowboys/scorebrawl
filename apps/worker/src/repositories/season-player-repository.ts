@@ -230,8 +230,8 @@ export const getWeeklyStats = async ({ db, seasonId }: { db: DrizzleDB; seasonId
 		LEFT JOIN user u ON p.user_id = u.id
 		LEFT JOIN guest g ON p.guest_id = g.id
 		WHERE sp.season_id = ${seasonId}
-		AND date(datetime(mp.created_at, 'unixepoch')) >= date('now', '-6 days')
-		AND date(datetime(mp.created_at, 'unixepoch')) <= date('now')
+		AND mp.created_at >= unixepoch('now', '-6 days', 'start of day')
+		AND mp.created_at < unixepoch('now', '+1 day', 'start of day')
 		GROUP BY mp.season_player_id, COALESCE(u.name, g.display_name), u.image
 		HAVING COUNT(*) > 0
 	`);

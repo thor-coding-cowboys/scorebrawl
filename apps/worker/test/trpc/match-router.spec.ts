@@ -1,4 +1,8 @@
+import { env } from "cloudflare:test";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import { getDb } from "../../src/db/index";
+import { match } from "../../src/db/schema/league-schema";
 import { createAuthContext } from "../setup/auth-context-util";
 import { createPlayers } from "../setup/season-context-util";
 import { createTRPCTestClient } from "./trpc-test-client";
@@ -509,5 +513,46 @@ describe("match router", () => {
 		// Verify team scores accumulated across both matches
 		expect(teamStandings[0].matchCount).toBe(2);
 		expect(teamStandings[1].matchCount).toBe(2);
+	});
+});
+
+describe("match router — pagination", () => {
+	it("pages matches newest first and keeps the total for the season", async () => {
+		const ctx = await createAuthContext();
+		const client = createTRPCTestClient({ sessionToken: ctx.sessionToken });
+		await createPlayers(ctx, 2);
+
+		const season = await client.season.create.mutate({
+			name: "Pagination Season",
+			initialScore: 1000,
+			scoreType: "elo",
+			kFactor: 32,
+			startDate: new Date(),
+		});
+		const seasonPlayers = await client.seasonPlayer.getAll.query({ seasonSlug: season.slug });
+
+		const db = getDb(env.DB);
+		const created: string[] = [];
+		for (let i = 0; i < 5; i++) {
+			const m = await client.match.create.mutate({
+				seasonSlug: season.slug,
+				homeScore: 2,
+				awayScore: 0,
+				homeTeamPlayerIds: [seasonPlayers[0].id],
+				awayTeamPlayerIds: [seasonPlayers[1].id],
+			});
+			created.push(m.id);
+			await db
+				.update(match)
+				.set({ createdAt: new Date(Date.UTC(2026, 0, 1, 0, i)) })
+				.where(eq(match.id, m.id));
+		}
+
+		const newestFirst = [...created].reverse();
+		const page = await client.match.getAll.query({ seasonSlug: season.slug, limit: 2, offset: 2 });
+
+		expect(page.total).toBe(5);
+		expect(page.matches.map((m) => m.id)).toEqual(newestFirst.slice(2, 4));
+		expect(page.matches[0].homeTeam.players).toHaveLength(1);
 	});
 });
